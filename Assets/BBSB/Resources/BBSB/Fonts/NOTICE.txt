@@ -1,0 +1,9 @@
+BBSB UI is a modified, renamed subset of Noto Sans CJK KR Regular.
+Original font copyright: Copyright 2014-2021 Adobe (http://www.adobe.com/).
+Source: https://github.com/notofonts/noto-cjk/blob/main/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf
+License source: https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE
+Licensed under the SIL Open Font License 1.1; see OFL.txt in this folder.
+
+The subset contains the current C# UI/content text and printable ASCII.
+When adding new Korean text, rebuild it with Tools/subset_font.py using the original OTF.
+This prevents mobile UI from depending on device-specific Korean fallback fonts.

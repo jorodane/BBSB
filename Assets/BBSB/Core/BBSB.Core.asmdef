@@ -1,0 +1,7 @@
+{
+  "name": "BBSB.Core",
+  "rootNamespace": "BBSB.Core",
+  "references": [],
+  "autoReferenced": true,
+  "noEngineReferences": true
+}

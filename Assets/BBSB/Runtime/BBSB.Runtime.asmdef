@@ -1,0 +1,6 @@
+{
+  "name": "BBSB.Runtime",
+  "rootNamespace": "BBSB.Runtime",
+  "references": ["BBSB.Core", "Unity.ugui", "Unity.InputSystem"],
+  "autoReferenced": true
+}

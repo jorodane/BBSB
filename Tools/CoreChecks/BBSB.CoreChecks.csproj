@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <DefineConstants>BBSB_STANDALONE</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>9.0</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/BBSB/Core/*.cs" />
+    <Compile Include="../../Assets/BBSB/Tests/EditMode/RunSessionTests.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>
