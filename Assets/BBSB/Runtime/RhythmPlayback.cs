@@ -1,0 +1,107 @@
+using System;
+using BBSB.Core;
+using BBSB.Runtime.UI;
+using UnityEngine;
+
+namespace BBSB.Runtime
+{
+    /// <summary>Owns one live round, its DSP clock, pointer capture, beat audio and pause lifecycle.</summary>
+    public sealed class RhythmPlayback : MonoBehaviour
+    {
+        public RhythmRound Round { get; private set; }
+        public bool IsPaused { get; private set; }
+        public bool WaitingForContact { get; private set; }
+        public bool CanReceiveInput => Round != null && !completed && (!IsPaused || WaitingForContact);
+        private RhythmInputSurface surface;
+        private RhythmPlaybackView view;
+        private BeatMetronome metronome;
+        private Action<RhythmRound> onFinished;
+        private Action onLeave;
+        private double origin, offset;
+        private bool heldAtPause, completed;
+
+        internal void Bind(RhythmRound round, RunUI ui, Action<RhythmRound> finished, Action leave)
+        {
+            Round = round; onFinished = finished; onLeave = leave;
+            surface = gameObject.AddComponent<RhythmInputSurface>(); surface.Bind(this);
+            var music = round.Plan.Stage.Music;
+            view = new RhythmPlaybackView((RectTransform)transform, ui, round, Pause, Continue, ToggleSound, Leave);
+            metronome = new BeatMetronome(transform, music.Bpm, music.BeatsPerBar);
+            RestartClock(true); view.Refresh(0, false);
+        }
+
+        private double Now => Math.Max(Round.ElapsedSeconds, offset + Math.Max(0, AudioSettings.dspTime - origin));
+
+        private void Update()
+        {
+            if (Round == null || completed) return;
+            if (!IsPaused)
+            {
+                double now = Now;
+                // Stationary samples are necessary to distinguish a late flick from an old drag.
+                if (surface.Captured) Round.Move(now, surface.Position.x, surface.Position.y);
+                else Round.Advance(now);
+                metronome.Schedule(AudioSettings.dspTime, origin, offset, Round.Plan.Stage.Music.DurationSeconds);
+            }
+            view.Refresh(Round.ElapsedSeconds, WaitingForContact);
+            if (Round.Finished) Finish();
+        }
+
+        internal void PointerDown(Vector2 position)
+        {
+            if (!CanReceiveInput) return;
+            if (WaitingForContact)
+            {
+                Round.Resume(true, position.x, position.y);
+                WaitingForContact = IsPaused = false; RestartClock();
+            }
+            else Round.Press(Now, position.x, position.y);
+            view.Refresh(Round.ElapsedSeconds, false);
+        }
+
+        internal void PointerMove(Vector2 position)
+        {
+            if (CanReceiveInput && !IsPaused) Round.Move(Now, position.x, position.y);
+        }
+
+        internal void PointerUp(Vector2 position)
+        {
+            if (CanReceiveInput && !IsPaused) Round.Release(Now, position.x, position.y);
+        }
+
+        public void Pause()
+        {
+            if (Round == null || completed || IsPaused) return;
+            Round.Advance(Now);
+            if (Round.Finished) { Finish(); return; }
+            heldAtPause = Round.Suspend(); IsPaused = true; WaitingForContact = false;
+            surface.Cancel(); metronome.Stop(); view.ShowPause(true);
+        }
+
+        private void Continue()
+        {
+            if (!IsPaused || completed) return;
+            view.ShowPause(false);
+            if (heldAtPause) WaitingForContact = true;
+            else { Round.Resume(false); IsPaused = false; RestartClock(); }
+        }
+
+        public void SetBeatSound(bool enabled)
+        { if (metronome != null) { metronome.SetMuted(!enabled); view.SetSound(enabled); } }
+        private void ToggleSound() { SetBeatSound(metronome.Muted); }
+        private void RestartClock(bool firstStart = false)
+        {
+            offset = Round.ElapsedSeconds; origin = AudioSettings.dspTime + .12;
+            metronome.Restart(offset, firstStart);
+        }
+
+        private void Finish()
+        { if (completed) return; completed = true; metronome.Stop(); surface.Cancel(); onFinished?.Invoke(Round); }
+        private void Leave()
+        { if (completed) return; completed = true; metronome.Stop(); surface.Cancel(); onLeave?.Invoke(); }
+        private void OnApplicationPause(bool paused) { if (paused) Pause(); }
+        private void OnApplicationFocus(bool focused) { if (!focused) Pause(); }
+        private void OnDisable() { metronome?.Stop(); if (surface != null) surface.Cancel(); }
+        private void OnDestroy() { metronome?.Dispose(); }
+    }
+}

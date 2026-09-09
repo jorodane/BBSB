@@ -10,6 +10,7 @@ namespace BBSB.Runtime
     public sealed class RunPresenter : MonoBehaviour
     {
         public RunSession Session { get; private set; }
+        public RhythmRound ActiveRound { get; private set; }
         // Session.BattleMusic and BattlePlan are ready when this fires. Return via SubmitBattleResult.
         public event Action<string, StageKind, int> BattleRequested;
         private RunRules rules;
@@ -26,6 +27,7 @@ namespace BBSB.Runtime
         private string notice = "";
         private bool rendering;
         private readonly MusicPreview musicPreview = new MusicPreview();
+        private RhythmRound completedRound;
 
         public void Initialize(RunRules runRules, Font font, int? seed, bool showTestControls)
         {
@@ -45,6 +47,7 @@ namespace BBSB.Runtime
         public bool SubmitBattleResult(string ticket, bool victory, int remainingHealth)
         {
             if (Session == null || !Session.ResolveBattle(ticket, victory, remainingHealth)) return false;
+            ActiveRound = completedRound = null;
             inventory = confirmAbandon = false; pendingOffer = -1; notice = ""; Render(); return true;
         }
 
@@ -52,6 +55,7 @@ namespace BBSB.Runtime
         {
             int seed = fixedSeed ?? Guid.NewGuid().GetHashCode();
             if (Session == null) Session = new RunSession(seed, rules); else Session.Restart(seed);
+            ActiveRound = completedRound = null;
             title = inventory = confirmAbandon = false; pendingOffer = -1; notice = ""; Render();
         }
 
@@ -61,9 +65,19 @@ namespace BBSB.Runtime
             rendering = true;
             if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
             screen = ui.Stack(safeArea, "Run screen", 24, 14); RunUI.Stretch(screen);
+            // The live view fits the reference height, including in a wide Editor Game view.
+            safeArea.GetComponentInParent<CanvasScaler>().matchWidthOrHeight = ActiveRound != null ? 1 : .5f;
             if (title) { DrawTitle(); rendering = false; return; }
+            if (ActiveRound != null)
+            {
+                string ticket = Session.StageTicket;
+                screen.gameObject.AddComponent<RhythmPlayback>().Bind(ActiveRound, ui,
+                    round => FinishRhythmRound(ticket, round), () => LeaveRhythmRound(ticket));
+                rendering = false; return;
+            }
             DrawHeader();
             body = ui.Scroll(screen);
+            if (completedRound != null) { DrawRoundReport(); rendering = false; return; }
             if (confirmAbandon) DrawAbandon();
             else if (inventory) DrawInventory();
             else if (pendingOffer >= 0) DrawReplacement();
@@ -153,6 +167,7 @@ namespace BBSB.Runtime
         private void EnterStage(string nodeId)
         {
             if (!Session.Enter(nodeId)) return;
+            ActiveRound = completedRound = null;
             if (Session.CurrentNode.IsBattle) musicPreview.Reset(Session.BattleMusic);
             notice = ""; Render();
             if (Session.CurrentNode.IsBattle) BattleRequested?.Invoke(Session.StageTicket, Session.CurrentNode.Kind, Session.Map.Number);
@@ -199,11 +214,12 @@ namespace BBSB.Runtime
             ui.Label(card, music.Name, 32, RunUI.TextColor, 55);
             ui.Label(card, music.Bpm + " BPM  ·  " + music.BarCount + "마디  ·  " + music.DurationSeconds.ToString("0.0") + "초", 23, RunUI.Teal, 45);
             ui.Label(card, "각 몬스터는 아래 패턴을 반복해.\n전조 다음에 같은 리듬으로 대응하면 돼.", 22, RunUI.Muted, 84);
+            ui.Button(card, "연주 시작", () => StartRhythmRound(), primary: true, height: 78);
             for (int i = 0; i < plan.Monsters.Count; i++)
                 ui.Card(body).gameObject.AddComponent<MonsterPatternView>().Bind(plan.Monsters[i], ui, i + 1);
             if (!testControls) return;
             ui.Label(body, "개발용 계획 요약  ·  공격 " + plan.Attacks.Count + "묶음 / 양보 " + plan.Withdrawals.Count + "묶음", 19, RunUI.Muted, 48);
-            ui.Label(body, "현재는 전조·대응의 배치 계획을 확인하는 단계야.\n실제 음원 재생과 입력 판정은 아직 연결되지 않았어.", 20, RunUI.Muted, 82);
+            ui.Label(body, "샘플 곡은 박자음으로 재생돼.\n입력 결과에 따른 무기 효과와 피해 계산은 다음 단계야.", 20, RunUI.Muted, 82);
             musicPreview.Draw(ui, body, RenderMusicPreview);
             card = ui.Card(body);
             ui.Label(card, "테스트용 전투 결과", 21, RunUI.Gold, 40);
@@ -213,6 +229,48 @@ namespace BBSB.Runtime
             ui.Button(card, "HP -" + damage + " 후 클리어 처리", () =>
                 SubmitBattleResult(ticket, Session.Health > damage, Math.Max(0, Session.Health - damage)));
             ui.Button(card, "게임오버 처리", () => SubmitBattleResult(ticket, false, 0));
+        }
+
+        public bool StartRhythmRound()
+        {
+            if (Session == null || Session.Phase != RunPhase.Stage || Session.BattlePlan == null || ActiveRound != null) return false;
+            ActiveRound = new RhythmRound(Session.BattlePlan); completedRound = null;
+            inventory = confirmAbandon = false; pendingOffer = -1; notice = ""; Render(); return true;
+        }
+
+        private void FinishRhythmRound(string ticket, RhythmRound round)
+        {
+            if (Session.StageTicket != ticket || ActiveRound != round) return;
+            completedRound = round; ActiveRound = null; Render();
+        }
+
+        private void LeaveRhythmRound(string ticket)
+        {
+            if (Session.StageTicket != ticket || ActiveRound == null) return;
+            ActiveRound = completedRound = null; notice = ""; Render();
+        }
+
+        private void DrawRoundReport()
+        {
+            Heading("ROUND COMPLETE", "연주 결과", "같은 몬스터 계획으로 다시 준비할 수 있어.");
+            var card = ui.Card(body);
+            ui.Label(card, completedRound.ScorePercent.ToString("0.0") + "%", 60, RunUI.Teal, 100, TextAnchor.MiddleCenter);
+            ui.Label(card, "정확 " + completedRound.PerfectCount + "  ·  반미스 " + completedRound.HalfMissCount + "  ·  미스 " + completedRound.MissCount,
+                25, RunUI.TextColor, 60, TextAnchor.MiddleCenter);
+            ui.Label(card, "정확 100% · 반미스 50% · 미스 0%로 집계했어.", 20, RunUI.Muted, 48);
+            foreach (var monster in completedRound.Plan.Monsters)
+            {
+                int perfect = 0, half = 0, miss = 0;
+                foreach (var result in completedRound.Results)
+                {
+                    if (result.Note.Attack.MonsterId != monster.InstanceId) continue;
+                    if (result.Grade == RhythmGrade.Perfect) perfect++; else if (result.Grade == RhythmGrade.HalfMiss) half++; else miss++;
+                }
+                var line = ui.Card(body, 16);
+                ui.Label(line, monster.Monster.Name, 27, RunUI.Gold, 42);
+                ui.Label(line, "정확 " + perfect + "  ·  반미스 " + half + "  ·  미스 " + miss, 23, null, 42);
+            }
+            ui.Button(body, "다시 준비", () => { completedRound = null; Render(); }, primary: true, height: 82);
         }
 
         private void RenderMusicPreview()

@@ -10,12 +10,27 @@ namespace BBSB.Runtime.UI
     {
         private MonsterDefinition monster;
         private readonly List<GestureKind> lanes = new List<GestureKind>();
+        private PlannedAttack liveAttack;
+        private ResponseNote[] liveNotes;
+        private float cursorTick = -1;
 
         public void Bind(MonsterDefinition value)
         {
-            monster = value; lanes.Clear();
+            monster = value; lanes.Clear(); liveAttack = null; liveNotes = null; cursorTick = -1;
             foreach (var step in monster.Pattern.Steps) if (!lanes.Contains(step.Kind)) lanes.Add(step.Kind);
             lanes.Sort(); raycastTarget = false; SetVerticesDirty();
+        }
+
+        public void SetPlayback(RhythmRound round, PlannedAttack attack, double seconds)
+        {
+            if (liveAttack != attack)
+            {
+                liveAttack = attack; liveNotes = attack == null ? null : new ResponseNote[monster.Pattern.Steps.Count];
+                if (attack != null) foreach (var note in round.Notes)
+                    if (note.Attack == attack) liveNotes[note.StepIndex] = note;
+            }
+            cursorTick = attack == null ? -1 : (float)(seconds / round.BeatSeconds * RhythmTime.TicksPerBeat - attack.CallStartTick);
+            SetVerticesDirty();
         }
 
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -38,12 +53,16 @@ namespace BBSB.Runtime.UI
                 float x = left + width * signal.OffsetTick / total;
                 Quad(vh, x - 4, rect.yMax - rowHeight * .5f - 7, 8, 14, RunUI.Gold);
             }
-            foreach (var step in monster.Pattern.Steps)
+            for (int i = 0; i < monster.Pattern.Steps.Count; i++)
             {
+                var step = monster.Pattern.Steps[i];
                 float y = rect.yMax - rowHeight * (lanes.IndexOf(step.Kind) + 1.5f);
                 float x = left + width * (cue + step.OffsetTick) / total;
                 float end = left + width * (cue + step.OffsetTick + step.DurationTicks) / total;
                 Color tint = step.Kind == GestureKind.Flick ? RunUI.Red : RunUI.Teal;
+                var note = liveNotes == null ? null : liveNotes[i];
+                if (note != null && note.State == ResponseState.Resolved) tint = RhythmPlaybackView.GradeColor(note.Result.Grade);
+                else if (note != null && note.State == ResponseState.Holding) tint = RunUI.Gold;
                 if (step.DurationTicks > 0) Quad(vh, x, y - 3, Mathf.Max(1, end - x), 6, tint);
                 Quad(vh, x - 3, y - 7, 6, 14, tint);
                 if (step.DurationTicks > 0) Quad(vh, end - 2, y - 6, 4, 12,
@@ -52,6 +71,8 @@ namespace BBSB.Runtime.UI
             if (monster.RestTicks > 0)
                 Quad(vh, left + width * restStart / total, rect.yMin + rowHeight * .5f - 3,
                     width * monster.RestTicks / total, 6, RunUI.Muted);
+            if (cursorTick >= 0 && cursorTick <= total)
+                Quad(vh, left + width * cursorTick / total - 1.5f, rect.yMin, 3, rect.height, RunUI.TextColor);
         }
 
         private static void Quad(VertexHelper vh, float x, float y, float width, float height, Color tint)
