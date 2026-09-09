@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using BBSB.Core;
 using BBSB.Runtime;
+using BBSB.Runtime.UI;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -37,6 +38,12 @@ namespace BBSB.Tests
             Canvas.ForceUpdateCanvases();
             Assert.AreEqual(RunPhase.Map, presenter.Session.Phase);
             Assert.AreEqual(5, presenter.Session.Weapons.Count);
+            var connections = root.GetComponentsInChildren<MapConnectionsGraphic>().Single();
+            var renderer = connections.GetComponent<CanvasRenderer>();
+            Assert.IsNotNull(renderer, "Runtime-created map connections need a CanvasRenderer.");
+            var mesh = renderer.GetMesh();
+            Assert.IsNotNull(mesh, "Map connections should submit a mesh to the canvas.");
+            Assert.Greater(mesh.vertexCount, 0, "Map connections should contain line geometry.");
             var nodes = root.GetComponentsInChildren<Button>().Where(x => x.GetComponentInChildren<Text>().text.Contains("진입")).ToArray();
             Assert.AreEqual(3, nodes.Length);
             foreach (var node in nodes)
