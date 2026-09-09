@@ -10,7 +10,7 @@ namespace BBSB.Runtime
     public sealed class RunPresenter : MonoBehaviour
     {
         public RunSession Session { get; private set; }
-        // Session.BattleMusic is already generated when this fires. Return via SubmitBattleResult.
+        // Session.BattleMusic and BattlePlan are ready when this fires. Return via SubmitBattleResult.
         public event Action<string, StageKind, int> BattleRequested;
         private RunRules rules;
         private RunUI ui;
@@ -191,14 +191,19 @@ namespace BBSB.Runtime
         private void DrawBattle()
         {
             var kind = Session.CurrentNode.Kind;
-            Heading("BATTLE", ContentCatalog.StageName(kind) + " 무대", "다섯 무기의 리듬을 준비할 차례야.");
+            Heading("CALL & RESPONSE", "준비하기", "몬스터의 전조를 보고, 이어질 대응 리듬을 확인해.");
             var card = ui.Card(body);
-            ui.Label(card, kind == StageKind.Boss ? "FIELD BOSS" : kind == StageKind.Elite ? "ELITE ENCOUNTER" : "ENCOUNTER", 34, RunUI.Red, 75);
+            var plan = Session.BattlePlan;
+            ui.Label(card, ContentCatalog.StageName(kind) + "  ·  몬스터 " + plan.Monsters.Count + "마리", 25, RunUI.Red, 42);
             var music = Session.BattleMusic.Music;
             ui.Label(card, music.Name, 32, RunUI.TextColor, 55);
             ui.Label(card, music.Bpm + " BPM  ·  " + music.BarCount + "마디  ·  " + music.DurationSeconds.ToString("0.0") + "초", 23, RunUI.Teal, 45);
-            ui.Label(card, "이번 전투의 곡과 패턴 슬롯이 준비됐어.\n현재는 음원이 없는 샘플이야. 몬스터와 입력 판정은 다음 단계에서 연결돼.", 23, RunUI.Muted, 140);
+            ui.Label(card, "각 몬스터는 아래 패턴을 반복해.\n전조 다음에 같은 리듬으로 대응하면 돼.", 22, RunUI.Muted, 84);
+            for (int i = 0; i < plan.Monsters.Count; i++)
+                ui.Card(body).gameObject.AddComponent<MonsterPatternView>().Bind(plan.Monsters[i], ui, i + 1);
             if (!testControls) return;
+            ui.Label(body, "개발용 계획 요약  ·  공격 " + plan.Attacks.Count + "묶음 / 양보 " + plan.Withdrawals.Count + "묶음", 19, RunUI.Muted, 48);
+            ui.Label(body, "현재는 전조·대응의 배치 계획을 확인하는 단계야.\n실제 음원 재생과 입력 판정은 아직 연결되지 않았어.", 20, RunUI.Muted, 82);
             musicPreview.Draw(ui, body, RenderMusicPreview);
             card = ui.Card(body);
             ui.Label(card, "테스트용 전투 결과", 21, RunUI.Gold, 40);

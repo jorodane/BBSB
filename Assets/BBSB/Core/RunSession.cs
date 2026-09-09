@@ -26,6 +26,7 @@ namespace BBSB.Core
         public StageNode CurrentNode { get; private set; }
         public string StageTicket { get; private set; }
         public MusicStage BattleMusic { get; private set; }
+        public BattlePlan BattlePlan { get; private set; }
         public bool ServiceClaimed => claimedService;
         public IReadOnlyList<WeaponState> Weapons { get; }
         public IReadOnlyList<string> Items { get; }
@@ -50,7 +51,7 @@ namespace BBSB.Core
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
             foreach (var id in new[] { "sword", "shield", "spear", "hammer", "dagger" })
                 weapons.Add(new WeaponState(id));
-            CurrentNode = null; StageTicket = null; BattleMusic = null; claimedService = false;
+            CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; claimedService = false;
             Map = MapGenerator.Generate(1, mapRandom); Phase = RunPhase.Map;
         }
 
@@ -69,6 +70,7 @@ namespace BBSB.Core
             StageTicket = Guid.NewGuid().ToString("N"); claimedService = false; offers.Clear();
             BattleMusic = CurrentNode.IsBattle
                 ? MusicCatalog.ForEncounter(Seed, Map.Number, CurrentNode.Row, CurrentNode.Column) : null;
+            BattlePlan = CurrentNode.IsBattle ? BattlePlanner.ForEncounter(BattleMusic, Seed, CurrentNode) : null;
             if (CurrentNode.Kind == StageKind.Shop) GenerateOffers(true);
             return true;
         }
@@ -151,7 +153,7 @@ namespace BBSB.Core
         {
             if (Phase != RunPhase.FieldCleared) return false;
             Map = MapGenerator.Generate(Map.Number + 1, mapRandom);
-            CurrentNode = null; StageTicket = null; BattleMusic = null; visited.Clear(); claimedService = false;
+            CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; visited.Clear(); claimedService = false;
             Phase = RunPhase.Map;
             return true;
         }
@@ -196,7 +198,7 @@ namespace BBSB.Core
 
         private bool ValidSlot(int slot) => slot >= 0 && slot < weapons.Count;
         private bool IsService(StageKind kind) => Phase == RunPhase.Stage && CurrentNode != null && CurrentNode.Kind == kind;
-        private void CompleteStage() { visited.Add(CurrentNode.Id); ClearedStages++; StageTicket = null; BattleMusic = null; }
+        private void CompleteStage() { visited.Add(CurrentNode.Id); ClearedStages++; StageTicket = null; BattleMusic = null; BattlePlan = null; }
         private void FinishReward()
         {
             offers.Clear();
@@ -207,7 +209,7 @@ namespace BBSB.Core
             // Retain only the reached field/stage count for the result screen. No inventory survives.
             Health = 0; MaxHealth = rules.StartingHealth; Gold = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); offers.Clear();
-            visited.Clear(); StageTicket = null; BattleMusic = null; claimedService = false; Phase = RunPhase.GameOver;
+            visited.Clear(); StageTicket = null; BattleMusic = null; BattlePlan = null; claimedService = false; Phase = RunPhase.GameOver;
         }
     }
 }

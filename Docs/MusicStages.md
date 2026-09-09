@@ -32,7 +32,7 @@
 | Flick | 새 Press 없음 | 순간 슬롯 | 해당 시점에 튕기며 Release |
 | Shake | 새 Press 없음 | 지정 구간 누름 | 흔들기, 강제 Release 없음 |
 
-`TouchRequirement`는 다음 단계의 충돌 판정용 메타데이터다. Shake는 이미 누른 상태에서 시작할 수 있고 Flick의 Release는 Dive의 끝과 공유할 수 있다. 실제 손가락 상태 추적, 움직임 판정, 불가능한 입력 중첩 중재는 아직 구현하지 않았다.
+`TouchRequirement`는 `InputCompatibility`가 몬스터 계획을 중재할 때 사용하는 메타데이터다. Shake는 이미 누른 상태에서 시작할 수 있고 Flick의 Release는 Dive의 끝과 공유할 수 있다. 계획의 입력 중첩 중재는 구현했으며, 실제 손가락 상태 추적과 움직임 판정은 아직 없다.
 
 ## 몬스터 배치에서 사용할 API
 
@@ -41,7 +41,7 @@
 `RunPresenter.BattleRequested`에서 `Session.BattleMusic`을 읽는다. 곡만 끝나 준비 단계로 돌아갈 때는 그대로 재사용하고, 스테이지 전체의 승패가 결정된 후에만 `SubmitBattleResult`를 호출한다. 클리어/게임오버/재시작에서는 `BattleMusic`을 해제한다.
 
 ```csharp
-// 1박 전조 → Tap, Tap, Tap. 이후 1박 휴식은 다음 단계의 몬스터 배치 로직이 결정한다.
+// 1박 전조 → Tap, Tap, Tap. 이후 1박 휴식은 MonsterDefinition/BattlePlanner가 결정한다.
 var pattern = new RhythmPattern("three-taps", cueLeadTicks: 4, new[]
 {
     new PatternStep(GestureKind.Tap, offsetTick: 0),
@@ -62,12 +62,12 @@ foreach (var candidate in candidates)
 
 `FindPlacements`는 시간 순서대로 **완전한 패턴 후보**만 반환한다. 단순히 다음 빈 슬롯을 모으지 않는다. 입력 종류/상대 간격/유지 길이가 전부 맞아야 하고, 전조가 곡 시작 전으로 나가거나 패턴이 곡 끝을 넘으면 제외한다. Dive의 끝에 Flick을 겹치려면 그 정확한 틱의 Flick 슬롯도 있어야 한다. 각 후보의 가중치는 대응 슬롯 가중치의 산술 평균이다. 이를 바로 확률로 해석하거나 하이라이트 출현 보장으로 해석하지 않는다.
 
-조회는 슬롯을 점유하지 않으며 같은 결과를 반복 조회할 수 있다. 전조 구간 `[CueStartTick, StartTick)`의 선행 시간은 확보하지만 전조 신호 자체와 다른 패턴 전조와의 연출 중재는 아직 없다. 몬스터별 공격 계획 확정, 점유 박자 수 비교, 충돌된 묶음 철회는 다음 구현 단계다.
+조회는 슬롯을 점유하지 않으며 같은 결과를 반복 조회할 수 있다. 전조 구간 `[CueStartTick, StartTick)`의 선행 시간을 확보한다. 이 API 위에서 `BattlePlanner`가 몬스터별 공격 계획을 만들고, 점유 박자 수를 비교해 충돌된 묶음을 철회한다. 전조 신호의 시점/라벨도 저장하지만 실제 소리·애니메이션 및 겹친 전조의 연출 중재는 아직 없다. [MonsterPlans.md](MonsterPlans.md)를 참고한다.
 
 ## Unity에서 확인
 
 `RunMap` 실행 → 탐험 시작 → 전투 노드 → **개발용 슬롯 미리보기 / 슬롯 펼치기**. 이전/다음 곡으로 다섯 샘플을, 이전/다음 마디로 인트로와 하이라이트를 확인한다. 세로선은 정박/엇박, 가로막대는 유지 구간, 붉은 표시는 Release다. 3연 Tap에 1박 전조를 붙인 예시의 전체/현재 마디 배치 후보 수도 표시한다.
 
-미리보기에서 곡을 변경해도 상단의 이번 전투 곡은 유지된다. 이 화면은 개발용이며, 실제 플레이어의 준비 화면은 합의대로 몬스터 패턴과 무기 편성을 보여줄 예정이다. `Show Battle Test Controls`를 끄면 미리보기와 테스트 결과 버튼 모두 숨겨진다.
+미리보기에서 곡을 변경해도 이번 전투 곡과 몬스터 계획은 유지된다. 이 화면은 개발용이다. 위의 준비 화면에는 배치된 몬스터의 패턴 카드가 표시되며, 무기 편성은 이후 연결한다. `Show Battle Test Controls`를 끄면 미리보기와 테스트 결과 버튼만 숨겨진다.
 
-독립 실행 핵심 테스트 28개 중 음악 테스트는 11개다. Unity PlayMode에는 전투 이벤트 시점의 음악 준비, 미리보기의 CanvasRenderer/도형 생성, 샘플 탐색 중 전투 곡 유지, 클리어 후 해제 검증을 추가했다. 작업 환경에 Unity Editor가 없어 PlayMode 실행과 실제 기기 확인은 아직 하지 못했다.
+독립 실행 핵심 테스트 39개 중 음악 테스트는 11개다. Unity PlayMode에는 전투 이벤트 시점의 음악/몬스터 계획 준비, 미리보기와 패턴 카드의 CanvasRenderer/도형 생성, 샘플 탐색 중 계획 유지, 클리어 후 해제 검증이 있다. 작업 환경에 Unity Editor가 없어 PlayMode 실행과 실제 기기 확인은 아직 하지 못했다.

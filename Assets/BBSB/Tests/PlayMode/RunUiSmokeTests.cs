@@ -65,7 +65,9 @@ namespace BBSB.Tests
             var presenter = root.AddComponent<RunPresenter>();
             presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, true);
             MusicStage announced = null;
-            presenter.BattleRequested += (ticket, kind, field) => announced = presenter.Session.BattleMusic;
+            BattlePlan announcedPlan = null;
+            presenter.BattleRequested += (ticket, kind, field) =>
+            { announced = presenter.Session.BattleMusic; announcedPlan = presenter.Session.BattlePlan; };
             Click("탐험 시작");
             yield return null;
             for (int row = 0; row < FieldMap.StageCount; row++)
@@ -79,6 +81,10 @@ namespace BBSB.Tests
             var encounter = presenter.Session.BattleMusic;
             Assert.IsNotNull(encounter);
             Assert.AreSame(encounter, announced, "Music must exist before the battle event fires.");
+            var plan = presenter.Session.BattlePlan;
+            Assert.IsNotNull(plan);
+            Assert.AreSame(plan, announcedPlan, "Monster plans must exist before the battle event fires.");
+            VerifyMonsterCards(plan);
             Click("슬롯 펼치기");
             yield return null;
             Canvas.ForceUpdateCanvases();
@@ -97,11 +103,57 @@ namespace BBSB.Tests
             Click("다음 마디");
             yield return null;
             Assert.AreSame(encounter, presenter.Session.BattleMusic);
+            Assert.AreSame(plan, presenter.Session.BattlePlan);
+            VerifyMonsterCards(plan);
             Click("클리어 처리");
             yield return null;
             Assert.AreEqual(RunPhase.Reward, presenter.Session.Phase);
             Assert.IsNull(presenter.Session.BattleMusic);
+            Assert.IsNull(presenter.Session.BattlePlan);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator PreparationShowsMonstersWithDeveloperControlsDisabled()
+        {
+            root = new GameObject("Preparation UI smoke test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            Click("탐험 시작");
+            yield return null;
+            for (int row = 0; row < FieldMap.StageCount; row++)
+            {
+                root.GetComponentsInChildren<Button>().First(x => x.interactable && x.GetComponentInChildren<Text>().text.Contains("진입")).onClick.Invoke();
+                yield return null;
+                if (presenter.Session.CurrentNode.IsBattle) break;
+                Click("지도에 돌아가기"); yield return null;
+            }
+            VerifyMonsterCards(presenter.Session.BattlePlan);
+            Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "슬롯 펼치기"));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private void VerifyMonsterCards(BattlePlan plan)
+        {
+            Assert.IsNotNull(plan);
+            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "준비하기"));
+            Canvas.ForceUpdateCanvases();
+            var cards = root.GetComponentsInChildren<MonsterPatternView>();
+            Assert.AreEqual(plan.Monsters.Count, cards.Length);
+            foreach (var monster in plan.Monsters)
+            {
+                var card = cards.Single(x => x.Plan.InstanceId == monster.InstanceId);
+                Assert.AreSame(monster, card.Plan);
+                Assert.IsTrue(card.GetComponentsInChildren<Text>().Any(x => x.text.Contains(monster.Monster.Name)));
+                var graphic = card.GetComponentInChildren<MonsterPatternGraphic>();
+                Assert.IsNotNull(graphic);
+                var renderer = graphic.GetComponent<CanvasRenderer>();
+                Assert.IsNotNull(renderer);
+                Assert.Greater(graphic.rectTransform.rect.width, 100);
+                renderer.cull = false;
+                graphic.SetVerticesDirty(); graphic.Rebuild(CanvasUpdate.PreRender);
+                Assert.IsNotNull(renderer.GetMesh()); Assert.Greater(renderer.GetMesh().vertexCount, 0);
+            }
         }
 
         private void Click(string label)

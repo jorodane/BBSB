@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
-    /// <summary>Development inspector only. The player's eventual preparation UI shows monster patterns.</summary>
+    /// <summary>Development inspector only. The preparation cards above show the placed monsters.</summary>
     internal sealed class MusicPreview
     {
         private static readonly RhythmPattern TapTriplet = new RhythmPattern("preview-three-taps", 4, new[]
@@ -58,7 +58,7 @@ namespace BBSB.Runtime.UI
                 if (candidate.StartTick / stage.Music.TicksPerBar == bar) here++;
             }
             ui.Label(card, "후보 조회 예시: Tap · Tap · Tap / 전조 1박\n곡 전체 " + total + "곳 · 이 마디에서 시작 " + here + "곳", 20, RunUI.Teal, 76);
-            ui.Label(card, "표시는 배치 가능한 후보야. 실제 공격은 몬스터를 배치할 때 결정돼.", 20, RunUI.Muted, 70);
+            ui.Label(card, "슬롯 후보를 보여줘. 이번 전투의 몬스터 패턴은 위의 준비 카드에서 확인해.", 20, RunUI.Muted, 70);
         }
 
         private void Select(int direction, Action redraw)
