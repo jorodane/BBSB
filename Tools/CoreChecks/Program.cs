@@ -11,11 +11,11 @@ namespace BBSB.Tests
         private static int Main()
         {
             int passed = 0, failed = 0;
-            var tests = new RunSessionTests();
-            foreach (var method in typeof(RunSessionTests).GetMethods())
+            foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+            foreach (var method in type.GetMethods())
             {
                 if (method.GetCustomAttribute<TestAttribute>() == null) continue;
-                try { method.Invoke(tests, null); passed++; Console.WriteLine("PASS " + method.Name); }
+                try { method.Invoke(Activator.CreateInstance(type), null); passed++; Console.WriteLine("PASS " + type.Name + "." + method.Name); }
                 catch (Exception error)
                 { failed++; Console.WriteLine("FAIL " + method.Name + ": " + (error.InnerException ?? error).Message); }
             }

@@ -57,5 +57,58 @@ namespace BBSB.Tests
             Assert.AreEqual(RunPhase.Stage, presenter.Session.Phase);
             LogAssert.NoUnexpectedReceived();
         }
+
+        [UnityTest]
+        public IEnumerator MusicPreviewBuildsGeometryAndBrowsingDoesNotRerollTheEncounter()
+        {
+            root = new GameObject("Music UI smoke test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, true);
+            MusicStage announced = null;
+            presenter.BattleRequested += (ticket, kind, field) => announced = presenter.Session.BattleMusic;
+            Click("탐험 시작");
+            yield return null;
+            for (int row = 0; row < FieldMap.StageCount; row++)
+            {
+                root.GetComponentsInChildren<Button>().First(x => x.interactable && x.GetComponentInChildren<Text>().text.Contains("진입")).onClick.Invoke();
+                yield return null;
+                if (presenter.Session.CurrentNode.IsBattle) break;
+                Click("지도에 돌아가기");
+                yield return null;
+            }
+            var encounter = presenter.Session.BattleMusic;
+            Assert.IsNotNull(encounter);
+            Assert.AreSame(encounter, announced, "Music must exist before the battle event fires.");
+            Click("슬롯 펼치기");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            var graphic = root.GetComponentsInChildren<MusicSlotsGraphic>().Single();
+            var renderer = graphic.GetComponent<CanvasRenderer>();
+            Assert.IsNotNull(renderer);
+            Assert.IsFalse(graphic.raycastTarget);
+            Assert.Greater(graphic.rectTransform.rect.width, 100);
+            // The preview can be below the viewport. Submit one mesh without scroll culling.
+            renderer.cull = false;
+            graphic.SetVerticesDirty(); graphic.Rebuild(CanvasUpdate.PreRender);
+            Assert.IsNotNull(renderer.GetMesh());
+            Assert.Greater(renderer.GetMesh().vertexCount, 0);
+            Click("다음 곡");
+            yield return null;
+            Click("다음 마디");
+            yield return null;
+            Assert.AreSame(encounter, presenter.Session.BattleMusic);
+            Click("클리어 처리");
+            yield return null;
+            Assert.AreEqual(RunPhase.Reward, presenter.Session.Phase);
+            Assert.IsNull(presenter.Session.BattleMusic);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private void Click(string label)
+        {
+            var button = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<Text>().text == label);
+            Assert.IsTrue(button.interactable);
+            button.onClick.Invoke();
+        }
     }
 }

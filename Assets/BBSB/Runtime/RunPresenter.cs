@@ -10,7 +10,7 @@ namespace BBSB.Runtime
     public sealed class RunPresenter : MonoBehaviour
     {
         public RunSession Session { get; private set; }
-        // Future battle scene receives the immutable ticket and returns via SubmitBattleResult.
+        // Session.BattleMusic is already generated when this fires. Return via SubmitBattleResult.
         public event Action<string, StageKind, int> BattleRequested;
         private RunRules rules;
         private RunUI ui;
@@ -25,6 +25,7 @@ namespace BBSB.Runtime
         private int pendingOffer = -1;
         private string notice = "";
         private bool rendering;
+        private readonly MusicPreview musicPreview = new MusicPreview();
 
         public void Initialize(RunRules runRules, Font font, int? seed, bool showTestControls)
         {
@@ -152,6 +153,7 @@ namespace BBSB.Runtime
         private void EnterStage(string nodeId)
         {
             if (!Session.Enter(nodeId)) return;
+            if (Session.CurrentNode.IsBattle) musicPreview.Reset(Session.BattleMusic);
             notice = ""; Render();
             if (Session.CurrentNode.IsBattle) BattleRequested?.Invoke(Session.StageTicket, Session.CurrentNode.Kind, Session.Map.Number);
         }
@@ -192,9 +194,13 @@ namespace BBSB.Runtime
             Heading("BATTLE", ContentCatalog.StageName(kind) + " 무대", "다섯 무기의 리듬을 준비할 차례야.");
             var card = ui.Card(body);
             ui.Label(card, kind == StageKind.Boss ? "FIELD BOSS" : kind == StageKind.Elite ? "ELITE ENCOUNTER" : "ENCOUNTER", 34, RunUI.Red, 75);
-            ui.Label(card, "리듬 전투를 연결할 자리", 29, RunUI.TextColor, 55);
-            ui.Label(card, "현재는 분기 맵과 탐험 보상을 확인하는 기본 버전이야.\n실제 음악과 입력 판정은 다음 구현에서 연결돼.", 23, RunUI.Muted, 130);
+            var music = Session.BattleMusic.Music;
+            ui.Label(card, music.Name, 32, RunUI.TextColor, 55);
+            ui.Label(card, music.Bpm + " BPM  ·  " + music.BarCount + "마디  ·  " + music.DurationSeconds.ToString("0.0") + "초", 23, RunUI.Teal, 45);
+            ui.Label(card, "이번 전투의 곡과 패턴 슬롯이 준비됐어.\n현재는 음원이 없는 샘플이야. 몬스터와 입력 판정은 다음 단계에서 연결돼.", 23, RunUI.Muted, 140);
             if (!testControls) return;
+            musicPreview.Draw(ui, body, RenderMusicPreview);
+            card = ui.Card(body);
             ui.Label(card, "테스트용 전투 결과", 21, RunUI.Gold, 40);
             string ticket = Session.StageTicket;
             ui.Button(card, "클리어 처리", () => SubmitBattleResult(ticket, true, Session.Health), primary: true);
@@ -202,6 +208,16 @@ namespace BBSB.Runtime
             ui.Button(card, "HP -" + damage + " 후 클리어 처리", () =>
                 SubmitBattleResult(ticket, Session.Health > damage, Math.Max(0, Session.Health - damage)));
             ui.Button(card, "게임오버 처리", () => SubmitBattleResult(ticket, false, 0));
+        }
+
+        private void RenderMusicPreview()
+        {
+            float offset = body.anchoredPosition.y;
+            Render();
+            Canvas.ForceUpdateCanvases();
+            var scroll = body.GetComponentInParent<ScrollRect>();
+            float range = Mathf.Max(0, body.rect.height - scroll.viewport.rect.height);
+            scroll.verticalNormalizedPosition = range > 0 ? 1 - Mathf.Clamp(offset, 0, range) / range : 1;
         }
 
         private void LeaveButton()
