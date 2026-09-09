@@ -46,6 +46,74 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void AllRoutesLimitShopsAndRestsIndependentlyAcrossMerges()
+        {
+            bool sawShopAndRestTogether = false;
+            bool sawMultipleShopsOnDifferentRoutes = false;
+            foreach (int seed in MapSeeds())
+            {
+                var random = new SeededRandom(seed);
+                for (int field = 1; field <= 4; field++)
+                {
+                    var map = MapGenerator.Generate(field, random);
+                    sawMultipleShopsOnDifferentRoutes |= map.Nodes.Count(x => x.Kind == StageKind.Shop) > 1;
+                    foreach (var start in map.Nodes.Where(x => x.Row == 0))
+                        InspectRoutes(map, start, 0, 0, ref sawShopAndRestTogether);
+                }
+            }
+            Check.True(sawShopAndRestTogether, "The limits are one of EACH type, not one shop/rest combined.");
+            Check.True(sawMultipleShopsOnDifferentRoutes, "Service limits are per route, not per field.");
+        }
+
+        [Test]
+        public void PruningRemovesStraightRailsAndPreservesMeaningfulBranches()
+        {
+            var topologies = new HashSet<string>();
+            foreach (int seed in MapSeeds())
+            {
+                var map = MapGenerator.Generate(1, new SeededRandom(seed));
+                topologies.Add(string.Join("|", map.Nodes.Select(x => x.Id + ":" + string.Join(",", x.Next))));
+                Check.True(map.Nodes.Any(x => x.Row < 2 && x.Next.Count > 1), "No branch before the boss.");
+                for (int row = 0; row < 2; row++)
+                {
+                    var layer = map.Nodes.Where(x => x.Row == row).ToArray();
+                    Check.True(layer.Any(x => !x.Next.Any(id => map.Find(id).Column == x.Column)),
+                        "Three straight rails survived pruning.");
+                    Check.True(layer.Sum(x => x.Next.Count) <= 4, "Too many candidate links survived pruning.");
+                }
+            }
+            Check.True(topologies.Count > 20, "Different seeds should change links as well as node types.");
+        }
+
+        [Test]
+        public void ShopAndRestLimitsStartFreshInNextField()
+        {
+            foreach (var kind in new[] { StageKind.Shop, StageKind.Rest })
+            {
+                var run = Stage(kind);
+                FinishField(run); Check.True(run.AdvanceField());
+                Check.True(run.Enter(run.Map.Nodes.First(x => x.Row == 0 && x.Kind == kind).Id));
+            }
+        }
+
+        private static IEnumerable<int> MapSeeds()
+        {
+            for (int seed = 0; seed < 1000; seed++) yield return seed;
+            yield return -1; yield return int.MinValue; yield return int.MaxValue;
+        }
+
+        private static void InspectRoutes(FieldMap map, StageNode node, int shops, int rests, ref bool sawBoth)
+        {
+            shops += node.Kind == StageKind.Shop ? 1 : 0;
+            rests += node.Kind == StageKind.Rest ? 1 : 0;
+            Check.True(shops <= 1, "Repeated shop on route through " + node.Id);
+            Check.True(rests <= 1, "Repeated rest on route through " + node.Id);
+            if (node.Kind == StageKind.Boss) { sawBoth |= shops == 1 && rests == 1; return; }
+            Check.True(node.Next.Count > 0, "Pruning produced a dead end.");
+            foreach (var id in node.Next) InspectRoutes(map, map.Find(id), shops, rests, ref sawBoth);
+        }
+
+        [Test]
         public void OnlyConnectedNextRowCanBeEntered()
         {
             var run = new RunSession(1);

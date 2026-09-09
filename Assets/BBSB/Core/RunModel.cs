@@ -30,6 +30,8 @@ namespace BBSB.Core
         {
             if (!next.Contains(target.Id)) next.Add(target.Id);
         }
+
+        internal void Disconnect(StageNode target) { next.Remove(target.Id); }
     }
 
     public sealed class FieldMap
