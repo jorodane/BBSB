@@ -10,6 +10,7 @@ namespace BBSB.Core
         public bool Down { get; private set; }
         public double X { get; private set; }
         public double Y { get; private set; }
+        public double SampleSeconds { get; private set; }
         public RhythmTouch(RhythmRules rules) { this.rules = rules; }
 
         public void Press(double time, double x, double y)
@@ -17,7 +18,7 @@ namespace BBSB.Core
 
         public void Move(double time, double x, double y)
         {
-            X = x; Y = y;
+            X = x; Y = y; SampleSeconds = time;
             if (!Down) return;
             if (samples.Count > 0 && samples[samples.Count - 1].time == time) samples[samples.Count - 1] = (time, x, y);
             else samples.Add((time, x, y));

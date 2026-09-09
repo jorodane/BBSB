@@ -32,13 +32,14 @@ namespace BBSB.Runtime
 
         private double Now => Math.Max(Round.ElapsedSeconds, offset + Math.Max(0, AudioSettings.dspTime - origin));
 
-        private void Update()
+        private void LateUpdate()
         {
             if (Round == null || completed) return;
             if (!IsPaused)
             {
                 double now = Now;
-                // Stationary samples are necessary to distinguish a late flick from an old drag.
+                // Sample after UI events, once per frame. Sampling the stale position in Update
+                // would incorrectly count movement as stationary time depending on script order.
                 if (surface.Captured) Round.Move(now, surface.Position.x, surface.Position.y);
                 else Round.Advance(now);
                 metronome.Schedule(AudioSettings.dspTime, origin, offset, Round.Plan.Stage.Music.DurationSeconds);
@@ -59,11 +60,6 @@ namespace BBSB.Runtime
             view.Refresh(Round.ElapsedSeconds, false);
         }
 
-        internal void PointerMove(Vector2 position)
-        {
-            if (CanReceiveInput && !IsPaused) Round.Move(Now, position.x, position.y);
-        }
-
         internal void PointerUp(Vector2 position)
         {
             if (CanReceiveInput && !IsPaused) Round.Release(Now, position.x, position.y);
@@ -72,7 +68,8 @@ namespace BBSB.Runtime
         public void Pause()
         {
             if (Round == null || completed || IsPaused) return;
-            Round.Advance(Now);
+            if (surface.Captured) Round.Move(Now, surface.Position.x, surface.Position.y);
+            else Round.Advance(Now);
             if (Round.Finished) { Finish(); return; }
             heldAtPause = Round.Suspend(); IsPaused = true; WaitingForContact = false;
             surface.Cancel(); metronome.Stop(); view.ShowPause(true);

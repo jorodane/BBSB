@@ -48,6 +48,8 @@ namespace BBSB.Runtime.UI
                 ui.Label(transform, label, 19, null, 32);
             }
             ui.Label(transform, "대응 시작을 0박으로 표시해. 이후 " + Beat(monster.RestTicks) + "박 휴식.", 18, RunUI.Muted, 48);
+            if (kinds.Contains(GestureKind.Shake))
+                ui.Label(transform, "Shake  ·  흔든 시간 50% 이상 반미스 / 75% 이상 성공", 19, RunUI.Teal, 52);
         }
 
         private static string Beat(int tick) => (tick / (double)RhythmTime.TicksPerBeat).ToString("0.##", CultureInfo.InvariantCulture);

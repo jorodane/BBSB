@@ -53,7 +53,7 @@ namespace BBSB.Runtime.UI
             var space = ui.Rect("Touch space", root); var flexible = space.gameObject.AddComponent<LayoutElement>();
             flexible.flexibleHeight = 1; flexible.minHeight = 0;
             contact = ui.Label(root, "", 27, RunUI.Teal, 44, TextAnchor.MiddleCenter);
-            ui.Label(root, "Tap 누르기 · Hold 끝까지 유지 · Dive 끝에 떼기\nFlick 미리 누르고 튕겨 떼기 · Shake 누른 채 움직였다 돌아오기",
+            ui.Label(root, "Tap 누르기 · Hold 끝까지 유지 · Dive 끝에 떼기\nFlick 튕겨 떼기 · Shake 50% 반미스 / 75% 성공",
                 20, RunUI.Muted, 70, TextAnchor.MiddleCenter);
             ui.Label(root, "일시정지 버튼을 제외한 화면 어디든 입력할 수 있어.", 19, RunUI.Muted, 28, TextAnchor.MiddleCenter);
 
@@ -118,6 +118,8 @@ namespace BBSB.Runtime.UI
 
         public static string GradeLabel(RhythmGrade grade) => grade == RhythmGrade.Perfect ? "PERFECT" : grade == RhythmGrade.HalfMiss ? "반미스" : "MISS";
         public static Color GradeColor(RhythmGrade grade) => grade == RhythmGrade.Perfect ? RunUI.Teal : grade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Red;
+        // Don't round 49.9% up to 50% while its grade is still Miss.
+        private static string ShakePercent(ResponseNote note) => Math.Floor(note.ShakeCoverage * 100 + 1e-7).ToString("0") + "%";
 
         private static RectTransform Progress(Transform parent, RunUI ui, string name, float height)
         {
@@ -153,9 +155,10 @@ namespace BBSB.Runtime.UI
             public void Result(RhythmResult value)
             {
                 result.text = value.Note.Step.Kind + "  ·  " + GradeLabel(value.Grade);
+                if (value.Note.Step.Kind == GestureKind.Shake) result.text += "  ·  " + ShakePercent(value.Note);
                 if (value.Reason == MissReason.TooEarly) result.text += "  너무 일찍 눌렀어";
                 else if (value.Reason == MissReason.MissingFlick) result.text += "  튕기며 떼어줘";
-                else if (value.Reason == MissReason.MissingShake) result.text += "  움직였다 돌아와줘";
+                else if (value.Reason == MissReason.MissingShake) result.text += "  50% 이상 흔들어줘";
                 result.color = GradeColor(value.Grade);
             }
 
@@ -185,7 +188,8 @@ namespace BBSB.Runtime.UI
                     {
                         if (note.Attack != current || note.State == ResponseState.Resolved) continue;
                         if (note.State == ResponseState.Holding)
-                            actions.Add(note.Step.Kind + (note.Step.Kind == GestureKind.Dive ? " 끝에 떼기" : note.Step.Kind == GestureKind.Shake ? " 왕복" : " 유지"));
+                            actions.Add(note.Step.Kind + (note.Step.Kind == GestureKind.Dive ? " 끝에 떼기" : note.Step.Kind == GestureKind.Shake ?
+                                " " + ShakePercent(note) : " 유지"));
                         else if (note.StartSeconds - seconds <= round.BeatSeconds)
                             actions.Add(note.Step.Kind + " " + Math.Max(0, (note.StartSeconds - seconds) / round.BeatSeconds).ToString("0.0") + "박");
                     }

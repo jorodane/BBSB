@@ -24,7 +24,8 @@ namespace BBSB.Runtime
         public void OnDrag(PointerEventData data)
         {
             if (!Captured || data.pointerId != pointer) return;
-            Position = Normalize(data.position); playback.PointerMove(Position);
+            // Playback samples once in LateUpdate after the EventSystem has supplied this frame's position.
+            Position = Normalize(data.position);
         }
 
         public void OnPointerUp(PointerEventData data)

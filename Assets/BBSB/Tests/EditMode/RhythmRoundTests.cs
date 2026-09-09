@@ -80,29 +80,102 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void ShakeMustMoveOutAndBackWhileMaintainingContact()
+        public void ShakeCoverageThresholdsAreInclusiveAndAllowRestAtTheEnd()
         {
-            var round = Round(new PatternStep(GestureKind.Shake, 0, 4));
-            round.Press(1.7, 0, 0); round.Move(2, 0, 0);
-            round.Move(2.1, .1, 0); round.Move(2.2, .01, 0); round.Advance(2.5);
-            Check.Equal(1, round.PerfectCount);
-            var still = Round(new PatternStep(GestureKind.Shake, 0, 4));
-            still.Press(2, 0, 0); still.Advance(2.7);
-            Check.Equal(MissReason.MissingShake, still.Results[0].Reason);
-            var noReturn = Round(new PatternStep(GestureKind.Shake, 0, 4));
-            noReturn.Press(2, 0, 0); noReturn.Move(2.1, .1, 0); noReturn.Release(2.5, .1, 0);
-            Check.Equal(1, noReturn.MissCount);
+            foreach (double ratio in new[] { 0, .499, .5, .749, .75, 1 })
+            {
+                var round = Round(new PatternStep(GestureKind.Shake, 0, 8));
+                round.Press(2, 0, 0); ShakeFor(round, 2, ratio);
+                if (ratio < 1) Check.True(round.Results.Count == 0, "Coverage doesn't resolve the note ahead of its beat.");
+                round.Advance(3);
+                Near(ratio, round.Notes[0].ShakeCoverage);
+                var expected = ratio >= .75 ? RhythmGrade.Perfect : ratio >= .5 ? RhythmGrade.HalfMiss : RhythmGrade.Miss;
+                Check.Equal(expected, round.Results.Single().Grade);
+                Check.Equal(3.0, round.Results[0].JudgedAtSeconds);
+            }
         }
 
         [Test]
-        public void ShakeLateReturnGetsReducedEfficiencyAndEarlyReleaseFails()
+        public void ShakeCountsMovementInsteadOfHoldingWaitingOrOneWayDragging()
         {
-            var late = Round(new PatternStep(GestureKind.Shake, 0, 4));
-            late.Press(2, 0, 0); late.Move(2.1, .1, 0); late.Move(2.6, 0, 0);
-            Check.Equal(1, late.HalfMissCount);
-            var early = Round(new PatternStep(GestureKind.Shake, 0, 4));
-            early.Press(2, 0, 0); early.Move(2.1, .1, 0); early.Release(2.2, 0, 0);
-            Check.Equal(1, early.MissCount);
+            var still = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            still.Press(2, 0, 0); MoveLine(still, 2, 0, 3, 0);
+            Check.Equal(1, still.MissCount); Near(0, still.Notes[0].ShakeCoverage);
+            var waited = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            waited.Press(2, 0, 0); MoveLine(waited, 2, 0, 2.1, .1);
+            MoveLine(waited, 2.1, .1, 2.7, .1); MoveLine(waited, 2.7, .1, 2.8, 0); waited.Advance(3);
+            Check.Equal(1, waited.MissCount); Near(.2, waited.Notes[0].ShakeCoverage);
+            var drag = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            drag.Press(2, 0, 0); MoveLine(drag, 2, 0, 3, .5);
+            Check.Equal(1, drag.MissCount); Near(0, drag.Notes[0].ShakeCoverage);
+            var drift = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            drift.Press(2, 0, 0); MoveLine(drift, 2, 0, 3, .01);
+            Check.Equal(1, drift.MissCount); Near(0, drift.Notes[0].ShakeCoverage);
+        }
+
+        [Test]
+        public void ShakeCanStartLateAndUsesCoverageWithoutAPressTimingPenalty()
+        {
+            foreach (double delay in new[] { .25, .5, .501 })
+            {
+                var round = Round(new PatternStep(GestureKind.Shake, 0, 8));
+                round.Press(2 + delay, 0, 0); ShakeFor(round, 2 + delay, 1 - delay); round.Release(3, 0, 0);
+                Near(1 - delay, round.Notes[0].ShakeCoverage);
+                Check.Equal(delay <= .25 ? RhythmGrade.Perfect : delay <= .5 ? RhythmGrade.HalfMiss : RhythmGrade.Miss,
+                    round.Results.Single().Grade);
+            }
+        }
+
+        [Test]
+        public void ShakeMayReleasePauseAndContinueWithoutLosingEarnedCoverage()
+        {
+            var round = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            round.Press(2, 0, 0); ShakeFor(round, 2, .3); round.Release(2.3, 0, 0);
+            Check.False(round.Suspend()); round.Advance(99); Near(2.3, round.ElapsedSeconds);
+            round.Resume(false); round.Press(2.5, 0, 0); ShakeFor(round, 2.5, .45); round.Release(2.95, 0, 0);
+            Check.Equal(0, round.Results.Count); round.Advance(3);
+            Check.Equal(1, round.PerfectCount); Near(.75, round.Notes[0].ShakeCoverage);
+        }
+
+        [Test]
+        public void ShakeClipsMotionAtBothEndsAndCannotImproveAfterTheWindow()
+        {
+            var round = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            round.Press(1.9, 0, 0); MoveLine(round, 1.9, 0, 2.5, .2); MoveLine(round, 2.5, .2, 3.1, 0);
+            Near(1, round.Notes[0].ShakeActiveSeconds); Check.Equal(1, round.PerfectCount);
+            ShakeFor(round, 3.1, .5); Near(1, round.Notes[0].ShakeActiveSeconds); Check.Equal(1, round.Results.Count);
+            var late = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            late.Advance(3); late.Press(3, 0, 0); ShakeFor(late, 3, .5);
+            Near(0, late.Notes[0].ShakeCoverage); Check.Equal(1, late.MissCount);
+        }
+
+        [Test]
+        public void ShakeCoverageDoesNotDependOnTheSamplingFrameRate()
+        {
+            foreach (int fps in new[] { 30, 60, 120 })
+            {
+                var round = Round(new PatternStep(GestureKind.Shake, 0, 8));
+                round.Press(2, 0, 0); ShakeFor(round, 2, .75, fps); round.Advance(3);
+                Near(.75, round.Notes[0].ShakeCoverage); Check.Equal(1, round.PerfectCount);
+            }
+        }
+
+        [Test]
+        public void ShakeDoesNotInventMovingTimeAcrossMissingSamples()
+        {
+            var round = Round(new PatternStep(GestureKind.Shake, 0, 8));
+            round.Press(2, 0, 0); round.Move(2, .1, 0); round.Move(2.8, .2, 0); round.Release(3, 0, 0);
+            Near(0, round.Notes[0].ShakeCoverage); Check.Equal(1, round.MissCount);
+        }
+
+        [Test]
+        public void ShakeCoverageDoesNotForgiveAnEarlyHoldOrDiveRelease()
+        {
+            var round = Round(new PatternStep(GestureKind.Hold, 0, 8), new PatternStep(GestureKind.Dive, 0, 8),
+                new PatternStep(GestureKind.Shake, 0, 8));
+            round.Press(2, 0, 0); ShakeFor(round, 2, .75); round.Release(2.75, 0, 0); round.Advance(3);
+            Check.Equal(2, round.MissCount); Check.Equal(1, round.PerfectCount);
+            Check.Equal(GestureKind.Shake, round.Results.Single(x => x.Grade == RhythmGrade.Perfect).Note.Step.Kind);
         }
 
         [Test]
@@ -110,8 +183,7 @@ namespace BBSB.Tests
         {
             var round = Round(new PatternStep(GestureKind.Dive, 0, 8),
                 new PatternStep(GestureKind.Shake, 4, 4), new PatternStep(GestureKind.Flick, 8));
-            round.Press(2, 0, 0); round.Move(2.5, 0, 0);
-            round.Move(2.65, .1, 0); round.Move(2.8, 0, 0);
+            round.Press(2, 0, 0); round.Advance(2.5); ShakeFor(round, 2.5, .375);
             round.Move(2.94, 0, 0); round.Release(3, .1, 0);
             Check.Equal(3, round.PerfectCount); Check.False(round.IsDown);
         }
@@ -205,13 +277,14 @@ namespace BBSB.Tests
         {
             var round = Round(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Dive, 0, 8),
                 new PatternStep(GestureKind.Shake, 0, 8));
-            round.Press(2, 0, 0); round.Move(2.2, .1, 0);
-            Check.True(round.Suspend()); round.Advance(100); Check.Equal(2.2, round.ElapsedSeconds);
+            round.Press(2, 0, 0); MoveLine(round, 2, 0, 2.4, .1);
+            Check.True(round.Suspend()); round.Advance(100); Check.Equal(2.4, round.ElapsedSeconds);
             bool rejected = false;
             try { round.Resume(false); } catch (InvalidOperationException) { rejected = true; }
             Check.True(rejected);
-            round.Resume(true, .6, .5); round.Move(2.5, .5, .5); round.Release(3, .5, .5);
+            round.Resume(true, .6, .5); MoveLine(round, 2.4, .6, 2.8, .5, y: .5); round.Release(3, .5, .5);
             Check.Equal(3, round.PerfectCount); Check.Equal(3, round.Results.Count);
+            Near(.8, round.Notes.Single(x => x.Step.Kind == GestureKind.Shake).ShakeCoverage);
         }
 
         [Test]
@@ -235,6 +308,26 @@ namespace BBSB.Tests
             var stage = Fixture();
             return new RhythmRound(BattlePlanner.Resolve(stage, new[] { Proposal(stage, "sample", 16, steps) }, 1));
         }
+
+        private static void ShakeFor(RhythmRound round, double start, double duration, int fps = 60)
+        {
+            if (duration <= 0) return;
+            MoveLine(round, start, 0, start + duration / 2, .1, fps);
+            MoveLine(round, start + duration / 2, .1, start + duration, 0, fps);
+        }
+
+        private static void MoveLine(RhythmRound round, double from, double fromX, double to, double toX, int fps = 60, double y = 0)
+        {
+            int count = Math.Max(1, (int)Math.Ceiling((to - from) * fps));
+            for (int i = 1; i <= count; i++)
+            {
+                double t = i / (double)count;
+                round.Move(from + (to - from) * t, fromX + (toX - fromX) * t, y);
+            }
+        }
+
+        private static void Near(double expected, double actual)
+            => Check.True(Math.Abs(expected - actual) < 1e-8, "Expected " + expected + ", got " + actual);
 
         private static MonsterProposal Proposal(MusicStage stage, string id, int tick, params PatternStep[] steps)
         {

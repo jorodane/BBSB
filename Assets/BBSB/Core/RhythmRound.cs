@@ -43,32 +43,38 @@ namespace BBSB.Core
             Notes = notes.AsReadOnly(); Results = results.AsReadOnly(); Calls = calls.AsReadOnly();
         }
 
-        public void Advance(double seconds)
+        public void Advance(double seconds) => Move(seconds, touch.X, touch.Y);
+
+        private void AdvanceNotes(double seconds)
         {
-            ValidateTime(seconds);
-            if (Finished || suspended) return;
             ElapsedSeconds = seconds;
             while (callCursor < Plan.Calls.Count && Seconds(Plan.Calls[callCursor].Tick) <= seconds)
                 calls.Add(Plan.Calls[callCursor++]);
             foreach (var note in notes)
             {
                 if (note.State == ResponseState.Resolved) continue;
+                if (note.Step.Kind == GestureKind.Shake)
+                {
+                    // Shake is a coverage task, with no separate start/release timing gate.
+                    if (seconds >= note.StartSeconds) note.State = ResponseState.Holding;
+                    if (seconds >= note.EndSeconds)
+                    {
+                        var grade = note.ShakeCoverage + 1e-9 >= rules.ShakePerfectRatio ? RhythmGrade.Perfect :
+                            note.ShakeCoverage + 1e-9 >= rules.ShakeHalfMissRatio ? RhythmGrade.HalfMiss : RhythmGrade.Miss;
+                        Resolve(note, grade, grade == RhythmGrade.Miss ? MissReason.MissingShake : MissReason.None, note.EndSeconds, 0);
+                    }
+                    continue;
+                }
                 if (note.State == ResponseState.Pending)
                 {
-                    if (note.Step.Kind == GestureKind.Shake && touch.Down && note.StartSeconds <= seconds)
-                        Begin(note, RhythmGrade.Perfect, 0);
-                    else if (seconds > note.StartSeconds + HalfMissWindow + 1e-9)
+                    if (seconds > note.StartSeconds + HalfMissWindow + 1e-9)
                         Resolve(note, RhythmGrade.Miss, MissReason.NoInput, note.StartSeconds + HalfMissWindow, 0);
                 }
                 if (note.State != ResponseState.Holding) continue;
                 if (note.Step.Kind == GestureKind.Hold && seconds >= note.EndSeconds && touch.Down)
                     Resolve(note, note.StartGrade, MissReason.None, note.EndSeconds, note.StartError);
-                else if (note.Step.Kind == GestureKind.Shake && seconds >= note.EndSeconds && note.Returned && touch.Down)
-                    Resolve(note, Worse(note.StartGrade, Grade(Math.Max(0, note.ReturnTime - note.EndSeconds))), MissReason.None,
-                        Math.Max(note.EndSeconds, note.ReturnTime), Math.Max(0, note.ReturnTime - note.EndSeconds));
                 else if (seconds > note.EndSeconds + HalfMissWindow + 1e-9)
-                    Resolve(note, RhythmGrade.Miss, note.Step.Kind == GestureKind.Shake ? MissReason.MissingShake : MissReason.ReleaseTiming,
-                        note.EndSeconds + HalfMissWindow, 0);
+                    Resolve(note, RhythmGrade.Miss, MissReason.ReleaseTiming, note.EndSeconds + HalfMissWindow, 0);
             }
             if (seconds > Plan.Stage.Music.DurationSeconds + HalfMissWindow + 1e-9)
             {
@@ -88,7 +94,7 @@ namespace BBSB.Core
             {
                 foreach (var note in notes)
                 {
-                    if (note.StartTick != target || note.State != ResponseState.Pending || note.Step.Kind == GestureKind.Flick) continue;
+                    if (note.StartTick != target || note.State != ResponseState.Pending || note.Step.Touch.Start != TouchTransition.Press) continue;
                     double error = seconds - note.StartSeconds; var grade = Grade(error);
                     if (note.Step.Kind == GestureKind.Tap) Resolve(note, grade, MissReason.None, seconds, error);
                     else Begin(note, grade, error);
@@ -99,21 +105,55 @@ namespace BBSB.Core
 
         public void Move(double seconds, double x, double y)
         {
-            ValidatePoint(x, y); Advance(seconds);
+            ValidatePoint(x, y); ValidateTime(seconds);
             if (Finished || suspended) return;
+            // Integrate the final motion sample BEFORE resolving notes ending at this time.
+            TrackShakeMotion(seconds, x, y);
             touch.Move(seconds, x, y);
-            if (!touch.Down) return;
+            AdvanceNotes(seconds);
+        }
+
+        private void TrackShakeMotion(double seconds, double x, double y)
+        {
+            double dt = seconds - touch.SampleSeconds;
             foreach (var note in notes)
             {
-                if (note.State != ResponseState.Holding || note.Step.Kind != GestureKind.Shake || seconds < note.StartSeconds) continue;
-                double distance = RhythmTouch.Distance(note.OriginX, note.OriginY, x, y);
-                if (distance >= rules.ShakeOutDistance) note.WentOut = true;
-                if (note.WentOut && !note.Returned && distance <= rules.ShakeReturnDistance)
-                { note.Returned = true; note.ReturnTime = seconds; }
+                if (note.Step.Kind != GestureKind.Shake || note.State == ResponseState.Resolved) continue;
+                if (!touch.Down || dt > rules.ShakeMaxSampleGapSeconds + 1e-9)
+                { EndShakeContact(note); continue; }
+                double from = Math.Max(touch.SampleSeconds, note.StartSeconds), to = Math.Min(seconds, note.EndSeconds);
+                if (dt <= 0 || to <= from) continue;
+                double a = (from - touch.SampleSeconds) / dt, b = (to - touch.SampleSeconds) / dt;
+                double ax = touch.X + (x - touch.X) * a, ay = touch.Y + (y - touch.Y) * a;
+                double bx = touch.X + (x - touch.X) * b, by = touch.Y + (y - touch.Y) * b;
+                if (!note.ShakeContact)
+                { note.ShakeContact = true; note.OriginX = ax; note.OriginY = ay; }
+                // Stationary holds and very slow drift add no shake time.
+                if (RhythmTouch.Distance(ax, ay, bx, by) / (to - from) + 1e-9 >= rules.ShakeMinSpeed)
+                {
+                    if (note.ShakeVerified) note.ShakeActiveSeconds += to - from;
+                    else note.ShakeUnverifiedSeconds += to - from;
+                }
+                if (note.ShakeWentOut && SegmentDistance(note.OriginX, note.OriginY, ax, ay, bx, by) <= rules.ShakeReturnDistance + 1e-9)
+                {
+                    // Once this contact has demonstrated a round trip, its moving time is eligible.
+                    note.ShakeVerified = true;
+                    note.ShakeActiveSeconds += note.ShakeUnverifiedSeconds; note.ShakeUnverifiedSeconds = 0;
+                }
+                else if (RhythmTouch.Distance(note.OriginX, note.OriginY, bx, by) + 1e-9 >= rules.ShakeOutDistance)
+                    note.ShakeWentOut = true;
             }
-            // A return arriving at/after the end may complete Shake in this very input event.
-            Advance(seconds);
         }
+
+        private static double SegmentDistance(double x, double y, double ax, double ay, double bx, double by)
+        {
+            double dx = bx - ax, dy = by - ay, length = dx * dx + dy * dy;
+            double t = length <= 0 ? 0 : Math.Max(0, Math.Min(1, ((x - ax) * dx + (y - ay) * dy) / length));
+            return RhythmTouch.Distance(x, y, ax + t * dx, ay + t * dy);
+        }
+
+        private static void EndShakeContact(ResponseNote note)
+        { note.ShakeContact = note.ShakeWentOut = note.ShakeVerified = false; note.ShakeUnverifiedSeconds = 0; }
 
         public void Release(double seconds, double x, double y)
         {
@@ -134,16 +174,15 @@ namespace BBSB.Core
                     if (note.Step.Kind == GestureKind.Dive)
                         Resolve(note, inWindow && note.EndTick == target ? Worse(note.StartGrade, Grade(error)) : RhythmGrade.Miss,
                             inWindow && note.EndTick == target ? MissReason.None : MissReason.ReleaseTiming, seconds, error);
-                    else if (note.Step.Kind == GestureKind.Hold || note.Step.Kind == GestureKind.Shake)
+                    else if (note.Step.Kind == GestureKind.Hold)
                     {
-                        bool valid = inWindow && (note.Step.Kind != GestureKind.Shake || note.Returned);
-                        Resolve(note, valid ? Worse(note.StartGrade, Grade(error)) : RhythmGrade.Miss,
-                            valid ? MissReason.None : note.Step.Kind == GestureKind.Shake && !note.Returned ? MissReason.MissingShake : MissReason.ReleasedEarly,
-                            seconds, error);
+                        Resolve(note, inWindow ? Worse(note.StartGrade, Grade(error)) : RhythmGrade.Miss,
+                            inWindow ? MissReason.None : MissReason.ReleasedEarly, seconds, error);
                     }
                 }
             }
             touch.Release();
+            foreach (var note in notes) if (note.Step.Kind == GestureKind.Shake) EndShakeContact(note);
         }
 
         // Freeze time and input together; the host must explicitly resume. Regrabbing isn't a new judged Press.
@@ -161,7 +200,7 @@ namespace BBSB.Core
                 { note.OriginX += dx; note.OriginY += dy; }
                 touch.Press(ElapsedSeconds, x, y);
             }
-            else if (notes.Exists(n => n.State == ResponseState.Holding))
+            else if (notes.Exists(n => n.State == ResponseState.Holding && n.Step.Kind != GestureKind.Shake))
                 throw new InvalidOperationException("An active held gesture must be regrabbed before resuming.");
             suspended = false;
         }
@@ -171,7 +210,7 @@ namespace BBSB.Core
             int target = -1; double best = double.MaxValue;
             foreach (var note in notes)
             {
-                if (note.State != ResponseState.Pending || note.Step.Kind == GestureKind.Flick) continue;
+                if (note.State != ResponseState.Pending || note.Step.Touch.Start != TouchTransition.Press) continue;
                 double distance = Math.Abs(seconds - note.StartSeconds);
                 if (distance <= HalfMissWindow + 1e-9 && distance < best) { best = distance; target = note.StartTick; }
             }
