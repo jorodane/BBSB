@@ -81,6 +81,13 @@ namespace BBSB.Runtime.UI
 
         public static float MonsterX(int index, int count) => count == 1 ? .5f : .17f + .66f * index / (count - 1);
 
+        private void OnRectTransformDimensionsChange()
+        {
+            if (hero == null) return;
+            LayoutActors();
+            Refresh();
+        }
+
         private Actor CreateActor(RunUI ui, string instance, string asset, string label)
         {
             var root = ui.Rect("Actor " + instance, area);

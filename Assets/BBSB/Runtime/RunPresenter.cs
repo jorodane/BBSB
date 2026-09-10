@@ -2,11 +2,12 @@ using System;
 using BBSB.Core;
 using BBSB.Runtime.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace BBSB.Runtime
 {
-    /// <summary>Runtime-built portrait UI. RunSession owns all gameplay mutations.</summary>
+    /// <summary>One viewport per screen, with secondary information in a modal menu.</summary>
     public sealed class RunPresenter : MonoBehaviour
     {
         public RunSession Session { get; private set; }
@@ -18,11 +19,12 @@ namespace BBSB.Runtime
         private RectTransform safeArea;
         private RectTransform screen;
         private RectTransform body;
+        private RectTransform menuOverlay, menuBody;
+        private enum MenuPage { None, Home, Inventory, Help, Patterns, Development, Abandon }
+        private MenuPage menuPage;
         private int? fixedSeed;
         private bool testControls;
         private bool title = true;
-        private bool inventory;
-        private bool confirmAbandon;
         private int pendingOffer = -1;
         private string notice = "";
         private bool rendering;
@@ -36,7 +38,10 @@ namespace BBSB.Runtime
             var canvas = canvasRoot.gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasRoot.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(720, 1280); scaler.matchWidthOrHeight = .5f;
+            // Keep the short side at 720 UI units in portrait AND landscape. A wide Game view
+            // must not shrink every control to fit a virtual 1280-unit portrait height.
+            scaler.referenceResolution = new Vector2(720, 720);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             canvasRoot.gameObject.AddComponent<GraphicRaycaster>();
             var background = ui.Rect("Backdrop", canvasRoot); RunUI.Stretch(background); ui.Background(background, RunUI.Ink);
             safeArea = ui.Rect("Safe area", canvasRoot); RunUI.Stretch(safeArea);
@@ -48,7 +53,7 @@ namespace BBSB.Runtime
         {
             if (Session == null || !Session.ResolveBattle(ticket, victory, remainingHealth)) return false;
             ActiveRound = completedRound = null;
-            inventory = confirmAbandon = false; pendingOffer = -1; notice = ""; Render(); return true;
+            menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return true;
         }
 
         private void StartRun()
@@ -56,7 +61,7 @@ namespace BBSB.Runtime
             int seed = fixedSeed ?? Guid.NewGuid().GetHashCode();
             if (Session == null) Session = new RunSession(seed, rules); else Session.Restart(seed);
             ActiveRound = completedRound = null;
-            title = inventory = confirmAbandon = false; pendingOffer = -1; notice = ""; Render();
+            title = false; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
         }
 
         private void Render()
@@ -64,9 +69,10 @@ namespace BBSB.Runtime
             if (rendering || ui == null) return;
             rendering = true;
             if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
-            screen = ui.Stack(safeArea, "Run screen", 24, 14); RunUI.Stretch(screen);
-            // The live view fits the reference height, including in a wide Editor Game view.
-            safeArea.GetComponentInParent<CanvasScaler>().matchWidthOrHeight = ActiveRound != null ? 1 : .5f;
+            ClearMenu();
+            screen = ui.Stack(safeArea, "Run screen", 16, 10); RunUI.Stretch(screen);
+            body = null;
+            screen.gameObject.AddComponent<CanvasGroup>();
             if (title) { DrawTitle(); rendering = false; return; }
             if (ActiveRound != null)
             {
@@ -76,25 +82,40 @@ namespace BBSB.Runtime
                 rendering = false; return;
             }
             DrawHeader();
-            body = ui.Scroll(screen);
-            if (completedRound != null) { DrawRoundReport(); rendering = false; return; }
-            if (confirmAbandon) DrawAbandon();
-            else if (inventory) DrawInventory();
-            else if (pendingOffer >= 0) DrawReplacement();
+            // Map and preparation use all remaining space. Only lists/results need scrolling.
+            if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Map)
+                DrawMap();
+            else if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Stage && Session.CurrentNode.IsBattle)
+                DrawBattle();
             else
             {
-                switch (Session.Phase)
+                body = ui.Scroll(screen);
+                if (completedRound != null) DrawRoundReport();
+                else if (pendingOffer >= 0) DrawReplacement();
+                else
                 {
-                    case RunPhase.Map: DrawMap(); break;
-                    case RunPhase.Stage: DrawStage(); break;
-                    case RunPhase.Reward: DrawRewards(); break;
-                    case RunPhase.FieldCleared: DrawFieldCleared(); break;
-                    case RunPhase.GameOver: DrawGameOver(); break;
+                    switch (Session.Phase)
+                    {
+                        case RunPhase.Stage: DrawStage(); break;
+                        case RunPhase.Reward: DrawRewards(); break;
+                        case RunPhase.FieldCleared: DrawFieldCleared(); break;
+                        case RunPhase.GameOver: DrawGameOver(); break;
+                    }
                 }
             }
-            if (!string.IsNullOrEmpty(notice)) ui.Label(body, notice, 21, RunUI.Teal, 64);
-            if (Session.Phase != RunPhase.GameOver) DrawFooter();
+            if (!string.IsNullOrEmpty(notice)) ui.Label(screen, notice, 21, RunUI.Teal, 42);
+            RenderMenu();
             rendering = false;
+        }
+
+        private void Update()
+        {
+            if (title || ActiveRound != null || Session == null || Session.Phase == RunPhase.GameOver) return;
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                if (menuPage == MenuPage.None) OpenMenu(MenuPage.Home);
+                else CloseMenu();
+            }
         }
 
         private void DrawTitle()
@@ -113,14 +134,15 @@ namespace BBSB.Runtime
 
         private void DrawHeader()
         {
-            var header = ui.Stack(screen, "Status", 0, 6);
-            var row = ui.Row(header, 38);
-            ui.Label(row, "BBSB  /  FIELD " + Session.Map.Number.ToString("00"), 24, RunUI.Gold, 38);
-            ui.Label(row, Session.Gold + " G", 25, RunUI.Gold, 38, TextAnchor.MiddleRight);
-            var stats = ui.Row(header, 32);
-            ui.Label(stats, "HP  " + Session.Health + " / " + Session.MaxHealth, 22, RunUI.Teal, 32);
-            ui.Label(stats, "통과한 스테이지  " + Session.ClearedStages, 18, RunUI.Muted, 32, TextAnchor.MiddleRight);
-            ui.Bar(header, (float)Session.Health / Session.MaxHealth, RunUI.Teal);
+            var row = ui.Row(screen, 80); row.name = "Status";
+            var field = ui.Label(row, "FIELD " + Session.Map.Number.ToString("00"), 26, RunUI.Gold, 80);
+            var fieldSize = field.GetComponent<LayoutElement>();
+            fieldSize.minWidth = fieldSize.preferredWidth = 148; fieldSize.flexibleWidth = 0;
+            ui.Label(row, "HP  " + Session.Health + " / " + Session.MaxHealth + "\n" + Session.Gold + " G", 22, RunUI.Teal, 80);
+            if (Session.Phase == RunPhase.GameOver) return;
+            var menu = ui.Button(row, "메뉴", () => OpenMenu(MenuPage.Home), height: 80);
+            var size = menu.GetComponent<LayoutElement>();
+            size.minWidth = size.preferredWidth = 104; size.flexibleWidth = 0;
         }
 
         private void Heading(string kicker, string heading, string description)
@@ -132,8 +154,9 @@ namespace BBSB.Runtime
 
         private void DrawMap()
         {
-            Heading("CHOOSE YOUR PATH", "다음 무대를 골라줘", "아래에서 위로 진행해. 밝게 표시된 무대를 선택할 수 있어.");
-            var map = ui.Rect("Field map", body); RunUI.Size(map, 530); ui.Background(map, RunUI.Panel);
+            ui.Label(screen, "다음 무대를 골라줘", 34, RunUI.TextColor, 48);
+            var map = ui.Rect("Field map", screen);
+            RunUI.Size(map, 200).flexibleHeight = 1; ui.Background(map, RunUI.Panel);
             var links = ui.Rect("Connections", map); RunUI.Stretch(links);
             links.gameObject.AddComponent<MapConnectionsGraphic>().Bind(Session);
             foreach (var node in Session.Map.Nodes)
@@ -147,18 +170,20 @@ namespace BBSB.Runtime
                 var button = ui.Button(map, label, () => EnterStage(id), available, available, 86);
                 var rect = (RectTransform)button.transform;
                 var pos = MapConnectionsGraphic.Position(node);
-                rect.anchorMin = new Vector2(pos.x - .135f, pos.y);
-                rect.anchorMax = new Vector2(pos.x + .135f, pos.y);
-                rect.sizeDelta = new Vector2(0, node.Kind == StageKind.Boss ? 98 : 86);
+                rect.anchorMin = new Vector2(pos.x - .135f, pos.y - .08f);
+                rect.anchorMax = new Vector2(pos.x + .135f, pos.y + .08f);
+                rect.sizeDelta = Vector2.zero;
                 rect.anchoredPosition = Vector2.zero;
                 var colors = button.colors;
                 colors.disabledColor = visited ? Color.white : new Color(.65f, .65f, .65f, .85f);
                 button.colors = colors;
                 if (visited) button.GetComponent<Image>().color = RunUI.Hex("426A65");
                 else if (!available && node.Kind == StageKind.Boss) button.GetComponent<Image>().color = RunUI.Hex("643A53");
-                var labelText = button.GetComponentInChildren<Text>(); labelText.fontSize = 21;
+                var labelText = button.GetComponentInChildren<Text>(); labelText.fontSize = 30;
+                labelText.resizeTextForBestFit = true;
+                labelText.resizeTextMinSize = 18; labelText.resizeTextMaxSize = 30;
             }
-            ui.Label(body, "몬스터 · 엘리트 · 강화 · 휴식 · 상점\n04  보스에서 모든 경로가 만나.", 20, RunUI.Muted, 72);
+            ui.Label(screen, "아래에서 위로  ·  밝은 무대를 선택해", 22, RunUI.Muted, 34, TextAnchor.MiddleCenter);
         }
 
         private bool HasVisited(string id)
@@ -169,7 +194,7 @@ namespace BBSB.Runtime
             if (!Session.Enter(nodeId)) return;
             ActiveRound = completedRound = null;
             if (Session.CurrentNode.IsBattle) musicPreview.Reset(Session.BattleMusic);
-            notice = ""; Render();
+            menuPage = MenuPage.None; notice = ""; Render();
             if (Session.CurrentNode.IsBattle) BattleRequested?.Invoke(Session.StageTicket, Session.CurrentNode.Kind, Session.Map.Number);
         }
 
@@ -206,22 +231,37 @@ namespace BBSB.Runtime
         private void DrawBattle()
         {
             var kind = Session.CurrentNode.Kind;
-            Heading("CALL & RESPONSE", "준비하기", "몬스터의 전조를 보고, 이어질 대응 리듬을 확인해.");
-            var card = ui.Card(body);
             var plan = Session.BattlePlan;
-            ui.Label(card, ContentCatalog.StageName(kind) + "  ·  몬스터 " + plan.Monsters.Count + "마리", 25, RunUI.Red, 42);
             var music = Session.BattleMusic.Music;
-            ui.Label(card, music.Name, 32, RunUI.TextColor, 55);
-            ui.Label(card, music.Bpm + " BPM  ·  " + music.BarCount + "마디  ·  " + music.DurationSeconds.ToString("0.0") + "초", 23, RunUI.Teal, 45);
-            ui.Label(card, "각 몬스터는 아래 패턴을 반복해.\n전조 다음에 같은 리듬으로 대응하면 돼.", 22, RunUI.Muted, 84);
-            ui.Button(card, "연주 시작", () => StartRhythmRound(), primary: true, height: 78);
+            ui.Label(screen, "준비하기", 34, RunUI.TextColor, 48);
+            ui.Label(screen, ContentCatalog.StageName(kind) + "  ·  " + music.Name + "  /  " + music.Bpm + " BPM", 24, RunUI.Gold, 42);
+            var stage = ui.Rect("Preparation arena", screen); RunUI.Size(stage, 180).flexibleHeight = 1;
+            var arena = stage.gameObject.AddComponent<BattleArenaView>();
+            // A still preview reads the same plan without starting playback or changing the session.
+            arena.Initialize(new RhythmRound(plan), ui.Font);
+            var actions = ui.Row(screen, 76);
+            ui.Button(actions, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns), height: 76);
+            ui.Button(actions, "연주 시작", () => StartRhythmRound(), primary: true, height: 76);
+        }
+
+        private void DrawPatterns()
+        {
+            var plan = Session.BattlePlan;
+            var music = plan.Stage.Music;
+            ui.Label(body, music.Name + "  /  " + music.Bpm + " BPM", 28, RunUI.Gold, 50);
+            ui.Label(body, music.BarCount + "마디  ·  " + music.DurationSeconds.ToString("0.0") + "초\n전조 다음에 같은 리듬으로 대응하면 돼.", 23, RunUI.Muted, 84);
             for (int i = 0; i < plan.Monsters.Count; i++)
                 ui.Card(body).gameObject.AddComponent<MonsterPatternView>().Bind(plan.Monsters[i], ui, i + 1);
-            if (!testControls) return;
+        }
+
+        private void DrawDevelopment()
+        {
+            var plan = Session.BattlePlan;
+            var kind = Session.CurrentNode.Kind;
             ui.Label(body, "개발용 계획 요약  ·  공격 " + plan.Attacks.Count + "묶음 / 양보 " + plan.Withdrawals.Count + "묶음", 19, RunUI.Muted, 48);
             ui.Label(body, "샘플 곡은 박자음으로 재생돼.\n입력 결과에 따른 무기 효과와 피해 계산은 다음 단계야.", 20, RunUI.Muted, 82);
             musicPreview.Draw(ui, body, RenderMusicPreview);
-            card = ui.Card(body);
+            var card = ui.Card(body);
             ui.Label(card, "테스트용 전투 결과", 21, RunUI.Gold, 40);
             string ticket = Session.StageTicket;
             ui.Button(card, "클리어 처리", () => SubmitBattleResult(ticket, true, Session.Health), primary: true);
@@ -235,7 +275,7 @@ namespace BBSB.Runtime
         {
             if (Session == null || Session.Phase != RunPhase.Stage || Session.BattlePlan == null || ActiveRound != null) return false;
             ActiveRound = new RhythmRound(Session.BattlePlan); completedRound = null;
-            inventory = confirmAbandon = false; pendingOffer = -1; notice = ""; Render(); return true;
+            menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return true;
         }
 
         private void FinishRhythmRound(string ticket, RhythmRound round)
@@ -275,11 +315,11 @@ namespace BBSB.Runtime
 
         private void RenderMusicPreview()
         {
-            float offset = body.anchoredPosition.y;
-            Render();
+            float offset = menuBody.anchoredPosition.y;
+            RenderMenu();
             Canvas.ForceUpdateCanvases();
-            var scroll = body.GetComponentInParent<ScrollRect>();
-            float range = Mathf.Max(0, body.rect.height - scroll.viewport.rect.height);
+            var scroll = menuBody.GetComponentInParent<ScrollRect>();
+            float range = Mathf.Max(0, menuBody.rect.height - scroll.viewport.rect.height);
             scroll.verticalNormalizedPosition = range > 0 ? 1 - Mathf.Clamp(offset, 0, range) / range : 1;
         }
 
@@ -356,29 +396,72 @@ namespace BBSB.Runtime
             ui.Button(card, "처음으로", () => { title = true; Render(); });
         }
 
-        private void DrawFooter()
+        private void OpenMenu(MenuPage page)
         {
-            var footer = ui.Stack(screen, "Loadout", 0, 8);
-            ui.Label(footer, "WEAPON MASTER  /  5 SLOTS", 17, RunUI.Gold, 26);
-            var row = ui.Row(footer, 70, 8);
+            menuPage = page; RenderMenu();
+        }
+
+        private void CloseMenu() { menuPage = MenuPage.None; RenderMenu(); }
+
+        private void ClearMenu()
+        {
+            if (menuOverlay != null) { menuOverlay.gameObject.SetActive(false); Destroy(menuOverlay.gameObject); }
+            menuOverlay = menuBody = null;
+        }
+
+        private void RenderMenu()
+        {
+            ClearMenu();
+            if (title || ActiveRound != null || Session.Phase == RunPhase.GameOver) menuPage = MenuPage.None;
+            var group = screen.GetComponent<CanvasGroup>();
+            group.interactable = group.blocksRaycasts = menuPage == MenuPage.None;
+            if (menuPage == MenuPage.None) return;
+            if ((menuPage == MenuPage.Patterns || menuPage == MenuPage.Development) && Session.BattlePlan == null)
+                menuPage = MenuPage.Home;
+            if (menuPage == MenuPage.Development && !testControls) menuPage = MenuPage.Home;
+            string heading = menuPage == MenuPage.Inventory ? "장비 · 가방 · 증강" :
+                menuPage == MenuPage.Help ? "조작 방법" : menuPage == MenuPage.Patterns ? "몬스터 패턴" :
+                menuPage == MenuPage.Development ? "개발 도구" : menuPage == MenuPage.Abandon ? "탐험 종료" : "탐험 메뉴";
+            menuOverlay = ui.Modal(safeArea, "Run menu", heading, CloseMenu, out menuBody);
+            var previousBody = body; body = menuBody;
+            switch (menuPage)
+            {
+                case MenuPage.Home:
+                    ui.Label(body, "FIELD " + Session.Map.Number.ToString("00") + "  ·  통과한 스테이지 " + Session.ClearedStages, 25, RunUI.Gold, 54);
+                    ui.Button(body, "돌아가기", CloseMenu, primary: true);
+                    ui.Button(body, "장비 · 가방 · 증강", () => OpenMenu(MenuPage.Inventory));
+                    if (Session.BattlePlan != null) ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns));
+                    ui.Button(body, "조작 방법", () => OpenMenu(MenuPage.Help));
+                    if (testControls && Session.BattlePlan != null) ui.Button(body, "개발 도구", () => OpenMenu(MenuPage.Development));
+                    ui.Button(body, "탐험 종료", () => OpenMenu(MenuPage.Abandon));
+                    break;
+                case MenuPage.Inventory: DrawInventory(); break;
+                case MenuPage.Help:
+                    ui.Label(body, "지도는 아래에서 위로 진행해.\n밝은 무대만 선택할 수 있고 네 번째 무대는 보스야.", 24, RunUI.Muted, 92);
+                    ui.Controls(body); break;
+                case MenuPage.Patterns: DrawPatterns(); break;
+                case MenuPage.Development: DrawDevelopment(); break;
+                case MenuPage.Abandon: DrawAbandon(); break;
+            }
+            if (menuPage != MenuPage.Home) ui.Button(body, "메뉴로 돌아가기", () => OpenMenu(MenuPage.Home));
+            body = previousBody;
+        }
+
+        private void DrawLoadout()
+        {
+            ui.Label(body, "장착한 무기  /  5 SLOTS", 27, RunUI.Gold, 46);
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
-                var slot = ui.Stack(row, "Weapon " + i, 4, 0); ui.Background(slot, RunUI.Panel);
-                RunUI.Size(slot, 70, 1).minWidth = 0;
-                ui.Label(slot, (i + 1) + "  " + ContentCatalog.Find(Session.Weapons[i].DefinitionId).Name,
-                    18, RunUI.TextColor, 34, TextAnchor.MiddleCenter);
-                ui.Label(slot, "+" + Session.Weapons[i].Level, 18, RunUI.Teal, 24, TextAnchor.MiddleCenter);
+                var card = ui.Card(body, 16); card.name = "Weapon " + i;
+                ui.Label(card, (i + 1) + "  " + WeaponName(i), 27, RunUI.TextColor, 44);
+                ui.Label(card, ContentCatalog.Find(Session.Weapons[i].DefinitionId).Description, 22, RunUI.Muted, 66);
             }
-            var actions = ui.Row(footer, 60);
-            ui.Button(actions, inventory ? "돌아가기" : "가방 · 증강", () =>
-            { inventory = !inventory; pendingOffer = -1; confirmAbandon = false; notice = ""; Render(); }, height: 60);
-            ui.Button(actions, "탐험 종료", () =>
-            { confirmAbandon = true; inventory = false; pendingOffer = -1; notice = ""; Render(); }, height: 60);
         }
 
         private void DrawInventory()
         {
-            Heading("INVENTORY", "가방과 증강", "이번 탐험에서 얻은 보상이야.");
+            ui.Label(body, "HP  " + Session.Health + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G", 26, RunUI.Teal, 48);
+            DrawLoadout();
             ui.Label(body, "아이템", 27, RunUI.Gold, 45);
             if (Session.Items.Count == 0) ui.Label(body, "아직 아이템이 없어.", 22, RunUI.Muted, 60);
             for (int i = 0; i < Session.Items.Count; i++)
@@ -403,8 +486,8 @@ namespace BBSB.Runtime
         private void DrawAbandon()
         {
             Heading("END THIS RUN", "탐험을 마칠까?", "이번 탐험의 장비와 보상은 사라지고 처음부터 다시 시작하게 돼.");
-            ui.Button(body, "계속 탐험하기", () => { confirmAbandon = false; Render(); }, primary: true);
-            ui.Button(body, "탐험 종료", () => { Session.Abandon(); confirmAbandon = false; Render(); });
+            ui.Button(body, "계속 탐험하기", CloseMenu, primary: true);
+            ui.Button(body, "탐험 종료", () => { Session.Abandon(); menuPage = MenuPage.None; Render(); });
         }
 
         private string WeaponName(int index)

@@ -39,6 +39,7 @@ namespace BBSB.Tests
             Assert.AreEqual(RunPhase.Map, presenter.Session.Phase);
             Assert.AreEqual(5, presenter.Session.Weapons.Count);
             var connections = root.GetComponentsInChildren<MapConnectionsGraphic>().Single();
+            Assert.IsNull(connections.GetComponentInParent<ScrollRect>(), "The map must fit the viewport without scrolling.");
             var renderer = connections.GetComponent<CanvasRenderer>();
             Assert.IsNotNull(renderer, "Runtime-created map connections need a CanvasRenderer.");
             var mesh = renderer.GetMesh();
@@ -84,7 +85,9 @@ namespace BBSB.Tests
             var plan = presenter.Session.BattlePlan;
             Assert.IsNotNull(plan);
             Assert.AreSame(plan, announcedPlan, "Monster plans must exist before the battle event fires.");
+            Click("몬스터 패턴"); yield return null;
             VerifyMonsterCards(plan);
+            Click("닫기"); Click("메뉴"); Click("개발 도구");
             Click("슬롯 펼치기");
             yield return null;
             Canvas.ForceUpdateCanvases();
@@ -104,12 +107,23 @@ namespace BBSB.Tests
             yield return null;
             Assert.AreSame(encounter, presenter.Session.BattleMusic);
             Assert.AreSame(plan, presenter.Session.BattlePlan);
-            VerifyMonsterCards(plan);
+            Assert.AreEqual(0, root.GetComponentsInChildren<MonsterPatternView>().Length,
+                "Pattern details should not occupy the preparation screen.");
             Click("클리어 처리");
             yield return null;
             Assert.AreEqual(RunPhase.Reward, presenter.Session.Phase);
             Assert.IsNull(presenter.Session.BattleMusic);
             Assert.IsNull(presenter.Session.BattlePlan);
+            Assert.IsFalse(root.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Run menu"));
+            var weaponOffer = presenter.Session.Offers.Single(x => x.Content.Kind == RewardKind.Weapon);
+            var weaponCard = root.GetComponentsInChildren<Text>().Single(x => x.text == "무기  /  " + weaponOffer.Content.Name).transform.parent;
+            weaponCard.GetComponentInChildren<Button>().onClick.Invoke(); yield return null;
+            var replacement = root.GetComponentsInChildren<Button>().First(x => x.GetComponentInChildren<Text>().text.EndsWith("  교체"));
+            Click("메뉴"); Click("장비 · 가방 · 증강"); Click("닫기"); yield return null;
+            Assert.AreEqual(RunPhase.Reward, presenter.Session.Phase);
+            Assert.IsTrue(replacement.IsInteractable(), "Checking equipment must retain the pending weapon offer.");
+            replacement.onClick.Invoke(); yield return null;
+            Assert.AreEqual(weaponOffer.Content.Id, presenter.Session.Weapons[0].DefinitionId);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -128,9 +142,82 @@ namespace BBSB.Tests
                 if (presenter.Session.CurrentNode.IsBattle) break;
                 Click("지도에 돌아가기"); yield return null;
             }
-            VerifyMonsterCards(presenter.Session.BattlePlan);
+            var plan = presenter.Session.BattlePlan;
+            var arena = root.GetComponentInChildren<BattleArenaView>();
+            Assert.IsNotNull(arena); Assert.IsNull(presenter.ActiveRound);
+            Assert.AreEqual(0, root.GetComponentsInChildren<MonsterPatternView>().Length);
+            var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
+            foreach (var size in new[] { new Vector2(720, 1280), new Vector2(1280, 720), new Vector2(720, 720) })
+            {
+                SetViewport(safe, size); yield return null; Canvas.ForceUpdateCanvases();
+                var rect = (RectTransform)arena.transform;
+                Assert.Greater(rect.rect.height, size.y * .55f, "Preparation arena: " + size);
+                Assert.Greater(rect.rect.width, size.x * .9f);
+                AssertContained(rect, (RectTransform)safe.transform);
+                var start = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<Text>().text == "연주 시작");
+                AssertContained((RectTransform)start.transform, (RectTransform)safe.transform);
+            }
+            Click("몬스터 패턴"); yield return null;
+            VerifyMonsterCards(plan);
+            Click("닫기");
+            Assert.AreSame(arena, root.GetComponentInChildren<BattleArenaView>(), "Closing details must preserve the preparation view.");
+            Assert.AreSame(plan, presenter.Session.BattlePlan); Assert.IsNull(presenter.ActiveRound);
+            Click("메뉴");
+            Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "개발 도구"));
             Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "슬롯 펼치기"));
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator MapUsesViewportAndMenuBlocksNodesWithoutRebuildingTheMap()
+        {
+            root = new GameObject("Fullscreen map test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            Click("탐험 시작"); yield return null;
+            var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
+            var map = (RectTransform)root.GetComponentInChildren<MapConnectionsGraphic>().transform.parent;
+            var model = presenter.Session.Map;
+            foreach (var size in new[] { new Vector2(720, 1280), new Vector2(1280, 720), new Vector2(720, 720) })
+            {
+                SetViewport(safe, size); yield return null; Canvas.ForceUpdateCanvases();
+                Assert.Greater(map.rect.height, size.y * .65f, "Map height: " + size);
+                Assert.Greater(map.rect.width, size.x * .9f);
+                foreach (var button in map.GetComponentsInChildren<Button>())
+                {
+                    AssertContained((RectTransform)button.transform, map);
+                    Assert.Greater(((RectTransform)button.transform).rect.height, 70);
+                }
+            }
+            var node = map.GetComponentsInChildren<Button>().First(x => x.interactable);
+            Click("메뉴"); yield return null;
+            Assert.IsFalse(node.IsInteractable(), "The covered map must not accept stage selection.");
+            Click("장비 · 가방 · 증강"); yield return null;
+            Assert.AreEqual(5, root.GetComponentsInChildren<RectTransform>().Count(x => x.name.StartsWith("Weapon ")));
+            Click("닫기"); yield return null;
+            Assert.IsTrue(node.IsInteractable());
+            Assert.AreSame(model, presenter.Session.Map);
+            Assert.AreSame(map, root.GetComponentInChildren<MapConnectionsGraphic>().transform.parent);
+            Assert.AreEqual(0, root.GetComponentsInChildren<RectTransform>().Count(x => x.name.StartsWith("Weapon ")));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void SetViewport(SafeAreaPanel safe, Vector2 size)
+        {
+            var rect = (RectTransform)safe.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+            rect.sizeDelta = size; rect.anchoredPosition = Vector2.zero;
+        }
+
+        private static void AssertContained(RectTransform child, RectTransform parent)
+        {
+            var corners = new Vector3[4]; child.GetWorldCorners(corners);
+            foreach (var corner in corners)
+            {
+                var local = parent.InverseTransformPoint(corner);
+                Assert.That(local.x, Is.InRange(parent.rect.xMin - 1, parent.rect.xMax + 1));
+                Assert.That(local.y, Is.InRange(parent.rect.yMin - 1, parent.rect.yMax + 1));
+            }
         }
 
         private void VerifyMonsterCards(BattlePlan plan)
@@ -158,7 +245,7 @@ namespace BBSB.Tests
 
         private void Click(string label)
         {
-            var button = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<Text>().text == label);
+            var button = root.GetComponentsInChildren<Button>().Single(x => x.IsInteractable() && x.GetComponentInChildren<Text>().text == label);
             Assert.IsTrue(button.interactable);
             button.onClick.Invoke();
         }

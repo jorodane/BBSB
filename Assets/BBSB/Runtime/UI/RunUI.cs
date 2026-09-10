@@ -81,11 +81,12 @@ namespace BBSB.Runtime.UI
         }
 
         public Button Button(Transform parent, string label, Action action, bool enabled = true,
-            bool primary = false, float height = 70)
+            bool primary = false, float height = 80)
         {
             var rect = Rect("Button " + label, parent); Size(rect, height, 1);
             var image = Background(rect, primary ? Gold : Hex("2B3850"), true);
             var button = rect.gameObject.AddComponent<Button>(); button.targetGraphic = image;
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
             var colors = button.colors;
             colors.highlightedColor = Hex("DDD9CC"); colors.pressedColor = Hex("AAA99F");
             colors.disabledColor = new Color(.5f, .5f, .5f, .55f); button.colors = colors;
@@ -117,6 +118,34 @@ namespace BBSB.Runtime.UI
             var track = Rect("Health bar", parent); Size(track, 8); Background(track, Hex("344055"));
             var fill = Rect("Fill", track); Stretch(fill); fill.anchorMax = new Vector2(Mathf.Clamp01(ratio), 1);
             Background(fill, color);
+        }
+
+        public RectTransform Modal(Transform parent, string name, string title, Action close, out RectTransform content)
+        {
+            var overlay = Rect(name, parent); Stretch(overlay);
+            overlay.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            Background(overlay, new Color(.04f, .05f, .09f, .97f), true);
+            var panel = Stack(overlay, "Menu panel", 16, 12); Stretch(panel);
+            var header = Row(panel, 80);
+            Label(header, title, 30, Gold, 80);
+            var button = Button(header, "닫기", close, height: 80);
+            var size = button.GetComponent<LayoutElement>();
+            size.minWidth = size.preferredWidth = 104; size.flexibleWidth = 0;
+            content = Scroll(panel);
+            return overlay;
+        }
+
+        public void Controls(Transform parent)
+        {
+            Label(parent, "Call을 보고, 같은 리듬으로 대응해.", 27, Gold, 52);
+            var card = Card(parent, 18);
+            Label(card, "Tap  ·  박자에 맞춰 누르기", 25, null, 54);
+            Label(card, "Hold  ·  누르고 끝까지 유지하기", 25, null, 54);
+            Label(card, "Dive  ·  누르고 마지막 박자에 떼기", 25, null, 54);
+            Label(card, "Flick  ·  미리 누른 뒤 튕기며 떼기", 25, null, 54);
+            Label(card, "Shake  ·  누른 상태로 흔들기\n구간의 50% 이상 반미스 / 75% 이상 성공", 24, Teal, 90);
+            Label(parent, "메뉴 버튼 외에는 화면 어디서든 연주할 수 있어.\n마우스 왼쪽 버튼이나 한 손가락을 사용해.", 23, Muted, 86);
+            Label(parent, "메뉴를 열면 박자와 판정이 멈춰.\n유지 중에 멈췄다면 이어하기 후 화면을 다시 눌러줘.", 23, Muted, 86);
         }
     }
 }

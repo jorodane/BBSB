@@ -27,53 +27,62 @@ namespace BBSB.Runtime.UI
             var layout = root.GetComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(12, 12, 12, 12); layout.spacing = 6;
             ui.Background(root, RunUI.Ink, true);
-            var header = ui.Row(root, 46);
-            ui.Label(header, music.Name + "  /  " + music.Bpm + " BPM", 24, RunUI.Gold, 46);
-            var pauseButton = ui.Button(header, "일시정지", pause, height: 46);
+            var header = ui.Row(root, 80);
+            ui.Label(header, music.Name + "  /  " + music.Bpm + " BPM", 25, RunUI.Gold, 80);
+            var pauseButton = ui.Button(header, "메뉴", pause, height: 80);
             var pauseSize = pauseButton.GetComponent<LayoutElement>();
-            pauseSize.minWidth = pauseSize.preferredWidth = 140; pauseSize.flexibleWidth = 0;
-            pauseButton.navigation = new Navigation { mode = Navigation.Mode.None };
+            pauseSize.minWidth = pauseSize.preferredWidth = 104; pauseSize.flexibleWidth = 0;
             songProgress = Progress(root, ui, "Song progress", 5);
 
-            var beats = ui.Row(root, 52, 6); pulses = new Image[music.BeatsPerBar * 2];
+            var beats = ui.Row(root, 60, 6); pulses = new Image[music.BeatsPerBar * 2];
             for (int i = 0; i < pulses.Length; i++)
             {
-                var cell = ui.Rect("Beat pulse " + i, beats); RunUI.Size(cell, 52, 1);
+                var cell = ui.Rect("Beat pulse " + i, beats); RunUI.Size(cell, 60, 1);
                 pulses[i] = ui.Background(cell, RunUI.Panel);
                 var number = ui.Label(cell, i % 2 == 0 ? (i / 2 + 1).ToString() : "&", i % 2 == 0 ? 34 : 27,
-                    RunUI.TextColor, 52, TextAnchor.MiddleCenter);
+                    RunUI.TextColor, 60, TextAnchor.MiddleCenter);
                 RunUI.Stretch(number.rectTransform);
             }
             beatLabel = ui.Label(root, "", 21, RunUI.Gold, 30, TextAnchor.MiddleCenter);
             var stage = ui.Rect("Battle arena", root);
-            var stageSize = RunUI.Size(stage, 360); stageSize.flexibleHeight = 1;
+            var stageSize = RunUI.Size(stage, 180); stageSize.flexibleHeight = 1;
             arena = stage.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font);
-            var patterns = ui.Row(root, 200, 8); patterns.name = "Live monster patterns";
-            foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(patterns, ui, round, monster));
 
             feedback = ui.Label(root, "Call을 보고 박자를 준비해", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
             feedback.gameObject.name = "Response feedback";
-            counters = ui.Label(root, "", 20, RunUI.Muted, 28, TextAnchor.MiddleCenter);
-            contact = ui.Label(root, "", 23, RunUI.Teal, 32, TextAnchor.MiddleCenter);
-            ui.Label(root, "Tap 누르기 · Hold 끝까지 유지 · Dive 끝에 떼기\nFlick 튕겨 떼기 · Shake 50% 반미스 / 75% 성공",
-                19, RunUI.Muted, 60, TextAnchor.MiddleCenter);
+            contact = ui.Label(root, "", 23, RunUI.Teal, 36, TextAnchor.MiddleCenter);
+            contact.gameObject.name = "Input status";
 
-            var overlay = ui.Rect("Pause overlay", root); RunUI.Stretch(overlay);
-            overlay.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
-            ui.Background(overlay, new Color(.04f, .05f, .09f, .96f), true);
-            var panel = ui.Card(overlay);
-            panel.anchorMin = new Vector2(.08f, .5f); panel.anchorMax = new Vector2(.92f, .5f);
-            panel.pivot = new Vector2(.5f, .5f); panel.sizeDelta = Vector2.zero;
-            panel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            ui.Label(panel, "일시정지", 36, RunUI.Gold, 65, TextAnchor.MiddleCenter);
-            ui.Label(panel, "박자와 판정이 멈췄어.\n유지 중이었다면 이어할 때 화면을 다시 눌러줘.", 22, RunUI.Muted, 88);
-            ui.Button(panel, "이어하기", resume, primary: true);
-            soundLabel = ui.Button(panel, "박자음 끄기", sound).GetComponentInChildren<Text>();
-            ui.Button(panel, "준비로 돌아가기", leave);
+            var overlay = ui.Modal(root, "Pause overlay", "일시정지", resume, out var panel);
+            var home = ui.Stack(panel, "Pause menu");
+            var details = ui.Stack(panel, "Performance details");
+            var help = ui.Stack(panel, "Input help");
+            Action<GameObject> select = page =>
+            {
+                home.gameObject.SetActive(page == home.gameObject);
+                details.gameObject.SetActive(page == details.gameObject);
+                help.gameObject.SetActive(page == help.gameObject);
+                panel.GetComponentInParent<ScrollRect>().verticalNormalizedPosition = 1;
+            };
+            resetMenu = () => select(home.gameObject);
+            ui.Label(home, "박자와 판정이 멈췄어.\n유지 중이었다면 이어할 때 화면을 다시 눌러줘.", 24, RunUI.Muted, 92);
+            ui.Button(home, "이어하기", resume, primary: true);
+            ui.Button(home, "연주 정보 · 패턴", () => select(details.gameObject));
+            ui.Button(home, "조작 방법", () => select(help.gameObject));
+            soundLabel = ui.Button(home, "박자음 끄기", sound).GetComponentInChildren<Text>();
+            ui.Button(home, "준비로 돌아가기", leave);
+            counters = ui.Label(details, "", 26, RunUI.Gold, 58);
+            foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(details, ui, round, monster));
+            ui.Button(details, "메뉴로 돌아가기", resetMenu);
+            ui.Controls(help);
+            ui.Button(help, "메뉴로 돌아가기", resetMenu);
+            resetMenu();
             pauseOverlay = overlay.gameObject; pauseOverlay.SetActive(false);
         }
 
-        public void ShowPause(bool value) { pauseOverlay.SetActive(value); arena.SetPaused(value); }
+        private readonly Action resetMenu;
+        public void ShowPause(bool value)
+        { if (value) resetMenu(); pauseOverlay.SetActive(value); arena.SetPaused(value); }
         public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자음 끄기" : "박자음 켜기"; }
 
         public void Refresh(double seconds, bool waitingForContact)
@@ -114,6 +123,14 @@ namespace BBSB.Runtime.UI
                 "  /  전체 " + round.Notes.Count;
             contact.text = waitingForContact ? "화면을 눌러 연주를 이어가" : round.IsDown ? "누르는 중" : "손을 뗀 상태";
             contact.color = waitingForContact ? RunUI.Gold : round.IsDown ? RunUI.Teal : RunUI.Muted;
+            if (!waitingForContact)
+            {
+                var shakes = new List<string>();
+                foreach (var note in round.Notes)
+                    if (note.Step.Kind == GestureKind.Shake && note.State == ResponseState.Holding)
+                        shakes.Add(ShakePercent(note));
+                if (shakes.Count > 0) contact.text = "Shake " + string.Join(" / ", shakes) + "  ·  50% 반미스 / 75% 성공";
+            }
             foreach (var card in monsters) card.Refresh(seconds);
             arena.SetPaused(pauseOverlay.activeSelf || waitingForContact);
             arena.Refresh();
@@ -142,16 +159,15 @@ namespace BBSB.Runtime.UI
             public MonsterCard(Transform parent, RunUI ui, RhythmRound round, MonsterPlan plan)
             {
                 Plan = plan; this.round = round;
-                var card = ui.Card(parent, 8); card.name = "Live monster " + plan.InstanceId;
-                var sizing = RunUI.Size(card, 200, 1); sizing.minWidth = sizing.preferredWidth = 0;
-                card.GetComponent<VerticalLayoutGroup>().spacing = 2;
-                ui.Label(card, plan.Monster.Name, 20, RunUI.Gold, 27);
-                phase = ui.Label(card, "대기", 17, RunUI.Muted, 23);
-                signal = ui.Label(card, "Call 대기", 19, RunUI.Muted, 44);
+                var card = ui.Card(parent, 16); card.name = "Live monster " + plan.InstanceId;
+                card.GetComponent<VerticalLayoutGroup>().spacing = 6;
+                ui.Label(card, plan.Monster.Name, 27, RunUI.Gold, 40);
+                phase = ui.Label(card, "대기", 23, RunUI.Muted, 32);
+                signal = ui.Label(card, "Call 대기", 24, RunUI.Muted, 54);
                 signal.gameObject.name = "Call signal " + plan.InstanceId;
-                var plot = ui.Rect("Live pattern", card); RunUI.Size(plot, 44);
+                var plot = ui.Rect("Live pattern", card); RunUI.Size(plot, 90);
                 graphic = plot.gameObject.AddComponent<MonsterPatternGraphic>(); graphic.Bind(plan.Monster);
-                result = ui.Label(card, "대응 결과", 17, RunUI.Muted, 38);
+                result = ui.Label(card, "대응 결과", 23, RunUI.Muted, 54);
             }
 
             public void Call(ScheduledCall value) { lastCall = value; }

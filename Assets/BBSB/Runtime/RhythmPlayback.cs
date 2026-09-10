@@ -2,6 +2,7 @@ using System;
 using BBSB.Core;
 using BBSB.Runtime.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace BBSB.Runtime
 {
@@ -31,6 +32,12 @@ namespace BBSB.Runtime
         }
 
         private double Now => Math.Max(Round.ElapsedSeconds, offset + Math.Max(0, AudioSettings.dspTime - origin));
+
+        private void Update()
+        {
+            if (Round == null || completed || Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame) return;
+            if (IsPaused && !WaitingForContact) Continue(); else Pause();
+        }
 
         private void LateUpdate()
         {
@@ -67,7 +74,15 @@ namespace BBSB.Runtime
 
         public void Pause()
         {
-            if (Round == null || completed || IsPaused) return;
+            if (Round == null || completed) return;
+            if (IsPaused)
+            {
+                // Reopening the menu during recontact must disable rhythm input again,
+                // while retaining the original held-at-pause state and frozen clock.
+                if (WaitingForContact)
+                { WaitingForContact = false; surface.Cancel(); view.ShowPause(true); }
+                return;
+            }
             if (surface.Captured) Round.Move(Now, surface.Position.x, surface.Position.y);
             else Round.Advance(Now);
             if (Round.Finished) { Finish(); return; }
