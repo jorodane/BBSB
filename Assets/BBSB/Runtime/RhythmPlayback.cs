@@ -71,6 +71,7 @@ namespace BBSB.Runtime
             if (surface.Captured) Round.Move(Now, surface.Position.x, surface.Position.y);
             else Round.Advance(Now);
             if (Round.Finished) { Finish(); return; }
+            view.Refresh(Round.ElapsedSeconds, false);
             heldAtPause = Round.Suspend(); IsPaused = true; WaitingForContact = false;
             surface.Cancel(); metronome.Stop(); view.ShowPause(true);
         }

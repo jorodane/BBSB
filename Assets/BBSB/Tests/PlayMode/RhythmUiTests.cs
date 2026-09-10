@@ -34,6 +34,11 @@ namespace BBSB.Tests
             Assert.IsTrue(pulses.All(x => !x.raycastTarget));
             Assert.AreEqual(1, root.GetComponentsInChildren<Button>().Length, "Only pause is a live action button.");
             Canvas.ForceUpdateCanvases();
+            var arena = root.GetComponentInChildren<BattleArenaView>(); Assert.IsNotNull(arena);
+            arena.Refresh(); Assert.IsNotNull(arena.HeroPortrait.sprite);
+            Assert.AreEqual(plan.Monsters.Count, arena.MonsterPortraits.Count);
+            Assert.Greater(((RectTransform)arena.transform).rect.height, 300);
+            Assert.IsTrue(arena.GetComponentsInChildren<Graphic>().All(x => !x.raycastTarget));
             var graphics = root.GetComponentsInChildren<MonsterPatternGraphic>();
             Assert.AreEqual(plan.Monsters.Count, graphics.Length);
             foreach (var graphic in graphics)

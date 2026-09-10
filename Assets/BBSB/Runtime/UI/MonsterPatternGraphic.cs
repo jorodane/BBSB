@@ -38,6 +38,7 @@ namespace BBSB.Runtime.UI
             vh.Clear(); if (monster == null) return;
             Rect rect = rectTransform.rect;
             float rowHeight = rect.height / (lanes.Count + 2);
+            float marker = Mathf.Min(14, rowHeight * .8f), bar = Mathf.Min(6, rowHeight * .4f);
             float left = rect.xMin + 6, width = Mathf.Max(1, rect.width - 12);
             int cue = monster.Pattern.CueLeadTicks, restStart = cue + monster.ResponseTicks;
             int total = restStart + monster.RestTicks;
@@ -51,7 +52,7 @@ namespace BBSB.Runtime.UI
             foreach (var signal in monster.Call)
             {
                 float x = left + width * signal.OffsetTick / total;
-                Quad(vh, x - 4, rect.yMax - rowHeight * .5f - 7, 8, 14, RunUI.Gold);
+                Quad(vh, x - 4, rect.yMax - rowHeight * .5f - marker * .5f, 8, marker, RunUI.Gold);
             }
             for (int i = 0; i < monster.Pattern.Steps.Count; i++)
             {
@@ -63,14 +64,14 @@ namespace BBSB.Runtime.UI
                 var note = liveNotes == null ? null : liveNotes[i];
                 if (note != null && note.State == ResponseState.Resolved) tint = RhythmPlaybackView.GradeColor(note.Result.Grade);
                 else if (note != null && note.State == ResponseState.Holding) tint = RunUI.Gold;
-                if (step.DurationTicks > 0) Quad(vh, x, y - 3, Mathf.Max(1, end - x), 6, tint);
-                Quad(vh, x - 3, y - 7, 6, 14, tint);
-                if (step.DurationTicks > 0) Quad(vh, end - 2, y - 6, 4, 12,
+                if (step.DurationTicks > 0) Quad(vh, x, y - bar * .5f, Mathf.Max(1, end - x), bar, tint);
+                Quad(vh, x - 3, y - marker * .5f, 6, marker, tint);
+                if (step.DurationTicks > 0) Quad(vh, end - 2, y - marker * .4f, 4, marker * .8f,
                     step.Touch.End == TouchTransition.Release ? RunUI.Red : tint);
             }
             if (monster.RestTicks > 0)
-                Quad(vh, left + width * restStart / total, rect.yMin + rowHeight * .5f - 3,
-                    width * monster.RestTicks / total, 6, RunUI.Muted);
+                Quad(vh, left + width * restStart / total, rect.yMin + rowHeight * .5f - bar * .5f,
+                    width * monster.RestTicks / total, bar, RunUI.Muted);
             if (cursorTick >= 0 && cursorTick <= total)
                 Quad(vh, left + width * cursorTick / total - 1.5f, rect.yMin, 3, rect.height, RunUI.TextColor);
         }

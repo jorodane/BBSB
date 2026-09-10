@@ -14,6 +14,7 @@ namespace BBSB.Runtime.UI
         public static readonly Color Teal = Hex("80DAC5");
         public static readonly Color Red = Hex("EE8B92");
         private readonly Font font;
+        public Font Font => font;
 
         public RunUI(Font font) { this.font = font; }
         public static Color Hex(string value) { ColorUtility.TryParseHtmlString("#" + value, out var c); return c; }
