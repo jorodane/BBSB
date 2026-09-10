@@ -42,15 +42,25 @@ namespace BBSB.Tests
             Assert.AreEqual(0, root.GetComponentsInChildren<MonsterPatternGraphic>().Length,
                 "Live play reserves the space for characters. Detailed patterns are in the menu.");
             var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
-            foreach (var size in new[] { new Vector2(720, 1280), new Vector2(1280, 720), new Vector2(720, 720) })
+            foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800), new Vector2(1220, 680) })
             {
                 var viewport = (RectTransform)safe.transform;
                 viewport.anchorMin = viewport.anchorMax = new Vector2(.5f, .5f); viewport.sizeDelta = size;
                 yield return null; Canvas.ForceUpdateCanvases();
-                Assert.Greater(((RectTransform)arena.transform).rect.height, size.y * .55f, "Live arena: " + size);
-                Assert.Greater(((RectTransform)arena.transform).rect.width, size.x * .9f);
+                var scene = (RectTransform)arena.transform;
+                Assert.AreEqual(size.y, scene.rect.height, .1f, "Battle fills the viewport behind all HUD elements.");
+                Assert.AreEqual(size.x, scene.rect.width, .1f);
+                Assert.IsNull(scene.parent.GetComponent<LayoutGroup>());
+                var menu = root.GetComponentInChildren<RoundMenuGraphic>().rectTransform;
+                Assert.AreSame(scene.parent, menu.parent);
+                Assert.AreEqual(80, menu.rect.height, .1f); Assert.AreEqual(80, menu.rect.width, .1f);
+                var beats = root.GetComponentsInChildren<RectTransform>().Single(x => x.name == "Beat signals");
+                Assert.AreSame(scene.parent, beats.parent);
+                Assert.LessOrEqual(beats.rect.height, 60.1f, "Beat indicators are a small overlay.");
+                Assert.Less(scene.InverseTransformPoint(arena.HeroPortrait.transform.position).x, 0);
+                Assert.IsTrue(arena.MonsterPortraits.All(x => scene.InverseTransformPoint(x.transform.position).x > 0));
                 foreach (var target in new[] { (RectTransform)arena.transform,
-                    root.GetComponentsInChildren<Text>().Single(x => x.name == "Input status").rectTransform })
+                    root.GetComponentsInChildren<Text>().Single(x => x.name == "Input status").rectTransform, menu, beats })
                 {
                     var corners = new Vector3[4]; target.GetWorldCorners(corners);
                     foreach (var corner in corners)

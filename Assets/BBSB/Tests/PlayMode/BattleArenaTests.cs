@@ -128,7 +128,7 @@ namespace BBSB.Tests
                 root.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             }
             var rect = new GameObject("Battle arena", typeof(RectTransform)).GetComponent<RectTransform>();
-            rect.SetParent(root.transform, false); rect.sizeDelta = new Vector2(700, 600);
+            rect.SetParent(root.transform, false); rect.sizeDelta = new Vector2(1280, 720);
             var view = rect.gameObject.AddComponent<BattleArenaView>();
             view.Initialize(round, Resources.Load<Font>("BBSB/Fonts/BBSBUI")); return view;
         }

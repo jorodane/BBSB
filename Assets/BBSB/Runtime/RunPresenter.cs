@@ -38,9 +38,8 @@ namespace BBSB.Runtime
             var canvas = canvasRoot.gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasRoot.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            // Keep the short side at 720 UI units in portrait AND landscape. A wide Game view
-            // must not shrink every control to fit a virtual 1280-unit portrait height.
-            scaler.referenceResolution = new Vector2(720, 720);
+            // Landscape first: 16:9 uses 1280x720, while 16:10 gains vertical scene space.
+            scaler.referenceResolution = new Vector2(1280, 720);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             canvasRoot.gameObject.AddComponent<GraphicRaycaster>();
             var background = ui.Rect("Backdrop", canvasRoot); RunUI.Stretch(background); ui.Background(background, RunUI.Ink);
@@ -70,7 +69,7 @@ namespace BBSB.Runtime
             rendering = true;
             if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
             ClearMenu();
-            screen = ui.Stack(safeArea, "Run screen", 16, 10); RunUI.Stretch(screen);
+            screen = ui.Rect("Run screen", safeArea); RunUI.Stretch(screen);
             body = null;
             screen.gameObject.AddComponent<CanvasGroup>();
             if (title) { DrawTitle(); rendering = false; return; }
@@ -81,15 +80,17 @@ namespace BBSB.Runtime
                     round => FinishRhythmRound(ticket, round), () => LeaveRhythmRound(ticket));
                 rendering = false; return;
             }
-            DrawHeader();
-            // Map and preparation use all remaining space. Only lists/results need scrolling.
+            // Scenes fill the viewport. HUD controls are siblings layered over the scene.
+            RectTransform page = null;
             if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Map)
                 DrawMap();
             else if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Stage && Session.CurrentNode.IsBattle)
                 DrawBattle();
             else
             {
-                body = ui.Scroll(screen);
+                page = ui.Stack(screen, "Page content", 24, 12); RunUI.Stretch(page);
+                page.GetComponent<VerticalLayoutGroup>().padding.top = 116;
+                body = ui.Scroll(page);
                 if (completedRound != null) DrawRoundReport();
                 else if (pendingOffer >= 0) DrawReplacement();
                 else
@@ -103,7 +104,13 @@ namespace BBSB.Runtime
                     }
                 }
             }
-            if (!string.IsNullOrEmpty(notice)) ui.Label(screen, notice, 21, RunUI.Teal, 42);
+            DrawHud();
+            if (!string.IsNullOrEmpty(notice))
+            {
+                var toast = ui.Label(page ?? screen, notice, 21, RunUI.Teal, 42, TextAnchor.MiddleCenter);
+                if (page == null)
+                    RunUI.Overlay(toast.rectTransform, new Vector2(.3f, 0), new Vector2(.7f, 0), new Vector2(0, 68), new Vector2(0, 110));
+            }
             RenderMenu();
             rendering = false;
         }
@@ -120,8 +127,9 @@ namespace BBSB.Runtime
 
         private void DrawTitle()
         {
-            ui.Label(screen, "RHYTHM  /  WEAPONS  /  ROGUELIKE", 19, RunUI.Gold, 40);
-            var content = ui.Scroll(screen);
+            var panel = ui.Stack(screen, "Title content", 32, 14); RunUI.Stretch(panel);
+            ui.Label(panel, "RHYTHM  /  WEAPONS  /  ROGUELIKE", 19, RunUI.Gold, 40);
+            var content = ui.Scroll(panel);
             ui.Label(content, "Beat! Block,\nShake~ Beat!", 58, RunUI.TextColor, 185);
             ui.Label(content, "다섯 무기로 지휘하는 하나의 리듬", 25, RunUI.Teal, 55);
             var card = ui.Card(content);
@@ -129,20 +137,18 @@ namespace BBSB.Runtime
             ui.Label(card, "무작위로 연결된 길에서 전투와 휴식을 선택해.\n네 번째 단계의 보스를 넘으면 다음 필드로 향해.", 24, null, 125);
             ui.Label(card, "탐험이 끝나면 획득한 장비와 보상도 초기화돼.", 21, RunUI.Muted, 70);
             ui.Label(content, "무기 5개  ·  분기 선택  ·  보스 도전", 22, RunUI.Muted, 70);
-            ui.Button(screen, "탐험 시작", StartRun, primary: true, height: 84);
+            ui.Button(panel, "탐험 시작", StartRun, primary: true, height: 84);
         }
 
-        private void DrawHeader()
+        private void DrawHud()
         {
-            var row = ui.Row(screen, 80); row.name = "Status";
-            var field = ui.Label(row, "FIELD " + Session.Map.Number.ToString("00"), 26, RunUI.Gold, 80);
-            var fieldSize = field.GetComponent<LayoutElement>();
-            fieldSize.minWidth = fieldSize.preferredWidth = 148; fieldSize.flexibleWidth = 0;
-            ui.Label(row, "HP  " + Session.Health + " / " + Session.MaxHealth + "\n" + Session.Gold + " G", 22, RunUI.Teal, 80);
-            if (Session.Phase == RunPhase.GameOver) return;
-            var menu = ui.Button(row, "메뉴", () => OpenMenu(MenuPage.Home), height: 80);
-            var size = menu.GetComponent<LayoutElement>();
-            size.minWidth = size.preferredWidth = 104; size.flexibleWidth = 0;
+            var hud = ui.Rect("Status HUD", screen);
+            RunUI.Pin(hud, new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -20), new Vector2(320, 80));
+            var field = ui.Label(hud, "FIELD " + Session.Map.Number.ToString("00"), 27, RunUI.Gold, 40);
+            RunUI.Overlay(field.rectTransform, Vector2.zero, Vector2.one, new Vector2(0, 40), Vector2.zero);
+            var stats = ui.Label(hud, "HP  " + Session.Health + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G", 22, RunUI.Teal, 36);
+            RunUI.Overlay(stats.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0, -44));
+            if (Session.Phase != RunPhase.GameOver) ui.FloatingMenu(screen, () => OpenMenu(MenuPage.Home));
         }
 
         private void Heading(string kicker, string heading, string description)
@@ -154,9 +160,8 @@ namespace BBSB.Runtime
 
         private void DrawMap()
         {
-            ui.Label(screen, "다음 무대를 골라줘", 34, RunUI.TextColor, 48);
             var map = ui.Rect("Field map", screen);
-            RunUI.Size(map, 200).flexibleHeight = 1; ui.Background(map, RunUI.Panel);
+            RunUI.Stretch(map); ui.Background(map, RunUI.Panel);
             var links = ui.Rect("Connections", map); RunUI.Stretch(links);
             links.gameObject.AddComponent<MapConnectionsGraphic>().Bind(Session);
             foreach (var node in Session.Map.Nodes)
@@ -170,9 +175,9 @@ namespace BBSB.Runtime
                 var button = ui.Button(map, label, () => EnterStage(id), available, available, 86);
                 var rect = (RectTransform)button.transform;
                 var pos = MapConnectionsGraphic.Position(node);
-                rect.anchorMin = new Vector2(pos.x - .135f, pos.y - .08f);
-                rect.anchorMax = new Vector2(pos.x + .135f, pos.y + .08f);
-                rect.sizeDelta = Vector2.zero;
+                rect.anchorMin = new Vector2(pos.x - .08f, pos.y);
+                rect.anchorMax = new Vector2(pos.x + .08f, pos.y);
+                rect.sizeDelta = new Vector2(0, node.Kind == StageKind.Boss ? 132 : 108);
                 rect.anchoredPosition = Vector2.zero;
                 var colors = button.colors;
                 colors.disabledColor = visited ? Color.white : new Color(.65f, .65f, .65f, .85f);
@@ -183,7 +188,8 @@ namespace BBSB.Runtime
                 labelText.resizeTextForBestFit = true;
                 labelText.resizeTextMinSize = 18; labelText.resizeTextMaxSize = 30;
             }
-            ui.Label(screen, "아래에서 위로  ·  밝은 무대를 선택해", 22, RunUI.Muted, 34, TextAnchor.MiddleCenter);
+            var hint = ui.Label(screen, "왼쪽에서 오른쪽으로  ·  밝은 무대를 선택해", 22, RunUI.Muted, 36, TextAnchor.MiddleCenter);
+            RunUI.Overlay(hint.rectTransform, new Vector2(.25f, 0), new Vector2(.75f, 0), new Vector2(0, 20), new Vector2(0, 56));
         }
 
         private bool HasVisited(string id)
@@ -233,15 +239,18 @@ namespace BBSB.Runtime
             var kind = Session.CurrentNode.Kind;
             var plan = Session.BattlePlan;
             var music = Session.BattleMusic.Music;
-            ui.Label(screen, "준비하기", 34, RunUI.TextColor, 48);
-            ui.Label(screen, ContentCatalog.StageName(kind) + "  ·  " + music.Name + "  /  " + music.Bpm + " BPM", 24, RunUI.Gold, 42);
-            var stage = ui.Rect("Preparation arena", screen); RunUI.Size(stage, 180).flexibleHeight = 1;
+            var stage = ui.Rect("Preparation arena", screen); RunUI.Stretch(stage);
             var arena = stage.gameObject.AddComponent<BattleArenaView>();
             // A still preview reads the same plan without starting playback or changing the session.
             arena.Initialize(new RhythmRound(plan), ui.Font);
-            var actions = ui.Row(screen, 76);
-            ui.Button(actions, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns), height: 76);
-            ui.Button(actions, "연주 시작", () => StartRhythmRound(), primary: true, height: 76);
+            var heading = ui.Label(screen, "준비하기", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
+            RunUI.Overlay(heading.rectTransform, new Vector2(.3f, 1), new Vector2(.82f, 1), new Vector2(0, -58), new Vector2(0, -14));
+            var song = ui.Label(screen, ContentCatalog.StageName(kind) + "  ·  " + music.Name + "  /  " + music.Bpm + " BPM", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
+            RunUI.Overlay(song.rectTransform, new Vector2(.3f, 1), new Vector2(.82f, 1), new Vector2(0, -96), new Vector2(0, -60));
+            var patterns = ui.Button(screen, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns), height: 76);
+            RunUI.Pin((RectTransform)patterns.transform, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-260, 24), new Vector2(220, 76));
+            var start = ui.Button(screen, "연주 시작", () => StartRhythmRound(), primary: true, height: 76);
+            RunUI.Pin((RectTransform)start.transform, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-24, 24), new Vector2(220, 76));
         }
 
         private void DrawPatterns()
@@ -437,7 +446,7 @@ namespace BBSB.Runtime
                     break;
                 case MenuPage.Inventory: DrawInventory(); break;
                 case MenuPage.Help:
-                    ui.Label(body, "지도는 아래에서 위로 진행해.\n밝은 무대만 선택할 수 있고 네 번째 무대는 보스야.", 24, RunUI.Muted, 92);
+                    ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n밝은 무대만 선택할 수 있고 네 번째 무대는 보스야.", 24, RunUI.Muted, 92);
                     ui.Controls(body); break;
                 case MenuPage.Patterns: DrawPatterns(); break;
                 case MenuPage.Development: DrawDevelopment(); break;

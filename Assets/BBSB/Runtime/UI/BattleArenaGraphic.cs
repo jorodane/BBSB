@@ -49,37 +49,35 @@ namespace BBSB.Runtime.UI
             Quad(vh, new Vector2(r.xMin, r.yMin), new Vector2(r.xMax, r.yMin),
                 new Vector2(r.xMax, r.yMax), new Vector2(r.xMin, r.yMax),
                 RunUI.Hex("20283D"), RunUI.Hex("0A101E"));
-            var floor = Point(r, new Vector2(.5f, .11f));
+            var floor = Point(r, BattleArenaView.HeroFoot + new Vector2(0, .025f));
             for (int i = -4; i <= 4; i++)
-                Line(vh, Point(r, new Vector2(.5f + i * .07f, .55f)),
+                Line(vh, Point(r, new Vector2(.64f + i * .05f, .58f)),
                     Point(r, new Vector2(.5f + i * .19f, .015f)), 1, Alpha(RunUI.Gold, .09f));
             for (int i = 0; i < 5; i++)
             {
                 float y = .02f + .51f * i * i / 25;
                 Line(vh, Point(r, new Vector2(.02f, y)), Point(r, new Vector2(.98f, y)), 1, Alpha(RunUI.Gold, .1f));
             }
-            Ellipse(vh, floor, new Vector2(r.width * .25f, r.height * .065f), Alpha(Color.black, .25f));
-            Arc(vh, floor, new Vector2(r.width * .28f, r.height * .077f), 0, 360, 2, Alpha(RunUI.Gold, .42f));
-            Arc(vh, floor, new Vector2(r.width * .31f, r.height * .087f), 0, 360, 1, Alpha(RunUI.Gold, .22f));
+            Ellipse(vh, floor, new Vector2(r.width * .15f, r.height * .065f), Alpha(Color.black, .25f));
+            Arc(vh, floor, new Vector2(r.width * .17f, r.height * .077f), 0, 360, 2, Alpha(RunUI.Gold, .42f));
+            Arc(vh, floor, new Vector2(r.width * .19f, r.height * .087f), 0, 360, 1, Alpha(RunUI.Gold, .22f));
             for (int i = 0; i < 12; i++)
             {
                 float a = i * Mathf.PI / 6;
-                var p = floor + new Vector2(Mathf.Cos(a) * r.width * .295f, Mathf.Sin(a) * r.height * .082f);
+                var p = floor + new Vector2(Mathf.Cos(a) * r.width * .18f, Mathf.Sin(a) * r.height * .082f);
                 Diamond(vh, p, new Vector2(3, 4), RunUI.Gold * new Color(1, 1, 1, .55f));
             }
             for (int i = 0; i < monsterCount; i++)
             {
-                var p = Point(r, new Vector2(BattleArenaView.MonsterX(i, monsterCount), .585f));
+                var p = Point(r, BattleArenaView.MonsterPosition(i, monsterCount) - new Vector2(0, .015f));
                 Ellipse(vh, p, new Vector2(Mathf.Min(r.width / (monsterCount + 1) * .36f, r.height * .1f), r.height * .018f),
                     Alpha(Color.black, .32f));
             }
-            Line(vh, Point(r, new Vector2(.02f, .998f)), Point(r, new Vector2(.98f, .998f)), 1, Alpha(RunUI.Gold, .5f));
-            Line(vh, Point(r, new Vector2(.02f, .002f)), Point(r, new Vector2(.98f, .002f)), 1, Alpha(RunUI.Gold, .3f));
         }
 
         private void Weapons(VertexHelper vh, Rect r)
         {
-            var center = Point(r, new Vector2(.5f, .245f));
+            var center = Point(r, BattleArenaView.HeroImpact - new Vector2(0, .035f));
             float unit = Mathf.Min(r.width, r.height) / 600;
             float turn = (float)(beat * .24);
             // A small oscillation accelerates the orbit during Shake without introducing a second clock.
@@ -88,7 +86,7 @@ namespace BBSB.Runtime.UI
             for (int i = 0; i < 5; i++)
             {
                 float a = i * Mathf.PI * 2 / 5 + turn;
-                var p = center + new Vector2(Mathf.Cos(a) * r.width * .225f, Mathf.Sin(a) * r.height * .085f);
+                var p = center + new Vector2(Mathf.Cos(a) * r.width * .13f, Mathf.Sin(a) * r.height * .085f);
                 float size = (20 + energy * 7) * unit;
                 var up = new Vector2(Mathf.Sin(a) * .45f, 1).normalized;
                 var right = new Vector2(up.y, -up.x);
@@ -116,9 +114,9 @@ namespace BBSB.Runtime.UI
             }
             if (guard > 0)
             {
-                var p = Point(r, new Vector2(.5f, .26f));
-                Arc(vh, p, new Vector2(r.width * .12f, r.height * .105f), 8, 164, 5 * unit, Alpha(RunUI.Teal, guard * .85f));
-                Arc(vh, p, new Vector2(r.width * .14f, r.height * .12f), 20, 140, unit, Alpha(RunUI.Gold, guard * .6f));
+                var p = Point(r, BattleArenaView.HeroImpact);
+                Arc(vh, p, new Vector2(r.width * .09f, r.height * .15f), -75, 150, 5 * unit, Alpha(RunUI.Teal, guard * .85f));
+                Arc(vh, p, new Vector2(r.width * .10f, r.height * .17f), -70, 140, unit, Alpha(RunUI.Gold, guard * .6f));
             }
         }
 

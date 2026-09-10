@@ -18,6 +18,7 @@ namespace BBSB.Runtime.UI
             public Image Portrait;
             public Text Signal;
             public Color Tint;
+            public Vector2 Ground;
             public Vector2 Impact;
         }
 
@@ -35,7 +36,8 @@ namespace BBSB.Runtime.UI
         private Vector2 lastSize;
         private bool paused;
         private float weaponEnergy, guardStrength, shakeStrength;
-        private static readonly Vector2 HeroImpact = new Vector2(.5f, .27f);
+        internal static readonly Vector2 HeroFoot = new Vector2(.24f, .17f);
+        internal static readonly Vector2 HeroImpact = new Vector2(.24f, .49f);
 
         public Image HeroPortrait => hero?.Portrait;
         public IReadOnlyList<Image> MonsterPortraits => portraits;
@@ -61,10 +63,9 @@ namespace BBSB.Runtime.UI
             hero.Tint = RunUI.Gold;
             var fx = ui.Rect("Battle effects and five weapons", area); RunUI.Stretch(fx);
             foreground = fx.gameObject.AddComponent<BattleArenaGraphic>();
-            var caption = ui.Label(area, "CALL & RESPONSE", 17, RunUI.Muted, 24);
-            Anchor(caption.rectTransform, new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -4), new Vector2(-32, 24), new Vector2(.5f, 1));
-            heroLabel = ui.Label(area, "WEAPON MASTER", 19, RunUI.Gold, 26, TextAnchor.MiddleCenter);
-            Anchor(heroLabel.rectTransform, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(0, 26), new Vector2(.5f, 0));
+            heroLabel = ui.Label(area, "WEAPON MASTER", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
+            Anchor(heroLabel.rectTransform, new Vector2(HeroFoot.x, .06f), new Vector2(HeroFoot.x, .06f),
+                Vector2.zero, new Vector2(420, 36), new Vector2(.5f, 0));
             LayoutActors(); Refresh();
         }
 
@@ -79,7 +80,14 @@ namespace BBSB.Runtime.UI
             foreground.SetFrame(seconds / round.BeatSeconds, weaponEnergy, guardStrength, shakeStrength, effects);
         }
 
-        public static float MonsterX(int index, int count) => count == 1 ? .5f : .17f + .66f * index / (count - 1);
+        public static Vector2 MonsterPosition(int index, int count)
+        {
+            if (count == 1) return new Vector2(.75f, .38f);
+            if (count == 2) return new Vector2(.64f + index * .21f, index == 0 ? .43f : .35f);
+            return new Vector2(.58f + index * .16f, index == 1 ? .48f : index == 0 ? .38f : .32f);
+        }
+
+        public static float MonsterX(int index, int count) => MonsterPosition(index, count).x;
 
         private void OnRectTransformDimensionsChange()
         {
@@ -100,10 +108,10 @@ namespace BBSB.Runtime.UI
             var actor = new Actor { Root = root, Portrait = image };
             if (label != null)
             {
-                var nameLabel = ui.Label(root, label, 20, RunUI.TextColor, 25, TextAnchor.MiddleCenter);
-                Anchor(nameLabel.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, -23), new Vector2(220, 25), new Vector2(.5f, 0));
-                actor.Signal = ui.Label(root, "대기", 23, RunUI.Muted, 30, TextAnchor.MiddleCenter);
-                Anchor(actor.Signal.rectTransform, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -4), new Vector2(220, 30), new Vector2(.5f, 0));
+                var nameLabel = ui.Label(root, label, 22, RunUI.TextColor, 34, TextAnchor.MiddleCenter);
+                Anchor(nameLabel.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, -30), new Vector2(230, 34), new Vector2(.5f, 0));
+                actor.Signal = ui.Label(root, "대기", 23, RunUI.Muted, 36, TextAnchor.MiddleCenter);
+                Anchor(actor.Signal.rectTransform, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -4), new Vector2(230, 36), new Vector2(.5f, 0));
             }
             return actor;
         }
@@ -113,15 +121,16 @@ namespace BBSB.Runtime.UI
             Vector2 size = area.rect.size;
             if (size == lastSize || size.x <= 0 || size.y <= 0) return;
             lastSize = size;
-            float side = Mathf.Min(size.y * .29f, size.x / (monsters.Count + .35f));
+            float side = Mathf.Min(size.y * (monsters.Count == 1 ? .4f : .36f),
+                size.x * (monsters.Count == 1 ? .26f : monsters.Count == 2 ? .21f : .15f));
             for (int i = 0; i < monsters.Count; i++)
             {
-                var actor = monsters[i]; float x = MonsterX(i, monsters.Count);
-                Anchor(actor.Root, new Vector2(x, .6f), new Vector2(x, .6f), Vector2.zero, Vector2.one * side, new Vector2(.5f, 0));
-                actor.Impact = new Vector2(x, .6f + side / size.y * .5f);
+                var actor = monsters[i]; actor.Ground = MonsterPosition(i, monsters.Count);
+                Anchor(actor.Root, actor.Ground, actor.Ground, Vector2.zero, Vector2.one * side, new Vector2(.5f, 0));
+                actor.Impact = actor.Ground + new Vector2(0, side / size.y * .5f);
             }
-            float heroSize = Mathf.Min(size.x * .55f, size.y * .52f);
-            Anchor(hero.Root, new Vector2(.5f, .035f), new Vector2(.5f, .035f), Vector2.zero, Vector2.one * heroSize, new Vector2(.5f, 0));
+            float heroSize = Mathf.Min(size.x * .4f, size.y * .7f);
+            Anchor(hero.Root, HeroFoot, HeroFoot, Vector2.zero, Vector2.one * heroSize, new Vector2(.5f, 0));
         }
 
         private void RefreshMonster(Actor actor, double seconds)
@@ -138,7 +147,7 @@ namespace BBSB.Runtime.UI
                 {
                     double age = seconds - Time(signal.Tick);
                     call += Pulse(age, round.BeatSeconds * .8);
-                    Add(BattleEffectKind.Call, new Vector2(actor.Impact.x, .6f), actor.Impact, age, round.BeatSeconds * .85, RunUI.Gold);
+                    Add(BattleEffectKind.Call, actor.Ground, actor.Impact, age, round.BeatSeconds * .85, RunUI.Gold);
                 }
             }
             foreach (var note in round.Notes)
@@ -164,7 +173,7 @@ namespace BBSB.Runtime.UI
                 case "bubble-spirit": y += 8 + bounce * 7 + call * size.y * .06f; squash += call * .08f; break;
                 case "flick-goblin": x += call * 13; tilt -= call * 14; y += call * 8; break;
             }
-            float direction = Mathf.Sign(.5f - actor.Impact.x);
+            float direction = Mathf.Sign(HeroImpact.x - actor.Impact.x);
             x += direction * (attackPulse * size.x * .035f - windup * 6) - direction * counter * 9;
             y += windup * 7 - attackPulse * size.y * .055f + counter * 7;
             tilt += direction * (attackPulse * 9 - counter * 8);
@@ -235,7 +244,7 @@ namespace BBSB.Runtime.UI
                 if (actor == null) continue;
                 float strength = result.Grade == RhythmGrade.Perfect ? 1 : result.Grade == RhythmGrade.HalfMiss ? .55f : .65f;
                 float pulse = Pulse(age, duration) * strength;
-                float direction = actor.Impact.x >= .5f ? 1 : -1;
+                float direction = actor.Impact.x >= HeroImpact.x ? 1 : -1;
                 if (result.Grade == RhythmGrade.Miss)
                 {
                     miss = Mathf.Max(miss, pulse); x += Mathf.Sin((float)age * 65) * 6 * pulse;

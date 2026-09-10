@@ -24,34 +24,39 @@ namespace BBSB.Runtime.UI
         {
             this.round = round; var music = round.Plan.Stage.Music;
             root.name = "Rhythm playback";
-            var layout = root.GetComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(12, 12, 12, 12); layout.spacing = 6;
             ui.Background(root, RunUI.Ink, true);
-            var header = ui.Row(root, 80);
-            ui.Label(header, music.Name + "  /  " + music.Bpm + " BPM", 25, RunUI.Gold, 80);
-            var pauseButton = ui.Button(header, "메뉴", pause, height: 80);
-            var pauseSize = pauseButton.GetComponent<LayoutElement>();
-            pauseSize.minWidth = pauseSize.preferredWidth = 104; pauseSize.flexibleWidth = 0;
-            songProgress = Progress(root, ui, "Song progress", 5);
+            var stage = ui.Rect("Battle arena", root); RunUI.Stretch(stage);
+            arena = stage.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font);
+            // HUD is layered over the full battle scene; it never participates in its layout.
+            var song = ui.Label(root, music.Name + "  /  " + music.Bpm + " BPM", 25, RunUI.Gold, 40);
+            RunUI.Overlay(song.rectTransform, new Vector2(0, 1), new Vector2(.35f, 1), new Vector2(24, -64), new Vector2(0, -24));
+            songProgress = Progress(root, ui, "Song progress", 4);
+            var track = (RectTransform)songProgress.parent;
+            RunUI.Overlay(track, new Vector2(0, 1), Vector2.one, new Vector2(0, -4), Vector2.zero);
 
-            var beats = ui.Row(root, 60, 6); pulses = new Image[music.BeatsPerBar * 2];
+            var beats = ui.Rect("Beat signals", root);
+            RunUI.Overlay(beats, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -90), new Vector2(0, -30));
+            pulses = new Image[music.BeatsPerBar * 2];
             for (int i = 0; i < pulses.Length; i++)
             {
-                var cell = ui.Rect("Beat pulse " + i, beats); RunUI.Size(cell, 60, 1);
+                var cell = ui.Rect("Beat pulse " + i, beats);
+                RunUI.Overlay(cell, new Vector2((float)i / pulses.Length, 0), new Vector2((float)(i + 1) / pulses.Length, 1),
+                    new Vector2(3, 0), new Vector2(-3, 0));
                 pulses[i] = ui.Background(cell, RunUI.Panel);
                 var number = ui.Label(cell, i % 2 == 0 ? (i / 2 + 1).ToString() : "&", i % 2 == 0 ? 34 : 27,
                     RunUI.TextColor, 60, TextAnchor.MiddleCenter);
                 RunUI.Stretch(number.rectTransform);
             }
-            beatLabel = ui.Label(root, "", 21, RunUI.Gold, 30, TextAnchor.MiddleCenter);
-            var stage = ui.Rect("Battle arena", root);
-            var stageSize = RunUI.Size(stage, 180); stageSize.flexibleHeight = 1;
-            arena = stage.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font);
+            beatLabel = ui.Label(root, "", 21, RunUI.Muted, 32);
+            RunUI.Overlay(beatLabel.rectTransform, new Vector2(0, 1), new Vector2(.36f, 1), new Vector2(24, -96), new Vector2(0, -64));
 
             feedback = ui.Label(root, "Call을 보고 박자를 준비해", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
             feedback.gameObject.name = "Response feedback";
+            RunUI.Overlay(feedback.rectTransform, new Vector2(.43f, 0), new Vector2(1, 0), new Vector2(0, 62), new Vector2(-24, 110));
             contact = ui.Label(root, "", 23, RunUI.Teal, 36, TextAnchor.MiddleCenter);
             contact.gameObject.name = "Input status";
+            RunUI.Overlay(contact.rectTransform, new Vector2(.43f, 0), new Vector2(1, 0), new Vector2(0, 24), new Vector2(-24, 60));
+            ui.FloatingMenu(root, pause);
 
             var overlay = ui.Modal(root, "Pause overlay", "일시정지", resume, out var panel);
             var home = ui.Stack(panel, "Pause menu");

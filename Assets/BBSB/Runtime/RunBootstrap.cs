@@ -19,7 +19,12 @@ namespace BBSB.Runtime
         private void Awake()
         {
             Application.targetFrameRate = 60;
-            if (Application.isMobilePlatform) Screen.orientation = ScreenOrientation.Portrait;
+            if (Application.isMobilePlatform)
+            {
+                Screen.autorotateToPortrait = Screen.autorotateToPortraitUpsideDown = false;
+                Screen.autorotateToLandscapeLeft = Screen.autorotateToLandscapeRight = true;
+                Screen.orientation = ScreenOrientation.AutoRotation;
+            }
             if (EventSystem.current == null)
             {
                 var events = new GameObject("BBSB Event System", typeof(EventSystem), typeof(InputSystemUIInputModule));

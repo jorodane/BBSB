@@ -147,12 +147,13 @@ namespace BBSB.Tests
             Assert.IsNotNull(arena); Assert.IsNull(presenter.ActiveRound);
             Assert.AreEqual(0, root.GetComponentsInChildren<MonsterPatternView>().Length);
             var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
-            foreach (var size in new[] { new Vector2(720, 1280), new Vector2(1280, 720), new Vector2(720, 720) })
+            foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800), new Vector2(1220, 680) })
             {
                 SetViewport(safe, size); yield return null; Canvas.ForceUpdateCanvases();
                 var rect = (RectTransform)arena.transform;
-                Assert.Greater(rect.rect.height, size.y * .55f, "Preparation arena: " + size);
-                Assert.Greater(rect.rect.width, size.x * .9f);
+                Assert.AreEqual(size.y, rect.rect.height, .1f, "The entire preparation scene must remain behind the HUD.");
+                Assert.AreEqual(size.x, rect.rect.width, .1f);
+                AssertFloatingMenu(rect);
                 AssertContained(rect, (RectTransform)safe.transform);
                 var start = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<Text>().text == "연주 시작");
                 AssertContained((RectTransform)start.transform, (RectTransform)safe.transform);
@@ -178,17 +179,22 @@ namespace BBSB.Tests
             var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
             var map = (RectTransform)root.GetComponentInChildren<MapConnectionsGraphic>().transform.parent;
             var model = presenter.Session.Map;
-            foreach (var size in new[] { new Vector2(720, 1280), new Vector2(1280, 720), new Vector2(720, 720) })
+            foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800), new Vector2(1220, 680) })
             {
                 SetViewport(safe, size); yield return null; Canvas.ForceUpdateCanvases();
-                Assert.Greater(map.rect.height, size.y * .65f, "Map height: " + size);
-                Assert.Greater(map.rect.width, size.x * .9f);
+                Assert.AreEqual(size.y, map.rect.height, .1f, "The map must fill the viewport behind its HUD.");
+                Assert.AreEqual(size.x, map.rect.width, .1f);
+                AssertFloatingMenu(map);
                 foreach (var button in map.GetComponentsInChildren<Button>())
                 {
                     AssertContained((RectTransform)button.transform, map);
                     Assert.Greater(((RectTransform)button.transform).rect.height, 70);
                 }
             }
+            foreach (var from in model.Nodes)
+                foreach (var next in from.Next)
+                    Assert.Greater(MapConnectionsGraphic.Position(model.Find(next)).x, MapConnectionsGraphic.Position(from).x,
+                        "Every map connection must progress toward the right.");
             var node = map.GetComponentsInChildren<Button>().First(x => x.interactable);
             Click("메뉴"); yield return null;
             Assert.IsFalse(node.IsInteractable(), "The covered map must not accept stage selection.");
@@ -207,6 +213,20 @@ namespace BBSB.Tests
             var rect = (RectTransform)safe.transform;
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
             rect.sizeDelta = size; rect.anchoredPosition = Vector2.zero;
+        }
+
+        private void AssertFloatingMenu(RectTransform scene)
+        {
+            var graphic = root.GetComponentInChildren<RoundMenuGraphic>(); Assert.IsNotNull(graphic);
+            var menu = graphic.rectTransform;
+            Assert.AreSame(scene.parent, menu.parent, "HUD and scene must be independent siblings.");
+            Assert.IsNull(scene.parent.GetComponent<LayoutGroup>(), "A header row must never allocate scene space.");
+            Assert.AreEqual(80, menu.rect.width, .1f); Assert.AreEqual(80, menu.rect.height, .1f);
+            AssertContained(menu, (RectTransform)scene.parent);
+            var center = RectTransformUtility.WorldToScreenPoint(null, menu.TransformPoint(menu.rect.center));
+            var corner = RectTransformUtility.WorldToScreenPoint(null, menu.TransformPoint(menu.rect.max - Vector2.one));
+            Assert.IsTrue(graphic.Raycast(center, null));
+            Assert.IsFalse(graphic.Raycast(corner, null), "The circular button's empty corners must not block the scene.");
         }
 
         private static void AssertContained(RectTransform child, RectTransform parent)

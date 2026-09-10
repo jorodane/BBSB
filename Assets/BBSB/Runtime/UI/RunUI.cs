@@ -35,6 +35,9 @@ namespace BBSB.Runtime.UI
         {
             var layout = rect.gameObject.GetComponent<LayoutElement>() ?? rect.gameObject.AddComponent<LayoutElement>();
             layout.minHeight = height; layout.preferredHeight = height; layout.flexibleWidth = flexibleWidth;
+            // A nested layout group also reports flexible size. Explicitly override it for
+            // fixed controls; only the caller that owns a growing content area opts back in.
+            layout.flexibleHeight = 0;
             return layout;
         }
 
@@ -53,8 +56,33 @@ namespace BBSB.Runtime.UI
             var rect = Rect("Row", parent); Size(rect, height);
             var layout = rect.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = spacing; layout.childControlWidth = true; layout.childControlHeight = true;
-            layout.childForceExpandWidth = true; layout.childForceExpandHeight = true;
+            layout.childForceExpandWidth = false; layout.childForceExpandHeight = true;
             return rect;
+        }
+
+        public static void Pin(RectTransform rect, Vector2 anchor, Vector2 pivot, Vector2 position, Vector2 size)
+        {
+            rect.anchorMin = rect.anchorMax = anchor; rect.pivot = pivot;
+            rect.anchoredPosition = position; rect.sizeDelta = size;
+        }
+
+        public static void Overlay(RectTransform rect, Vector2 min, Vector2 max, Vector2 lower, Vector2 upper)
+        {
+            rect.anchorMin = min; rect.anchorMax = max; rect.offsetMin = lower; rect.offsetMax = upper;
+        }
+
+        public Button FloatingMenu(Transform parent, Action action)
+        {
+            var rect = Rect("Menu button", parent);
+            Pin(rect, Vector2.one, Vector2.one, new Vector2(-20, -20), new Vector2(80, 80));
+            rect.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            var graphic = rect.gameObject.AddComponent<RoundMenuGraphic>();
+            var button = rect.gameObject.AddComponent<Button>(); button.targetGraphic = graphic;
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+            var label = Label(rect, "메뉴", 18, TextColor, 30, TextAnchor.MiddleCenter);
+            Overlay(label.rectTransform, new Vector2(.12f, .08f), new Vector2(.88f, .43f), Vector2.zero, Vector2.zero);
+            button.onClick.AddListener(() => action());
+            return button;
         }
 
         public Image Background(RectTransform rect, Color color, bool raycast = false)
