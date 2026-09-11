@@ -43,6 +43,9 @@ namespace BBSB.Runtime.UI
             float left = rect.xMin + 6, width = Mathf.Max(1, rect.width - 12);
             int cue = pattern.Pattern.CueLeadTicks, restStart = cue + pattern.ResponseTicks;
             int total = restStart + pattern.RestTicks;
+            if (pattern.SilentWaitTicks > 0)
+                Quad(vh, left + width * (cue - pattern.SilentWaitTicks) / total, rect.yMax - rowHeight,
+                    width * pattern.SilentWaitTicks / total, rowHeight, RunUI.Hex("343448"));
             for (int tick = 0; tick <= total; tick += RhythmTime.TicksPerBeat / 2)
             {
                 float x = left + width * tick / total;

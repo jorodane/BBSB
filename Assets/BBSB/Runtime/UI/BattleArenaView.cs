@@ -166,7 +166,8 @@ namespace BBSB.Runtime.UI
             {
                 if (note.Attack.MonsterId != actor.Plan.InstanceId) continue;
                 // The monster always performs its scheduled attack, including a missed player's note.
-                if (attackTicks.Add(note.StartTick)) AttackBeat(note.StartSeconds, actor, seconds, ref attackPulse, ref windup);
+                if (attackTicks.Add(note.StartTick)) AttackBeat(note.StartSeconds, actor, seconds, ref attackPulse, ref windup,
+                    anticipate: note.Attack.Pattern.SilentWaitTicks == 0 || note.StartTick != note.Attack.ResponseStartTick);
                 if (note.EndSeconds > note.StartSeconds && attackTicks.Add(note.EndTick))
                     AttackBeat(note.EndSeconds, actor, seconds, ref attackPulse, ref windup);
                 if (note.Result != null && note.Result.Grade != RhythmGrade.Miss)
@@ -184,9 +185,11 @@ namespace BBSB.Runtime.UI
             RefreshSignal(actor, current, seconds, call);
         }
 
-        private void AttackBeat(double target, Actor actor, double seconds, ref float pulse, ref float windup)
+        private void AttackBeat(double target, Actor actor, double seconds, ref float pulse, ref float windup, bool anticipate = true)
         {
             double age = seconds - target;
+            // Waiting patterns test the remembered beat; don't reveal it with a last-moment windup or projectile.
+            if (!anticipate && age < 0) return;
             pulse += Pulse(age, Math.Min(.3, round.BeatSeconds * .65));
             double travel = Math.Min(.28, round.BeatSeconds * .5);
             if (age < 0 && age >= -travel) windup = Mathf.Max(windup, (float)(1 + age / travel));
@@ -203,6 +206,9 @@ namespace BBSB.Runtime.UI
                 foreach (var signal in current.Call) if (Time(signal.Tick) <= seconds)
                 { call = signal.Label; tint = CueColor(signal.Motion); }
                 label.text = "CALL · " + call; label.color = tint;
+                if (current.Pattern.SilentWaitTicks > 0 &&
+                    seconds >= Time(current.ResponseStartTick - current.Pattern.SilentWaitTicks) + round.BeatSeconds)
+                { label.text = "쉼 · 박자 기억하기"; label.color = RunUI.Muted; }
             }
             else if (seconds <= Time(current.PhraseEndTick) + round.HalfMissWindow)
             { label.text = "RESPONSE"; label.color = RunUI.Teal; }
@@ -350,6 +356,8 @@ namespace BBSB.Runtime.UI
                 case "march-slime": return RunUI.Hex("FFCE75");
                 case "tresillo-bat": return RunUI.Hex("7BDDE5");
                 case "offbeat-goblin": return RunUI.Hex("9CB4FF");
+                case "drowsy-slime": return RunUI.Hex("C4A8EA");
+                case "clock-spirit": return RunUI.Hex("EBCF88");
                 case "spark-bat": return RunUI.Hex("CE8BFF");
                 case "iron-turtle": return RunUI.Gold;
                 case "diving-ray": return RunUI.Hex("77BFFF");

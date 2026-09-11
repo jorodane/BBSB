@@ -37,6 +37,9 @@ namespace BBSB.Runtime.UI
             foreach (var signal in pattern.Call)
                 ui.Label(root, Beat(signal.OffsetTick + RhythmTime.TicksPerBeat) + "박 · " + signal.Label + "\n" +
                     SoundLabel(signal.Sound) + " / " + MotionLabel(signal.Motion), 19, BattleArenaView.CueColor(signal.Motion), 56);
+            if (pattern.SilentWaitTicks > 0)
+                ui.Label(root, "기다리기 · 마지막 Call에서 " + Beat(pattern.SilentWaitTicks) + "박 뒤에 대응해.\n중간 Call 없이 처음 들은 박자를 기억해.",
+                    19, RunUI.Muted, 60);
 
             var kinds = new List<GestureKind>();
             foreach (var step in pattern.Pattern.Steps) if (!kinds.Contains(step.Kind)) kinds.Add(step.Kind);

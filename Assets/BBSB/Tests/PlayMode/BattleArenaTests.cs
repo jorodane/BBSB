@@ -79,6 +79,32 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator WaitingPatternsStayQuietWithoutALastMomentAttackWindup()
+        {
+            var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "steady-pulse"));
+            foreach (var monster in MonsterCatalog.All.Where(x => x.Patterns.Any(p => p.SilentWaitTicks > 0)))
+            {
+                var pattern = monster.Patterns.Single(x => x.SilentWaitTicks > 0);
+                var proposal = new MonsterProposal(monster.Id, monster,
+                    stage.FindPlacements(pattern.Pattern).Where(x => x.StartTick == 64));
+                var plan = BattlePlanner.Resolve(stage, new[] { proposal }, 1);
+                var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
+                Canvas.ForceUpdateCanvases();
+                round.Advance(RhythmTime.Seconds(plan.Attacks.Single().CallStartTick, stage.Music.Bpm)); arena.Refresh();
+                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "CALL · " + pattern.Call[0].Label));
+                double target = RhythmTime.Seconds(64, stage.Music.Bpm);
+                round.Advance(target - .1); arena.Refresh();
+                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "쉼 · 박자 기억하기"));
+                Assert.AreEqual(0f, arena.MonsterPortraits.Single().rectTransform.anchoredPosition.x, .001f);
+                Assert.AreEqual(1, round.Calls.Count); Assert.AreEqual(0, round.Results.Count);
+                round.Advance(target); arena.Refresh();
+                Assert.Less(arena.MonsterPortraits.Single().rectTransform.anchoredPosition.x, 0);
+                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "RESPONSE"));
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator CallsAttacksAndSharedCountersUseThePlanAndFreezeTogether()
         {
             var round = Round(3, new PatternStep(GestureKind.Tap, 0));

@@ -29,9 +29,12 @@ namespace BBSB.Core
         public int ResponseTicks { get; }
         public int RestTicks { get; }
         public int CueAlignmentTicks { get; }
+        // Beat distance from the final Call to the first Response; no additional cue during this authored wait.
+        public int SilentWaitTicks { get; }
         public double ParticipationChance { get; }
         public MonsterPatternDefinition(string name, string description, RhythmPattern pattern,
-            IEnumerable<CallSignal> call, int responseTicks, int restTicks, double participationChance, int cueAlignmentTicks = 1)
+            IEnumerable<CallSignal> call, int responseTicks, int restTicks, double participationChance, int cueAlignmentTicks = 1,
+            int silentWaitTicks = 0)
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A pattern needs a name.");
             if (pattern == null || call == null) throw new ArgumentNullException(pattern == null ? nameof(pattern) : nameof(call));
@@ -47,10 +50,13 @@ namespace BBSB.Core
                 if (signals[i].OffsetTick >= pattern.CueLeadTicks || (i > 0 && signals[i - 1].OffsetTick == signals[i].OffsetTick))
                     throw new ArgumentException("Call signals must be distinct and precede the Response.");
             if (signals[0].OffsetTick != 0) throw new ArgumentException("The first Call signal must mark the cue start.");
+            if (silentWaitTicks < 0 || (silentWaitTicks > 0 &&
+                (silentWaitTicks < 4 * RhythmTime.TicksPerBeat || silentWaitTicks != pattern.CueLeadTicks - signals[signals.Count - 1].OffsetTick)))
+                throw new ArgumentException("A silent wait must span at least four beats from the final Call to the Response.");
             if (!InputCompatibility.IsPlayable(pattern)) throw new ArgumentException("The monster's pattern contains conflicting touch requirements.");
             Id = pattern.Id; Name = name; Description = description ?? ""; Pattern = pattern; Call = signals.AsReadOnly();
             ResponseTicks = responseTicks; RestTicks = restTicks; ParticipationChance = participationChance;
-            CueAlignmentTicks = cueAlignmentTicks;
+            CueAlignmentTicks = cueAlignmentTicks; SilentWaitTicks = silentWaitTicks;
         }
     }
 
@@ -78,6 +84,8 @@ namespace BBSB.Core
             if (copy.Count == 0) throw new ArgumentException("A monster needs patterns.");
             foreach (var pattern in copy)
                 if (pattern == null || !ids.Add(pattern.Id)) throw new ArgumentException("Monster pattern IDs must be distinct.");
+            if (copy.FindAll(x => x.SilentWaitTicks > 0).Count > 1)
+                throw new ArgumentException("A monster can have only one silent-wait pattern; pair it with a shorter pattern.");
             for (int i = 0; i < copy.Count; i++)
                 for (int j = i + 1; j < copy.Count; j++) CallReadability.Validate(copy[i], copy[j]);
             Id = id; ArtId = artId ?? id; Name = name; Description = description ?? ""; MainGesture = mainGesture;

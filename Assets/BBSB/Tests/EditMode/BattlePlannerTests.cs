@@ -61,7 +61,7 @@ namespace BBSB.Tests
                     }
                 }
             }
-            Check.Equal(9, MonsterCatalog.All.Count); Check.Equal(9, seen.Count);
+            Check.Equal(11, MonsterCatalog.All.Count); Check.Equal(11, seen.Count);
         }
 
         [Test]

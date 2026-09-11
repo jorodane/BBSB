@@ -6,7 +6,7 @@ namespace BBSB.Core
     public static class MonsterCatalog
     {
         // Four ticks per beat. Tresillo uses 0, 6, 12 in a 16-tick phrase.
-        // Five of nine species have a Tap theme; the mixed-input bat is deliberately rarer.
+        // Seven of eleven species have a Tap theme; each waiting specialist pairs one long wait with a frequent short cue.
         public static IReadOnlyList<MonsterDefinition> All { get; } = Array.AsReadOnly(new[]
         {
             new MonsterDefinition("tap-slime", "통통 슬라임", "박자 선생 · Call을 따라 세고 마지막에 한 번 눌러.", GestureKind.Tap, new[]
@@ -37,6 +37,22 @@ namespace BBSB.Core
                 Pattern("offbeat-pair", "뒷박 두 걸음", "맑은 종소리와 두 번의 점프. 마지막 Call 반 박 뒤부터 한 박 간격 Tap 두 번.", 6,
                     new[] { Tap(0), Tap(4) }, new[] { Call(0, "뿅", CallSound.Bell, CallMotion.Hop), Call(4, "뿅!", CallSound.Bell, CallMotion.Hop) }, 8, 4, .14)
             }, encounterWeight: 1.4, artId: "flick-goblin"),
+            new MonsterDefinition("drowsy-slime", "졸음 슬라임", "꾸벅 졸음 · 짧게 통통 뛰다가 가끔 네 박 동안 잠들어.", GestureKind.Tap, new[]
+            {
+                Pattern("drowsy-quick-tap", "깜짝 통!", "나무 소리와 점프 뒤 한 박을 기다려 Tap. 평소에 자주 나와.", 4,
+                    new[] { Tap(0) }, new[] { Call(0, "통!", CallSound.Wood, CallMotion.Hop) }, 4, 4, .32),
+                Pattern("drowsy-four-beat-wait", "네 박 낮잠", "내려가는 휘파람에 몸을 낮추면 네 박을 기다려 Tap. Call을 1박으로 세면 5박에 눌러.", 16,
+                    new[] { Tap(0) }, new[] { Call(0, "스르르", CallSound.FallingWhistle, CallMotion.Dip) }, 4, 4, .18,
+                    silentWaitTicks: 16)
+            }, encounterWeight: 1.2, artId: "tap-slime"),
+            new MonsterDefinition("clock-spirit", "시계 정령", "긴 종소리 · 째깍에는 한 박 뒤 대응하고 종이 울리면 일곱 박을 기억해.", GestureKind.Tap, new[]
+            {
+                Pattern("clock-quick-tap", "째깍 톡!", "나무 소리와 제자리걸음 뒤 한 박을 기다려 Tap. 평소에 자주 나와.", 4,
+                    new[] { Tap(0) }, new[] { Call(0, "째깍!", CallSound.Wood, CallMotion.Step) }, 4, 4, .32),
+                Pattern("clock-seven-beat-wait", "일곱 박 종소리", "맑은 종과 섬광 뒤 일곱 박을 기다려 Tap. Call을 1박으로 세면 8박에 눌러.", 28,
+                    new[] { Tap(0) }, new[] { Call(0, "땡!", CallSound.Bell, CallMotion.Flash) }, 4, 4, .18,
+                    silentWaitTicks: 28)
+            }, encounterWeight: 1.2, artId: "bubble-spirit"),
             new MonsterDefinition("spark-bat", "반짝 박쥐", "변주 장난꾼 · 빠른 Tap과 짧은 Hold를 바꿔 사용해.", GestureKind.Tap, new[]
             {
                 Pattern("bat-quick-taps", "짧게 두 번", "찌·릿 떨리는 소리와 두 번의 섬광 뒤 반 박 간격 Tap 두 번.", 4,
@@ -77,9 +93,9 @@ namespace BBSB.Core
         });
 
         private static MonsterPatternDefinition Pattern(string id, string name, string description, int cue,
-            PatternStep[] steps, CallSignal[] calls, int response, int rest, double chance)
+            PatternStep[] steps, CallSignal[] calls, int response, int rest, double chance, int silentWaitTicks = 0)
             => new MonsterPatternDefinition(name, description, new RhythmPattern(id, cue, steps), calls, response, rest, chance,
-                cueAlignmentTicks: RhythmTime.TicksPerBeat);
+                cueAlignmentTicks: RhythmTime.TicksPerBeat, silentWaitTicks: silentWaitTicks);
         private static PatternStep Tap(int tick) => new PatternStep(GestureKind.Tap, tick);
         private static PatternStep Held(GestureKind kind, int tick, int duration) => new PatternStep(kind, tick, duration);
         private static CallSignal Call(int tick, string label, CallSound sound, CallMotion motion) => new CallSignal(tick, label, sound, motion);

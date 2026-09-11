@@ -13,8 +13,8 @@ namespace BBSB.Tests
         [Test]
         public void EveryMonsterHasTwoReachablePatternsAndMostThemesUseTap()
         {
-            Check.Equal(9, MonsterCatalog.All.Count);
-            Check.Equal(5, MonsterCatalog.All.Count(x => x.MainGesture == GestureKind.Tap));
+            Check.Equal(11, MonsterCatalog.All.Count);
+            Check.Equal(7, MonsterCatalog.All.Count(x => x.MainGesture == GestureKind.Tap));
             foreach (var monster in MonsterCatalog.All)
             {
                 Check.Equal(2, monster.Patterns.Count);
