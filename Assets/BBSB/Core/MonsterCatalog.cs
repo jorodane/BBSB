@@ -6,7 +6,7 @@ namespace BBSB.Core
     public static class MonsterCatalog
     {
         // Four ticks per beat. Tresillo uses 0, 6, 12 in a 16-tick phrase.
-        // Seven of eleven species have a Tap theme; each waiting specialist pairs one long wait with a frequent short cue.
+        // Eight of twelve species have a Tap theme; each specialist uses its own pattern placement strategy.
         public static IReadOnlyList<MonsterDefinition> All { get; } = Array.AsReadOnly(new[]
         {
             new MonsterDefinition("tap-slime", "통통 슬라임", "박자 선생 · Call을 따라 세고 마지막에 한 번 눌러.", GestureKind.Tap, new[]
@@ -53,6 +53,15 @@ namespace BBSB.Core
                     new[] { Tap(0) }, new[] { Call(0, "땡!", CallSound.Bell, CallMotion.Flash) }, 4, 4, .18,
                     silentWaitTicks: 28)
             }, encounterWeight: 1.2, artId: "bubble-spirit"),
+            new MonsterDefinition("seesaw-goblin", "시소 도깨비", "박자 지휘자 · 매 박 따라 치다가 당겨! 소리에 마지막 Tap을 반 박 당겨.", GestureKind.Tap, new[]
+            {
+                new MonsterPatternDefinition("한 박씩 또각", "또각! 한 박 뒤 Tap. 그 Tap과 함께 다음 Call이 이어져.",
+                    new RhythmPattern("seesaw-steady-tap", 4, new[] { Tap(0) }),
+                    new[] { Call(0, "또각!", CallSound.Wood, CallMotion.Step) }, 4, 0, .24, cueAlignmentTicks: 2),
+                new MonsterPatternDefinition("반 박 당겨!", "올라가는 울림과 몸 비틀기 뒤 Tap, 반 박 뒤 한 번 더 Tap. 그 마지막 Tap부터 다음 Call도 반 박 앞당겨져.",
+                    new RhythmPattern("seesaw-early-finish", 4, new[] { Tap(0), Tap(2) }),
+                    new[] { Call(0, "당겨!", CallSound.RisingChime, CallMotion.Sway) }, 4, 0, .24, cueAlignmentTicks: 2)
+            }, encounterWeight: .6, artId: "flick-goblin", patternPlanner: new BeatShiftPlanner()),
             new MonsterDefinition("spark-bat", "반짝 박쥐", "변주 장난꾼 · 빠른 Tap과 짧은 Hold를 바꿔 사용해.", GestureKind.Tap, new[]
             {
                 Pattern("bat-quick-taps", "짧게 두 번", "찌·릿 떨리는 소리와 두 번의 섬광 뒤 반 박 간격 Tap 두 번.", 4,

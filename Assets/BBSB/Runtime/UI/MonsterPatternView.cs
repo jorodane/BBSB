@@ -20,6 +20,9 @@ namespace BBSB.Runtime.UI
             ui.Label(transform, "판정당 기본 피해 " + monster.DamagePerNote + "  ·  미스 100% / 반미스 75% / 퍼펙트 50%", 20, RunUI.Red, 52);
             ui.Label(transform, monster.Description, 21, RunUI.TextColor, 66);
             ui.Label(transform, "메인 입력 " + monster.MainGesture + "  ·  패턴 " + monster.Patterns.Count + "개", 20, RunUI.Teal, 32);
+            if (monster.PatternPlanner is BeatShiftPlanner)
+                ui.Label(transform, "정박 반복 → 반 박 당기기 → 엇박 반복 → 반 박 당기기 → 정박 반복\n대응하는 Tap과 다음 Call을 함께 이어가. 한 묶음 뒤에는 잠깐 쉬어.",
+                    19, RunUI.Teal, 88);
             foreach (var pattern in monster.Patterns)
             {
                 int count = 0;

@@ -213,6 +213,12 @@ namespace BBSB.Runtime.UI
             else if (seconds <= Time(current.PhraseEndTick) + round.HalfMissWindow)
             { label.text = "RESPONSE"; label.color = RunUI.Teal; }
             else { label.text = "쉬는 박자"; label.color = RunUI.Muted; }
+            // A linked cadence may cue its next Tap while the player responds to the previous one.
+            if (current?.Chain != null && seconds < Time(current.ResponseStartTick))
+                foreach (var note in round.Notes)
+                    if (note.Attack.MonsterId == actor.Plan.InstanceId && seconds >= note.StartSeconds &&
+                        seconds <= note.StartSeconds + round.HalfMissWindow)
+                    { label.text += " · TAP"; break; }
             label.rectTransform.localScale = Vector3.one * (1 + pulse * .1f);
         }
 
@@ -358,6 +364,7 @@ namespace BBSB.Runtime.UI
                 case "offbeat-goblin": return RunUI.Hex("9CB4FF");
                 case "drowsy-slime": return RunUI.Hex("C4A8EA");
                 case "clock-spirit": return RunUI.Hex("EBCF88");
+                case "seesaw-goblin": return RunUI.Hex("F1A0BA");
                 case "spark-bat": return RunUI.Hex("CE8BFF");
                 case "iron-turtle": return RunUI.Gold;
                 case "diving-ray": return RunUI.Hex("77BFFF");

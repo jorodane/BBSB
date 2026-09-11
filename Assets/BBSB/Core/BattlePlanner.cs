@@ -19,10 +19,7 @@ namespace BBSB.Core
                 throw new ArgumentException("Only battle stages have monster plans.", nameof(kind));
             var eligible = new List<MonsterDefinition>();
             foreach (var monster in MonsterCatalog.All)
-            {
-                foreach (var pattern in monster.Patterns)
-                    if (Candidates(stage, pattern).Count > 0) { eligible.Add(monster); break; }
-            }
+                if (monster.PatternPlanner.Candidates(stage, monster).Count > 0) eligible.Add(monster);
             var random = new SeededRandom(Hash(seed, "roster"));
             // All encounter kinds introduce one opponent per field, capped at three.
             int count = Math.Min(Math.Min(field, 3), eligible.Count);
@@ -54,37 +51,7 @@ namespace BBSB.Core
         public static MonsterProposal Propose(MusicStage stage, string instanceId, MonsterDefinition monster, int seed)
         {
             if (stage == null || monster == null) throw new ArgumentNullException(stage == null ? nameof(stage) : nameof(monster));
-            var placements = new List<PatternPlacement>();
-            foreach (var pattern in monster.Patterns)
-                placements.AddRange(ProposePattern(pattern, Candidates(stage, pattern), new SeededRandom(Hash(seed, pattern.Id))));
-            return new MonsterProposal(instanceId, monster, placements);
-        }
-
-        private static List<PatternPlacement> ProposePattern(MonsterPatternDefinition pattern, List<PatternPlacement> candidates, SeededRandom random)
-        {
-            var placements = new List<PatternPlacement>();
-            long responseAfter = 0, callAfter = 0;
-            foreach (var candidate in candidates)
-            {
-                if (candidate.StartTick < responseAfter || candidate.CueStartTick < callAfter) continue;
-                // Increase chance smoothly with weight while retaining a chance to skip highlights.
-                double chance = 1 - Math.Pow(1 - pattern.ParticipationChance, candidate.Weight);
-                if (random.Next(1000000) / 1000000.0 >= chance) continue;
-                placements.Add(candidate);
-                callAfter = (long)candidate.StartTick + pattern.ResponseTicks;
-                responseAfter = callAfter + pattern.RestTicks;
-            }
-            // A selected sample monster should have a proposal, even if every random roll skipped.
-            // This fallback guarantees participation before conflict resolution, not a highlight.
-            if (placements.Count == 0 && candidates.Count > 0)
-            {
-                double total = 0; foreach (var candidate in candidates) total += candidate.Weight;
-                double roll = random.Next(1000000) / 1000000.0 * total;
-                var selected = candidates[candidates.Count - 1];
-                foreach (var candidate in candidates) { roll -= candidate.Weight; if (roll < 0) { selected = candidate; break; } }
-                placements.Add(selected);
-            }
-            return placements;
+            return monster.PatternPlanner.Propose(stage, instanceId, monster, seed);
         }
 
         /// <summary>Remove whole conflicting bundles, recomputing each owner's occupied beats after every withdrawal.</summary>
@@ -129,9 +96,14 @@ namespace BBSB.Core
                 bool leftYields = leftCount == rightCount ? random.Next(2) == 0 : leftCount > rightCount;
                 int loser = leftYields ? firstOwner : secondOwner, winner = leftYields ? secondOwner : firstOwner;
                 int index = leftYields ? firstAttack : secondAttack;
-                withdrawals.Add(new PlanWithdrawal(active[loser][index], proposals[winner].InstanceId, earliest,
-                    leftYields ? leftCount : rightCount, leftYields ? rightCount : leftCount));
-                active[loser].RemoveAt(index); // The Call and every Response step leave together during arbitration.
+                var lost = active[loser][index];
+                var removed = lost.Chain == null ? new List<PlannedAttack> { lost } : active[loser].FindAll(x => ReferenceEquals(x.Chain, lost.Chain));
+                foreach (var attack in removed)
+                {
+                    withdrawals.Add(new PlanWithdrawal(attack, proposals[winner].InstanceId, earliest,
+                        leftYields ? leftCount : rightCount, leftYields ? rightCount : leftCount));
+                    active[loser].Remove(attack); // Dependent phase changes and their following Calls leave together.
+                }
             }
             var monsters = new List<MonsterPlan>();
             for (int i = 0; i < proposals.Count; i++)
@@ -144,11 +116,17 @@ namespace BBSB.Core
             if (left == null || right == null) throw new ArgumentNullException(left == null ? nameof(left) : nameof(right));
             if (left.MonsterId != right.MonsterId)
                 return InputCompatibility.Conflict(left.Placement, right.Placement, out tick);
+            if (left.Chain != null && ReferenceEquals(left.Chain, right.Chain))
+                return InputCompatibility.Conflict(left.Placement, right.Placement, out tick);
             // A single actor cannot cue a second pattern during its current Call/Response.
             // As before, the next Call may use the rest, but its Response must wait until rest ends.
-            if (left.CallStartTick > right.CallStartTick) { var swap = left; left = right; right = swap; }
-            if (right.CallStartTick < left.PhraseEndTick || right.ResponseStartTick < (long)left.PhraseEndTick + left.Pattern.RestTicks)
-            { tick = right.CallStartTick; return true; }
+            int leftStart = left.Chain?.CallStartTick ?? left.CallStartTick, rightStart = right.Chain?.CallStartTick ?? right.CallStartTick;
+            if (leftStart > rightStart) { var swap = left; left = right; right = swap; rightStart = leftStart; }
+            int end = left.Chain?.PhraseEndTick ?? left.PhraseEndTick;
+            int rest = left.Chain?.RestTicks ?? left.Pattern.RestTicks;
+            int response = right.Chain == null ? right.ResponseStartTick : right.Chain.Placements[0].StartTick;
+            if (rightStart < end || response < (long)end + rest)
+            { tick = rightStart; return true; }
             tick = -1; return false;
         }
 
@@ -179,7 +157,7 @@ namespace BBSB.Core
             return occupied.Count;
         }
 
-        private static int Hash(int seed, string id)
+        internal static int Hash(int seed, string id)
         {
             unchecked
             {

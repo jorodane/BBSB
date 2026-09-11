@@ -79,6 +79,24 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator LinkedCadenceShowsTheNextCallAlongsideTheCurrentTap()
+        {
+            var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "rapid-drive"));
+            var monster = MonsterCatalog.All.Single(x => x.Id == "seesaw-goblin");
+            var chain = monster.PatternPlanner.Candidates(stage, monster).Single(x => x.CallStartTick == 16);
+            var plan = BattlePlanner.Resolve(stage, new[] { new MonsterProposal(monster.Id, monster, new List<PatternChain> { chain }) }, 1);
+            var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
+            round.Advance(RhythmTime.Seconds(28, stage.Music.Bpm)); arena.Refresh();
+            Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "CALL · 당겨! · TAP"));
+            round.Advance(RhythmTime.Seconds(34, stage.Music.Bpm)); arena.Refresh();
+            Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "CALL · 또각! · TAP"));
+            Assert.AreEqual(34, round.Calls.Last().Tick);
+            round.Press(RhythmTime.Seconds(34, stage.Music.Bpm), 0, 0); arena.Refresh();
+            Assert.AreEqual(RhythmGrade.Perfect, round.Results.Last().Grade);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator WaitingPatternsStayQuietWithoutALastMomentAttackWindup()
         {
             var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "steady-pulse"));

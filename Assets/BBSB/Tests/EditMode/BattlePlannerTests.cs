@@ -44,8 +44,8 @@ namespace BBSB.Tests
                                 Check.True(call.Tick >= attack.CallStartTick && call.Tick < attack.ResponseStartTick);
                                 Check.Equal(attack.Id, call.AttackId); Check.Equal(monster.InstanceId, call.MonsterId);
                             }
-                            callAfter = (long)attack.ResponseStartTick + attack.Pattern.ResponseTicks;
-                            responseAfter = callAfter + attack.Pattern.RestTicks;
+                            callAfter = attack.Chain == null ? attack.PhraseEndTick : attack.ResponseEndTick;
+                            responseAfter = (long)attack.PhraseEndTick + attack.Pattern.RestTicks;
                         }
                     }
                     for (int i = 0; i < plan.Attacks.Count; i++) for (int j = i + 1; j < plan.Attacks.Count; j++)
@@ -61,7 +61,7 @@ namespace BBSB.Tests
                     }
                 }
             }
-            Check.Equal(11, MonsterCatalog.All.Count); Check.Equal(11, seen.Count);
+            Check.Equal(12, MonsterCatalog.All.Count); Check.Equal(12, seen.Count);
         }
 
         [Test]

@@ -70,9 +70,11 @@ namespace BBSB.Core
         public double EncounterWeight { get; }
         public IReadOnlyList<MonsterPatternDefinition> Patterns { get; }
         public int DamagePerNote { get; }
+        public IMonsterPatternPlanner PatternPlanner { get; }
 
         public MonsterDefinition(string id, string name, string description, GestureKind mainGesture,
-            IEnumerable<MonsterPatternDefinition> patterns, double encounterWeight = 1, int damagePerNote = 4, string artId = null)
+            IEnumerable<MonsterPatternDefinition> patterns, double encounterWeight = 1, int damagePerNote = 4, string artId = null,
+            IMonsterPatternPlanner patternPlanner = null)
         {
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A monster needs an ID and name.");
             if (!Enum.IsDefined(typeof(GestureKind), mainGesture)) throw new ArgumentOutOfRangeException(nameof(mainGesture));
@@ -88,6 +90,8 @@ namespace BBSB.Core
                 throw new ArgumentException("A monster can have only one silent-wait pattern; pair it with a shorter pattern.");
             for (int i = 0; i < copy.Count; i++)
                 for (int j = i + 1; j < copy.Count; j++) CallReadability.Validate(copy[i], copy[j]);
+            PatternPlanner = patternPlanner ?? IndependentPatternPlanner.Instance;
+            PatternPlanner.Validate(copy);
             Id = id; ArtId = artId ?? id; Name = name; Description = description ?? ""; MainGesture = mainGesture;
             Patterns = copy.AsReadOnly(); EncounterWeight = encounterWeight; DamagePerNote = damagePerNote;
         }
@@ -111,7 +115,14 @@ namespace BBSB.Core
         public string InstanceId { get; }
         public MonsterDefinition Monster { get; }
         public IReadOnlyList<PatternPlacement> Placements { get; }
+        public IReadOnlyList<PatternChain> Chains { get; }
         public MonsterProposal(string instanceId, MonsterDefinition monster, IEnumerable<PatternPlacement> placements)
+            : this(instanceId, monster, placements, Array.Empty<PatternChain>()) { }
+
+        public MonsterProposal(string instanceId, MonsterDefinition monster, List<PatternChain> chains)
+            : this(instanceId, monster, Flatten(chains), chains) { }
+
+        private MonsterProposal(string instanceId, MonsterDefinition monster, IEnumerable<PatternPlacement> placements, IEnumerable<PatternChain> chains)
         {
             if (string.IsNullOrWhiteSpace(instanceId)) throw new ArgumentException("An instance needs an ID.");
             if (monster == null || placements == null) throw new ArgumentNullException(monster == null ? nameof(monster) : nameof(placements));
@@ -125,7 +136,28 @@ namespace BBSB.Core
             }
             // Patterns submit independently. Timing conflicts, including self-overlaps, belong to the resolver.
             copy.Sort((a, b) => a.StartTick != b.StartTick ? a.StartTick.CompareTo(b.StartTick) : string.CompareOrdinal(a.Pattern.Id, b.Pattern.Id));
+            var linked = new List<PatternChain>(chains);
+            foreach (var chain in linked)
+                if (!ReferenceEquals(chain.Monster, monster)) throw new ArgumentException("A sequence must belong to its proposing monster.");
             InstanceId = instanceId; Monster = monster; Placements = copy.AsReadOnly();
+            Chains = linked.AsReadOnly();
+        }
+
+        private static IEnumerable<PatternPlacement> Flatten(List<PatternChain> chains)
+        {
+            if (chains == null) throw new ArgumentNullException(nameof(chains));
+            foreach (var chain in chains)
+            {
+                if (chain == null) throw new ArgumentException("Null linked sequence.");
+                foreach (var placement in chain.Placements) yield return placement;
+            }
+        }
+
+        internal PatternChain ChainFor(PatternPlacement placement)
+        {
+            foreach (var chain in Chains) foreach (var member in chain.Placements)
+                if (ReferenceEquals(member, placement)) return chain;
+            return null;
         }
     }
 
@@ -148,18 +180,20 @@ namespace BBSB.Core
         public MonsterDefinition Monster { get; }
         public PatternPlacement Placement { get; }
         public MonsterPatternDefinition Pattern { get; }
+        public PatternChain Chain { get; }
         public int CallStartTick => Placement.CueStartTick;
         public int ResponseStartTick => Placement.StartTick;
         public int ResponseEndTick => Placement.EndTick;
         public int PhraseEndTick => ResponseStartTick + Pattern.ResponseTicks;
         public IReadOnlyList<ScheduledCall> Call { get; }
         internal PlannedAttack(MonsterProposal proposal, PatternPlacement placement)
-            : this(proposal.InstanceId, proposal.Monster, placement) { }
+            : this(proposal.InstanceId, proposal.Monster, placement, proposal.ChainFor(placement)) { }
 
-        internal PlannedAttack(string instanceId, MonsterDefinition monster, PatternPlacement placement)
+        internal PlannedAttack(string instanceId, MonsterDefinition monster, PatternPlacement placement, PatternChain chain = null)
         {
             MonsterId = instanceId; Monster = monster; Placement = placement;
             Pattern = Monster.FindPattern(placement.Pattern);
+            Chain = chain != null && chain.Placements.Count > 1 ? chain : null;
             Id = MonsterId + "/" + Pattern.Id + "@" + placement.StartTick;
             var call = new List<ScheduledCall>();
             foreach (var signal in Pattern.Call) call.Add(new ScheduledCall(Id, MonsterId, CallStartTick + signal.OffsetTick, signal));
