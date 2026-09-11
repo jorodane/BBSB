@@ -23,6 +23,9 @@ namespace BBSB.Core
         public double BeatSeconds { get; }
         public bool IsDown => touch.Down;
         public bool Finished { get; private set; }
+        public bool Aborted { get; private set; }
+        public decimal TotalDamageTaken { get; private set; }
+        public event Action<RhythmResult> ResultJudged;
         public int PerfectCount { get; private set; }
         public int HalfMissCount { get; private set; }
         public int MissCount { get; private set; }
@@ -52,6 +55,7 @@ namespace BBSB.Core
                 calls.Add(Plan.Calls[callCursor++]);
             foreach (var note in notes)
             {
+                if (Finished) break;
                 if (note.State == ResponseState.Resolved) continue;
                 if (note.Step.Kind == GestureKind.Shake)
                 {
@@ -76,7 +80,7 @@ namespace BBSB.Core
                 else if (seconds > note.EndSeconds + HalfMissWindow + 1e-9)
                     Resolve(note, RhythmGrade.Miss, MissReason.ReleaseTiming, note.EndSeconds + HalfMissWindow, 0);
             }
-            if (seconds > Plan.Stage.Music.DurationSeconds + HalfMissWindow + 1e-9)
+            if (!Finished && seconds > Plan.Stage.Music.DurationSeconds + HalfMissWindow + 1e-9)
             {
                 foreach (var note in notes) if (note.State != ResponseState.Resolved)
                     Resolve(note, RhythmGrade.Miss, MissReason.NoInput, seconds, 0);
@@ -94,6 +98,7 @@ namespace BBSB.Core
             {
                 foreach (var note in notes)
                 {
+                    if (Finished) break;
                     if (note.StartTick != target || note.State != ResponseState.Pending || note.Step.Touch.Start != TouchTransition.Press) continue;
                     double error = seconds - note.StartSeconds; var grade = Grade(error);
                     if (note.Step.Kind == GestureKind.Tap) Resolve(note, grade, MissReason.None, seconds, error);
@@ -163,6 +168,7 @@ namespace BBSB.Core
             int target = ClosestRelease(seconds);
             foreach (var note in notes)
             {
+                if (Finished) break;
                 if (note.State == ResponseState.Resolved) continue;
                 if (note.Step.Kind == GestureKind.Flick && note.State == ResponseState.Pending && note.StartTick == target)
                     Resolve(note, flick ? Grade(seconds - note.StartSeconds) : RhythmGrade.Miss,
@@ -188,6 +194,13 @@ namespace BBSB.Core
         // Freeze time and input together; the host must explicitly resume. Regrabbing isn't a new judged Press.
         public bool Suspend()
         { if (Finished) return false; suspended = true; bool wasDown = touch.Down; touch.Release(); return wasDown; }
+
+        // Ending playback never fabricates misses for notes the player did not reach.
+        public void Stop()
+        {
+            if (Finished) return;
+            Aborted = Finished = true; touch.Release();
+        }
 
         public void Resume(bool regrab, double x = 0, double y = 0)
         {
@@ -254,16 +267,19 @@ namespace BBSB.Core
 
         private void Begin(ResponseNote note, RhythmGrade grade, double error)
         {
+            if (Finished) return;
             note.State = ResponseState.Holding; note.StartGrade = grade; note.StartError = error;
             note.OriginX = touch.X; note.OriginY = touch.Y;
         }
 
         private void Resolve(ResponseNote note, RhythmGrade grade, MissReason reason, double at, double error)
         {
-            if (note.State == ResponseState.Resolved) return;
+            if (Finished || note.State == ResponseState.Resolved) return;
             note.State = ResponseState.Resolved;
             note.Result = new RhythmResult(note, grade, reason, at, error); results.Add(note.Result);
             if (grade == RhythmGrade.Perfect) PerfectCount++; else if (grade == RhythmGrade.HalfMiss) HalfMissCount++; else MissCount++;
+            TotalDamageTaken += note.Result.DamageTaken;
+            ResultJudged?.Invoke(note.Result);
         }
 
         private RhythmGrade Grade(double error) => Math.Abs(error) <= PerfectWindow + 1e-9 ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;

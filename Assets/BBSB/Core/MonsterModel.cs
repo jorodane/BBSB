@@ -25,9 +25,11 @@ namespace BBSB.Core
         public int ResponseTicks { get; }
         public int RestTicks { get; }
         public double ParticipationChance { get; }
+        // Base damage for each resolved response note, including sustained gestures.
+        public int DamagePerNote { get; }
 
         public MonsterDefinition(string id, string name, string description, RhythmPattern pattern,
-            IEnumerable<CallSignal> call, int responseTicks, int restTicks, double participationChance)
+            IEnumerable<CallSignal> call, int responseTicks, int restTicks, double participationChance, int damagePerNote = 4)
         {
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A monster needs an ID and name.");
             if (pattern == null || call == null) throw new ArgumentNullException(pattern == null ? nameof(pattern) : nameof(call));
@@ -35,6 +37,7 @@ namespace BBSB.Core
                 throw new ArgumentException("Invalid response/rest timing.");
             if (double.IsNaN(participationChance) || participationChance <= 0 || participationChance > 1)
                 throw new ArgumentOutOfRangeException(nameof(participationChance));
+            if (damagePerNote < 0) throw new ArgumentOutOfRangeException(nameof(damagePerNote));
             var signals = new List<CallSignal>(call);
             if (signals.Count == 0 || signals.Exists(x => x == null)) throw new ArgumentException("A monster needs Call signals.");
             signals.Sort((a, b) => a.OffsetTick.CompareTo(b.OffsetTick));
@@ -45,6 +48,7 @@ namespace BBSB.Core
             if (!InputCompatibility.IsPlayable(pattern)) throw new ArgumentException("The monster's pattern contains conflicting touch requirements.");
             Id = id; Name = name; Description = description ?? ""; Pattern = pattern; Call = signals.AsReadOnly();
             ResponseTicks = responseTicks; RestTicks = restTicks; ParticipationChance = participationChance;
+            DamagePerNote = damagePerNote;
         }
     }
 

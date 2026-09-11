@@ -10,7 +10,12 @@ namespace BBSB.Runtime.UI
     internal sealed class RhythmPlaybackView
     {
         private readonly RhythmRound round;
+        private readonly RunSession session;
         private readonly Text beatLabel, feedback, counters, contact;
+        private readonly Text healthLabel, damageLabel;
+        private readonly RectTransform healthFill;
+        private readonly Image healthImage;
+        private double damageShownAt = double.NegativeInfinity;
         private readonly Image[] pulses;
         private readonly RectTransform songProgress;
         private readonly GameObject pauseOverlay;
@@ -19,10 +24,10 @@ namespace BBSB.Runtime.UI
         private readonly List<MonsterCard> monsters = new List<MonsterCard>();
         private int callCursor, resultCursor;
 
-        public RhythmPlaybackView(RectTransform root, RunUI ui, RhythmRound round,
+        public RhythmPlaybackView(RectTransform root, RunUI ui, RhythmRound round, RunSession session,
             Action pause, Action resume, Action sound, Action leave)
         {
-            this.round = round; var music = round.Plan.Stage.Music;
+            this.round = round; this.session = session; var music = round.Plan.Stage.Music;
             root.name = "Rhythm playback";
             ui.Background(root, RunUI.Ink, true);
             var stage = ui.Rect("Battle arena", root); RunUI.Stretch(stage);
@@ -50,6 +55,16 @@ namespace BBSB.Runtime.UI
             beatLabel = ui.Label(root, "", 21, RunUI.Muted, 32);
             RunUI.Overlay(beatLabel.rectTransform, new Vector2(0, 1), new Vector2(.36f, 1), new Vector2(24, -96), new Vector2(0, -64));
 
+            healthLabel = ui.Label(root, "", 25, RunUI.Teal, 36);
+            healthLabel.gameObject.name = "Player health";
+            RunUI.Overlay(healthLabel.rectTransform, new Vector2(0, 1), new Vector2(.32f, 1), new Vector2(24, -140), new Vector2(0, -104));
+            healthFill = Progress(root, ui, "Player health bar", 10);
+            RunUI.Overlay((RectTransform)healthFill.parent, new Vector2(0, 1), new Vector2(.30f, 1), new Vector2(24, -156), new Vector2(0, -146));
+            healthImage = healthFill.GetComponent<Image>();
+            damageLabel = ui.Label(root, "", 22, RunUI.Red, 34);
+            damageLabel.gameObject.name = "Player damage";
+            RunUI.Overlay(damageLabel.rectTransform, new Vector2(0, 1), new Vector2(.32f, 1), new Vector2(24, -194), new Vector2(0, -160));
+
             feedback = ui.Label(root, "Call을 보고 박자를 준비해", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
             feedback.gameObject.name = "Response feedback";
             RunUI.Overlay(feedback.rectTransform, new Vector2(.43f, 0), new Vector2(1, 0), new Vector2(0, 62), new Vector2(-24, 110));
@@ -70,7 +85,7 @@ namespace BBSB.Runtime.UI
                 panel.GetComponentInParent<ScrollRect>().verticalNormalizedPosition = 1;
             };
             resetMenu = () => select(home.gameObject);
-            ui.Label(home, "박자와 판정이 멈췄어.\n유지 중이었다면 이어할 때 화면을 다시 눌러줘.", 24, RunUI.Muted, 92);
+            ui.Label(home, "박자와 판정이 멈췄어. 받은 피해는 유지돼.\n유지 중이었다면 이어할 때 화면을 다시 눌러줘.", 24, RunUI.Muted, 92);
             ui.Button(home, "이어하기", resume, primary: true);
             ui.Button(home, "연주 정보 · 패턴", () => select(details.gameObject));
             ui.Button(home, "조작 방법", () => select(help.gameObject));
@@ -92,6 +107,10 @@ namespace BBSB.Runtime.UI
 
         public void Refresh(double seconds, bool waitingForContact)
         {
+            healthLabel.text = "HP  " + session.Health.ToString("0.##") + " / " + session.MaxHealth;
+            float healthRatio = Mathf.Clamp01((float)(session.Health / session.MaxHealth));
+            healthFill.anchorMax = new Vector2(healthRatio, 1);
+            healthImage.color = healthLabel.color = healthRatio <= .25f ? RunUI.Red : RunUI.Teal;
             var music = round.Plan.Stage.Music;
             double beat = Math.Min(seconds / round.BeatSeconds, music.BarCount * music.BeatsPerBar - .00001);
             int half = (int)Math.Floor(beat * 2), active = half % pulses.Length;
@@ -109,9 +128,11 @@ namespace BBSB.Runtime.UI
                 foreach (var card in monsters) if (card.Plan.InstanceId == signal.MonsterId) card.Call(signal);
             }
             int freshPerfect = 0, freshHalf = 0, freshMiss = 0;
+            decimal freshDamage = 0;
             while (resultCursor < round.Results.Count)
             {
                 var result = round.Results[resultCursor++];
+                freshDamage += result.DamageTaken;
                 if (result.Grade == RhythmGrade.Perfect) freshPerfect++; else if (result.Grade == RhythmGrade.HalfMiss) freshHalf++; else freshMiss++;
                 foreach (var card in monsters) if (card.Plan.InstanceId == result.Note.Attack.MonsterId) card.Result(result);
             }
@@ -123,7 +144,10 @@ namespace BBSB.Runtime.UI
                 if (freshMiss > 0) labels.Add("MISS ×" + freshMiss);
                 feedback.text = string.Join("  /  ", labels);
                 feedback.color = freshMiss > 0 ? RunUI.Red : freshHalf > 0 ? RunUI.Gold : RunUI.Teal;
+                damageLabel.text = "받은 피해 -" + freshDamage.ToString("0.##");
+                damageShownAt = seconds;
             }
+            damageLabel.enabled = seconds - damageShownAt < 1;
             counters.text = "정확 " + round.PerfectCount + "  ·  반미스 " + round.HalfMissCount + "  ·  미스 " + round.MissCount +
                 "  /  전체 " + round.Notes.Count;
             contact.text = waitingForContact ? "화면을 눌러 연주를 이어가" : round.IsDown ? "누르는 중" : "손을 뗀 상태";
@@ -179,6 +203,7 @@ namespace BBSB.Runtime.UI
             public void Result(RhythmResult value)
             {
                 result.text = value.Note.Step.Kind + "  ·  " + GradeLabel(value.Grade);
+                result.text += "  ·  피해 " + value.DamageTaken.ToString("0.##");
                 if (value.Note.Step.Kind == GestureKind.Shake) result.text += "  ·  " + ShakePercent(value.Note);
                 if (value.Reason == MissReason.TooEarly) result.text += "  너무 일찍 눌렀어";
                 else if (value.Reason == MissReason.MissingFlick) result.text += "  튕기며 떼어줘";

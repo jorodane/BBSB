@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    /// <summary>Owns one disposable run. The UI and future rhythm battle submit commands here.</summary>
+    /// <summary>Owns one disposable run and applies incoming damage from its active performance.</summary>
     public sealed class RunSession
     {
         private readonly RunRules rules;
@@ -17,7 +17,7 @@ namespace BBSB.Core
         private bool claimedService;
 
         public int Seed { get; private set; }
-        public int Health { get; private set; }
+        public decimal Health { get; private set; }
         public int MaxHealth { get; private set; }
         public int Gold { get; private set; }
         public int ClearedStages { get; private set; }
@@ -27,6 +27,7 @@ namespace BBSB.Core
         public string StageTicket { get; private set; }
         public MusicStage BattleMusic { get; private set; }
         public BattlePlan BattlePlan { get; private set; }
+        public RhythmRound ActiveRhythmRound { get; private set; }
         public bool ServiceClaimed => claimedService;
         public IReadOnlyList<WeaponState> Weapons { get; }
         public IReadOnlyList<string> Items { get; }
@@ -44,6 +45,7 @@ namespace BBSB.Core
 
         public void Restart(int seed)
         {
+            StopActiveRound();
             Seed = seed;
             mapRandom = new SeededRandom(seed);
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
@@ -70,24 +72,53 @@ namespace BBSB.Core
             StageTicket = Guid.NewGuid().ToString("N"); claimedService = false; offers.Clear();
             BattleMusic = CurrentNode.IsBattle
                 ? MusicCatalog.ForEncounter(Seed, Map.Number, CurrentNode.Row, CurrentNode.Column) : null;
-            BattlePlan = CurrentNode.IsBattle ? BattlePlanner.ForEncounter(BattleMusic, Seed, CurrentNode) : null;
+            BattlePlan = CurrentNode.IsBattle ? BattlePlanner.ForEncounter(BattleMusic, Seed, CurrentNode, Map.Number) : null;
             if (CurrentNode.Kind == StageKind.Shop) GenerateOffers(true);
             return true;
         }
 
         // A ticket prevents stale/duplicate battle callbacks from granting rewards to another stage/run.
         // Call only after Overkill/finale finishes. Victory already accounts for shared enemy HP.
-        public bool ResolveBattle(string stageTicket, bool victory, int remainingPlayerHealth)
+        public bool ResolveBattle(string stageTicket, bool victory, decimal remainingPlayerHealth)
         {
             if (Phase != RunPhase.Stage || CurrentNode == null || !CurrentNode.IsBattle ||
                 stageTicket != StageTicket || remainingPlayerHealth < 0 || remainingPlayerHealth > MaxHealth)
                 return false;
+            StopActiveRound();
             Health = remainingPlayerHealth;
             if (!victory || Health == 0) { EndRun(); return true; }
             CompleteStage();
             Gold += CurrentNode.Kind == StageKind.Boss ? 60 : CurrentNode.Kind == StageKind.Elite ? 40 : 25;
             GenerateOffers(false); Phase = RunPhase.Reward;
             return true;
+        }
+
+        public RhythmRound StartRhythmRound()
+        {
+            if (Phase != RunPhase.Stage || BattlePlan == null || ActiveRhythmRound != null || Health <= 0) return null;
+            ActiveRhythmRound = new RhythmRound(BattlePlan);
+            ActiveRhythmRound.ResultJudged += ApplyRhythmDamage;
+            return ActiveRhythmRound;
+        }
+
+        public bool CloseRhythmRound(RhythmRound round)
+        {
+            if (round == null || round != ActiveRhythmRound) return false;
+            StopActiveRound(); return true;
+        }
+
+        private void ApplyRhythmDamage(RhythmResult result)
+        {
+            if (Phase != RunPhase.Stage || ActiveRhythmRound == null) return;
+            Health = Math.Max(0m, Health - result.DamageTaken);
+            if (Health == 0) EndRun();
+        }
+
+        private void StopActiveRound()
+        {
+            if (ActiveRhythmRound == null) return;
+            ActiveRhythmRound.ResultJudged -= ApplyRhythmDamage;
+            ActiveRhythmRound.Stop(); ActiveRhythmRound = null;
         }
 
         public bool Rest()
@@ -206,6 +237,7 @@ namespace BBSB.Core
         }
         private void EndRun()
         {
+            StopActiveRound();
             // Retain only the reached field/stage count for the result screen. No inventory survives.
             Health = 0; MaxHealth = rules.StartingHealth; Gold = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); offers.Clear();

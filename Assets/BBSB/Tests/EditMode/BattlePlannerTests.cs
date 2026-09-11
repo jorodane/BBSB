@@ -11,18 +11,19 @@ namespace BBSB.Tests
     public sealed class BattlePlannerTests
     {
         [Test]
-        public void SampleEncountersHaveCompleteCalledPatternsAndNoPhysicalConflicts()
+        public void SampleEncountersHaveCompleteCalledPatternsAndNoInputConflicts()
         {
             var seen = new HashSet<string>();
             foreach (var music in MusicCatalog.All)
             {
                 var stage = MusicStage.Generate(music);
+                for (int field = 1; field <= 3; field++)
                 foreach (StageKind kind in new[] { StageKind.Monster, StageKind.Elite, StageKind.Boss })
                 for (int seed = 0; seed < 40; seed++)
                 {
-                    var plan = BattlePlanner.Generate(stage, kind, seed);
+                    var plan = BattlePlanner.Generate(stage, kind, seed, field);
                     Check.True(ReferenceEquals(stage, plan.Stage));
-                    Check.True(plan.Monsters.Count > 0 && plan.Monsters.Count <= (kind == StageKind.Monster ? 2 : 3));
+                    Check.True(plan.Monsters.Count > 0 && plan.Monsters.Count <= field);
                     Check.Equal(plan.Attacks.Count, plan.Attacks.Select(x => x.Id).Distinct().Count());
                     Check.Equal(plan.Attacks.Sum(x => x.Call.Count), plan.Calls.Count);
                     Check.True(plan.Calls.Select(x => x.Tick).SequenceEqual(plan.Calls.Select(x => x.Tick).OrderBy(x => x)));
@@ -100,31 +101,71 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void PressAndReleaseCompatibilityComesFromStatesAndIntervals()
+        public void DifferentInputKindsConflictEvenWhenOneFingerCouldPerformBoth()
         {
             var stage = Fixture();
-            var hold = At(stage, Monster("hold", new[] { new PatternStep(GestureKind.Hold, 0, 8) }, 8), 16);
-            var dive = At(stage, Monster("dive", new[] { new PatternStep(GestureKind.Dive, 0, 8) }, 8), 16);
-            var tap = Monster("tap", new[] { new PatternStep(GestureKind.Tap, 0) }, 4);
-            var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
-            var shake = Monster("shake", new[] { new PatternStep(GestureKind.Shake, 0, 4) }, 4);
-            foreach (var held in new[] { hold, dive })
+            foreach (GestureKind left in Enum.GetValues(typeof(GestureKind)))
+            foreach (GestureKind right in Enum.GetValues(typeof(GestureKind)))
             {
-                Check.False(InputCompatibility.Conflict(held, At(stage, tap, 16), out _));
-                Check.False(InputCompatibility.Conflict(held, At(stage, shake, 20), out _));
-                Check.False(InputCompatibility.Conflict(held, At(stage, flick, 24), out _));
-                Check.True(InputCompatibility.Conflict(held, At(stage, tap, 20), out int at)); Check.Equal(20, at);
-                Check.True(InputCompatibility.Conflict(held, At(stage, tap, 24), out _));
-                Check.True(InputCompatibility.Conflict(held, At(stage, flick, 20), out _));
+                int leftDuration = left == GestureKind.Tap || left == GestureKind.Flick ? 0 : 8;
+                int rightDuration = right == GestureKind.Tap || right == GestureKind.Flick ? 0 : 8;
+                var a = At(stage, Monster("a", new[] { new PatternStep(left, 0, leftDuration) }, 8), 16);
+                var b = At(stage, Monster("b", new[] { new PatternStep(right, 0, rightDuration) }, 8), 16);
+                Check.Equal(left != right, InputCompatibility.Conflict(a, b, out int tick));
+                Check.Equal(left != right ? 16 : -1, tick);
             }
-            Check.True(InputCompatibility.Conflict(At(stage, tap, 16), At(stage, flick, 16), out _));
-            Check.False(InputCompatibility.Conflict(At(stage, tap, 16), At(stage, tap, 16), out _));
-            var longShake = Monster("long-shake", new[] { new PatternStep(GestureKind.Shake, 0, 8) }, 8);
-            Check.True(InputCompatibility.Conflict(dive, At(stage, longShake, 20), out int release)); Check.Equal(24, release);
+            var hold = At(stage, Monster("hold", new[] { new PatternStep(GestureKind.Hold, 0, 8) }, 8), 16);
+            var shake = At(stage, Monster("shake", new[] { new PatternStep(GestureKind.Shake, 0, 4) }, 4), 20);
+            Check.True(InputCompatibility.Conflict(hold, shake, out int overlap)); Check.Equal(20, overlap);
+            var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
+            Check.True(InputCompatibility.Conflict(hold, At(stage, flick, 24), out int ending)); Check.Equal(24, ending);
+            Check.False(InputCompatibility.Conflict(hold, At(stage, flick, 28), out _));
         }
 
         [Test]
-        public void CompatibleBundlesSurviveAndSharedBeatPositionsCountOnce()
+        public void SameInputKindStillRequiresCompatibleHoldAndReleaseTiming()
+        {
+            var stage = Fixture();
+            foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
+            {
+                var monster = Monster("held", new[] { new PatternStep(kind, 0, 8) }, 8);
+                var held = At(stage, monster, 16);
+                Check.False(InputCompatibility.Conflict(held, At(stage, monster, 16), out _));
+                Check.True(InputCompatibility.Conflict(held, At(stage, monster, 20), out int at)); Check.Equal(20, at);
+                Check.True(InputCompatibility.Conflict(held, At(stage, monster, 24), out _));
+                var shorter = Monster("short", new[] { new PatternStep(kind, 0, 4) }, 4);
+                Check.Equal(kind == GestureKind.Dive, InputCompatibility.Conflict(held, At(stage, shorter, 16), out _));
+            }
+            var shake = Monster("shake", new[] { new PatternStep(GestureKind.Shake, 0, 8) }, 8);
+            Check.False(InputCompatibility.Conflict(At(stage, shake, 16), At(stage, shake, 20), out _));
+        }
+
+        [Test]
+        public void ExtraFlickCannotInterruptTapTapFlickButCanShareItsFlickEnding()
+        {
+            var stage = Fixture(2);
+            var bat = MonsterCatalog.All.Single(x => x.Id == "spark-bat");
+            var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
+            var phrase = At(stage, bat, 32); // Tap 32, Tap 34, Flick 38.
+            foreach (int tick in new[] { 32, 34, 36 })
+            {
+                var extra = At(stage, flick, tick);
+                Check.True(InputCompatibility.Conflict(phrase, extra, out int at)); Check.Equal(tick, at);
+                Check.True(InputCompatibility.Conflict(extra, phrase, out int reverse)); Check.Equal(at, reverse);
+            }
+            foreach (int tick in new[] { 28, 38, 40 })
+                Check.False(InputCompatibility.Conflict(phrase, At(stage, flick, tick), out _));
+            var shared = BattlePlanner.Resolve(stage, new[] { Proposal(stage, bat, 32), Proposal(stage, flick, 38) }, 1);
+            Check.Equal(2, shared.Monsters.Count); Check.Equal(0, shared.Withdrawals.Count);
+            var interrupted = BattlePlanner.Resolve(stage, new[] { Proposal(stage, bat, 32), Proposal(stage, flick, 36) }, 1);
+            Check.Equal(1, interrupted.Withdrawals.Count);
+            Check.Equal(bat.Id, interrupted.Withdrawals[0].Attack.MonsterId);
+            Check.Equal(3, interrupted.Withdrawals[0].Attack.Placement.Slots.Count);
+            Check.True(interrupted.Calls.All(x => x.MonsterId == flick.Id));
+        }
+
+        [Test]
+        public void AuthoredCompoundPatternsRemainPlayableAndSharedPositionsCountOnce()
         {
             var stage = Fixture();
             var compound = Monster("compound", new[]
@@ -132,11 +173,11 @@ namespace BBSB.Tests
                 new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Tap, 0),
                 new PatternStep(GestureKind.Shake, 4, 4), new PatternStep(GestureKind.Flick, 8)
             }, 8);
-            var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
-            var plan = BattlePlanner.Resolve(stage, new[] { Proposal(stage, compound, 16), Proposal(stage, flick, 24) }, 1);
-            Check.Equal(0, plan.Withdrawals.Count); Check.Equal(2, plan.Attacks.Count);
+            Check.True(InputCompatibility.IsPlayable(compound.Pattern));
+            foreach (var monster in MonsterCatalog.All) Check.True(InputCompatibility.IsPlayable(monster.Pattern));
+            var plan = BattlePlanner.Resolve(stage, new[] { Proposal(stage, compound, 16) }, 1);
+            Check.Equal(0, plan.Withdrawals.Count); Check.Equal(1, plan.Attacks.Count);
             Check.Equal(3, plan.Monsters.Single(x => x.InstanceId == "compound").OccupiedBeatCount); // 16, 20, 24; not five steps + cues.
-            Check.Equal(1, plan.Monsters.Single(x => x.InstanceId == "flick").OccupiedBeatCount);
         }
 
         [Test]
@@ -191,12 +232,12 @@ namespace BBSB.Tests
         public void PlansAreReproducibleAndIndependentOfOtherEncounterGeneration()
         {
             var stage = MusicStage.Generate(MusicCatalog.All[0]);
-            var expected = BattlePlanner.Generate(stage, StageKind.Elite, 73);
+            var expected = BattlePlanner.Generate(stage, StageKind.Elite, 73, 3);
             BattlePlanner.Generate(MusicStage.Generate(MusicCatalog.All[3]), StageKind.Monster, 9);
-            var actual = BattlePlanner.Generate(stage, StageKind.Elite, 73);
+            var actual = BattlePlanner.Generate(stage, StageKind.Elite, 73, 3);
             Check.Equal(Fingerprint(expected), Fingerprint(actual));
             var fingerprints = new HashSet<string>();
-            for (int seed = 0; seed < 10; seed++) fingerprints.Add(Fingerprint(BattlePlanner.Generate(stage, StageKind.Elite, seed)));
+            for (int seed = 0; seed < 10; seed++) fingerprints.Add(Fingerprint(BattlePlanner.Generate(stage, StageKind.Elite, seed, 3)));
             Check.True(fingerprints.Count > 1);
         }
 
@@ -208,6 +249,8 @@ namespace BBSB.Tests
             Throws(() => Monster("bad", new[] { new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Tap, 4) }, 8));
             Throws(() => Monster("bad", new[] { new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Shake, 4, 8) }, 12));
             var stage = Fixture(); var monster = Monster("tap", tap.Steps, 4);
+            Throws(() => BattlePlanner.Generate(stage, StageKind.Monster, 1, 0));
+            Throws(() => BattlePlanner.Generate(stage, StageKind.Monster, 1, -1));
             Throws(() => BattlePlanner.Resolve(Fixture(), new[] { Proposal(stage, monster, 16) }, 1));
             Throws(() => Proposal(stage, monster, 16, 20)); // Ignores the required rest.
             Throws(() => BattlePlanner.Resolve(stage, new[] { Proposal(stage, monster, 16), Proposal(stage, monster, 32) }, 1));
@@ -227,6 +270,37 @@ namespace BBSB.Tests
             Check.True(run.ResolveBattle(run.StageTicket, false, 0)); Check.True(run.BattlePlan == null);
             run.Restart(73); EnterBattle(run); run.Abandon(); Check.True(run.BattlePlan == null);
             run.Restart(73); EnterBattle(run); run.Restart(73); Check.True(run.BattlePlan == null);
+        }
+
+        [Test]
+        public void RunProgressRaisesMonsterLimitWithoutAnEarlyEliteOrBossSpike()
+        {
+            var largest = new int[4];
+            var openingKinds = new HashSet<StageKind>();
+            for (int seed = 0; seed < 30; seed++)
+            {
+                var run = new RunSession(seed);
+                for (int field = 1; field <= 4; field++)
+                {
+                    while (run.Phase != RunPhase.FieldCleared)
+                    {
+                        Check.True(run.Enter(run.Map.Nodes.First(x => run.CanEnter(x.Id)).Id));
+                        if (run.CurrentNode.IsBattle)
+                        {
+                            int count = run.BattlePlan.Monsters.Count;
+                            Check.True(count > 0 && count <= Math.Min(field, 3));
+                            largest[field - 1] = Math.Max(largest[field - 1], count);
+                            if (field == 1) { Check.Equal(1, count); openingKinds.Add(run.CurrentNode.Kind); }
+                            Check.True(run.ResolveBattle(run.StageTicket, true, run.Health)); Check.True(run.SkipReward());
+                        }
+                        else Check.True(run.LeaveService());
+                    }
+                    Check.True(run.AdvanceField());
+                }
+                run.Restart(seed); EnterBattle(run); Check.Equal(1, run.BattlePlan.Monsters.Count);
+            }
+            Check.True(largest.SequenceEqual(new[] { 1, 2, 3, 3 }));
+            foreach (var kind in new[] { StageKind.Monster, StageKind.Elite, StageKind.Boss }) Check.True(openingKinds.Contains(kind));
         }
 
         private static void EnterBattle(RunSession run)
@@ -249,10 +323,10 @@ namespace BBSB.Tests
         private static MonsterProposal Proposal(MusicStage stage, MonsterDefinition monster, params int[] ticks)
             => new MonsterProposal(monster.Id, monster, ticks.Select(x => At(stage, monster, x)));
 
-        private static MusicStage Fixture()
+        private static MusicStage Fixture(int stepTicks = 4)
         {
             var slots = new List<SlotTemplate>();
-            for (int tick = 0; tick < 16; tick += 4)
+            for (int tick = 0; tick < 16; tick += stepTicks)
             {
                 slots.Add(new SlotTemplate(GestureKind.Tap, tick)); slots.Add(new SlotTemplate(GestureKind.Flick, tick));
                 foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive, GestureKind.Shake })

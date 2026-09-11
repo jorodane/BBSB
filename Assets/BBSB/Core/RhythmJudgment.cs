@@ -74,6 +74,9 @@ namespace BBSB.Core
         public double JudgedAtSeconds { get; }
         public double ErrorSeconds { get; }
         public double Efficiency => Grade == RhythmGrade.Perfect ? 1 : Grade == RhythmGrade.HalfMiss ? .5 : 0;
+        // Score efficiency and incoming damage are separate rules. Perfect still takes half damage.
+        public decimal DamageTakenMultiplier => Grade == RhythmGrade.Perfect ? .5m : Grade == RhythmGrade.HalfMiss ? .75m : 1m;
+        public decimal DamageTaken => Note.Attack.Monster.DamagePerNote * DamageTakenMultiplier;
         internal RhythmResult(ResponseNote note, RhythmGrade grade, MissReason reason, double judgedAt, double error)
         { Note = note; Grade = grade; Reason = reason; JudgedAtSeconds = judgedAt; ErrorSeconds = error; }
     }

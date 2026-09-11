@@ -23,9 +23,9 @@ namespace BBSB.Tests
         [UnityTest]
         public IEnumerator LiveRoundShowsBeatsAndFinishesWithoutClearingOrRerollingStage()
         {
-            yield return Prepare();
+            yield return Prepare(new RunRules(startingHealth: 10000));
             var plan = presenter.Session.BattlePlan; string ticket = presenter.Session.StageTicket;
-            int health = presenter.Session.Health;
+            decimal health = presenter.Session.Health;
             var player = Begin(); yield return null;
             Assert.IsNotNull(player.Round); Assert.AreSame(plan, player.Round.Plan);
             Assert.IsFalse(presenter.StartRhythmRound(), "A second start cannot replace an active performance.");
@@ -89,7 +89,8 @@ namespace BBSB.Tests
             Assert.IsNull(presenter.ActiveRound);
             Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "연주 결과"));
             Assert.AreEqual(RunPhase.Stage, presenter.Session.Phase);
-            Assert.AreEqual(ticket, presenter.Session.StageTicket); Assert.AreEqual(health, presenter.Session.Health);
+            Assert.AreEqual(ticket, presenter.Session.StageTicket);
+            Assert.AreEqual(health - performance.TotalDamageTaken, presenter.Session.Health);
             Click("다시 준비"); yield return null;
             Assert.AreSame(plan, presenter.Session.BattlePlan);
             Assert.IsNotNull(root.GetComponentInChildren<BattleArenaView>());
@@ -145,6 +146,7 @@ namespace BBSB.Tests
             yield return Prepare(); var player = Begin(); yield return null;
             string ticket = presenter.Session.StageTicket;
             Assert.IsTrue(presenter.SubmitBattleResult(ticket, true, presenter.Session.Health));
+            Assert.IsTrue(player.Round.Aborted);
             Assert.IsFalse(player.gameObject.activeInHierarchy);
             yield return null;
             Assert.IsNull(presenter.ActiveRound); Assert.AreEqual(RunPhase.Reward, presenter.Session.Phase);
@@ -153,7 +155,49 @@ namespace BBSB.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        private IEnumerator Prepare()
+        [UnityTest]
+        public IEnumerator HealthHudAndPausePreserveDamageAcrossPreparation()
+        {
+            yield return Prepare(new RunRules(startingHealth: 10000));
+            var player = Begin(); var round = player.Round;
+            round.Advance(round.Notes[0].EndSeconds + round.HalfMissWindow + .001);
+            Click("메뉴"); decimal remaining = presenter.Session.Health;
+            Assert.Less(remaining, 10000m);
+            var label = root.GetComponentsInChildren<Text>(true).Single(x => x.name == "Player health");
+            Assert.AreEqual("HP  " + remaining.ToString("0.##") + " / 10000", label.text);
+            var bar = root.GetComponentsInChildren<RectTransform>(true).Single(x => x.name == "Player health bar");
+            var fill = (RectTransform)bar.GetChild(0);
+            Assert.AreEqual((float)(remaining / 10000), fill.anchorMax.x, .00001f);
+            Assert.IsTrue(bar.GetComponentsInChildren<Graphic>().All(x => !x.raycastTarget));
+            Assert.IsFalse(label.raycastTarget);
+            yield return null; yield return null;
+            Assert.AreEqual(remaining, presenter.Session.Health);
+            Click("준비로 돌아가기"); yield return null;
+            Assert.AreEqual(remaining, presenter.Session.Health); Assert.IsTrue(round.Aborted);
+            round.Advance(10000); Assert.AreEqual(remaining, presenter.Session.Health);
+            player = Begin(); Assert.AreEqual(remaining, presenter.Session.Health);
+            Assert.AreSame(round.Plan, player.Round.Plan); Assert.AreEqual(0, player.Round.Results.Count);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator LethalDamageEndsPlaybackAndShowsGameOver()
+        {
+            yield return Prepare(new RunRules(startingHealth: 1));
+            var player = Begin(); var round = player.Round;
+            round.Advance(round.Plan.Stage.Music.DurationSeconds + 1);
+            Assert.IsTrue(round.Aborted); Assert.IsFalse(player.CanReceiveInput);
+            Assert.AreEqual(0m, presenter.Session.Health);
+            yield return null; yield return null;
+            Assert.IsNull(presenter.ActiveRound); Assert.IsNull(presenter.Session.ActiveRhythmRound);
+            Assert.AreEqual(RunPhase.GameOver, presenter.Session.Phase);
+            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "GAME OVER"));
+            Assert.IsNull(root.GetComponentInChildren<RhythmPlayback>());
+            Assert.IsFalse(presenter.StartRhythmRound());
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private IEnumerator Prepare(RunRules rules = null)
         {
             root = new GameObject("Rhythm UI test");
             if (EventSystem.current == null)
@@ -161,7 +205,7 @@ namespace BBSB.Tests
                 var events = new GameObject("Test events", typeof(EventSystem)); events.transform.SetParent(root.transform);
             }
             presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            presenter.Initialize(rules ?? new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
             Click("탐험 시작"); yield return null;
             for (int row = 0; row < FieldMap.StageCount; row++)
             {

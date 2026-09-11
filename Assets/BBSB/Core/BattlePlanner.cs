@@ -5,15 +5,16 @@ namespace BBSB.Core
 {
     public static class BattlePlanner
     {
-        public static BattlePlan ForEncounter(MusicStage stage, int runSeed, StageNode node)
+        public static BattlePlan ForEncounter(MusicStage stage, int runSeed, StageNode node, int field)
         {
             if (node == null || !node.IsBattle) throw new ArgumentException("A battle node is required.", nameof(node));
-            return Generate(stage, node.Kind, Hash(runSeed, node.Id));
+            return Generate(stage, node.Kind, Hash(runSeed, node.Id), field);
         }
 
-        public static BattlePlan Generate(MusicStage stage, StageKind kind, int seed)
+        public static BattlePlan Generate(MusicStage stage, StageKind kind, int seed, int field = 1)
         {
             if (stage == null) throw new ArgumentNullException(nameof(stage));
+            if (field < 1) throw new ArgumentOutOfRangeException(nameof(field));
             if (kind != StageKind.Monster && kind != StageKind.Elite && kind != StageKind.Boss)
                 throw new ArgumentException("Only battle stages have monster plans.", nameof(kind));
             var eligible = new List<(MonsterDefinition monster, List<PatternPlacement> candidates)>();
@@ -24,7 +25,8 @@ namespace BBSB.Core
             }
             var random = new SeededRandom(Hash(seed, "roster"));
             random.Shuffle(eligible);
-            int count = Math.Min(kind == StageKind.Monster ? 2 : 3, eligible.Count);
+            // All encounter kinds introduce one opponent per field, capped at three.
+            int count = Math.Min(Math.Min(field, 3), eligible.Count);
             var proposals = new List<MonsterProposal>();
             for (int i = 0; i < count; i++)
             {
@@ -105,7 +107,7 @@ namespace BBSB.Core
             var withdrawals = new List<PlanWithdrawal>();
             while (true)
             {
-                // Resolve the earliest physical conflict; stable instance ordering breaks search ties.
+                // Resolve the earliest gesture or physical conflict; stable instance ordering breaks search ties.
                 int firstOwner = -1, secondOwner = -1, firstAttack = -1, secondAttack = -1, earliest = int.MaxValue;
                 for (int a = 0; a < active.Count; a++) for (int b = a + 1; b < active.Count; b++)
                     for (int x = 0; x < active[a].Count; x++) for (int y = 0; y < active[b].Count; y++)

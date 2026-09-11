@@ -12,7 +12,7 @@ namespace BBSB.Runtime
         public RhythmRound Round { get; private set; }
         public bool IsPaused { get; private set; }
         public bool WaitingForContact { get; private set; }
-        public bool CanReceiveInput => Round != null && !completed && (!IsPaused || WaitingForContact);
+        public bool CanReceiveInput => Round != null && !Round.Finished && !completed && (!IsPaused || WaitingForContact);
         private RhythmInputSurface surface;
         private RhythmPlaybackView view;
         private BeatMetronome metronome;
@@ -21,12 +21,12 @@ namespace BBSB.Runtime
         private double origin, offset;
         private bool heldAtPause, completed;
 
-        internal void Bind(RhythmRound round, RunUI ui, Action<RhythmRound> finished, Action leave)
+        internal void Bind(RhythmRound round, RunSession session, RunUI ui, Action<RhythmRound> finished, Action leave)
         {
             Round = round; onFinished = finished; onLeave = leave;
             surface = gameObject.AddComponent<RhythmInputSurface>(); surface.Bind(this);
             var music = round.Plan.Stage.Music;
-            view = new RhythmPlaybackView((RectTransform)transform, ui, round, Pause, Continue, ToggleSound, Leave);
+            view = new RhythmPlaybackView((RectTransform)transform, ui, round, session, Pause, Continue, ToggleSound, Leave);
             metronome = new BeatMetronome(transform, music.Bpm, music.BeatsPerBar);
             RestartClock(true); view.Refresh(0, false);
         }
@@ -49,6 +49,7 @@ namespace BBSB.Runtime
                 // would incorrectly count movement as stationary time depending on script order.
                 if (surface.Captured) Round.Move(now, surface.Position.x, surface.Position.y);
                 else Round.Advance(now);
+                if (Round.Finished) { Finish(); return; }
                 metronome.Schedule(AudioSettings.dspTime, origin, offset, Round.Plan.Stage.Music.DurationSeconds);
             }
             view.Refresh(Round.ElapsedSeconds, WaitingForContact);
@@ -64,12 +65,16 @@ namespace BBSB.Runtime
                 WaitingForContact = IsPaused = false; RestartClock();
             }
             else Round.Press(Now, position.x, position.y);
+            if (Round.Finished) { Finish(); return; }
             view.Refresh(Round.ElapsedSeconds, false);
         }
 
         internal void PointerUp(Vector2 position)
         {
-            if (CanReceiveInput && !IsPaused) Round.Release(Now, position.x, position.y);
+            if (!CanReceiveInput || IsPaused) return;
+            Round.Release(Now, position.x, position.y);
+            if (Round.Finished) { Finish(); return; }
+            view.Refresh(Round.ElapsedSeconds, false);
         }
 
         public void Pause()

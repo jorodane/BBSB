@@ -29,12 +29,12 @@ namespace BBSB.Tests
             var stage = Fixture();
             var plan = BattlePlanner.Resolve(stage, new[]
             {
-                Proposal(stage, "tap", 16, new PatternStep(GestureKind.Tap, 0)),
-                Proposal(stage, "hold", 16, new PatternStep(GestureKind.Hold, 0, 8)),
-                Proposal(stage, "dive", 16, new PatternStep(GestureKind.Dive, 0, 8))
+                Proposal(stage, "first", 16, new PatternStep(GestureKind.Dive, 0, 8)),
+                Proposal(stage, "second", 16, new PatternStep(GestureKind.Dive, 0, 8)),
+                Proposal(stage, "third", 16, new PatternStep(GestureKind.Dive, 0, 8))
             }, 1);
             var round = new RhythmRound(plan);
-            round.Press(2, 0, 0); Check.Equal(1, round.PerfectCount);
+            round.Press(2, 0, 0); Check.Equal(0, round.PerfectCount);
             round.Release(3, 0, 0); Check.Equal(3, round.PerfectCount);
             Check.Equal(3, round.Results.Select(x => x.Note.Attack.MonsterId).Distinct().Count());
         }
@@ -265,7 +265,7 @@ namespace BBSB.Tests
         {
             foreach (var music in MusicCatalog.All)
             {
-                var round = new RhythmRound(BattlePlanner.Generate(MusicStage.Generate(music), StageKind.Elite, 73));
+                var round = new RhythmRound(BattlePlanner.Generate(MusicStage.Generate(music), StageKind.Elite, 73, 3));
                 round.Advance(music.DurationSeconds + 1); round.Advance(music.DurationSeconds + 2);
                 Check.True(round.Finished); Check.Equal(round.Notes.Count, round.MissCount);
                 Check.Equal(round.Notes.Count, round.Results.Count); Check.Equal(0.0, round.ScorePercent);
@@ -288,7 +288,7 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void SongCompletionLeavesRunInSameEncounterWithSameHealthAndTicket()
+        public void StandalonePreviewDoesNotMutateRunHealthOrTicket()
         {
             var session = new RunSession(73);
             while (true)
@@ -297,7 +297,7 @@ namespace BBSB.Tests
                 if (session.CurrentNode.IsBattle) break;
                 session.LeaveService();
             }
-            var plan = session.BattlePlan; string ticket = session.StageTicket; int health = session.Health;
+            var plan = session.BattlePlan; string ticket = session.StageTicket; decimal health = session.Health;
             var round = new RhythmRound(plan); round.Advance(plan.Stage.Music.DurationSeconds + 1);
             Check.Equal(RunPhase.Stage, session.Phase); Check.Equal(ticket, session.StageTicket);
             Check.Equal(health, session.Health); Check.True(ReferenceEquals(plan, session.BattlePlan));

@@ -212,7 +212,7 @@ namespace BBSB.Tests
         [Test]
         public void BossClearWaitsForRewardAndNextFieldPreservesRunState()
         {
-            var run = Stage(StageKind.Boss); int health = run.Health; int gold = run.Gold;
+            var run = Stage(StageKind.Boss); decimal health = run.Health; int gold = run.Gold;
             Check.Equal(3, run.ClearedStages); Win(run);
             Check.Equal(RunPhase.Reward, run.Phase); Check.False(run.AdvanceField());
             Check.Equal(gold + 60, run.Gold); run.ChooseReward(1);
