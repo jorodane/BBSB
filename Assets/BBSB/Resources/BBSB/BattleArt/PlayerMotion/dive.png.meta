@@ -123,7 +123,7 @@ TextureImporter:
         width: 520
         height: 516
       alignment: 9
-      pivot: {x: 0.50673077, y: 0.00581395}
+      pivot: {x: 0.5067308, y: 0.00581395}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -145,7 +145,7 @@ TextureImporter:
         width: 479
         height: 323
       alignment: 9
-      pivot: {x: 0.53966597, y: 0.00928793}
+      pivot: {x: 0.539666, y: 0.00928793}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -167,7 +167,7 @@ TextureImporter:
         width: 472
         height: 520
       alignment: 9
-      pivot: {x: 0.44173729, y: 0.00576923}
+      pivot: {x: 0.4417373, y: 0.00576923}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -189,7 +189,7 @@ TextureImporter:
         width: 580
         height: 277
       alignment: 9
-      pivot: {x: 0.51724138, y: 0.18411552}
+      pivot: {x: 0.51724136, y: 0.18411551}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -206,12 +206,12 @@ TextureImporter:
       name: dive_4
       rect:
         serializedVersion: 2
-        x: 549
-        y: 44
+        x: 579
+        y: 46
         width: 513
         height: 363
       alignment: 9
-      pivot: {x: 0.49707602, y: 0.00826446}
+      pivot: {x: 0.49707603, y: 0.00826446}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -233,7 +233,7 @@ TextureImporter:
         width: 431
         height: 462
       alignment: 9
-      pivot: {x: 0.45707657, y: 0.10173160}
+      pivot: {x: 0.45707658, y: 0.1017316}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []

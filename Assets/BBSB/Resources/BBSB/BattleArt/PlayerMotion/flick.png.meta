@@ -123,7 +123,7 @@ TextureImporter:
         width: 525
         height: 529
       alignment: 9
-      pivot: {x: 0.51809524, y: 0.00378072}
+      pivot: {x: 0.51809525, y: 0.00378072}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -145,7 +145,7 @@ TextureImporter:
         width: 460
         height: 496
       alignment: 9
-      pivot: {x: 0.40000000, y: 0.00403226}
+      pivot: {x: 0.4, y: 0.00403226}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -167,7 +167,7 @@ TextureImporter:
         width: 508
         height: 536
       alignment: 9
-      pivot: {x: 0.46456693, y: 0.00559701}
+      pivot: {x: 0.46456692, y: 0.00559701}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -189,7 +189,7 @@ TextureImporter:
         width: 602
         height: 294
       alignment: 9
-      pivot: {x: 0.50581395, y: 0.17687075}
+      pivot: {x: 0.50581396, y: 0.17687075}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -206,12 +206,12 @@ TextureImporter:
       name: flick_4
       rect:
         serializedVersion: 2
-        x: 579
+        x: 627
         y: 39
         width: 433
         height: 370
       alignment: 9
-      pivot: {x: 0.49191686, y: 0.00540541}
+      pivot: {x: 0.49191687, y: 0.00540541}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -233,7 +233,7 @@ TextureImporter:
         width: 434
         height: 460
       alignment: 9
-      pivot: {x: 0.44239631, y: 0.08913043}
+      pivot: {x: 0.4423963, y: 0.08913043}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []

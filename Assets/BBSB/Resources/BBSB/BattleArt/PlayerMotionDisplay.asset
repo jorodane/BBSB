@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cf6c243085a4f0e8e2deb2d78a8c33f, type: 3}
   m_Name: PlayerMotionDisplay
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   groundPosition: {x: 0.24, y: 0.17}
   characterScale: 1
   referencePose: {fileID: 8793639957104055765, guid: 810142f81a473c544a477a0a25ad0bdc, type: 3}
@@ -27,7 +27,7 @@ MonoBehaviour:
       offset: {x: 0, y: 0}
     - name: idle_2 - Sit
       scale: 1
-      offset: {x: 0, y: 0}
+      offset: {x: 0, y: -0.04}
     - name: idle_3 - Stand up
       scale: 1
       offset: {x: 0, y: 0}
@@ -47,7 +47,7 @@ MonoBehaviour:
       scale: 1
       offset: {x: 0, y: 0}
   - name: tap-right
-    scale: 0.99
+    scale: 1
     poses:
     - name: tap-right_0 - Ready
       scale: 1
@@ -62,7 +62,7 @@ MonoBehaviour:
       scale: 1
       offset: {x: 0, y: 0}
   - name: tap-upper
-    scale: 1.03
+    scale: 1
     poses:
     - name: tap-upper_0 - Ready
       scale: 1
@@ -98,7 +98,7 @@ MonoBehaviour:
       scale: 1
       offset: {x: 0, y: 0}
   - name: dive
-    scale: 1.24
+    scale: 1.1
     poses:
     - name: dive_0 - Prepare
       scale: 1
@@ -111,31 +111,31 @@ MonoBehaviour:
       offset: {x: 0, y: 0}
     - name: dive_3 - Fall
       scale: 1
-      offset: {x: 0, y: 0}
+      offset: {x: 0, y: -0.1}
     - name: dive_4 - Sit
       scale: 1
-      offset: {x: 0, y: 0}
+      offset: {x: 0, y: -0.09}
     - name: dive_5 - Stand up
       scale: 1
       offset: {x: 0, y: 0}
   - name: flick
-    scale: 1.24
+    scale: 1.1
     poses:
     - name: flick_0 - Prepare or land
       scale: 1
       offset: {x: 0, y: 0}
     - name: flick_1 - Jump
       scale: 1
-      offset: {x: 0, y: 0.12}
+      offset: {x: 0, y: 0.4}
     - name: flick_2 - Trip in air
       scale: 1
-      offset: {x: 0, y: 0.07}
+      offset: {x: 0, y: 0.3}
     - name: flick_3 - Fall
       scale: 1
-      offset: {x: 0, y: 0}
+      offset: {x: 0, y: -0.04}
     - name: flick_4 - Sit
       scale: 1
-      offset: {x: 0, y: 0}
+      offset: {x: 0, y: -0.04}
     - name: flick_5 - Stand up
       scale: 1
       offset: {x: 0, y: 0}
