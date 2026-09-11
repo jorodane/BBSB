@@ -146,8 +146,11 @@ namespace BBSB.Core
         public int PhraseEndTick => ResponseStartTick + Pattern.ResponseTicks;
         public IReadOnlyList<ScheduledCall> Call { get; }
         internal PlannedAttack(MonsterProposal proposal, PatternPlacement placement)
+            : this(proposal.InstanceId, proposal.Monster, placement) { }
+
+        internal PlannedAttack(string instanceId, MonsterDefinition monster, PatternPlacement placement)
         {
-            MonsterId = proposal.InstanceId; Monster = proposal.Monster; Placement = placement;
+            MonsterId = instanceId; Monster = monster; Placement = placement;
             Pattern = Monster.FindPattern(placement.Pattern);
             Id = MonsterId + "/" + Pattern.Id + "@" + placement.StartTick;
             var call = new List<ScheduledCall>();
@@ -164,8 +167,11 @@ namespace BBSB.Core
         public int ProposedCount { get; }
         public int OccupiedBeatCount { get; }
         internal MonsterPlan(MonsterProposal proposal, List<PlannedAttack> attacks, int occupiedBeatCount)
+            : this(proposal.InstanceId, proposal.Monster, proposal.Placements.Count, attacks, occupiedBeatCount) { }
+
+        internal MonsterPlan(string instanceId, MonsterDefinition monster, int proposedCount, List<PlannedAttack> attacks, int occupiedBeatCount)
         {
-            InstanceId = proposal.InstanceId; Monster = proposal.Monster; ProposedCount = proposal.Placements.Count;
+            InstanceId = instanceId; Monster = monster; ProposedCount = proposedCount;
             Attacks = attacks.AsReadOnly(); OccupiedBeatCount = occupiedBeatCount;
         }
     }
@@ -190,9 +196,11 @@ namespace BBSB.Core
         public IReadOnlyList<PlannedAttack> Attacks { get; }
         public IReadOnlyList<ScheduledCall> Calls { get; }
         public IReadOnlyList<PlanWithdrawal> Withdrawals { get; }
-        internal BattlePlan(MusicStage stage, List<MonsterPlan> monsters, List<PlanWithdrawal> withdrawals)
+        public IReadOnlyList<PlannedAttack> GapFills { get; }
+        internal BattlePlan(MusicStage stage, List<MonsterPlan> monsters, List<PlanWithdrawal> withdrawals, List<PlannedAttack> gapFills = null)
         {
             Stage = stage; Monsters = monsters.AsReadOnly(); Withdrawals = withdrawals.AsReadOnly();
+            GapFills = (gapFills ?? new List<PlannedAttack>()).AsReadOnly();
             var attacks = new List<PlannedAttack>(); var calls = new List<ScheduledCall>();
             foreach (var monster in monsters) foreach (var attack in monster.Attacks) { attacks.Add(attack); calls.AddRange(attack.Call); }
             attacks.Sort((a, b) => a.ResponseStartTick != b.ResponseStartTick ? a.ResponseStartTick.CompareTo(b.ResponseStartTick) : string.CompareOrdinal(a.Id, b.Id));

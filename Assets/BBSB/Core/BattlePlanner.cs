@@ -38,10 +38,11 @@ namespace BBSB.Core
                 // Each monster submits independently; it never sees another monster's claimed slots.
                 proposals.Add(Propose(stage, entry.Id, entry, Hash(seed, entry.Id)));
             }
-            return Resolve(stage, proposals, Hash(seed, "ties"));
+            var resolved = Resolve(stage, proposals, Hash(seed, "ties"));
+            return BattleGapFiller.Fill(resolved, Hash(seed, "gap-fill"));
         }
 
-        private static List<PatternPlacement> Candidates(MusicStage stage, MonsterPatternDefinition pattern)
+        internal static List<PatternPlacement> Candidates(MusicStage stage, MonsterPatternDefinition pattern)
         {
             var result = new List<PatternPlacement>();
             foreach (var candidate in stage.FindPlacements(pattern.Pattern))
@@ -130,7 +131,7 @@ namespace BBSB.Core
                 int index = leftYields ? firstAttack : secondAttack;
                 withdrawals.Add(new PlanWithdrawal(active[loser][index], proposals[winner].InstanceId, earliest,
                     leftYields ? leftCount : rightCount, leftYields ? rightCount : leftCount));
-                active[loser].RemoveAt(index); // The Call and every Response step leave together. Never reinsert.
+                active[loser].RemoveAt(index); // The Call and every Response step leave together during arbitration.
             }
             var monsters = new List<MonsterPlan>();
             for (int i = 0; i < proposals.Count; i++)
@@ -153,7 +154,7 @@ namespace BBSB.Core
 
         // Count occupied positions in this song, not slot alternatives, attack instances or Call pulses.
         // Held intervals occupy [start, end); an explicit release also occupies its ending position.
-        private static SortedSet<int> BeatGrid(MusicStage stage)
+        internal static SortedSet<int> BeatGrid(MusicStage stage)
         {
             var grid = new SortedSet<int>();
             foreach (var slot in stage.Slots)
@@ -164,7 +165,7 @@ namespace BBSB.Core
             return grid;
         }
 
-        private static int CountOccupied(List<PlannedAttack> attacks, SortedSet<int> grid)
+        internal static int CountOccupied(List<PlannedAttack> attacks, SortedSet<int> grid)
         {
             var occupied = new HashSet<int>();
             foreach (var attack in attacks) foreach (var slot in attack.Placement.Slots)

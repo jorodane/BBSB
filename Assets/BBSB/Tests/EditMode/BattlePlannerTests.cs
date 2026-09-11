@@ -53,8 +53,11 @@ namespace BBSB.Tests
                     foreach (var withdrawal in plan.Withdrawals)
                     {
                         Check.True(withdrawal.YieldingOccupiedBeats >= withdrawal.KeptOccupiedBeats);
-                        Check.False(plan.Attacks.Any(x => x.Id == withdrawal.Attack.Id));
-                        Check.False(plan.Calls.Any(x => x.AttackId == withdrawal.Attack.Id));
+                        Check.False(plan.Attacks.Contains(withdrawal.Attack));
+                        // Later arbitration can remove the old blocker. Only a newly validated gap fill may reuse that time.
+                        Check.False(plan.Attacks.Any(x => x.Id == withdrawal.Attack.Id && !plan.GapFills.Contains(x)));
+                        if (!plan.GapFills.Any(x => x.Id == withdrawal.Attack.Id))
+                            Check.False(plan.Calls.Any(x => x.AttackId == withdrawal.Attack.Id));
                     }
                 }
             }
