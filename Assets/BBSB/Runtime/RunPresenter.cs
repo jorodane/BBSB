@@ -134,7 +134,7 @@ namespace BBSB.Runtime
             ui.Label(content, "다섯 무기로 지휘하는 하나의 리듬", 25, RunUI.Teal, 55);
             var card = ui.Card(content);
             ui.Label(card, "길을 고르고, 다음 박자를 준비해.", 29, RunUI.Gold, 90);
-            ui.Label(card, "무작위로 연결된 길에서 전투와 휴식을 선택해.\n네 번째 단계의 보스를 넘으면 다음 필드로 향해.", 24, null, 125);
+            ui.Label(card, "네 곳의 몬스터 지역 중 하나에서 탐험을 시작해.\n여섯 번째 단계의 보스를 넘으면 다음 필드로 향해.", 24, null, 125);
             ui.Label(card, "탐험이 끝나면 획득한 장비와 보상도 초기화돼.", 21, RunUI.Muted, 70);
             ui.Label(content, "무기 5개  ·  분기 선택  ·  보스 도전", 22, RunUI.Muted, 70);
             ui.Button(panel, "탐험 시작", StartRun, primary: true, height: 84);
@@ -168,28 +168,30 @@ namespace BBSB.Runtime
             {
                 bool available = Session.CanEnter(node.Id);
                 bool visited = HasVisited(node.Id);
-                string label = (node.Row + 1).ToString("00") + "  " + ContentCatalog.StageName(node.Kind);
+                string label = (node.Row + 1).ToString("00") + "  " + ContentCatalog.StageName(node.MapKind);
                 if (visited) label += "\n완료";
                 else if (available) label += "\n진입";
                 var id = node.Id;
                 var button = ui.Button(map, label, () => EnterStage(id), available, available, 86);
+                button.name = "Stage " + id;
                 var rect = (RectTransform)button.transform;
                 var pos = MapConnectionsGraphic.Position(node);
-                rect.anchorMin = new Vector2(pos.x - .08f, pos.y);
-                rect.anchorMax = new Vector2(pos.x + .08f, pos.y);
-                rect.sizeDelta = new Vector2(0, node.Kind == StageKind.Boss ? 132 : 108);
+                float halfWidth = .30f / (FieldMap.StageCount - 1);
+                rect.anchorMin = new Vector2(pos.x - halfWidth, pos.y);
+                rect.anchorMax = new Vector2(pos.x + halfWidth, pos.y);
+                rect.sizeDelta = new Vector2(0, node.MapKind == StageKind.Boss ? 116 : 96);
                 rect.anchoredPosition = Vector2.zero;
                 var colors = button.colors;
                 colors.disabledColor = visited ? Color.white : new Color(.65f, .65f, .65f, .85f);
                 button.colors = colors;
                 if (visited) button.GetComponent<Image>().color = RunUI.Hex("426A65");
-                else if (!available && node.Kind == StageKind.Boss) button.GetComponent<Image>().color = RunUI.Hex("643A53");
-                var labelText = button.GetComponentInChildren<Text>(); labelText.fontSize = 30;
+                else if (!available && node.MapKind == StageKind.Boss) button.GetComponent<Image>().color = RunUI.Hex("643A53");
+                var labelText = button.GetComponentInChildren<Text>(); labelText.fontSize = 26;
                 labelText.resizeTextForBestFit = true;
-                labelText.resizeTextMinSize = 18; labelText.resizeTextMaxSize = 30;
+                labelText.resizeTextMinSize = 18; labelText.resizeTextMaxSize = 26;
             }
-            var hint = ui.Label(screen, "왼쪽에서 오른쪽으로  ·  밝은 무대를 선택해", 22, RunUI.Muted, 36, TextAnchor.MiddleCenter);
-            RunUI.Overlay(hint.rectTransform, new Vector2(.25f, 0), new Vector2(.75f, 0), new Vector2(0, 20), new Vector2(0, 56));
+            var hint = ui.Label(screen, "왼쪽에서 오른쪽으로  ·  밝은 무대를 선택해\n? 지역은 들어가면 정체가 밝혀져.", 20, RunUI.Muted, 56, TextAnchor.MiddleCenter);
+            RunUI.Overlay(hint.rectTransform, new Vector2(.20f, 0), new Vector2(.80f, 0), new Vector2(0, 12), new Vector2(0, 68));
         }
 
         private bool HasVisited(string id)
@@ -459,7 +461,7 @@ namespace BBSB.Runtime
                     break;
                 case MenuPage.Inventory: DrawInventory(); break;
                 case MenuPage.Help:
-                    ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n밝은 무대만 선택할 수 있고 네 번째 무대는 보스야.", 24, RunUI.Muted, 92);
+                    ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n시작 지점 네 곳은 모두 몬스터, 여섯 번째 무대는 보스야.\n? 지역은 들어가면 정체가 밝혀져.", 24, RunUI.Muted, 125);
                     ui.Controls(body); break;
                 case MenuPage.Patterns: DrawPatterns(); break;
                 case MenuPage.Development: DrawDevelopment(); break;

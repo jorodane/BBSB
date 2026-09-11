@@ -43,7 +43,9 @@ namespace BBSB.Core
                 case StageKind.Upgrade: return "강화";
                 case StageKind.Rest: return "휴식";
                 case StageKind.Shop: return "상점";
-                default: return "보스";
+                case StageKind.Boss: return "보스";
+                case StageKind.Mystery: return "?";
+                default: throw new System.ArgumentOutOfRangeException(nameof(kind));
             }
         }
     }

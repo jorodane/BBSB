@@ -69,6 +69,7 @@ namespace BBSB.Core
         {
             if (!CanEnter(nodeId)) return false;
             CurrentNode = Map.Find(nodeId); Phase = RunPhase.Stage;
+            CurrentNode.Reveal();
             StageTicket = Guid.NewGuid().ToString("N"); claimedService = false; offers.Clear();
             BattleMusic = CurrentNode.IsBattle
                 ? MusicCatalog.ForEncounter(Seed, Map.Number, CurrentNode.Row, CurrentNode.Column) : null;

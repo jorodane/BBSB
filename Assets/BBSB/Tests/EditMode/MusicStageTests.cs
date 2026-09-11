@@ -210,7 +210,9 @@ namespace BBSB.Tests
                     Check.True(run.AdvanceField()); Check.True(run.BattleMusic == null);
                 }
             }
-            foreach (StageKind kind in Enum.GetValues(typeof(StageKind))) Check.True(kinds.Contains(kind));
+            foreach (StageKind kind in Enum.GetValues(typeof(StageKind)))
+                if (kind != StageKind.Mystery) Check.True(kinds.Contains(kind));
+            Check.False(kinds.Contains(StageKind.Mystery)); // Enter resolves the area before choosing music.
         }
 
         private static RhythmPattern Triplet() => new RhythmPattern("three-taps", 4, new[]

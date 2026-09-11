@@ -11,18 +11,22 @@ namespace BBSB.Tests
     public sealed class RunSessionTests
     {
         [Test]
-        public void ThousandMapsHaveReachableFourthStageBossAndNoDeadEnds()
+        public void ThousandMapsHaveFourMonsterEntrancesAndAReachableSixthStageBoss()
         {
             for (int seed = 0; seed < 1000; seed++)
             {
                 var map = MapGenerator.Generate(1, new SeededRandom(seed));
-                Check.Equal(10, map.Nodes.Count);
+                Check.Equal(21, map.Nodes.Count);
                 Check.Equal(1, map.Nodes.Count(x => x.Kind == StageKind.Boss));
+                var opening = map.Nodes.Where(x => x.Row == 0).ToArray();
+                Check.Equal(4, opening.Length);
+                Check.True(opening.All(x => x.Kind == StageKind.Monster && x.IsRevealed && !x.IsMystery));
                 var reached = new HashSet<string>(map.Nodes.Where(x => x.Row == 0).Select(x => x.Id));
                 foreach (var node in map.Nodes)
                 {
                     Check.True(reached.Contains(node.Id), "Unreachable node at seed " + seed);
-                    if (node.Row == 3) { Check.Equal(StageKind.Boss, node.Kind); Check.Equal(0, node.Next.Count); }
+                    if (node.Row == 5)
+                    { Check.Equal(StageKind.Boss, node.MapKind); Check.False(node.IsMystery); Check.Equal(0, node.Next.Count); }
                     else
                     {
                         Check.True(node.Next.Count > 0);
@@ -33,7 +37,10 @@ namespace BBSB.Tests
                         }
                     }
                 }
-                foreach (StageKind kind in Enum.GetValues(typeof(StageKind))) Check.True(map.Nodes.Any(x => x.Kind == kind));
+                foreach (StageKind kind in Enum.GetValues(typeof(StageKind)))
+                    Check.True(map.Nodes.Any(x => x.Kind == kind || x.MapKind == kind));
+                for (int row = 1; row < FieldMap.StageCount - 1; row++)
+                    Check.Equal(1, map.Nodes.Count(x => x.Row == row && x.MapKind == StageKind.Mystery));
             }
         }
 
@@ -46,10 +53,121 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void AllFourEntrancesBeginBattlesAndResetForEachField()
+        {
+            for (int column = 0; column < FieldMap.Width; column++)
+            {
+                var run = new RunSession(73);
+                for (int field = 1; field <= 2; field++)
+                {
+                    Check.Equal(4, run.Map.Nodes.Count(x => run.CanEnter(x.Id)));
+                    var start = run.Map.Nodes.Single(x => x.Row == 0 && x.Column == column);
+                    Check.True(run.Enter(start.Id));
+                    Check.Equal(StageKind.Monster, run.CurrentNode.Kind);
+                    Check.True(run.BattleMusic != null && run.BattlePlan != null);
+                    FinishField(run);
+                    Check.Equal(field * 6, run.ClearedStages);
+                    Check.True(run.AdvanceField());
+                    Check.True(run.Map.Nodes.Where(x => x.IsMystery).All(x => !x.IsRevealed));
+                }
+            }
+        }
+
+        [Test]
+        public void MysteryRegionsStayHiddenUntilSuccessfulEntry()
+        {
+            var run = new RunSession(73);
+            var target = run.Map.Nodes.First(x => x.IsMystery);
+            var kind = target.Kind;
+            string links = string.Join(",", target.Next);
+            Check.False(run.Enter(target.Id));
+            Check.False(target.IsRevealed);
+            Check.Equal(StageKind.Mystery, target.MapKind);
+            foreach (var node in run.Map.Nodes) run.CanEnter(node.Id);
+            Check.False(target.IsRevealed);
+            Reach(run, target);
+            Check.True(target.IsRevealed);
+            Check.Equal(kind, target.MapKind);
+            Check.Equal(kind, target.Kind);
+            Check.Equal(links, string.Join(",", target.Next));
+            Check.True(run.Map.Nodes.Where(x => x.IsMystery && x != target).All(x => !x.IsRevealed));
+            FinishStage(run);
+            Check.Equal(kind, target.MapKind);
+            Check.True(run.Visited.Contains(target.Id));
+            Check.False(run.Enter(target.Id));
+        }
+
+        [Test]
+        public void MysteryOutcomesUseAllNormalBattleAndServiceFlows()
+        {
+            var seen = new HashSet<StageKind>();
+            for (int seed = 0; seed < 100 && seen.Count < 5; seed++)
+            {
+                var map = MapGenerator.Generate(1, new SeededRandom(seed));
+                foreach (var hidden in map.Nodes.Where(x => x.IsMystery))
+                {
+                    if (!seen.Add(hidden.Kind)) continue;
+                    var run = new RunSession(seed);
+                    var target = run.Map.Find(hidden.Id);
+                    Check.Equal(StageKind.Mystery, target.MapKind);
+                    Reach(run, target);
+                    Check.Equal(hidden.Kind, run.CurrentNode.MapKind);
+                    if (target.IsBattle)
+                    {
+                        Check.True(run.BattleMusic != null && run.BattlePlan != null);
+                        int gold = run.Gold;
+                        Win(run);
+                        Check.Equal(gold + (target.Kind == StageKind.Elite ? 40 : 25), run.Gold);
+                        Check.Equal(RunPhase.Reward, run.Phase);
+                        Check.True(run.SkipReward());
+                    }
+                    else
+                    {
+                        Check.True(run.BattleMusic == null && run.BattlePlan == null);
+                        if (target.Kind == StageKind.Shop)
+                        {
+                            Check.Equal(3, run.Offers.Count);
+                            Check.True(run.Buy(1)); Check.Equal(1, run.Items.Count);
+                        }
+                        else if (target.Kind == StageKind.Rest)
+                        { Check.True(run.Rest()); Check.True(run.ServiceClaimed); }
+                        else
+                        {
+                            Check.Equal(StageKind.Upgrade, target.Kind);
+                            Check.True(run.Upgrade(0)); Check.Equal(1, run.Weapons[0].Level);
+                        }
+                        Check.True(run.LeaveService());
+                    }
+                    Check.Equal(RunPhase.Map, run.Phase);
+                    Check.True(run.Visited.Contains(target.Id));
+                    Check.Equal(hidden.Kind, target.MapKind);
+                }
+            }
+            Check.Equal(5, seen.Count);
+            Check.False(seen.Contains(StageKind.Boss)); Check.False(seen.Contains(StageKind.Mystery));
+        }
+
+        [Test]
+        public void RestartHidesMysteryRegionsWithoutRerollingTheirOutcomes()
+        {
+            var run = new RunSession(73);
+            string before = Fingerprint(run.Map);
+            var target = run.Map.Nodes.First(x => x.IsMystery);
+            Reach(run, target); FinishStage(run);
+            Check.True(target.IsRevealed);
+            run.Restart(73);
+            Check.Equal(before, Fingerprint(run.Map));
+            Check.Equal(target.Kind, run.Map.Find(target.Id).Kind);
+            Check.True(run.Map.Nodes.Where(x => x.IsMystery).All(x => x.MapKind == StageKind.Mystery));
+            Check.Equal(0, run.Visited.Count);
+        }
+
+        [Test]
         public void AllRoutesLimitShopsAndRestsIndependentlyAcrossMerges()
         {
             bool sawShopAndRestTogether = false;
             bool sawMultipleShopsOnDifferentRoutes = false;
+            bool sawHiddenShop = false, sawHiddenRest = false;
             foreach (int seed in MapSeeds())
             {
                 var random = new SeededRandom(seed);
@@ -57,12 +175,15 @@ namespace BBSB.Tests
                 {
                     var map = MapGenerator.Generate(field, random);
                     sawMultipleShopsOnDifferentRoutes |= map.Nodes.Count(x => x.Kind == StageKind.Shop) > 1;
+                    sawHiddenShop |= map.Nodes.Any(x => x.Kind == StageKind.Shop && x.IsMystery);
+                    sawHiddenRest |= map.Nodes.Any(x => x.Kind == StageKind.Rest && x.IsMystery);
                     foreach (var start in map.Nodes.Where(x => x.Row == 0))
                         InspectRoutes(map, start, 0, 0, ref sawShopAndRestTogether);
                 }
             }
             Check.True(sawShopAndRestTogether, "The limits are one of EACH type, not one shop/rest combined.");
             Check.True(sawMultipleShopsOnDifferentRoutes, "Service limits are per route, not per field.");
+            Check.True(sawHiddenShop && sawHiddenRest, "Route limits must also cover hidden service outcomes.");
         }
 
         [Test]
@@ -73,13 +194,13 @@ namespace BBSB.Tests
             {
                 var map = MapGenerator.Generate(1, new SeededRandom(seed));
                 topologies.Add(string.Join("|", map.Nodes.Select(x => x.Id + ":" + string.Join(",", x.Next))));
-                Check.True(map.Nodes.Any(x => x.Row < 2 && x.Next.Count > 1), "No branch before the boss.");
-                for (int row = 0; row < 2; row++)
+                Check.True(map.Nodes.Any(x => x.Row < FieldMap.StageCount - 2 && x.Next.Count > 1), "No branch before the boss.");
+                for (int row = 0; row < FieldMap.StageCount - 2; row++)
                 {
                     var layer = map.Nodes.Where(x => x.Row == row).ToArray();
                     Check.True(layer.Any(x => !x.Next.Any(id => map.Find(id).Column == x.Column)),
-                        "Three straight rails survived pruning.");
-                    Check.True(layer.Sum(x => x.Next.Count) <= 4, "Too many candidate links survived pruning.");
+                        "All four straight rails survived pruning.");
+                    Check.True(layer.Sum(x => x.Next.Count) <= FieldMap.Width + 1, "Too many candidate links survived pruning.");
                 }
             }
             Check.True(topologies.Count > 20, "Different seeds should change links as well as node types.");
@@ -92,7 +213,8 @@ namespace BBSB.Tests
             {
                 var run = Stage(kind);
                 FinishField(run); Check.True(run.AdvanceField());
-                Check.True(run.Enter(run.Map.Nodes.First(x => x.Row == 0 && x.Kind == kind).Id));
+                Reach(run, kind);
+                Check.Equal(kind, run.CurrentNode.Kind);
             }
         }
 
@@ -161,8 +283,14 @@ namespace BBSB.Tests
         [Test]
         public void ShopCannotOverspendDuplicatePurchaseOrChargeOnCancelledReplacement()
         {
-            var run = Stage(StageKind.Shop);
+            // Account for the mandatory opening battle: arrive with exactly the weapon price,
+            // then a potion must leave too little to buy that weapon.
+            int seed = Enumerable.Range(0, 100).First(x => MapGenerator.Generate(1, new SeededRandom(x))
+                .Nodes.Any(node => node.Row == 1 && node.Kind == StageKind.Shop));
+            int weaponPrice = Stage(StageKind.Shop, seed).Offers[0].Price;
+            var run = Stage(StageKind.Shop, seed, new RunRules(startingGold: weaponPrice - 25));
             int initial = run.Gold;
+            Check.Equal(weaponPrice, initial);
             Check.False(run.Buy(0)); Check.Equal(initial, run.Gold);
             Check.True(run.Buy(1)); Check.Equal(initial - 25, run.Gold);
             Check.False(run.Buy(1)); Check.False(run.Buy(0, 0));
@@ -213,10 +341,10 @@ namespace BBSB.Tests
         public void BossClearWaitsForRewardAndNextFieldPreservesRunState()
         {
             var run = Stage(StageKind.Boss); decimal health = run.Health; int gold = run.Gold;
-            Check.Equal(3, run.ClearedStages); Win(run);
+            Check.Equal(5, run.ClearedStages); Win(run);
             Check.Equal(RunPhase.Reward, run.Phase); Check.False(run.AdvanceField());
             Check.Equal(gold + 60, run.Gold); run.ChooseReward(1);
-            Check.Equal(RunPhase.FieldCleared, run.Phase); Check.Equal(4, run.ClearedStages);
+            Check.Equal(RunPhase.FieldCleared, run.Phase); Check.Equal(6, run.ClearedStages);
             Check.True(run.AdvanceField()); Check.Equal(2, run.Map.Number);
             Check.Equal(health, run.Health); Check.Equal(1, run.Items.Count); Check.Equal(5, run.Weapons.Count);
             Check.Equal(0, run.Visited.Count); Check.Equal(null, run.CurrentNode);
@@ -282,8 +410,10 @@ namespace BBSB.Tests
         { var run = new RunSession(seed, rules); Reach(run, kind); return run; }
 
         private static void Reach(RunSession run, StageKind kind)
+        { Reach(run, run.Map.Nodes.First(x => x.Kind == kind)); }
+
+        private static void Reach(RunSession run, StageNode target)
         {
-            var target = run.Map.Nodes.First(x => x.Kind == kind);
             var path = FindPath(run.Map, target.Id);
             foreach (var node in path)
             {
@@ -332,7 +462,7 @@ namespace BBSB.Tests
         }
         private static void Win(RunSession run) { Check.True(run.ResolveBattle(run.StageTicket, true, run.Health)); }
         private static string Fingerprint(FieldMap map)
-        { return string.Join("|", map.Nodes.Select(x => x.Id + ":" + x.Kind + ":" + string.Join(",", x.Next))); }
+        { return string.Join("|", map.Nodes.Select(x => x.Id + ":" + x.Kind + ":" + x.IsMystery + ":" + string.Join(",", x.Next))); }
     }
 
     internal static class Check

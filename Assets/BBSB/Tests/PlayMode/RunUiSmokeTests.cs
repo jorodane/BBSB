@@ -46,16 +46,18 @@ namespace BBSB.Tests
             Assert.IsNotNull(mesh, "Map connections should submit a mesh to the canvas.");
             Assert.Greater(mesh.vertexCount, 0, "Map connections should contain line geometry.");
             var nodes = root.GetComponentsInChildren<Button>().Where(x => x.GetComponentInChildren<Text>().text.Contains("진입")).ToArray();
-            Assert.AreEqual(3, nodes.Length);
+            Assert.AreEqual(4, nodes.Length);
             foreach (var node in nodes)
             {
                 Assert.IsTrue(node.interactable);
+                Assert.IsTrue(node.GetComponentInChildren<Text>().text.Contains("몬스터"));
                 Assert.Greater(((RectTransform)node.transform).rect.height, 40);
                 Assert.Greater(((RectTransform)node.transform).rect.width, 40);
             }
             nodes[0].onClick.Invoke();
             yield return null;
             Assert.AreEqual(RunPhase.Stage, presenter.Session.Phase);
+            Assert.AreEqual(StageKind.Monster, presenter.Session.CurrentNode.Kind);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -185,10 +187,19 @@ namespace BBSB.Tests
                 Assert.AreEqual(size.y, map.rect.height, .1f, "The map must fill the viewport behind its HUD.");
                 Assert.AreEqual(size.x, map.rect.width, .1f);
                 AssertFloatingMenu(map);
-                foreach (var button in map.GetComponentsInChildren<Button>())
+                var buttons = map.GetComponentsInChildren<Button>();
+                Assert.AreEqual(21, buttons.Length);
+                var hud = (RectTransform)map.parent.Find("Status HUD");
+                var menu = root.GetComponentInChildren<RoundMenuGraphic>().rectTransform;
+                foreach (var button in buttons)
                 {
                     AssertContained((RectTransform)button.transform, map);
                     Assert.Greater(((RectTransform)button.transform).rect.height, 70);
+                    var bounds = LocalRect((RectTransform)button.transform, map);
+                    Assert.IsFalse(bounds.Overlaps(LocalRect(hud, map)), "Nodes must not overlap the status HUD.");
+                    Assert.IsFalse(bounds.Overlaps(LocalRect(menu, map)), "Nodes must not overlap the menu.");
+                    foreach (var other in buttons.Where(x => x != button))
+                        Assert.IsFalse(bounds.Overlaps(LocalRect((RectTransform)other.transform, map)), "Map nodes must not overlap.");
                 }
             }
             foreach (var from in model.Nodes)
@@ -206,6 +217,62 @@ namespace BBSB.Tests
             Assert.AreSame(map, root.GetComponentInChildren<MapConnectionsGraphic>().transform.parent);
             Assert.AreEqual(0, root.GetComponentsInChildren<RectTransform>().Count(x => x.name.StartsWith("Weapon ")));
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator MysteryMapLabelsRevealOnlyAfterEntryAndRemainKnownOnReturn()
+        {
+            root = new GameObject("Mystery map test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            Click("탐험 시작"); yield return null;
+            var run = presenter.Session;
+            foreach (var hidden in run.Map.Nodes.Where(x => x.IsMystery))
+            {
+                var label = MapButton(hidden.Id).GetComponentInChildren<Text>().text;
+                Assert.AreEqual((hidden.Row + 1).ToString("00") + "  ?", label);
+            }
+            var target = run.Map.Nodes.First(x => x.IsMystery);
+            var opening = run.Map.Nodes.First(x => x.Row == 0 && x.Next.Contains(target.Id));
+            MapButton(opening.Id).onClick.Invoke(); yield return null;
+            Assert.IsTrue(presenter.SubmitBattleResult(run.StageTicket, true, run.Health)); yield return null;
+            Click("보상 건너뛰기"); yield return null;
+            Assert.AreEqual("02  ?\n진입", MapButton(target.Id).GetComponentInChildren<Text>().text);
+            Click("메뉴"); Click("조작 방법"); Click("닫기"); yield return null;
+            Assert.IsFalse(target.IsRevealed);
+            StageKind? announced = null;
+            presenter.BattleRequested += (ticket, kind, field) => announced = kind;
+            MapButton(target.Id).onClick.Invoke(); yield return null;
+            Assert.AreEqual(target.Kind, target.MapKind);
+            if (target.IsBattle)
+            {
+                Assert.AreEqual(target.Kind, announced);
+                Assert.IsNotNull(root.GetComponentInChildren<BattleArenaView>());
+                Assert.IsTrue(presenter.SubmitBattleResult(run.StageTicket, true, run.Health)); yield return null;
+                Click("보상 건너뛰기");
+            }
+            else
+            {
+                Assert.IsNull(announced);
+                Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == ContentCatalog.StageName(target.Kind)));
+                Click("지도에 돌아가기");
+            }
+            yield return null;
+            Assert.AreEqual("02  " + ContentCatalog.StageName(target.Kind) + "\n완료", MapButton(target.Id).GetComponentInChildren<Text>().text);
+            foreach (var hidden in run.Map.Nodes.Where(x => x.IsMystery && x != target))
+                Assert.IsTrue(MapButton(hidden.Id).GetComponentInChildren<Text>().text.Contains("?"));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private Button MapButton(string id)
+        { return root.GetComponentsInChildren<Button>().Single(x => x.name == "Stage " + id); }
+
+        private static Rect LocalRect(RectTransform child, RectTransform parent)
+        {
+            var corners = new Vector3[4]; child.GetWorldCorners(corners);
+            var min = parent.InverseTransformPoint(corners[0]);
+            var max = parent.InverseTransformPoint(corners[2]);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
         private static void SetViewport(SafeAreaPanel safe, Vector2 size)

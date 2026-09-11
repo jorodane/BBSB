@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    public enum StageKind { Monster, Elite, Upgrade, Rest, Shop, Boss }
+    public enum StageKind { Monster, Elite, Upgrade, Rest, Shop, Boss, Mystery }
     public enum RunPhase { Map, Stage, Reward, FieldCleared, GameOver }
     public enum RewardKind { Weapon, Item, Augment }
 
@@ -13,16 +13,24 @@ namespace BBSB.Core
         public string Id { get; }
         public int Row { get; }
         public int Column { get; }
+        // Kind is the seeded outcome used by game rules. Map UI must use MapKind until entry.
         public StageKind Kind { get; }
+        public bool IsMystery { get; }
+        public bool IsRevealed { get; private set; }
+        public StageKind MapKind => IsRevealed ? Kind : StageKind.Mystery;
         public IReadOnlyList<string> Next { get; }
         public bool IsBattle => Kind == StageKind.Monster || Kind == StageKind.Elite || Kind == StageKind.Boss;
 
-        internal StageNode(int field, int row, int column, StageKind kind)
+        internal StageNode(int field, int row, int column, StageKind kind, bool isMystery = false)
         {
+            if (kind == StageKind.Mystery || (isMystery && (row == 0 || kind == StageKind.Boss)))
+                throw new ArgumentException("Mystery nodes need a normal outcome after the opening stage.");
             Id = "f" + field + "r" + row + "c" + column;
             Row = row;
             Column = column;
             Kind = kind;
+            IsMystery = isMystery;
+            IsRevealed = !isMystery;
             Next = next.AsReadOnly();
         }
 
@@ -32,12 +40,13 @@ namespace BBSB.Core
         }
 
         internal void Disconnect(StageNode target) { next.Remove(target.Id); }
+        internal void Reveal() { IsRevealed = true; }
     }
 
     public sealed class FieldMap
     {
-        public const int StageCount = 4;
-        public const int Width = 3;
+        public const int StageCount = 6;
+        public const int Width = 4;
         public int Number { get; }
         public IReadOnlyList<StageNode> Nodes { get; }
 

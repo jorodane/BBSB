@@ -10,7 +10,11 @@ namespace BBSB.Runtime.UI
         private RunSession session;
         public void Bind(RunSession value) { session = value; raycastTarget = false; SetVerticesDirty(); }
         public static Vector2 Position(StageNode node)
-        { return new Vector2(.14f + node.Row * .24f, .25f + node.Column * .25f); }
+        {
+            float x = .10f + node.Row * .80f / (FieldMap.StageCount - 1);
+            float y = node.MapKind == StageKind.Boss ? .48f : .20f + node.Column * .56f / (FieldMap.Width - 1);
+            return new Vector2(x, y);
+        }
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
