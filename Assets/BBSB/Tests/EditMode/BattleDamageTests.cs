@@ -11,7 +11,7 @@ namespace BBSB.Tests
     public sealed class BattleDamageTests
     {
         [Test]
-        public void GradesTakeFullThreeQuartersAndHalfDamageWithoutRounding()
+        public void GradesTakeFullHalfAndZeroDamageWithoutRounding()
         {
             foreach (int damage in new[] { 1, 3, 4, 10 })
             {
@@ -25,8 +25,8 @@ namespace BBSB.Tests
                 Check.Equal(RhythmGrade.HalfMiss, half.Results.Single().Grade);
                 Check.Equal(RhythmGrade.Perfect, perfect.Results.Single().Grade);
                 Check.Equal((decimal)damage, miss.TotalDamageTaken);
-                Check.Equal(damage * .75m, half.TotalDamageTaken);
-                Check.Equal(damage * .5m, perfect.TotalDamageTaken);
+                Check.Equal(damage * .5m, half.TotalDamageTaken);
+                Check.Equal(0m, perfect.TotalDamageTaken);
                 Check.Equal(.5, half.Results[0].Efficiency); // Score efficiency is not damage mitigation.
                 Check.Equal(1.0, perfect.Results[0].Efficiency);
             }
@@ -49,15 +49,18 @@ namespace BBSB.Tests
         public void HoldsAndDivesApplyDamageOnlyWhenTheirFinalGradeIsKnown()
         {
             foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
+            foreach (double offset in new[] { 0, .1 })
             {
                 var round = Round(3, new PatternStep(kind, 0, 4));
-                round.Press(2, 0, 0); round.Advance(2.2);
+                round.Press(2 + offset, 0, 0); round.Advance(2.2);
                 Check.Equal(0m, round.TotalDamageTaken);
+                Check.Equal(0, round.Results.Count);
                 if (kind == GestureKind.Hold) round.Advance(2.5); else round.Release(2.5, 0, 0);
-                Check.Equal(RhythmGrade.Perfect, round.Results.Single().Grade);
-                Check.Equal(1.5m, round.TotalDamageTaken);
+                Check.Equal(offset == 0 ? RhythmGrade.Perfect : RhythmGrade.HalfMiss, round.Results.Single().Grade);
+                decimal expected = offset == 0 ? 0m : 1.5m;
+                Check.Equal(expected, round.TotalDamageTaken);
                 round.Release(2.6, 0, 0); round.Advance(8.2);
-                Check.Equal(1.5m, round.TotalDamageTaken);
+                Check.Equal(expected, round.TotalDamageTaken);
 
                 var early = Round(3, new PatternStep(kind, 0, 4));
                 early.Press(2, 0, 0); early.Release(2.1, 0, 0); early.Advance(8.2);
@@ -72,39 +75,61 @@ namespace BBSB.Tests
             shake.Press(2, 0, 0);
             for (int i = 1; i <= 10; i++) shake.Move(2 + i * .05, i % 2 == 0 ? 0 : .1, 0);
             Check.Equal(RhythmGrade.Perfect, shake.Results.Single().Grade);
-            Check.Equal(1.5m, shake.TotalDamageTaken);
+            Check.Equal(0m, shake.TotalDamageTaken);
             shake.Release(2.6, 0, 0); shake.Advance(8.2);
-            Check.Equal(1.5m, shake.TotalDamageTaken);
+            Check.Equal(0m, shake.TotalDamageTaken);
+
+            var halfShake = Round(3, new PatternStep(GestureKind.Shake, 0, 4));
+            halfShake.Press(2, 0, 0); halfShake.Move(2.05, .1, 0); halfShake.Advance(2.5);
+            Check.Equal(RhythmGrade.HalfMiss, halfShake.Results.Single().Grade);
+            Check.Equal(1.5m, halfShake.TotalDamageTaken);
 
             var flick = Round(3, new PatternStep(GestureKind.Flick, 0));
             flick.Press(1.9, 0, 0); flick.Move(1.96, .08, 0);
             Check.Equal(0m, flick.TotalDamageTaken);
             flick.Release(2, .16, 0);
             Check.Equal(RhythmGrade.Perfect, flick.Results.Single().Grade);
-            Check.Equal(1.5m, flick.TotalDamageTaken);
+            Check.Equal(0m, flick.TotalDamageTaken);
+
+            var halfFlick = Round(3, new PatternStep(GestureKind.Flick, 0));
+            halfFlick.Press(1.9, 0, 0); halfFlick.Move(2.04, .08, 0); halfFlick.Release(2.1, .16, 0);
+            Check.Equal(RhythmGrade.HalfMiss, halfFlick.Results.Single().Grade);
+            Check.Equal(1.5m, halfFlick.TotalDamageTaken);
         }
 
         [Test]
         public void SharedInputTakesDamageFromEveryAttackingMonsterOnce()
         {
             var stage = Fixture();
-            var round = new RhythmRound(BattlePlanner.Resolve(stage, new[]
+            var plan = BattlePlanner.Resolve(stage, new[]
             {
                 Proposal(stage, "first", 4, new PatternStep(GestureKind.Tap, 0)),
                 Proposal(stage, "second", 8, new PatternStep(GestureKind.Tap, 0))
-            }, 1));
-            round.Press(2, 0, 0); round.Release(2.01, 0, 0); round.Advance(8.2);
-            Check.Equal(2, round.PerfectCount); Check.Equal(6m, round.TotalDamageTaken);
+            }, 1);
+            foreach (var grade in new[] { RhythmGrade.Perfect, RhythmGrade.HalfMiss, RhythmGrade.Miss })
+            {
+                var round = new RhythmRound(plan);
+                if (grade != RhythmGrade.Miss)
+                {
+                    double time = grade == RhythmGrade.Perfect ? 2 : 2.1;
+                    round.Press(time, 0, 0); round.Release(time + .01, 0, 0);
+                }
+                round.Advance(8.2);
+                Check.Equal(2, round.Results.Count); Check.True(round.Results.All(x => x.Grade == grade));
+                Check.Equal(grade == RhythmGrade.Perfect ? 0m : grade == RhythmGrade.HalfMiss ? 6m : 12m,
+                    round.TotalDamageTaken);
+            }
         }
 
         [Test]
         public void PauseCannotChargeDamageAndStoppingDoesNotInventFutureMisses()
         {
             var round = Round(4, new PatternStep(GestureKind.Hold, 0, 8));
-            round.Press(2, 0, 0); round.Advance(2.2); Check.True(round.Suspend());
+            round.Press(2.1, 0, 0); round.Advance(2.2); Check.True(round.Suspend());
             round.Advance(100); round.Press(100, 0, 0); round.Release(100, 0, 0);
             Check.Equal(0m, round.TotalDamageTaken); Check.Equal(2.2, round.ElapsedSeconds);
             round.Resume(true); round.Advance(3);
+            Check.Equal(RhythmGrade.HalfMiss, round.Results.Single().Grade);
             Check.Equal(2m, round.TotalDamageTaken);
             round.Stop(); round.Advance(100);
             Check.Equal(2m, round.TotalDamageTaken); Check.Equal(1, round.Results.Count);
@@ -132,6 +157,33 @@ namespace BBSB.Tests
             Check.True(ReferenceEquals(plan, replay.Plan)); Check.Equal(0, replay.Results.Count);
             MissFirst(replay);
             Check.Equal(remaining - replay.TotalDamageTaken, run.Health);
+        }
+
+        [Test]
+        public void PerfectRoundsKeepTheActiveRunAliveEvenAtOneHealth()
+        {
+            RunSession run = null;
+            RhythmRound round = null;
+            for (int seed = 0; seed < 100; seed++)
+            {
+                run = BattleSession(1, seed); round = run.StartRhythmRound();
+                if (round.Notes.Count > 1 && round.Notes.All(x => x.Step.Kind == GestureKind.Tap)) break;
+                run.Abandon();
+            }
+            Check.True(round.Notes.Count > 1 && round.Notes.All(x => x.Step.Kind == GestureKind.Tap));
+            var plan = run.BattlePlan;
+            for (int performance = 0; performance < 2; performance++)
+            {
+                if (performance > 0) round = run.StartRhythmRound();
+                Check.True(ReferenceEquals(plan, round.Plan));
+                foreach (double time in round.Notes.Select(x => x.StartSeconds).Distinct())
+                { round.Press(time, 0, 0); round.Release(time + .001, 0, 0); }
+                round.Advance(plan.Stage.Music.DurationSeconds + 1);
+                Check.Equal(round.Notes.Count, round.PerfectCount);
+                Check.Equal(0m, round.TotalDamageTaken); Check.Equal(1m, run.Health);
+                Check.Equal(RunPhase.Stage, run.Phase); Check.False(round.Aborted);
+                Check.True(run.CloseRhythmRound(round)); Check.Equal(1m, run.Health);
+            }
         }
 
         [Test]
@@ -202,9 +254,9 @@ namespace BBSB.Tests
         private static void MissFirst(RhythmRound round)
         { round.Advance(round.Notes[0].EndSeconds + round.HalfMissWindow + .001); }
 
-        private static RunSession BattleSession(int health = 10000)
+        private static RunSession BattleSession(int health = 10000, int seed = 73)
         {
-            var run = new RunSession(73, new RunRules(startingHealth: health));
+            var run = new RunSession(seed, new RunRules(startingHealth: health));
             while (true)
             {
                 Check.True(run.Enter(run.Map.Nodes.First(x => run.CanEnter(x.Id)).Id));

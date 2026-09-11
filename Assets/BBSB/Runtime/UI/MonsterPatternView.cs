@@ -17,7 +17,7 @@ namespace BBSB.Runtime.UI
             gameObject.name = "Monster pattern " + plan.InstanceId;
             ui.Label(transform, number.ToString("00") + "  " + monster.Name, 29, RunUI.Gold, 48);
             ui.Label(transform, "이번 곡 " + plan.Attacks.Count + "회 등장", 20, RunUI.Teal, 32);
-            ui.Label(transform, "판정당 기본 피해 " + monster.DamagePerNote + "  ·  미스 100% / 반미스 75% / 퍼펙트 50%", 20, RunUI.Red, 52);
+            ui.Label(transform, "판정당 기본 피해 " + monster.DamagePerNote + "  ·  미스 100% / 반미스 50% / 퍼펙트 0%", 20, RunUI.Red, 52);
             ui.Label(transform, monster.Description, 21, RunUI.TextColor, 66);
             ui.Label(transform, "메인 입력 " + monster.MainGesture + "  ·  패턴 " + monster.Patterns.Count + "개", 20, RunUI.Teal, 32);
             if (monster.PatternPlanner is BeatShiftPlanner)

@@ -144,8 +144,8 @@ namespace BBSB.Runtime.UI
                 if (freshMiss > 0) labels.Add("MISS ×" + freshMiss);
                 feedback.text = string.Join("  /  ", labels);
                 feedback.color = freshMiss > 0 ? RunUI.Red : freshHalf > 0 ? RunUI.Gold : RunUI.Teal;
-                damageLabel.text = "받은 피해 -" + freshDamage.ToString("0.##");
-                damageShownAt = seconds;
+                damageLabel.text = freshDamage > 0 ? "받은 피해 -" + freshDamage.ToString("0.##") : "";
+                damageShownAt = freshDamage > 0 ? seconds : double.NegativeInfinity;
             }
             damageLabel.enabled = seconds - damageShownAt < 1;
             counters.text = "정확 " + round.PerfectCount + "  ·  반미스 " + round.HalfMissCount + "  ·  미스 " + round.MissCount +
