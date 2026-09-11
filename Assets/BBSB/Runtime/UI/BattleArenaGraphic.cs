@@ -23,6 +23,14 @@ namespace BBSB.Runtime.UI
         private double beat;
         private float energy, guard, shake;
         private IReadOnlyList<BattleEffect> effects;
+        private Vector2 heroGround = PlayerMotionDisplay.DefaultGround;
+        private Vector2 heroImpact = new Vector2(.24f, .49f);
+
+        internal void SetHeroAnchors(Vector2 ground, Vector2 impact)
+        {
+            if (heroGround == ground && heroImpact == impact) return;
+            heroGround = ground; heroImpact = impact; SetVerticesDirty();
+        }
 
         internal void SetBackdrop(int count)
         { backdrop = true; monsterCount = count; raycastTarget = false; SetVerticesDirty(); }
@@ -49,7 +57,7 @@ namespace BBSB.Runtime.UI
             Quad(vh, new Vector2(r.xMin, r.yMin), new Vector2(r.xMax, r.yMin),
                 new Vector2(r.xMax, r.yMax), new Vector2(r.xMin, r.yMax),
                 RunUI.Hex("20283D"), RunUI.Hex("0A101E"));
-            var floor = Point(r, BattleArenaView.HeroFoot + new Vector2(0, .025f));
+            var floor = Point(r, heroGround);
             for (int i = -4; i <= 4; i++)
                 Line(vh, Point(r, new Vector2(.64f + i * .05f, .58f)),
                     Point(r, new Vector2(.5f + i * .19f, .015f)), 1, Alpha(RunUI.Gold, .09f));
@@ -77,7 +85,7 @@ namespace BBSB.Runtime.UI
 
         private void Weapons(VertexHelper vh, Rect r)
         {
-            var center = Point(r, BattleArenaView.HeroImpact - new Vector2(0, .035f));
+            var center = Point(r, heroImpact - new Vector2(0, .035f));
             float unit = Mathf.Min(r.width, r.height) / 600;
             float turn = (float)(beat * .24);
             // A small oscillation accelerates the orbit during Shake without introducing a second clock.
@@ -114,7 +122,7 @@ namespace BBSB.Runtime.UI
             }
             if (guard > 0)
             {
-                var p = Point(r, BattleArenaView.HeroImpact);
+                var p = Point(r, heroImpact);
                 Arc(vh, p, new Vector2(r.width * .09f, r.height * .15f), -75, 150, 5 * unit, Alpha(RunUI.Teal, guard * .85f));
                 Arc(vh, p, new Vector2(r.width * .10f, r.height * .17f), -70, 140, unit, Alpha(RunUI.Gold, guard * .6f));
             }

@@ -74,6 +74,96 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void PlayerMotionUsesAuthoredSlicesAndKeepsSharedSpritesAlive()
+        {
+            Sprite retained;
+            using (var sprites = new PlayerMotionSprites())
+            {
+                Assert.IsFalse(sprites.UsesFallbackPortrait, "All eight sheets must import in Multiple mode.");
+                foreach (var sheet in new[] { "idle", "tap-left", "tap-right", "tap-upper", "hold", "dive", "flick", "shake" })
+                {
+                    var imported = Resources.LoadAll<Sprite>(PlayerMotionSprites.ResourcePath + sheet);
+                    int count = sheet == "idle" || sheet.StartsWith("tap-") ? 4 : 6;
+                    for (int i = 0; i < count; i++)
+                    {
+                        var authored = imported.Single(s => s.name == sheet + "_" + i);
+                        Assert.AreSame(authored, sprites.Get(sheet, i));
+                        Assert.GreaterOrEqual(authored.pivot.y, 0);
+                        Assert.Less(authored.pivot.y / authored.rect.height, .25f, "Pivot must be on the contact edge, not the center.");
+                    }
+                }
+                retained = sprites.Get("idle", 0);
+            }
+            Assert.IsTrue(retained != null, "Disposing an arena must not destroy imported shared sprites.");
+            using (var next = new PlayerMotionSprites()) Assert.AreSame(retained, next.Get("idle", 0));
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerFeetStayOnConfiguredGroundWhilePosesScalesAndViewportChange()
+        {
+            var display = ScriptableObject.CreateInstance<PlayerMotionDisplay>();
+            display.groundPosition = new Vector2(.31f, .21f);
+            display.sheets = new[]
+            {
+                new PlayerMotionDisplay.Sheet { name = "idle", scale = 1.2f, poses = new[]
+                { new PlayerMotionDisplay.Pose(), new PlayerMotionDisplay.Pose { scale = .9f } } },
+                new PlayerMotionDisplay.Sheet { name = "flick", poses = new[]
+                { new PlayerMotionDisplay.Pose(), new PlayerMotionDisplay.Pose { offset = new Vector2(0, .12f) } } }
+            };
+            try
+            {
+                var round = Round(1, new PatternStep(GestureKind.Tap, 0));
+                var arena = Arena(round, display); yield return null;
+                foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800) })
+                {
+                    ((RectTransform)arena.transform).sizeDelta = size;
+                    foreach (var scale in new[] { .75f, 1.4f })
+                    {
+                        display.characterScale = scale;
+                        foreach (var time in new[] { .1, .3, .6, .9 })
+                        {
+                            round.Advance(Math.Max(round.ElapsedSeconds, time)); arena.Refresh();
+                            AssertGrounded(arena, 0);
+                        }
+                    }
+                }
+                round.Press(2, 0, 0); arena.Refresh(); AssertGrounded(arena, 0);
+                round.Release(2.01, 0, 0); round.Advance(2.08); arena.Refresh(); AssertGrounded(arena, 0);
+                round.Advance(2.3); arena.Refresh(); AssertGrounded(arena, 0);
+                round.Suspend(); arena.SetPaused(true);
+                var frozenSprite = arena.HeroPortrait.sprite;
+                display.groundPosition = new Vector2(.28f, .18f);
+                ((RectTransform)arena.transform).sizeDelta = new Vector2(1000, 700);
+                arena.Refresh(); AssertGrounded(arena, 0); Assert.AreSame(frozenSprite, arena.HeroPortrait.sprite);
+
+                var jump = Round(1, new PatternStep(GestureKind.Flick, 0));
+                var jumping = Arena(jump, display);
+                jump.Press(1.95, 0, 0); jump.Release(2, .1, 0); jumping.Refresh();
+                Assert.AreEqual(1, jumping.CurrentHeroMotion.SourceIndex);
+                float height = PlayerMotionDisplay.ReferenceDisplayHeight(((RectTransform)jumping.transform).rect.size, display.characterScale);
+                AssertGrounded(jumping, height * .12f);
+                jump.Advance(2.3); jumping.Refresh(); AssertGrounded(jumping, 0);
+                LogAssert.NoUnexpectedReceived();
+            }
+            finally { Object.DestroyImmediate(display); }
+        }
+
+        private static void AssertGrounded(BattleArenaView arena, float lift)
+        {
+            var parent = (RectTransform)arena.transform;
+            var image = arena.HeroPortrait; var rect = image.rectTransform; var sprite = image.sprite;
+            // Convert the source's actual pivot back through the displayed rectangle to arena space.
+            var footLocal = new Vector3(rect.rect.xMin + rect.rect.width * sprite.pivot.x / sprite.rect.width,
+                rect.rect.yMin + rect.rect.height * sprite.pivot.y / sprite.rect.height, 0);
+            var foot = parent.InverseTransformPoint(rect.TransformPoint(footLocal));
+            Assert.AreEqual(parent.rect.xMin + parent.rect.width * arena.HeroGroundPosition.x, foot.x, .02f);
+            Assert.AreEqual(parent.rect.yMin + parent.rect.height * arena.HeroGroundPosition.y + lift, foot.y, .02f);
+            Assert.AreEqual(Vector3.one, rect.localScale);
+            Assert.AreEqual(Quaternion.identity, rect.localRotation);
+            Assert.AreEqual(sprite.rect.width / sprite.rect.height, rect.rect.width / rect.rect.height, .0001f);
+        }
+
+        [Test]
         public void EveryCallSoundHasADistinctStableOnsetAndEndsBeforeHalfABeat()
         {
             var heard = new List<float[]>();
@@ -263,7 +353,7 @@ namespace BBSB.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        private BattleArenaView Arena(RhythmRound round)
+        private BattleArenaView Arena(RhythmRound round, PlayerMotionDisplay display = null)
         {
             if (root == null)
             {
@@ -273,7 +363,7 @@ namespace BBSB.Tests
             var rect = new GameObject("Battle arena", typeof(RectTransform)).GetComponent<RectTransform>();
             rect.SetParent(root.transform, false); rect.sizeDelta = new Vector2(1280, 720);
             var view = rect.gameObject.AddComponent<BattleArenaView>();
-            view.Initialize(round, Resources.Load<Font>("BBSB/Fonts/BBSBUI")); return view;
+            view.Initialize(round, Resources.Load<Font>("BBSB/Fonts/BBSBUI"), display); return view;
         }
 
         private static RhythmRound Round(int count, params PatternStep[] steps)

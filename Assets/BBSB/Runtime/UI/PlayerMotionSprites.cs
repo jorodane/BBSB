@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace BBSB.Runtime.UI
 {
-    /// <summary>Owns lightweight sprite regions; all poses share eight imported atlas textures.</summary>
+    /// <summary>Uses the artist's named Sprite Editor slices, including their rectangles and pivots.</summary>
     public sealed class PlayerMotionSprites : IDisposable
     {
         public const string ResourcePath = "BBSB/BattleArt/PlayerMotion/";
@@ -30,7 +30,7 @@ namespace BBSB.Runtime.UI
             catch { Dispose(); throw; }
         }
 
-        public Sprite Get(PlayerMotionFrame frame) => Get(frame.Sheet, frame.Index);
+        public Sprite Get(PlayerMotionFrame frame) => Get(frame.SourceSheet, frame.SourceIndex);
         public Sprite Get(string sheet, int index)
         {
             // Keep the existing portrait until the complete atlas set has been supplied.
@@ -45,29 +45,22 @@ namespace BBSB.Runtime.UI
 
         private void Load(string id, int columns, int rows)
         {
-            var texture = Resources.Load<Texture2D>(ResourcePath + id);
-            if (texture == null) return;
-            var frames = new Sprite[columns * rows]; sheets.Add(id, frames);
-            float width = (float)texture.width / columns, height = (float)texture.height / rows;
+            var imported = Resources.LoadAll<Sprite>(ResourcePath + id);
+            var frames = new Sprite[columns * rows];
             for (int i = 0; i < frames.Length; i++)
             {
-                int column = i % columns, row = i / columns;
-                var rect = new Rect(column * width, texture.height - (row + 1) * height, width, height);
-                var sprite = Sprite.Create(texture, rect, new Vector2(.5f, .08f), 100, 0, SpriteMeshType.FullRect);
-                sprite.name = "Player/" + id + "/" + i;
-                frames[i] = sprite;
+                string name = id + "_" + i;
+                foreach (var sprite in imported)
+                    if (sprite.name == name) { frames[i] = sprite; break; }
+                // A Single-mode image or incomplete slicing is not a complete animation sheet.
+                if (frames[i] == null) return;
             }
+            sheets.Add(id, frames);
         }
 
         public void Dispose()
         {
-            foreach (var frames in sheets.Values)
-            foreach (var sprite in frames)
-            {
-                if (sprite == null) continue;
-                if (Application.isPlaying) UnityEngine.Object.Destroy(sprite);
-                else UnityEngine.Object.DestroyImmediate(sprite);
-            }
+            // Resources owns imported sprites; destroying one would break the next arena/preview.
             sheets.Clear();
         }
     }

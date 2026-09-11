@@ -28,16 +28,19 @@ namespace BBSB.Runtime.UI
         private readonly HashSet<int> attackTicks = new HashSet<int>();
         private readonly PlayerMotionTimeline playerMotion = new PlayerMotionTimeline();
         private PlayerMotionSprites playerSprites;
+        [SerializeField] private PlayerMotionDisplay playerDisplay;
         private RhythmRound round;
         private RectTransform area;
         private Actor hero;
         private BattleArenaGraphic foreground;
+        private BattleArenaGraphic backdrop;
         private Text heroLabel;
         private Vector2 lastSize;
         private bool paused;
         private float weaponEnergy, guardStrength, shakeStrength;
-        internal static readonly Vector2 HeroFoot = new Vector2(.24f, .17f);
-        internal static readonly Vector2 HeroImpact = new Vector2(.24f, .49f);
+        private float heroDisplayHeight;
+        public Vector2 HeroGroundPosition { get; private set; } = PlayerMotionDisplay.DefaultGround;
+        public Vector2 HeroImpactPosition { get; private set; } = new Vector2(.24f, .49f);
 
         public Image HeroPortrait => hero?.Portrait;
         public IReadOnlyList<Image> MonsterPortraits => portraits;
@@ -46,14 +49,17 @@ namespace BBSB.Runtime.UI
 
         public void SetPaused(bool value) { paused = value; }
 
-        public void Initialize(RhythmRound value, Font font)
+        public void Initialize(RhythmRound value, Font font, PlayerMotionDisplay display = null)
         {
             if (round != null) throw new InvalidOperationException("Battle arena is already bound.");
             round = value ?? throw new ArgumentNullException(nameof(value));
+            if (display != null) playerDisplay = display;
+            else if (playerDisplay == null) playerDisplay = Resources.Load<PlayerMotionDisplay>(PlayerMotionDisplay.ResourcePath);
             area = (RectTransform)transform; var ui = new RunUI(font);
             if (GetComponent<RectMask2D>() == null) gameObject.AddComponent<RectMask2D>();
             var background = ui.Rect("Arena backdrop", area); RunUI.Stretch(background);
-            background.gameObject.AddComponent<BattleArenaGraphic>().SetBackdrop(round.Plan.Monsters.Count);
+            backdrop = background.gameObject.AddComponent<BattleArenaGraphic>();
+            backdrop.SetBackdrop(round.Plan.Monsters.Count);
             foreach (var plan in round.Plan.Monsters)
             {
                 var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name);
@@ -62,20 +68,21 @@ namespace BBSB.Runtime.UI
             }
             playerSprites = new PlayerMotionSprites();
             hero = CreateActor(ui, "Weapon master", "weapon-master", null, playerSprites.Get("idle", 0));
+            hero.Root.name = "Player ground";
             hero.Tint = RunUI.Gold;
             var fx = ui.Rect("Battle effects and five weapons", area); RunUI.Stretch(fx);
             foreground = fx.gameObject.AddComponent<BattleArenaGraphic>();
             heroLabel = ui.Label(area, "WEAPON MASTER", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
-            Anchor(heroLabel.rectTransform, new Vector2(HeroFoot.x, .06f), new Vector2(HeroFoot.x, .06f),
-                Vector2.zero, new Vector2(420, 36), new Vector2(.5f, 0));
             LayoutActors(); Refresh();
         }
 
-        /// <summary>The round's frozen clock also freezes every transform, particle and weapon orbit.</summary>
+        /// <summary>Pause freezes poses/effects; explicit layout or display-setting changes still apply.</summary>
         public void Refresh()
         {
-            if (round == null || paused) return;
-            LayoutActors(); effects.Clear(); ActiveResponseEffects = 0;
+            if (round == null) return;
+            LayoutActors();
+            if (paused) { ApplyHeroLayout(); return; }
+            effects.Clear(); ActiveResponseEffects = 0;
             double seconds = round.ElapsedSeconds;
             foreach (var actor in monsters) RefreshMonster(actor, seconds);
             RefreshHero(seconds);
@@ -123,7 +130,16 @@ namespace BBSB.Runtime.UI
         private void LayoutActors()
         {
             Vector2 size = area.rect.size;
-            if (size == lastSize || size.x <= 0 || size.y <= 0) return;
+            if (size.x <= 0 || size.y <= 0) return;
+            HeroGroundPosition = playerDisplay != null ? playerDisplay.groundPosition : PlayerMotionDisplay.DefaultGround;
+            heroDisplayHeight = PlayerMotionDisplay.ReferenceDisplayHeight(size, playerDisplay != null ? playerDisplay.characterScale : 1);
+            HeroImpactPosition = HeroGroundPosition + new Vector2(0, heroDisplayHeight / size.y * .46f);
+            Anchor(hero.Root, HeroGroundPosition, HeroGroundPosition, Vector2.zero, Vector2.zero, new Vector2(.5f, 0));
+            var labelPoint = HeroGroundPosition - new Vector2(0, .11f);
+            Anchor(heroLabel.rectTransform, labelPoint, labelPoint, Vector2.zero, new Vector2(420, 36), new Vector2(.5f, 0));
+            backdrop.SetHeroAnchors(HeroGroundPosition, HeroImpactPosition);
+            foreground.SetHeroAnchors(HeroGroundPosition, HeroImpactPosition);
+            if (size == lastSize) return;
             lastSize = size;
             float side = Mathf.Min(size.y * (monsters.Count == 1 ? .4f : .36f),
                 size.x * (monsters.Count == 1 ? .26f : monsters.Count == 2 ? .21f : .15f));
@@ -133,8 +149,27 @@ namespace BBSB.Runtime.UI
                 Anchor(actor.Root, actor.Ground, actor.Ground, Vector2.zero, Vector2.one * side, new Vector2(.5f, 0));
                 actor.Impact = actor.Ground + new Vector2(0, side / size.y * .5f);
             }
-            float heroSize = Mathf.Min(size.x * .4f, size.y * .7f);
-            Anchor(hero.Root, HeroFoot, HeroFoot, Vector2.zero, Vector2.one * heroSize, new Vector2(.5f, 0));
+        }
+
+        private void ApplyHeroLayout()
+        {
+            if (heroDisplayHeight <= 0) return;
+            var sprite = hero.Portrait.sprite;
+            var reference = playerDisplay != null && playerDisplay.referencePose != null ?
+                playerDisplay.referencePose : playerSprites.Get("idle", 0);
+            float scale = 1; Vector2 offset = Vector2.zero;
+            if (playerDisplay != null && !playerSprites.UsesFallbackPortrait)
+                playerDisplay.GetCalibration(CurrentHeroMotion.SourceSheet, CurrentHeroMotion.SourceIndex, out scale, out offset);
+            var size = PlayerMotionDisplay.Measure(sprite, reference, heroDisplayHeight, scale);
+            var foot = playerSprites.UsesFallbackPortrait ? new Vector2(.5f, 0) :
+                new Vector2(sprite.pivot.x / sprite.rect.width, sprite.pivot.y / sprite.rect.height);
+            // UI Image does not use Sprite.pivot to place its rectangle. Make the source foot
+            // pivot the UI pivot explicitly, then size in source units instead of fitting a box.
+            Anchor(hero.Portrait.rectTransform, Vector2.zero, Vector2.zero, offset * heroDisplayHeight, size, foot);
+            hero.Portrait.preserveAspect = false; // The rectangle already has the exact source aspect.
+            hero.Portrait.useSpriteMesh = false;
+            hero.Portrait.rectTransform.localScale = Vector3.one;
+            hero.Portrait.rectTransform.localRotation = Quaternion.identity;
         }
 
         private void RefreshMonster(Actor actor, double seconds)
@@ -179,7 +214,7 @@ namespace BBSB.Runtime.UI
             }
             attackTicks.Clear();
             call = Mathf.Clamp01(call); attackPulse = Mathf.Clamp01(attackPulse); counter = Mathf.Clamp01(counter);
-            float direction = Mathf.Sign(HeroImpact.x - actor.Impact.x);
+            float direction = Mathf.Sign(HeroImpactPosition.x - actor.Impact.x);
             x += direction * (attackPulse * size.x * .035f - windup * 6) - direction * counter * 9;
             y += windup * 7 - attackPulse * size.y * .055f + counter * 7;
             tilt += direction * (attackPulse * 9 - counter * 8);
@@ -197,7 +232,7 @@ namespace BBSB.Runtime.UI
             pulse += Pulse(age, Math.Min(.3, round.BeatSeconds * .65));
             double travel = Math.Min(.28, round.BeatSeconds * .5);
             if (age < 0 && age >= -travel) windup = Mathf.Max(windup, (float)(1 + age / travel));
-            Add(BattleEffectKind.Attack, actor.Impact, HeroImpact, age + travel, travel * 2, actor.Tint);
+            Add(BattleEffectKind.Attack, actor.Impact, HeroImpactPosition, age + travel, travel * 2, actor.Tint);
         }
 
         private void RefreshSignal(Actor actor, PlannedAttack current, double seconds, float pulse)
@@ -228,24 +263,23 @@ namespace BBSB.Runtime.UI
 
         private void RefreshHero(double seconds)
         {
-            var size = area.rect.size;
-            float x = 0, y = (float)Math.Sin(seconds / round.BeatSeconds * Math.PI * 2) * 1.5f;
-            float tilt = 0, sx = 1, sy = 1, miss = 0;
+            float miss = 0;
             weaponEnergy = guardStrength = shakeStrength = 0;
             CurrentHeroMotion = playerMotion.Evaluate(round);
             var motion = CurrentHeroMotion;
             hero.Portrait.sprite = playerSprites.Get(motion);
+            ApplyHeroLayout();
             string action = "WEAPON MASTER";
             if (motion.Phase == PlayerMotionPhase.Sustain)
             {
                 switch (motion.Kind)
                 {
                     case GestureKind.Hold:
-                        guardStrength = 1; sy = .98f; action = "크로스가드 유지"; break;
+                        guardStrength = 1; action = "크로스가드 유지"; break;
                     case GestureKind.Dive:
-                        x = size.x * .015f; action = "회피 준비 · 끝에 떼기"; break;
+                        action = "회피 준비 · 끝에 떼기"; break;
                     case GestureKind.Shake:
-                        shakeStrength = 1; x = 3 * Mathf.Sin((float)seconds * 35); action = "양손 밀쳐내기"; break;
+                        shakeStrength = 1; action = "양손 밀쳐내기"; break;
                 }
             }
             else if (motion.Kind.HasValue)
@@ -255,17 +289,11 @@ namespace BBSB.Runtime.UI
                 bool failed = motion.Grade == RhythmGrade.Miss;
                 miss = failed ? pulse : motion.Grade == RhythmGrade.HalfMiss ? pulse * .3f : 0;
                 weaponEnergy = failed ? 0 : pulse;
-                // Art supplies the pose; these small accents connect key poses without stacking
-                // three whole-body transforms for a single input shared by three monsters.
-                if (motion.IsFall) { y = 0; x = Mathf.Sin((float)motion.Age * 55) * 2 * pulse; }
-                else if (failed) { x = -8 * pulse; tilt = 4 * pulse; }
-                else switch (motion.Kind.Value)
+                // Pose changes supply the body motion. Only separate effects/tints react here.
+                if (!failed) switch (motion.Kind.Value)
                 {
-                    case GestureKind.Tap: x = size.x * .022f * pulse; y += size.y * (motion.Punch == 2 ? .035f : .016f) * pulse; break;
                     case GestureKind.Hold: guardStrength = pulse; break;
-                    case GestureKind.Dive: x = size.x * .035f * pulse; break;
-                    case GestureKind.Flick: y += size.y * .045f * pulse; tilt = motion.Grade == RhythmGrade.HalfMiss ? -6 * pulse : 0; break;
-                    case GestureKind.Shake: shakeStrength = pulse; x = size.x * .016f * pulse; break;
+                    case GestureKind.Shake: shakeStrength = pulse; break;
                 }
                 action = motion.Reason == MissReason.TooEarly ? "너무 이른 동작" :
                     ActionLabel(motion.Kind.Value, motion.Punch) + " · " + RhythmPlaybackView.GradeLabel(motion.Grade.Value);
@@ -283,18 +311,16 @@ namespace BBSB.Runtime.UI
                 float strength = result.Grade == RhythmGrade.Perfect ? 1 : result.Grade == RhythmGrade.HalfMiss ? .55f : .65f;
                 if (result.Grade == RhythmGrade.Miss)
                 {
-                    Add(BattleEffectKind.Miss, HeroImpact, HeroImpact, age, duration, RunUI.Red, strength);
+                    Add(BattleEffectKind.Miss, HeroImpactPosition, HeroImpactPosition, age, duration, RunUI.Red, strength);
                 }
                 else
                 {
                     BattleEffectKind kind = EffectFor(result.Note.Step.Kind);
-                    Add(kind, HeroImpact, actor.Impact, age, duration, RhythmPlaybackView.GradeColor(result.Grade), strength);
+                    Add(kind, HeroImpactPosition, actor.Impact, age, duration, RhythmPlaybackView.GradeColor(result.Grade), strength);
                 }
                 ActiveResponseEffects++;
             }
-            // Imported frames share an 8% lower gutter. Register the actual soles on HeroFoot.
-            SetPose(hero, Mathf.Clamp(x, -size.x * .11f, size.x * .11f), Mathf.Clamp(y, -size.y * .035f, size.y * .1f) - hero.Root.rect.height * .08f,
-                Mathf.Clamp(tilt, -24, 24), Mathf.Clamp(sx, .8f, 1.2f), Mathf.Clamp(sy, .75f, 1.1f), Color.Lerp(Color.white, RunUI.Red, miss * .45f));
+            hero.Portrait.color = Color.Lerp(Color.white, RunUI.Red, miss * .45f);
             heroLabel.text = action; heroLabel.color = miss > .1f ? RunUI.Red : weaponEnergy > .1f ? RunUI.Teal : RunUI.Gold;
         }
 

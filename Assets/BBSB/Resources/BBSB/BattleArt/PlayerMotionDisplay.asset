@@ -1,0 +1,162 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cf6c243085a4f0e8e2deb2d78a8c33f, type: 3}
+  m_Name: PlayerMotionDisplay
+  m_EditorClassIdentifier:
+  groundPosition: {x: 0.24, y: 0.17}
+  characterScale: 1
+  referencePose: {fileID: 8793639957104055765, guid: 810142f81a473c544a477a0a25ad0bdc, type: 3}
+  sheets:
+  - name: idle
+    scale: 1
+    poses:
+    - name: idle_0 - Stand
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: idle_1 - Beat stance
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: idle_2 - Sit
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: idle_3 - Stand up
+      scale: 1
+      offset: {x: 0, y: 0}
+  - name: tap-left
+    scale: 1
+    poses:
+    - name: tap-left_0 - Ready
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-left_1 - Perfect
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-left_2 - Half miss
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-left_3 - Miss
+      scale: 1
+      offset: {x: 0, y: 0}
+  - name: tap-right
+    scale: 0.99
+    poses:
+    - name: tap-right_0 - Ready
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-right_1 - Perfect
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-right_2 - Half miss
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-right_3 - Miss
+      scale: 1
+      offset: {x: 0, y: 0}
+  - name: tap-upper
+    scale: 1.03
+    poses:
+    - name: tap-upper_0 - Ready
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-upper_1 - Perfect
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-upper_2 - Half miss
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: tap-upper_3 - Miss
+      scale: 1
+      offset: {x: 0, y: 0}
+  - name: hold
+    scale: 1.24
+    poses:
+    - name: hold_0 - Enter guard
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: hold_1 - Hold
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: hold_2 - Perfect
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: hold_3 - Half miss
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: hold_4 - Miss
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: hold_5 - Recover
+      scale: 1
+      offset: {x: 0, y: 0}
+  - name: dive
+    scale: 1.24
+    poses:
+    - name: dive_0 - Prepare
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: dive_1 - Duck
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: dive_2 - Head hit
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: dive_3 - Fall
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: dive_4 - Sit
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: dive_5 - Stand up
+      scale: 1
+      offset: {x: 0, y: 0}
+  - name: flick
+    scale: 1.24
+    poses:
+    - name: flick_0 - Prepare or land
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: flick_1 - Jump
+      scale: 1
+      offset: {x: 0, y: 0.12}
+    - name: flick_2 - Trip in air
+      scale: 1
+      offset: {x: 0, y: 0.07}
+    - name: flick_3 - Fall
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: flick_4 - Sit
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: flick_5 - Stand up
+      scale: 1
+      offset: {x: 0, y: 0}
+  - name: shake
+    scale: 1.2
+    poses:
+    - name: shake_0 - Prepare
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: shake_1 - Push
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: shake_2 - Perfect
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: shake_3 - Half miss
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: shake_4 - Miss
+      scale: 1
+      offset: {x: 0, y: 0}
+    - name: shake_5 - Recover
+      scale: 1
+      offset: {x: 0, y: 0}

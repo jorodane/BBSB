@@ -11,6 +11,8 @@ namespace BBSB.Runtime.UI
     {
         public string Sheet { get; }
         public int Index { get; }
+        public string SourceSheet => Sheet == "tap" ? (Index / 4 == 0 ? "tap-left" : Index / 4 == 1 ? "tap-right" : "tap-upper") : Sheet;
+        public int SourceIndex => Sheet == "tap" ? Index % 4 : Index;
         public PlayerMotionPhase Phase { get; }
         public GestureKind? Kind { get; }
         public RhythmGrade? Grade { get; }

@@ -2,9 +2,9 @@
 
 제공된 분홍 단발·기계 수신부 헤드셋 캐릭터를 기준으로 **8개 시트, 40개 키포즈**를 만들었다. 이미지 8장이 모두 설치되면 `RunMap`의 준비 화면과 실제 연주 화면 모두 새 캐릭터를 자동으로 사용한다. 이미지나 Animator를 Inspector에 별도로 연결할 필요는 없다.
 
-현재 GitHub 업로드에서는 모션 PNG 8장과 원본 레퍼런스, 이미지에 딸린 메타 파일을 제외했다. 시트가 하나라도 없으면 `PlayerMotionSprites`는 기존 `weapon-master` 초상화를 사용하며, 판정별 모션 선택·이동·회전·효과는 계속 작동한다. 새 키포즈 이미지를 보려면 나중에 `Resources/BBSB/BattleArt/PlayerMotion`에 전체 시트를 추가해야 한다.
+모션 PNG 8장과 Sprite Editor 분할 정보가 포함되어 있다. `PlayerMotionSprites`는 `idle_0`, `tap-left_1` 같은 이름으로 가져온 실제 Sprite를 사용한다. 한 시트라도 없거나 분할이 불완전하면 기존 `weapon-master` 초상화를 사용한다.
 
-현재 재생 방식은 결과 키포즈 → 복귀 키포즈 → Idle을 교체하고 작은 이동·회전을 더하는 방식이다. 입력 유지에는 준비 → 유지 포즈를 사용한다. 연속 중간 프레임을 그린 전통적인 프레임 애니메이션이나 관절 리깅은 아니다.
+현재 재생 방식은 결과 키포즈 → 복귀 키포즈 → Idle을 교체하는 방식이다. 주인공 전체에 더하던 상하 흔들림, 앞뒤 이동, 피격 기울기, 눌림·늘어남은 제거했다. 입력 유지에는 준비 → 유지 포즈를 사용한다. 연속 중간 프레임을 그린 전통적인 프레임 애니메이션이나 관절 리깅은 아니다.
 
 ## 동작과 판정
 
@@ -44,23 +44,34 @@
 - `round.ElapsedSeconds`를 사용하므로 일시정지와 함께 이미지·이동·이펙트가 멈춘다. 시간이 크게 건너뛰면 끝난 반응을 다시 재생하지 않는다.
 - 화면의 작은 한글 동작 이름을 새 동작에 맞추고 글꼴의 글자 집합도 갱신했다. 판정·피해 규칙은 변경하지 않았다.
 
-## 이미지 가져오기
+## 지면과 크기 조절
 
-원본 PNG의 설치 경로는 `Resources/BBSB/BattleArt/PlayerMotion`이다. 이번 업로드에는 포함하지 않았다. 원본은 RGB 녹색 배경이며 픽셀은 그대로 보관한다. 이미지가 추가되면 `PlayerMotionImporter`가 Unity의 텍스처 가져오기 과정에서만 다음을 수행한다.
+Project 창에서 `Assets/BBSB/Resources/BBSB/BattleArt/PlayerMotionDisplay.asset`을 선택한다. 준비 화면과 실제 전투가 이 설정을 함께 사용한다.
 
-1. 녹색 배경을 알파로 바꾸고 가장자리의 녹색 번짐을 제거한다. 흰 의상·검은 선·금색 장식은 보존한다.
-2. 연결된 캐릭터 영역을 각각 찾는다. 누운 캐릭터의 영역이 이웃 칸을 넘어가도 이웃 캐릭터를 함께 잘라 오지 않는다.
-3. 한 시트에 동일한 축소 비율을 적용해 칸마다 여백을 확보하고 발 위치를 아래 8%에 맞춘다. 앉거나 누운 포즈를 서 있는 높이로 확대하지 않는다.
-4. RGBA32, mipmap 없음, 최대 2048로 저장한다. 게임 실행 중에는 배경 제거·픽셀 처리 없이 가져온 텍스처의 Sprite 영역만 교체한다.
+| Inspector 항목 | 조절 대상 |
+|---|---|
+| Ground Position | 화면 왼쪽 아래를 (0,0)으로 하는 주인공의 지면 위치. 기본 (0.24, 0.17) |
+| Character Scale | 모든 포즈의 공통 배율 |
+| Reference Pose | 크기를 비교할 기준 대기 Sprite. 기본 idle_0 |
+| Motion Sheet → Sheet Scale | Idle, 각 Tap, Hold, Dive, Flick, Shake 시트 전체의 배율 |
+| Pose → Pose Scale | 선택한 포즈 하나의 추가 배율 |
+| Ground Offset (X / lift) | 기준 캐릭터 높이 단위의 가로 보정과 의도적인 공중 높이. Y=0이면 지면에 접촉 |
+| Show Idle Reference | 기준 대기 자세를 반투명하게 겹친 Inspector 미리보기 |
 
-RGB 원본에서도 임시 알파 버퍼가 생기도록 가져오기 설정을 지정한 뒤, 원본의 임시 밝기 알파를 버리고 최종 알파를 직접 계산한다. 원본에 실제 알파가 있는 이미지를 이 폴더에 추가하려면 이 규칙부터 변경해야 한다. 가져오기 코드는 [Unity OnPostprocessTexture 문서](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/AssetPostprocessor.OnPostprocessTexture.html)의 압축 전 픽셀 처리 단계에 연결했다.
+미리보기의 녹색 선과 금색 점이 지면과 기준점이다. 기본값은 대부분의 포즈에서 높이 0이며, Flick 점프(1)는 0.12, 공중에서 걸리는 포즈(2)는 0.07이다. 복귀 포즈는 다시 높이 0을 사용한다. 공중 높이도 시간이 흐르며 흔드는 값이 아니라 해당 포즈의 고정된 보정이다.
 
-원본 레퍼런스 `Docs/Art/player-reference.png`도 이번 업로드에서는 제외했다. 생성 모드와 정확한 프롬프트는 [PlayerMotionPrompts.md](PlayerMotionPrompts.md)에 있다. 기존 `weapon-master.png`는 모션 시트가 모두 준비되기 전까지 플레이어 화면에 사용한다.
+각 PNG는 **Sprite Mode: Multiple**로 가져온다. 이미 작성된 40개 분할 사각형과 Sprite ID를 유지하고, Custom Pivot을 원본의 아래쪽 접촉점에 맞췄다. 특정 발 기준을 바꾸려면 해당 PNG의 **Sprite Editor → 포즈 선택 → Pivot: Custom**에서 수정하고 Apply한다. 분할 이름은 기존 `시트명_번호`를 유지한다.
+
+게임은 Sprite의 피벗을 UI Image의 피벗으로 연결한다. 사각형마다 같은 화면 크기를 채우지 않고, `Sprite.rect / Pixels Per Unit`에 기준 자세와 동일한 배율을 적용한다. 따라서 앉기·눕기의 낮은 높이가 유지되고, 배율을 바꿔도 발 기준점은 지면에 남는다. 지면을 옮기면 바닥 원과 그림자, 무기와 공격 효과의 기준 위치도 함께 이동한다. PNG 픽셀이나 알파를 다시 처리하지 않으며, 런타임 균등 격자 재분할도 하지 않는다.
+
+설정 에셋은 실행 중에도 반영되며 Inspector 미리보기로 Play 진입 없이 조정할 수 있다. Sprite Editor 피벗은 텍스처 재가져오기 후 다음 전투 진입에서 확인하는 것이 안전하다. 원본 분할 범위에 이웃 포즈 조각이 포함된 경우 그 조각도 Sprite의 일부이므로, 해당 아트/분할은 별도로 정리해야 한다.
+
+모션 이미지 경로는 `Assets/BBSB/Resources/BBSB/BattleArt/PlayerMotion/`이다. 컨셉 이미지와 레퍼런스는 `Assets/BBSB/Resources/BBSB/ConceptArt/`에 보관한다. 생성 당시의 프롬프트는 [PlayerMotionPrompts.md](PlayerMotionPrompts.md)에 있다.
 
 ## 검증
 
-- 이미지 제외 업로드를 위해 실제 `PlayerMotionSprites` 소스를 Unity API 대역으로 컴파일해, 시트 없음·일부 누락·전체 준비·대체 초상화도 없음의 4가지 로딩/해제 경로를 통과했다. 이는 Unity Editor 실행 검증을 대신하지 않는다. PlayMode의 기존 포즈 테스트도 이미지가 없을 때 모든 포즈가 기존 초상화를 사용하는지 확인하도록 조정했다.
-- 실제 `RhythmRound`에 입력을 넣어 5종 × 3판정, 펀치 종류 유지·연속 중복 금지, 공유 입력, 정비 생략, 새 접촉 우선, 정지·시간 점프, 동시 결과를 검증했다.
-- 독립 C# 실행기로 기존 테스트를 포함해 138개를 통과했다. Unity API를 사용하지 않는 모션 선택과 이미지 처리 코드는 같은 소스를 직접 컴파일해 실행했다.
-- 최종 원본 8장을 동일한 가져오기 픽셀 처리 코드로 검사했다. 40개 포즈가 각각 분리되고, 프레임 경계가 투명하며, 가장자리에 반투명 픽셀이 남는 것을 확인했다. 처리 후 이미지의 누운 포즈와 펀치 포즈도 육안 검사했다.
-- `BattleArenaTests`에 실제 Sprite 선택·공유 결과·일시정지와 40개 영역 로딩·가져온 알파 확인을 추가했다. **작업 환경에 Unity Editor가 없어 Unity 컴파일, 임포터 콜백, PlayMode 실행과 실제 전투 화면은 아직 검증하지 못했다.** Unity 6000.3.5f2에서 프로젝트를 열어 Test Runner의 EditMode/PlayMode를 실행하고 `RunMap`에서 판정과 모션을 확인한다.
+- .NET 8에서 실제 핵심·모션·크기 계산 소스를 컴파일해 **141개 테스트 통과**. 웅크림·눕기의 비율 유지, 포즈 배율, 화면 크기 변경과 잘못된 값도 검사했다.
+- Unity API 대역으로 실제 `PlayerMotionSprites`와 `PlayerMotionDisplay`를 컴파일해 40개 원본 Sprite 선택, 순서가 섞인 Resources 목록, 12개 펀치 연결, 공유 Sprite 수명, 일부 누락 시 초상화 복귀, PPU와 배율 적용을 확인했다. Unity Editor 검증을 대신하지 않는다.
+- 8개 메타 파일의 40개 분할 사각형과 ID는 기존 값과 일치한다. Multiple 모드와 발 피벗만 갱신했다. 실제 PNG와 크기 계산 결과로 만든 별도 미리보기에서 지면 정렬·크기·공중 높이를 확인했다.
+- `BattleArenaTests`에 원본 Sprite 재사용과 피벗 보존, 두 화면 비율·배율·실제 판정·일시정지/리사이즈·점프 높이에서의 발 위치 검증을 추가했다.
+- **작업 환경에는 Unity Editor가 없어 Unity 컴파일·Inspector 미리보기·PlayMode 실행은 확인하지 못했다.** Unity 6000.3.5f2에서 EditMode/PlayMode 테스트를 실행하고 `RunMap`의 준비/연주 화면을 확인한다.
