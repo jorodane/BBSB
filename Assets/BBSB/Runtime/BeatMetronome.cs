@@ -35,21 +35,16 @@ namespace BBSB.Runtime
                 callVoices[i] = child.AddComponent<AudioSource>();
                 callVoices[i].playOnAwake = false; callVoices[i].spatialBlend = 0; callVoices[i].loop = false;
             }
-            var attackClips = new Dictionary<string, AudioClip>();
-            for (int i = 0; i < plan.Monsters.Count; i++)
+            var cueClips = new Dictionary<CallSound, AudioClip>();
+            foreach (var call in plan.Calls)
             {
-                var monster = plan.Monsters[i];
-                foreach (var pattern in monster.Monster.Patterns)
+                if (!cueClips.TryGetValue(call.Sound, out var clip))
                 {
-                    // A softer, longer tone separates monster cues from the background click.
-                    // Different input styles have different pitches, including the mixed-input bat.
-                    var clip = Click("Call " + monster.InstanceId + "/" + pattern.Id,
-                        380 + (int)pattern.Pattern.Steps[0].Kind * 110 + i * 45, .09);
-                    callClips.Add(clip);
-                    foreach (var attack in monster.Attacks) if (attack.Pattern == pattern) attackClips.Add(attack.Id, clip);
+                    clip = CallAudio.CreateClip(call.Sound, halfBeat * 2);
+                    cueClips.Add(call.Sound, clip); callClips.Add(clip);
                 }
+                calls.Add((RhythmTime.Seconds(call.Tick, bpm), clip));
             }
-            foreach (var call in plan.Calls) calls.Add((RhythmTime.Seconds(call.Tick, bpm), attackClips[call.AttackId]));
         }
 
         public void Restart(double elapsed, bool firstStart = false)

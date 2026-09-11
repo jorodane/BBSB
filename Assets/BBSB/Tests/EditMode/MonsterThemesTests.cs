@@ -21,8 +21,10 @@ namespace BBSB.Tests
                 foreach (var pattern in monster.Patterns)
                     Check.True(MusicCatalog.All.Any(music => BattlePlanner.Propose(MusicStage.Generate(music), monster.Id, monster, 17)
                         .Placements.Any(x => x.Pattern == pattern.Pattern)), monster.Id + "/" + pattern.Id + " is unreachable.");
-                if (monster.Id != "spark-bat")
+                if (monster.Id != "spark-bat" && monster.Id != "iron-turtle")
                     Check.True(monster.Patterns.All(x => x.Pattern.Steps.All(step => step.Kind == monster.MainGesture)));
+                if (monster.Id == "iron-turtle")
+                    Check.True(monster.Patterns.All(x => x.Pattern.Steps[0].Kind == GestureKind.Hold));
             }
             var mixed = MonsterCatalog.All.Single(x => x.Id == "spark-bat");
             Check.True(mixed.Patterns.SelectMany(x => x.Pattern.Steps).Select(x => x.Kind).Distinct().Count() > 1);
@@ -134,7 +136,8 @@ namespace BBSB.Tests
             => string.Join("|", placements.Select(x => x.Pattern.Id + "@" + x.StartTick).OrderBy(x => x));
         private static MonsterPatternDefinition Pattern(string id, int cue)
             => new MonsterPatternDefinition(id, "", new RhythmPattern(id, cue, new[] { new PatternStep(GestureKind.Tap, 0) }),
-                new[] { new CallSignal(0, "call") }, 4, 4, 1);
+                new[] { new CallSignal(0, "call", cue == 4 ? CallSound.Wood : CallSound.Bell,
+                    cue == 4 ? CallMotion.Step : CallMotion.Hop) }, 4, 4, 1);
         private static PatternPlacement At(MusicStage stage, MonsterPatternDefinition pattern, int tick)
             => stage.FindPlacements(pattern.Pattern).Single(x => x.StartTick == tick);
         private static MusicStage Fixture()

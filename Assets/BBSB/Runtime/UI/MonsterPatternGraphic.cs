@@ -53,7 +53,7 @@ namespace BBSB.Runtime.UI
             foreach (var signal in pattern.Call)
             {
                 float x = left + width * signal.OffsetTick / total;
-                Quad(vh, x - 4, rect.yMax - rowHeight * .5f - marker * .5f, 8, marker, RunUI.Gold);
+                Quad(vh, x - 4, rect.yMax - rowHeight * .5f - marker * .5f, 8, marker, BattleArenaView.CueColor(signal.Motion));
             }
             for (int i = 0; i < pattern.Pattern.Steps.Count; i++)
             {

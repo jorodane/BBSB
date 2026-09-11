@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using BBSB.Core;
+using BBSB.Runtime;
 using BBSB.Runtime.UI;
 using NUnit.Framework;
 using UnityEngine;
@@ -29,6 +30,52 @@ namespace BBSB.Tests
                 Assert.IsNotNull(sprite, id); Assert.Greater(sprite.rect.width, 0, id);
                 Assert.LessOrEqual(sprite.texture.width, 512, "Mobile import size: " + id);
             }
+        }
+
+        [Test]
+        public void EveryCallSoundHasADistinctStableOnsetAndEndsBeforeHalfABeat()
+        {
+            var heard = new List<float[]>();
+            foreach (CallSound sound in Enum.GetValues(typeof(CallSound)))
+            {
+                var clip = CallAudio.CreateClip(sound, 60.0 / 168);
+                var repeat = CallAudio.CreateClip(sound, 60.0 / 168);
+                try
+                {
+                    var samples = new float[clip.samples]; var duplicate = new float[repeat.samples];
+                    Assert.IsTrue(clip.GetData(samples, 0)); Assert.IsTrue(repeat.GetData(duplicate, 0));
+                    Assert.IsTrue(samples.SequenceEqual(duplicate), "Cue identity must survive a new encounter: " + sound);
+                    Assert.IsTrue(samples.All(x => !float.IsNaN(x) && !float.IsInfinity(x) && Math.Abs(x) <= 1));
+                    Assert.IsTrue(samples.Any(x => Math.Abs(x) > .05f));
+                    Assert.Less(clip.length, (float)(30.0 / 168));
+                    var onset = samples.Take(1323).ToArray();
+                    foreach (var previous in heard)
+                        Assert.Greater(onset.Zip(previous, (a, b) => Math.Abs(a - b)).Sum(), 1, "Indistinguishable onset: " + sound);
+                    heard.Add(onset);
+                }
+                finally { Object.DestroyImmediate(clip); Object.DestroyImmediate(repeat); }
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator TurtleTailCueLooksDifferentWhileBothResponsesAreStillPending()
+        {
+            var turtle = MonsterCatalog.All.Single(x => x.Id == "iron-turtle");
+            var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "steady-pulse"));
+            var proposals = turtle.Patterns.Select((pattern, i) => new MonsterProposal("turtle-" + i, turtle,
+                stage.FindPlacements(pattern.Pattern).Where(x => x.StartTick == 32)));
+            var plan = BattlePlanner.Resolve(stage, proposals, 1); Assert.AreEqual(2, plan.Monsters.Count);
+            var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
+            round.Advance(RhythmTime.Seconds(24, stage.Music.Bpm)); arena.Refresh();
+            Assert.IsTrue(arena.MonsterPortraits.All(x => x.rectTransform.localScale.y < .9f));
+            Assert.AreEqual(2, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 쿵"));
+            round.Advance(RhythmTime.Seconds(28, stage.Music.Bpm)); arena.Refresh();
+            Assert.Greater(Quaternion.Angle(arena.MonsterPortraits[0].rectTransform.localRotation,
+                arena.MonsterPortraits[1].rectTransform.localRotation), 25);
+            Assert.AreEqual(1, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 휙!"));
+            Assert.AreEqual(0, round.Results.Count);
+            Assert.IsTrue(round.Notes.All(x => x.StartSeconds > round.ElapsedSeconds));
+            LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]

@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
-    internal enum BattleEffectKind { Call, Attack, Counter, Guard, Dive, Flick, Shake, Miss }
+    internal enum BattleEffectKind { Call, CallStep, CallStomp, CallSweep, CallRise, CallDip, CallSway, CallFlash, Attack, Counter, Guard, Dive, Flick, Shake, Miss }
 
     internal struct BattleEffect
     {
@@ -134,6 +134,42 @@ namespace BBSB.Runtime.UI
                     for (int i = -1; i <= 1; i++)
                         Line(vh, from + new Vector2(i * 18, 35) * unit,
                             from + new Vector2(i * 24, 47 + p * 14) * unit, 3 * unit, tint);
+                    break;
+                case BattleEffectKind.CallStep:
+                    for (int i = 0; i < 2; i++)
+                        Ellipse(vh, from + new Vector2((i * 2 - 1) * size * .6f, i * size * .2f),
+                            new Vector2(size * .25f, size * .12f), tint);
+                    break;
+                case BattleEffectKind.CallStomp:
+                    for (int i = 0; i < 2; i++)
+                        Arc(vh, from, new Vector2(size * (1.5f + i * .6f), size * (.3f + i * .15f)), 0, 360, 4 * unit, tint);
+                    for (int i = -1; i <= 1; i++)
+                        Line(vh, from + new Vector2(i * size, size), from + new Vector2(i * size, 4 * unit), 3 * unit, tint);
+                    break;
+                case BattleEffectKind.CallSweep:
+                    // A broad tail trail accompanies the cutout's twist; it never travels toward the hero.
+                    Arc(vh, from + Vector2.up * size * .4f, new Vector2(size * 2.4f, size * .85f),
+                        170 - p * 100, 190, 8 * unit, tint);
+                    Triangle(vh, from - Vector2.right * size * 2.5f, from + new Vector2(-size * 1.3f, size),
+                        from + new Vector2(-size * 1.2f, -size * .3f), tint);
+                    break;
+                case BattleEffectKind.CallRise:
+                case BattleEffectKind.CallDip:
+                    float direction = fx.Kind == BattleEffectKind.CallRise ? 1 : -1;
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        var tip = to + new Vector2(i * size * .7f, direction * size * (1 + p));
+                        Line(vh, tip - new Vector2(size * .25f, direction * size * .35f), tip, 3 * unit, tint);
+                        Line(vh, tip - new Vector2(-size * .25f, direction * size * .35f), tip, 3 * unit, tint);
+                    }
+                    break;
+                case BattleEffectKind.CallSway:
+                    Arc(vh, to, new Vector2(size * 1.7f, size), 25 - p * 100, 110, 4 * unit, tint);
+                    Arc(vh, to, new Vector2(size * 1.7f, size), 205 - p * 100, 110, 4 * unit, tint);
+                    break;
+                case BattleEffectKind.CallFlash:
+                    Spark(vh, to, p, unit * 1.4f, tint);
+                    Diamond(vh, to, new Vector2(size * .5f, size), tint);
                     break;
                 case BattleEffectKind.Attack:
                     if (p < .5f)

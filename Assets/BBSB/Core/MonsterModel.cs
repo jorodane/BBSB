@@ -7,10 +7,14 @@ namespace BBSB.Core
     {
         public int OffsetTick { get; }
         public string Label { get; }
-        public CallSignal(int offsetTick, string label)
+        public CallSound Sound { get; }
+        public CallMotion Motion { get; }
+        public CallSignal(int offsetTick, string label, CallSound sound = CallSound.Wood, CallMotion motion = CallMotion.Hop)
         {
             if (offsetTick < 0 || string.IsNullOrWhiteSpace(label)) throw new ArgumentException("Invalid Call signal.");
-            OffsetTick = offsetTick; Label = label;
+            if (!Enum.IsDefined(typeof(CallSound), sound) || !Enum.IsDefined(typeof(CallMotion), motion))
+                throw new ArgumentException("Unknown Call sound or motion.");
+            OffsetTick = offsetTick; Label = label; Sound = sound; Motion = motion;
         }
     }
 
@@ -74,6 +78,8 @@ namespace BBSB.Core
             if (copy.Count == 0) throw new ArgumentException("A monster needs patterns.");
             foreach (var pattern in copy)
                 if (pattern == null || !ids.Add(pattern.Id)) throw new ArgumentException("Monster pattern IDs must be distinct.");
+            for (int i = 0; i < copy.Count; i++)
+                for (int j = i + 1; j < copy.Count; j++) CallReadability.Validate(copy[i], copy[j]);
             Id = id; ArtId = artId ?? id; Name = name; Description = description ?? ""; MainGesture = mainGesture;
             Patterns = copy.AsReadOnly(); EncounterWeight = encounterWeight; DamagePerNote = damagePerNote;
         }
@@ -121,8 +127,10 @@ namespace BBSB.Core
         public string MonsterId { get; }
         public int Tick { get; }
         public string Label { get; }
-        internal ScheduledCall(string attackId, string monsterId, int tick, string label)
-        { AttackId = attackId; MonsterId = monsterId; Tick = tick; Label = label; }
+        public CallSound Sound { get; }
+        public CallMotion Motion { get; }
+        internal ScheduledCall(string attackId, string monsterId, int tick, CallSignal signal)
+        { AttackId = attackId; MonsterId = monsterId; Tick = tick; Label = signal.Label; Sound = signal.Sound; Motion = signal.Motion; }
     }
 
     public sealed class PlannedAttack
@@ -143,7 +151,7 @@ namespace BBSB.Core
             Pattern = Monster.FindPattern(placement.Pattern);
             Id = MonsterId + "/" + Pattern.Id + "@" + placement.StartTick;
             var call = new List<ScheduledCall>();
-            foreach (var signal in Pattern.Call) call.Add(new ScheduledCall(Id, MonsterId, CallStartTick + signal.OffsetTick, signal.Label));
+            foreach (var signal in Pattern.Call) call.Add(new ScheduledCall(Id, MonsterId, CallStartTick + signal.OffsetTick, signal));
             Call = call.AsReadOnly();
         }
     }

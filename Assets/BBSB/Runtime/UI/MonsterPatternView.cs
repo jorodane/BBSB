@@ -33,10 +33,10 @@ namespace BBSB.Runtime.UI
             root.name = "Pattern variant " + pattern.Id;
             ui.Label(root, pattern.Name + "  ·  이번 곡 " + count + "회", 24, RunUI.Gold, 40);
             ui.Label(root, pattern.Description, 20, RunUI.TextColor, 64);
-            var signals = new List<string>();
+            ui.Label(root, "CALL  ·  " + Beat(pattern.Pattern.CueLeadTicks) + "박 전조", 20, RunUI.Gold, 32);
             foreach (var signal in pattern.Call)
-                signals.Add(Beat(signal.OffsetTick + RhythmTime.TicksPerBeat) + "박: " + signal.Label);
-            ui.Label(root, "CALL  ·  " + Beat(pattern.Pattern.CueLeadTicks) + "박 전조\n" + string.Join("  /  ", signals), 20, RunUI.Gold, 68);
+                ui.Label(root, Beat(signal.OffsetTick + RhythmTime.TicksPerBeat) + "박 · " + signal.Label + "\n" +
+                    SoundLabel(signal.Sound) + " / " + MotionLabel(signal.Motion), 19, BattleArenaView.CueColor(signal.Motion), 56);
 
             var kinds = new List<GestureKind>();
             foreach (var step in pattern.Pattern.Steps) if (!kinds.Contains(step.Kind)) kinds.Add(step.Kind);
@@ -68,5 +68,34 @@ namespace BBSB.Runtime.UI
         }
 
         private static string Beat(int tick) => (tick / (double)RhythmTime.TicksPerBeat).ToString("0.##", CultureInfo.InvariantCulture);
+        private static string SoundLabel(CallSound sound)
+        {
+            switch (sound)
+            {
+                case CallSound.Wood: return "나무 소리";
+                case CallSound.Drum: return "낮은 북소리";
+                case CallSound.Bell: return "맑은 종소리";
+                case CallSound.RisingChime: return "올라가는 울림";
+                case CallSound.FallingChime: return "내려가는 울림";
+                case CallSound.RisingWhistle: return "올라가는 휘파람";
+                case CallSound.FallingWhistle: return "내려가는 휘파람";
+                case CallSound.Rattle: return "자르르 떨리는 소리";
+                default: return "휙 바람 소리";
+            }
+        }
+        private static string MotionLabel(CallMotion motion)
+        {
+            switch (motion)
+            {
+                case CallMotion.Step: return "제자리걸음";
+                case CallMotion.Stomp: return "발 구르기";
+                case CallMotion.TailSweep: return "꼬리 휘두르기";
+                case CallMotion.Rise: return "솟구치기";
+                case CallMotion.Dip: return "몸 낮추기";
+                case CallMotion.Sway: return "좌우 비틀기";
+                case CallMotion.Flash: return "빛 번쩍";
+                default: return "점프";
+            }
+        }
     }
 }

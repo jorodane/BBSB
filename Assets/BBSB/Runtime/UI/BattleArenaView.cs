@@ -138,6 +138,15 @@ namespace BBSB.Runtime.UI
             var size = area.rect.size;
             double beat = seconds / round.BeatSeconds;
             float call = 0, attackPulse = 0, windup = 0, counter = 0;
+            float bounce = Mathf.Sin((float)beat * Mathf.PI * 2 + actor.Impact.x * 4);
+            float x = 0, y = (bounce + 1) * 1.5f, tilt = bounce * 1.2f, sx = 1, sy = 1, flash = 0;
+            // Species provide the idle pose; each individual Call chooses its own readable action.
+            switch (actor.Plan.Monster.ArtId)
+            {
+                case "spark-bat": y += 7 + bounce * 5; break;
+                case "diving-ray": x = bounce * 7; y += 10 + bounce * 6; break;
+                case "bubble-spirit": y += 8 + bounce * 7; break;
+            }
             PlannedAttack current = null;
             foreach (var attack in actor.Plan.Attacks)
             {
@@ -146,8 +155,11 @@ namespace BBSB.Runtime.UI
                 foreach (var signal in attack.Call)
                 {
                     double age = seconds - Time(signal.Tick);
-                    call += Pulse(age, round.BeatSeconds * .8);
-                    Add(BattleEffectKind.Call, actor.Ground, actor.Impact, age, round.BeatSeconds * .85, RunUI.Gold);
+                    float amount = Pulse(age, round.BeatSeconds * .8);
+                    call += amount;
+                    ApplyCallPose(signal.Motion, amount, size, ref x, ref y, ref tilt, ref sx, ref sy);
+                    if (signal.Motion == CallMotion.Flash) flash = Mathf.Max(flash, amount);
+                    Add(CallEffect(signal.Motion), actor.Ground, actor.Impact, age, round.BeatSeconds * .85, CueColor(signal.Motion));
                 }
             }
             foreach (var note in round.Notes)
@@ -162,23 +174,13 @@ namespace BBSB.Runtime.UI
             }
             attackTicks.Clear();
             call = Mathf.Clamp01(call); attackPulse = Mathf.Clamp01(attackPulse); counter = Mathf.Clamp01(counter);
-            float bounce = Mathf.Sin((float)beat * Mathf.PI * 2 + actor.Impact.x * 4);
-            float x = 0, y = (bounce + 1) * 1.5f, tilt = bounce * 1.2f, squash = .015f;
-            switch (actor.Plan.Monster.ArtId)
-            {
-                case "tap-slime": y += call * size.y * .065f; squash += call * .16f; break;
-                case "spark-bat": y += 7 + bounce * 5 + call * size.y * .04f; tilt += call * 14; break;
-                case "iron-turtle": y -= call * 5; squash += call * .09f; tilt += call * 4; break;
-                case "diving-ray": x = bounce * 7; y += 10 + bounce * 6 + call * 12; tilt += call * 13; break;
-                case "bubble-spirit": y += 8 + bounce * 7 + call * size.y * .06f; squash += call * .08f; break;
-                case "flick-goblin": x += call * 13; tilt -= call * 14; y += call * 8; break;
-            }
             float direction = Mathf.Sign(HeroImpact.x - actor.Impact.x);
             x += direction * (attackPulse * size.x * .035f - windup * 6) - direction * counter * 9;
             y += windup * 7 - attackPulse * size.y * .055f + counter * 7;
             tilt += direction * (attackPulse * 9 - counter * 8);
-            SetPose(actor, x, y, tilt, 1 + squash * call + attackPulse * .07f,
-                1 - squash * call - attackPulse * .035f, Color.Lerp(actor.Plan.Monster.ArtId == actor.Plan.Monster.Id ? Color.white : Color.Lerp(Color.white, actor.Tint, .35f), RunUI.Teal, counter * .3f));
+            Color baseTint = actor.Plan.Monster.ArtId == actor.Plan.Monster.Id ? Color.white : Color.Lerp(Color.white, actor.Tint, .35f);
+            SetPose(actor, x, y, tilt, sx + attackPulse * .07f, sy - attackPulse * .035f,
+                Color.Lerp(Color.Lerp(baseTint, CueColor(CallMotion.Flash), flash * .45f), RunUI.Teal, counter * .3f));
             RefreshSignal(actor, current, seconds, call);
         }
 
@@ -197,9 +199,10 @@ namespace BBSB.Runtime.UI
             if (current == null) { label.text = "대기"; label.color = RunUI.Muted; }
             else if (seconds < Time(current.ResponseStartTick))
             {
-                string call = "CALL";
-                foreach (var signal in current.Call) if (Time(signal.Tick) <= seconds) call = signal.Label;
-                label.text = "CALL · " + call; label.color = RunUI.Gold;
+                string call = "CALL"; Color tint = RunUI.Gold;
+                foreach (var signal in current.Call) if (Time(signal.Tick) <= seconds)
+                { call = signal.Label; tint = CueColor(signal.Motion); }
+                label.text = "CALL · " + call; label.color = tint;
             }
             else if (seconds <= Time(current.PhraseEndTick) + round.HalfMissWindow)
             { label.text = "RESPONSE"; label.color = RunUI.Teal; }
@@ -293,6 +296,49 @@ namespace BBSB.Runtime.UI
             var rect = actor.Portrait.rectTransform;
             rect.anchoredPosition = new Vector2(x, y); rect.localScale = new Vector3(sx, sy, 1);
             rect.localRotation = Quaternion.Euler(0, 0, tilt); actor.Portrait.color = tint;
+        }
+        private static void ApplyCallPose(CallMotion motion, float p, Vector2 size,
+            ref float x, ref float y, ref float tilt, ref float sx, ref float sy)
+        {
+            switch (motion)
+            {
+                case CallMotion.Hop: y += size.y * .065f * p; sx += .14f * p; sy -= .14f * p; break;
+                case CallMotion.Step: x += 16 * p; y += 4 * p; tilt -= 9 * p; break;
+                case CallMotion.Stomp: y -= 10 * p; sx += .2f * p; sy -= .16f * p; break;
+                case CallMotion.TailSweep: x -= 18 * p; tilt += 38 * p; sx -= .12f * p; break;
+                case CallMotion.Rise: y += size.y * .09f * p; sx -= .08f * p; sy += .12f * p; break;
+                case CallMotion.Dip: y -= size.y * .03f * p; tilt -= 20 * p; sy -= .1f * p; break;
+                case CallMotion.Sway: x += size.x * .018f * p; tilt -= 24 * p; break;
+                case CallMotion.Flash: sx += .17f * p; sy += .17f * p; break;
+            }
+        }
+        private static BattleEffectKind CallEffect(CallMotion motion)
+        {
+            switch (motion)
+            {
+                case CallMotion.Step: return BattleEffectKind.CallStep;
+                case CallMotion.Stomp: return BattleEffectKind.CallStomp;
+                case CallMotion.TailSweep: return BattleEffectKind.CallSweep;
+                case CallMotion.Rise: return BattleEffectKind.CallRise;
+                case CallMotion.Dip: return BattleEffectKind.CallDip;
+                case CallMotion.Sway: return BattleEffectKind.CallSway;
+                case CallMotion.Flash: return BattleEffectKind.CallFlash;
+                default: return BattleEffectKind.Call;
+            }
+        }
+        internal static Color CueColor(CallMotion motion)
+        {
+            switch (motion)
+            {
+                case CallMotion.Step: return RunUI.Hex("FFCE75");
+                case CallMotion.Stomp: return RunUI.Hex("ECAA70");
+                case CallMotion.TailSweep: return RunUI.Hex("7BDDE5");
+                case CallMotion.Rise: return RunUI.Hex("9EDBFF");
+                case CallMotion.Dip: return RunUI.Hex("A6ABFF");
+                case CallMotion.Sway: return RunUI.Hex("E5A0ED");
+                case CallMotion.Flash: return RunUI.Hex("FFF1B8");
+                default: return RunUI.Gold;
+            }
         }
         private static void Anchor(RectTransform rect, Vector2 min, Vector2 max, Vector2 position, Vector2 size, Vector2 pivot)
         { rect.anchorMin = min; rect.anchorMax = max; rect.pivot = pivot; rect.sizeDelta = size; rect.anchoredPosition = position; }
