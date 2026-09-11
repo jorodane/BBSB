@@ -15,14 +15,20 @@ namespace BBSB.Runtime.UI
         {
             public MonsterPlan Plan;
             public RectTransform Root;
+            public RectTransform Labels;
             public Image Portrait;
             public Text Signal;
             public Color Tint;
             public Vector2 Ground;
             public Vector2 Impact;
+            public MonsterStageMotion StageMotion;
+            public float Advance;
+            public int Order;
         }
 
         private readonly List<Actor> monsters = new List<Actor>();
+        private readonly List<Actor> depthOrder = new List<Actor>();
+        private readonly List<BattleGroundShadow> shadows = new List<BattleGroundShadow>();
         private readonly List<Image> portraits = new List<Image>();
         private readonly List<BattleEffect> effects = new List<BattleEffect>();
         private readonly HashSet<int> attackTicks = new HashSet<int>();
@@ -31,11 +37,11 @@ namespace BBSB.Runtime.UI
         [SerializeField] private PlayerMotionDisplay playerDisplay;
         private RhythmRound round;
         private RectTransform area;
+        private RectTransform actorLayer, labelLayer;
         private Actor hero;
         private BattleArenaGraphic foreground;
         private BattleArenaGraphic backdrop;
         private Text heroLabel;
-        private Vector2 lastSize;
         private bool paused;
         private float weaponEnergy, guardStrength, shakeStrength;
         private float heroDisplayHeight;
@@ -59,19 +65,25 @@ namespace BBSB.Runtime.UI
             if (GetComponent<RectMask2D>() == null) gameObject.AddComponent<RectMask2D>();
             var background = ui.Rect("Arena backdrop", area); RunUI.Stretch(background);
             backdrop = background.gameObject.AddComponent<BattleArenaGraphic>();
-            backdrop.SetBackdrop(round.Plan.Monsters.Count);
+            backdrop.SetBackdrop();
+            actorLayer = ui.Rect("Actors sorted by ground depth", area); RunUI.Stretch(actorLayer);
+            var fx = ui.Rect("Battle effects and five weapons", area); RunUI.Stretch(fx);
+            foreground = fx.gameObject.AddComponent<BattleArenaGraphic>();
+            labelLayer = ui.Rect("Actor labels", area); RunUI.Stretch(labelLayer);
             foreach (var plan in round.Plan.Monsters)
             {
                 var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name);
                 actor.Plan = plan; actor.Tint = MonsterColor(plan.Monster.Id);
+                actor.StageMotion = new MonsterStageMotion(plan, round.Plan.Stage.Music.Bpm, round.HalfMissWindow);
+                actor.Order = monsters.Count;
                 monsters.Add(actor); portraits.Add(actor.Portrait);
+                depthOrder.Add(actor);
             }
             playerSprites = new PlayerMotionSprites();
             hero = CreateActor(ui, "Weapon master", "weapon-master", null, playerSprites.Get("idle", 0));
             hero.Root.name = "Player ground";
             hero.Tint = RunUI.Gold;
-            var fx = ui.Rect("Battle effects and five weapons", area); RunUI.Stretch(fx);
-            foreground = fx.gameObject.AddComponent<BattleArenaGraphic>();
+            hero.Order = monsters.Count; depthOrder.Add(hero);
             heroLabel = ui.Label(area, "WEAPON MASTER", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
             LayoutActors(); Refresh();
         }
@@ -80,6 +92,8 @@ namespace BBSB.Runtime.UI
         public void Refresh()
         {
             if (round == null) return;
+            if (!paused) foreach (var actor in monsters)
+                actor.Advance = (float)actor.StageMotion.Evaluate(round.ElapsedSeconds);
             LayoutActors();
             if (paused) { ApplyHeroLayout(); return; }
             effects.Clear(); ActiveResponseEffects = 0;
@@ -91,9 +105,9 @@ namespace BBSB.Runtime.UI
 
         public static Vector2 MonsterPosition(int index, int count)
         {
-            if (count == 1) return new Vector2(.75f, .38f);
-            if (count == 2) return new Vector2(.64f + index * .21f, index == 0 ? .43f : .35f);
-            return new Vector2(.58f + index * .16f, index == 1 ? .48f : index == 0 ? .38f : .32f);
+            var position = BattleStageLayout.Monster(index, count,
+                PlayerMotionDisplay.DefaultGround.x, PlayerMotionDisplay.DefaultGround.y, 0);
+            return new Vector2((float)position.X, (float)position.Y);
         }
 
         public static float MonsterX(int index, int count) => MonsterPosition(index, count).x;
@@ -109,7 +123,7 @@ namespace BBSB.Runtime.UI
 
         private Actor CreateActor(RunUI ui, string instance, string asset, string label, Sprite portrait = null)
         {
-            var root = ui.Rect("Actor " + instance, area);
+            var root = ui.Rect("Actor " + instance, actorLayer);
             root.pivot = new Vector2(.5f, 0);
             var spriteRect = ui.Rect("Portrait " + instance, root); RunUI.Stretch(spriteRect);
             var image = spriteRect.gameObject.AddComponent<Image>();
@@ -119,10 +133,11 @@ namespace BBSB.Runtime.UI
             var actor = new Actor { Root = root, Portrait = image };
             if (label != null)
             {
-                var nameLabel = ui.Label(root, label, 22, RunUI.TextColor, 34, TextAnchor.MiddleCenter);
-                Anchor(nameLabel.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, -30), new Vector2(230, 34), new Vector2(.5f, 0));
-                actor.Signal = ui.Label(root, "대기", 23, RunUI.Muted, 36, TextAnchor.MiddleCenter);
-                Anchor(actor.Signal.rectTransform, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -4), new Vector2(230, 36), new Vector2(.5f, 0));
+                actor.Labels = ui.Rect("Labels " + instance, labelLayer);
+                var nameLabel = ui.Label(actor.Labels, label, 20, RunUI.TextColor, 30, TextAnchor.MiddleCenter);
+                Anchor(nameLabel.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, -29), new Vector2(210, 30), new Vector2(.5f, 0));
+                actor.Signal = ui.Label(actor.Labels, "대기", 21, RunUI.Muted, 32, TextAnchor.MiddleCenter);
+                Anchor(actor.Signal.rectTransform, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, 4), new Vector2(230, 32), new Vector2(.5f, 0));
             }
             return actor;
         }
@@ -134,21 +149,38 @@ namespace BBSB.Runtime.UI
             HeroGroundPosition = playerDisplay != null ? playerDisplay.groundPosition : PlayerMotionDisplay.DefaultGround;
             heroDisplayHeight = PlayerMotionDisplay.ReferenceDisplayHeight(size, playerDisplay != null ? playerDisplay.characterScale : 1);
             HeroImpactPosition = HeroGroundPosition + new Vector2(0, heroDisplayHeight / size.y * .46f);
+            hero.Ground = HeroGroundPosition;
             Anchor(hero.Root, HeroGroundPosition, HeroGroundPosition, Vector2.zero, Vector2.zero, new Vector2(.5f, 0));
             var labelPoint = HeroGroundPosition - new Vector2(0, .11f);
             Anchor(heroLabel.rectTransform, labelPoint, labelPoint, Vector2.zero, new Vector2(420, 36), new Vector2(.5f, 0));
             backdrop.SetHeroAnchors(HeroGroundPosition, HeroImpactPosition);
             foreground.SetHeroAnchors(HeroGroundPosition, HeroImpactPosition);
-            if (size == lastSize) return;
-            lastSize = size;
-            float side = Mathf.Min(size.y * (monsters.Count == 1 ? .4f : .36f),
-                size.x * (monsters.Count == 1 ? .26f : monsters.Count == 2 ? .21f : .15f));
+            shadows.Clear();
+            shadows.Add(new BattleGroundShadow { Ground = HeroGroundPosition,
+                Radius = new Vector2(heroDisplayHeight * .26f / size.x, heroDisplayHeight * .045f / size.y) });
             for (int i = 0; i < monsters.Count; i++)
             {
-                var actor = monsters[i]; actor.Ground = MonsterPosition(i, monsters.Count);
-                Anchor(actor.Root, actor.Ground, actor.Ground, Vector2.zero, Vector2.one * side, new Vector2(.5f, 0));
-                actor.Impact = actor.Ground + new Vector2(0, side / size.y * .5f);
+                var actor = monsters[i];
+                var position = BattleStageLayout.Monster(i, monsters.Count, HeroGroundPosition.x, HeroGroundPosition.y, actor.Advance);
+                actor.Ground = new Vector2((float)position.X, (float)position.Y);
+                float side = (float)BattleStageLayout.MonsterSize(monsters.Count, size.x, size.y, position.Scale);
+                Anchor(actor.Root, actor.Ground, actor.Ground, Vector2.zero, Vector2.zero, new Vector2(.5f, 0));
+                var sprite = actor.Portrait.sprite;
+                var foot = new Vector2(sprite.pivot.x / sprite.rect.width, sprite.pivot.y / sprite.rect.height);
+                // Rotation and squash now pivot at the contact point instead of floating around the image center.
+                var rect = actor.Portrait.rectTransform;
+                var portraitSize = new Vector2(side * sprite.rect.width / sprite.rect.height, side);
+                Anchor(rect, Vector2.zero, Vector2.zero, rect.anchoredPosition, portraitSize, foot);
+                actor.Portrait.preserveAspect = false;
+                float bodyHeight = side * (1 - foot.y);
+                Anchor(actor.Labels, actor.Ground, actor.Ground, Vector2.zero, new Vector2(side, bodyHeight), new Vector2(.5f, 0));
+                actor.Impact = actor.Ground + new Vector2(0, bodyHeight / size.y * .48f);
+                shadows.Add(new BattleGroundShadow { Ground = actor.Ground,
+                    Radius = new Vector2(side * .35f / size.x, side * .065f / size.y), Advance = actor.Advance });
             }
+            depthOrder.Sort((a, b) => a.Ground.y != b.Ground.y ? b.Ground.y.CompareTo(a.Ground.y) : a.Order.CompareTo(b.Order));
+            for (int i = 0; i < depthOrder.Count; i++) depthOrder[i].Root.SetSiblingIndex(i);
+            backdrop.SetGroundShadows(shadows);
         }
 
         private void ApplyHeroLayout()
@@ -178,7 +210,7 @@ namespace BBSB.Runtime.UI
             double beat = seconds / round.BeatSeconds;
             float call = 0, attackPulse = 0, windup = 0, counter = 0;
             float bounce = Mathf.Sin((float)beat * Mathf.PI * 2 + actor.Impact.x * 4);
-            float x = 0, y = (bounce + 1) * 1.5f, tilt = bounce * 1.2f, sx = 1, sy = 1, flash = 0;
+            float x = 0, y = 0, tilt = 0, sx = 1, sy = 1, flash = 0;
             // Species provide the idle pose; each individual Call chooses its own readable action.
             switch (actor.Plan.Monster.ArtId)
             {
@@ -215,8 +247,8 @@ namespace BBSB.Runtime.UI
             attackTicks.Clear();
             call = Mathf.Clamp01(call); attackPulse = Mathf.Clamp01(attackPulse); counter = Mathf.Clamp01(counter);
             float direction = Mathf.Sign(HeroImpactPosition.x - actor.Impact.x);
-            x += direction * (attackPulse * size.x * .035f - windup * 6) - direction * counter * 9;
-            y += windup * 7 - attackPulse * size.y * .055f + counter * 7;
+            x += direction * (attackPulse * size.x * .012f - windup * 4) - direction * counter * 9;
+            y += counter * 7;
             tilt += direction * (attackPulse * 9 - counter * 8);
             Color baseTint = actor.Plan.Monster.ArtId == actor.Plan.Monster.Id ? Color.white : Color.Lerp(Color.white, actor.Tint, .35f);
             SetPose(actor, x, y, tilt, sx + attackPulse * .07f, sy - attackPulse * .035f,
@@ -347,10 +379,10 @@ namespace BBSB.Runtime.UI
             {
                 case CallMotion.Hop: y += size.y * .065f * p; sx += .14f * p; sy -= .14f * p; break;
                 case CallMotion.Step: x += 16 * p; y += 4 * p; tilt -= 9 * p; break;
-                case CallMotion.Stomp: y -= 10 * p; sx += .2f * p; sy -= .16f * p; break;
+                case CallMotion.Stomp: sx += .2f * p; sy -= .16f * p; break;
                 case CallMotion.TailSweep: x -= 18 * p; tilt += 38 * p; sx -= .12f * p; break;
                 case CallMotion.Rise: y += size.y * .09f * p; sx -= .08f * p; sy += .12f * p; break;
-                case CallMotion.Dip: y -= size.y * .03f * p; tilt -= 20 * p; sy -= .1f * p; break;
+                case CallMotion.Dip: tilt -= 20 * p; sy -= .1f * p; break;
                 case CallMotion.Sway: x += size.x * .018f * p; tilt -= 24 * p; break;
                 case CallMotion.Flash: sx += .17f * p; sy += .17f * p; break;
             }

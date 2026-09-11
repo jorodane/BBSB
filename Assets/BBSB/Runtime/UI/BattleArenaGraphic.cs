@@ -14,12 +14,18 @@ namespace BBSB.Runtime.UI
         public float Progress, Strength;
     }
 
+    internal struct BattleGroundShadow
+    {
+        public Vector2 Ground, Radius;
+        public float Advance;
+    }
+
     /// <summary>Untextured arena, spectral weapons and gesture effects. All time is supplied by the song.</summary>
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class BattleArenaGraphic : MaskableGraphic
     {
         private bool backdrop;
-        private int monsterCount;
+        private readonly List<BattleGroundShadow> groundShadows = new List<BattleGroundShadow>();
         private double beat;
         private float energy, guard, shake;
         private IReadOnlyList<BattleEffect> effects;
@@ -32,8 +38,20 @@ namespace BBSB.Runtime.UI
             heroGround = ground; heroImpact = impact; SetVerticesDirty();
         }
 
-        internal void SetBackdrop(int count)
-        { backdrop = true; monsterCount = count; raycastTarget = false; SetVerticesDirty(); }
+        internal void SetBackdrop()
+        { backdrop = true; raycastTarget = false; SetVerticesDirty(); }
+
+        internal void SetGroundShadows(IReadOnlyList<BattleGroundShadow> values)
+        {
+            bool changed = values.Count != groundShadows.Count;
+            if (!changed) for (int i = 0; i < values.Count; i++)
+                if (values[i].Ground != groundShadows[i].Ground || values[i].Radius != groundShadows[i].Radius ||
+                    values[i].Advance != groundShadows[i].Advance) { changed = true; break; }
+            if (!changed) return;
+            groundShadows.Clear();
+            foreach (var value in values) groundShadows.Add(value);
+            SetVerticesDirty();
+        }
 
         internal void SetFrame(double songBeat, float weaponEnergy, float guardStrength, float shakeStrength,
             IReadOnlyList<BattleEffect> values)
@@ -57,29 +75,29 @@ namespace BBSB.Runtime.UI
             Quad(vh, new Vector2(r.xMin, r.yMin), new Vector2(r.xMax, r.yMin),
                 new Vector2(r.xMax, r.yMax), new Vector2(r.xMin, r.yMax),
                 RunUI.Hex("20283D"), RunUI.Hex("0A101E"));
-            var floor = Point(r, heroGround);
-            for (int i = -4; i <= 4; i++)
-                Line(vh, Point(r, new Vector2(.64f + i * .05f, .58f)),
-                    Point(r, new Vector2(.5f + i * .19f, .015f)), 1, Alpha(RunUI.Gold, .09f));
-            for (int i = 0; i < 5; i++)
+            float horizon = Mathf.Clamp(.49f + heroGround.y - PlayerMotionDisplay.DefaultGround.y, .34f, .70f);
+            Quad(vh, Point(r, Vector2.zero), Point(r, Vector2.right),
+                Point(r, new Vector2(1, horizon)), Point(r, new Vector2(0, horizon)),
+                RunUI.Hex("303A50"), RunUI.Hex("202B3D"));
+            Line(vh, Point(r, new Vector2(0, horizon)), Point(r, new Vector2(1, horizon)), 1,
+                Alpha(RunUI.Muted, .14f));
+            // Shallow parallel floor seams keep the camera side-on instead of pointing into the enemy group.
+            for (int i = -1; i < 6; i++)
+                Line(vh, Point(r, new Vector2(i * .24f, 0)), Point(r, new Vector2(i * .24f + .12f, horizon)),
+                    1, Alpha(RunUI.Muted, .045f));
+            for (int i = 1; i < 4; i++)
             {
-                float y = .02f + .51f * i * i / 25;
-                Line(vh, Point(r, new Vector2(.02f, y)), Point(r, new Vector2(.98f, y)), 1, Alpha(RunUI.Gold, .1f));
+                float y = horizon * i / 4;
+                Line(vh, Point(r, new Vector2(0, y)), Point(r, new Vector2(1, y)), 1, Alpha(RunUI.Muted, .05f));
             }
-            Ellipse(vh, floor, new Vector2(r.width * .15f, r.height * .065f), Alpha(Color.black, .25f));
-            Arc(vh, floor, new Vector2(r.width * .17f, r.height * .077f), 0, 360, 2, Alpha(RunUI.Gold, .42f));
-            Arc(vh, floor, new Vector2(r.width * .19f, r.height * .087f), 0, 360, 1, Alpha(RunUI.Gold, .22f));
-            for (int i = 0; i < 12; i++)
+            foreach (var shadow in groundShadows)
             {
-                float a = i * Mathf.PI / 6;
-                var p = floor + new Vector2(Mathf.Cos(a) * r.width * .18f, Mathf.Sin(a) * r.height * .082f);
-                Diamond(vh, p, new Vector2(3, 4), RunUI.Gold * new Color(1, 1, 1, .55f));
-            }
-            for (int i = 0; i < monsterCount; i++)
-            {
-                var p = Point(r, BattleArenaView.MonsterPosition(i, monsterCount) - new Vector2(0, .015f));
-                Ellipse(vh, p, new Vector2(Mathf.Min(r.width / (monsterCount + 1) * .36f, r.height * .1f), r.height * .018f),
-                    Alpha(Color.black, .32f));
+                var p = Point(r, shadow.Ground);
+                var radius = Vector2.Scale(shadow.Radius, r.size);
+                Ellipse(vh, p, radius * 1.15f, Alpha(Color.black, .10f));
+                Ellipse(vh, p, radius, Alpha(Color.black, .28f));
+                if (shadow.Advance > 0)
+                    Arc(vh, p, radius * 1.13f, 0, 360, 1.5f, Alpha(RunUI.Gold, shadow.Advance * .32f));
             }
         }
 

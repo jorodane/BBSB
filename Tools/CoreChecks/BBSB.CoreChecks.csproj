@@ -11,6 +11,8 @@
     <Compile Include="../../Assets/BBSB/Core/*.cs" />
     <Compile Include="../../Assets/BBSB/Runtime/UI/PlayerMotionTimeline.cs" />
     <Compile Include="../../Assets/BBSB/Runtime/UI/PlayerPoseGeometry.cs" />
+    <Compile Include="../../Assets/BBSB/Runtime/UI/BattleStageLayout.cs" />
+    <Compile Include="../../Assets/BBSB/Runtime/UI/MonsterStageMotion.cs" />
     <Compile Include="../../Assets/BBSB/Runtime/UI/PlayerChromaKey.cs" />
     <Compile Include="../../Assets/BBSB/Runtime/UI/PlayerAtlasProcessor.cs" />
     <Compile Include="../../Assets/BBSB/Tests/EditMode/*.cs" />

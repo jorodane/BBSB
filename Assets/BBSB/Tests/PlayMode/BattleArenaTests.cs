@@ -163,6 +163,67 @@ namespace BBSB.Tests
             Assert.AreEqual(sprite.rect.width / sprite.rect.height, rect.rect.width / rect.rect.height, .0001f);
         }
 
+        [UnityTest]
+        public IEnumerator MonsterStageVisitKeepsItsGroundLabelsAndShadowsTogether()
+        {
+            var round = Round(3, new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4),
+                new PatternStep(GestureKind.Tap, 8));
+            var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+            var roots = arena.MonsterPortraits.Select(p => (RectTransform)p.transform.parent).ToArray();
+            var homes = roots.Select(r => r.anchorMin).ToArray();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                Assert.Less(homes[i].y, .31f);
+                var sprite = arena.MonsterPortraits[i].sprite;
+                Assert.AreEqual(sprite.pivot.y / sprite.rect.height, arena.MonsterPortraits[i].rectTransform.pivot.y, .00001f);
+                if (i > 0) Assert.Greater(roots[i].GetSiblingIndex(), roots[i - 1].GetSiblingIndex());
+            }
+            round.Advance(1.75); arena.Refresh();
+            var forward = roots.Select(r => r.anchorMin).ToArray();
+            for (int i = 0; i < roots.Length; i++) Assert.Less(forward[i].x, homes[i].x - .05f);
+            round.Advance(2.25); arena.Refresh();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                Assert.AreEqual(forward[i], roots[i].anchorMin, "Stay out between the phrase's beats.");
+                var labelRoot = (RectTransform)arena.transform.Find("Actor labels/Labels slime-" + i);
+                Assert.AreEqual(forward[i], labelRoot.anchorMin);
+            }
+            var backdrop = arena.transform.Find("Arena backdrop").GetComponent<BattleArenaGraphic>();
+            var renderer = backdrop.GetComponent<CanvasRenderer>(); renderer.cull = false;
+            backdrop.SetVerticesDirty(); backdrop.Rebuild(CanvasUpdate.PreRender);
+            var bounds = backdrop.rectTransform.rect;
+            foreach (var foot in forward)
+            {
+                var center = new Vector3(bounds.xMin + bounds.width * foot.x, bounds.yMin + bounds.height * foot.y, 0);
+                Assert.IsTrue(renderer.GetMesh().vertices.Any(v => (v - center).sqrMagnitude < .01f), "Shadow stays under the moving actor.");
+            }
+            round.Suspend(); arena.SetPaused(true); round.Advance(10);
+            ((RectTransform)arena.transform).sizeDelta = new Vector2(1280, 800); arena.Refresh();
+            for (int i = 0; i < roots.Length; i++) Assert.AreEqual(forward[i], roots[i].anchorMin);
+            round.Resume(false); arena.SetPaused(false); round.Advance(4); arena.Refresh();
+            for (int i = 0; i < roots.Length; i++) Assert.AreEqual(homes[i], roots[i].anchorMin);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator UnscheduledMonstersKeepTheirWaitingPositions()
+        {
+            var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "steady-pulse"));
+            var monster = MonsterCatalog.All.Single(x => x.Id == "tap-slime");
+            var pattern = monster.Patterns[0];
+            var plan = BattlePlanner.Resolve(stage, new[] { 32, 64, 96 }.Select((tick, i) =>
+                new MonsterProposal("actor-" + i, monster, stage.FindPlacements(pattern.Pattern).Where(x => x.StartTick == tick))), 1);
+            var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
+            var roots = arena.MonsterPortraits.Select(p => (RectTransform)p.transform.parent).ToArray();
+            var homes = roots.Select(r => r.anchorMin).ToArray();
+            var first = plan.Attacks.OrderBy(x => x.CallStartTick).First();
+            round.Advance(RhythmTime.Seconds(first.CallStartTick, stage.Music.Bpm) + .3); arena.Refresh();
+            for (int i = 0; i < roots.Length; i++)
+                if (plan.Monsters[i].InstanceId == first.MonsterId) Assert.Less(roots[i].anchorMin.x, homes[i].x);
+                else Assert.AreEqual(homes[i], roots[i].anchorMin);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         [Test]
         public void EveryCallSoundHasADistinctStableOnsetAndEndsBeforeHalfABeat()
         {
