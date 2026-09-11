@@ -1,7 +1,7 @@
 {
   "name": "BBSB.Core.Tests",
   "rootNamespace": "BBSB.Tests",
-  "references": ["BBSB.Core"],
+  "references": ["BBSB.Core", "BBSB.Runtime"],
   "includePlatforms": ["Editor"],
   "optionalUnityReferences": ["TestAssemblies"],
   "autoReferenced": false

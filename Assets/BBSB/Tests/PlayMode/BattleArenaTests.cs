@@ -33,6 +33,47 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void PlayerSpritesUseEveryAtlasPoseOrTheExistingPortrait()
+        {
+            using (var sprites = new PlayerMotionSprites())
+            {
+                var fallback = Resources.Load<Sprite>("BBSB/BattleArt/weapon-master");
+                foreach (string sheet in new[] { "idle", "tap", "hold", "dive", "flick", "shake" })
+                {
+                    int count = sheet == "idle" ? 4 : sheet == "tap" ? 12 : 6;
+                    var distinct = new HashSet<Sprite>();
+                    for (int i = 0; i < count; i++)
+                    {
+                        var sprite = sprites.Get(sheet, i); Assert.IsNotNull(sprite);
+                        if (sprites.UsesFallbackPortrait)
+                        {
+                            Assert.AreSame(fallback, sprite, "Missing atlases must retain the existing portrait.");
+                            continue;
+                        }
+                        Assert.IsTrue(distinct.Add(sprite), "Every pose must have its own region: " + sheet);
+                        Assert.LessOrEqual(sprite.rect.xMax, sprite.texture.width);
+                        Assert.LessOrEqual(sprite.rect.yMax, sprite.texture.height);
+                        Assert.Greater(sprite.rect.width, 100);
+                    }
+                }
+                if (sprites.UsesFallbackPortrait) return;
+                var source = sprites.Get("idle", 0).texture;
+                var target = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32);
+                var previous = RenderTexture.active;
+                var readable = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+                try
+                {
+                    Graphics.Blit(source, target); RenderTexture.active = target;
+                    readable.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0); readable.Apply();
+                    Assert.Less(readable.GetPixel(0, 0).a, .01f, "Generated background must not appear in battle.");
+                    Assert.IsTrue(readable.GetPixels32().Any(p => p.a > 240), "The character must survive compositing.");
+                }
+                finally
+                { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(target); Object.DestroyImmediate(readable); }
+            }
+        }
+
+        [Test]
         public void EveryCallSoundHasADistinctStableOnsetAndEndsBeforeHalfABeat()
         {
             var heard = new List<float[]>();
@@ -137,7 +178,9 @@ namespace BBSB.Tests
             Assert.Less(arena.MonsterPortraits[0].rectTransform.anchoredPosition.y, call.y);
             round.Press(2, 0, 0); arena.Refresh();
             Assert.AreEqual(3, round.PerfectCount); Assert.AreEqual(3, arena.ActiveResponseEffects);
-            Assert.Greater(arena.HeroPortrait.rectTransform.anchoredPosition.y, 10);
+            Assert.AreEqual(GestureKind.Tap, arena.CurrentHeroMotion.Kind);
+            Assert.AreEqual(PlayerMotionPhase.Impact, arena.CurrentHeroMotion.Phase);
+            Assert.AreEqual(1, arena.CurrentHeroMotion.Index % 4);
             Assert.IsTrue(arena.GetComponentsInChildren<Graphic>().All(x => !x.raycastTarget));
             foreach (var graphic in arena.GetComponentsInChildren<BattleArenaGraphic>())
             {
@@ -148,12 +191,14 @@ namespace BBSB.Tests
             var heroPosition = arena.HeroPortrait.rectTransform.anchoredPosition;
             var monsterPosition = arena.MonsterPortraits[0].rectTransform.anchoredPosition;
             var rotation = arena.HeroPortrait.rectTransform.localRotation;
+            var heroSprite = arena.HeroPortrait.sprite;
             round.Suspend(); arena.SetPaused(true); round.Advance(100); arena.Refresh();
             yield return null; arena.Refresh();
             Assert.AreEqual(2, round.ElapsedSeconds);
             Assert.AreEqual(heroPosition, arena.HeroPortrait.rectTransform.anchoredPosition);
             Assert.AreEqual(monsterPosition, arena.MonsterPortraits[0].rectTransform.anchoredPosition);
             Assert.AreEqual(rotation, arena.HeroPortrait.rectTransform.localRotation);
+            Assert.AreSame(heroSprite, arena.HeroPortrait.sprite);
             round.Resume(true); arena.SetPaused(false); arena.Refresh();
             Assert.AreEqual(heroPosition, arena.HeroPortrait.rectTransform.anchoredPosition);
             round.Release(2.01, 0, 0); round.Advance(4); arena.Refresh();
@@ -169,15 +214,21 @@ namespace BBSB.Tests
             var arena = Arena(round); yield return null;
             round.Advance(2); arena.Refresh();
             Assert.AreEqual(1, arena.HeroPortrait.rectTransform.localScale.y, "An automatic Shake window isn't a player action.");
-            Assert.IsFalse(arena.GetComponentsInChildren<Text>().Any(x => x.text.Contains("무기 휘젓기")));
+            Assert.AreEqual(PlayerMotionPhase.Idle, arena.CurrentHeroMotion.Phase);
             round.Press(2, 0, 0); arena.Refresh();
-            Assert.Less(arena.HeroPortrait.rectTransform.localScale.y, .95f);
+            Assert.AreEqual("dive", arena.CurrentHeroMotion.Sheet);
             Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text.Contains("회피 준비")));
             for (int i = 1; i <= 15; i++)
             {
                 round.Move(2 + i * .05, i % 2 == 1 ? .1 : 0, 0); arena.Refresh();
+                if (i == 1)
+                {
+                    Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "양손 밀쳐내기"));
+                    Assert.AreEqual("shake", arena.CurrentHeroMotion.Sheet);
+                }
             }
-            Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "무기 휘젓기"));
+            // After a credited round trip Shake is complete; the remaining held Dive resumes.
+            Assert.AreEqual("dive", arena.CurrentHeroMotion.Sheet);
             var scale = arena.HeroPortrait.rectTransform.localScale;
             arena.SetPaused(true); round.Suspend(); arena.Refresh();
             Assert.AreEqual(scale, arena.HeroPortrait.rectTransform.localScale, "Pause cannot drop a held pose.");
@@ -201,10 +252,11 @@ namespace BBSB.Tests
             perfect.Press(2, 0, 0); a.Refresh();
             half.Press(2.1, 0, 0); b.Refresh();
             Assert.AreEqual(1, half.HalfMissCount);
-            Assert.Greater(a.HeroPortrait.rectTransform.anchoredPosition.y, b.HeroPortrait.rectTransform.anchoredPosition.y);
+            Assert.AreEqual(1, a.CurrentHeroMotion.Index % 4);
+            Assert.AreEqual(2, b.CurrentHeroMotion.Index % 4);
             miss.Advance(2.121); c.Refresh();
             Assert.AreEqual(1, miss.MissCount); Assert.Less(c.HeroPortrait.color.g, c.HeroPortrait.color.r);
-            Assert.IsTrue(c.GetComponentsInChildren<Text>().Any(x => x.text == "대응 실패"));
+            Assert.AreEqual(3, c.CurrentHeroMotion.Index % 4);
             early.Press(1.8, 0, 0); d.Refresh();
             Assert.IsTrue(d.GetComponentsInChildren<Text>().Any(x => x.text == "너무 이른 동작"));
             Assert.AreEqual(MissReason.TooEarly, early.Results.Single().Reason);

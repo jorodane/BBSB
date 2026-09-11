@@ -1,5 +1,7 @@
 # Battle art generation record
 
+This is the original monster/placeholder art record. The reference-based player pose atlases are documented in [PlayerMotionPrompts.md](PlayerMotionPrompts.md), but their PNGs are excluded from this upload. The player uses the existing weapon-master portrait until all eight atlases are installed.
+
 Mode: built-in image generation (`image_gen`), seven independent transparent sprite requests. No external image API or post-generation pixel editing. All originals are committed under `Assets/BBSB/Resources/BBSB/BattleArt/`. Unity imports them as 512px Sprite/Single assets; source PNGs retain their original resolution and alpha.
 
 | File | Character |

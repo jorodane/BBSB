@@ -26,8 +26,8 @@ namespace BBSB.Runtime.UI
         private readonly List<Image> portraits = new List<Image>();
         private readonly List<BattleEffect> effects = new List<BattleEffect>();
         private readonly HashSet<int> attackTicks = new HashSet<int>();
-        private readonly Dictionary<ResponseNote, double> shakeAmounts = new Dictionary<ResponseNote, double>();
-        private readonly Dictionary<ResponseNote, double> shakeMovedAt = new Dictionary<ResponseNote, double>();
+        private readonly PlayerMotionTimeline playerMotion = new PlayerMotionTimeline();
+        private PlayerMotionSprites playerSprites;
         private RhythmRound round;
         private RectTransform area;
         private Actor hero;
@@ -42,6 +42,7 @@ namespace BBSB.Runtime.UI
         public Image HeroPortrait => hero?.Portrait;
         public IReadOnlyList<Image> MonsterPortraits => portraits;
         public int ActiveResponseEffects { get; private set; }
+        public PlayerMotionFrame CurrentHeroMotion { get; private set; }
 
         public void SetPaused(bool value) { paused = value; }
 
@@ -59,7 +60,8 @@ namespace BBSB.Runtime.UI
                 actor.Plan = plan; actor.Tint = MonsterColor(plan.Monster.Id);
                 monsters.Add(actor); portraits.Add(actor.Portrait);
             }
-            hero = CreateActor(ui, "Weapon master", "weapon-master", null);
+            playerSprites = new PlayerMotionSprites();
+            hero = CreateActor(ui, "Weapon master", "weapon-master", null, playerSprites.Get("idle", 0));
             hero.Tint = RunUI.Gold;
             var fx = ui.Rect("Battle effects and five weapons", area); RunUI.Stretch(fx);
             foreground = fx.gameObject.AddComponent<BattleArenaGraphic>();
@@ -96,13 +98,15 @@ namespace BBSB.Runtime.UI
             Refresh();
         }
 
-        private Actor CreateActor(RunUI ui, string instance, string asset, string label)
+        private void OnDestroy() { playerSprites?.Dispose(); }
+
+        private Actor CreateActor(RunUI ui, string instance, string asset, string label, Sprite portrait = null)
         {
             var root = ui.Rect("Actor " + instance, area);
             root.pivot = new Vector2(.5f, 0);
             var spriteRect = ui.Rect("Portrait " + instance, root); RunUI.Stretch(spriteRect);
             var image = spriteRect.gameObject.AddComponent<Image>();
-            image.sprite = Resources.Load<Sprite>("BBSB/BattleArt/" + asset);
+            image.sprite = portrait != null ? portrait : Resources.Load<Sprite>("BBSB/BattleArt/" + asset);
             if (image.sprite == null) throw new InvalidOperationException("Missing battle sprite: " + asset);
             image.preserveAspect = true; image.raycastTarget = false;
             var actor = new Actor { Root = root, Portrait = image };
@@ -228,28 +232,47 @@ namespace BBSB.Runtime.UI
             float x = 0, y = (float)Math.Sin(seconds / round.BeatSeconds * Math.PI * 2) * 1.5f;
             float tilt = 0, sx = 1, sy = 1, miss = 0;
             weaponEnergy = guardStrength = shakeStrength = 0;
-            string action = "WEAPON MASTER"; double lastAction = -1;
-            foreach (var note in round.Notes)
+            CurrentHeroMotion = playerMotion.Evaluate(round);
+            var motion = CurrentHeroMotion;
+            hero.Portrait.sprite = playerSprites.Get(motion);
+            string action = "WEAPON MASTER";
+            if (motion.Phase == PlayerMotionPhase.Sustain)
             {
-                if (note.State != ResponseState.Holding || !round.IsDown) continue;
-                switch (note.Step.Kind)
+                switch (motion.Kind)
                 {
                     case GestureKind.Hold:
-                        guardStrength = 1; sy = .95f; sx = 1.04f; action = "방어 유지"; break;
+                        guardStrength = 1; sy = .98f; action = "크로스가드 유지"; break;
                     case GestureKind.Dive:
-                        x = size.x * .035f; sy = .87f; tilt = -8; action = "회피 준비 · 끝에 떼기"; break;
+                        x = size.x * .015f; action = "회피 준비 · 끝에 떼기"; break;
                     case GestureKind.Shake:
-                        // Holding is automatic for Shake. Only credited real movement animates the hero.
-                        if (!shakeAmounts.TryGetValue(note, out var previous)) previous = 0;
-                        if (note.ShakeTravelDistance > previous + 1e-9) shakeMovedAt[note] = seconds;
-                        shakeAmounts[note] = note.ShakeTravelDistance;
-                        if (shakeMovedAt.TryGetValue(note, out var moved)) shakeStrength = Mathf.Max(shakeStrength, Pulse(seconds - moved, .12));
-                        if (shakeStrength > 0) action = "무기 휘젓기";
-                        break;
+                        shakeStrength = 1; x = 3 * Mathf.Sin((float)seconds * 35); action = "양손 밀쳐내기"; break;
                 }
             }
-            x += Mathf.Sin((float)seconds * 55) * 4 * shakeStrength;
-            weaponEnergy = Mathf.Max(guardStrength * .4f, shakeStrength * .8f);
+            else if (motion.Kind.HasValue)
+            {
+                float strength = motion.Grade == RhythmGrade.Perfect ? 1 : motion.Grade == RhythmGrade.HalfMiss ? .55f : .65f;
+                float pulse = Pulse(motion.Age, .48) * strength;
+                bool failed = motion.Grade == RhythmGrade.Miss;
+                miss = failed ? pulse : motion.Grade == RhythmGrade.HalfMiss ? pulse * .3f : 0;
+                weaponEnergy = failed ? 0 : pulse;
+                // Art supplies the pose; these small accents connect key poses without stacking
+                // three whole-body transforms for a single input shared by three monsters.
+                if (motion.IsFall) { y = 0; x = Mathf.Sin((float)motion.Age * 55) * 2 * pulse; }
+                else if (failed) { x = -8 * pulse; tilt = 4 * pulse; }
+                else switch (motion.Kind.Value)
+                {
+                    case GestureKind.Tap: x = size.x * .022f * pulse; y += size.y * (motion.Punch == 2 ? .035f : .016f) * pulse; break;
+                    case GestureKind.Hold: guardStrength = pulse; break;
+                    case GestureKind.Dive: x = size.x * .035f * pulse; break;
+                    case GestureKind.Flick: y += size.y * .045f * pulse; tilt = motion.Grade == RhythmGrade.HalfMiss ? -6 * pulse : 0; break;
+                    case GestureKind.Shake: shakeStrength = pulse; x = size.x * .016f * pulse; break;
+                }
+                action = motion.Reason == MissReason.TooEarly ? "너무 이른 동작" :
+                    ActionLabel(motion.Kind.Value, motion.Punch) + " · " + RhythmPlaybackView.GradeLabel(motion.Grade.Value);
+                if (motion.Phase == PlayerMotionPhase.Recover && motion.IsFall)
+                    action = motion.Index == 4 ? "잠깐 정비" : "다시 준비";
+            }
+            weaponEnergy = Mathf.Max(weaponEnergy, Mathf.Max(guardStrength * .4f, shakeStrength * .8f));
             foreach (var result in round.Results)
             {
                 double age = seconds - result.JudgedAtSeconds;
@@ -258,37 +281,19 @@ namespace BBSB.Runtime.UI
                 var actor = FindMonster(result.Note.Attack.MonsterId);
                 if (actor == null) continue;
                 float strength = result.Grade == RhythmGrade.Perfect ? 1 : result.Grade == RhythmGrade.HalfMiss ? .55f : .65f;
-                float pulse = Pulse(age, duration) * strength;
-                float direction = actor.Impact.x >= HeroImpact.x ? 1 : -1;
                 if (result.Grade == RhythmGrade.Miss)
                 {
-                    miss = Mathf.Max(miss, pulse); x += Mathf.Sin((float)age * 65) * 6 * pulse;
-                    y -= 8 * pulse; tilt -= direction * 6 * pulse;
                     Add(BattleEffectKind.Miss, HeroImpact, HeroImpact, age, duration, RunUI.Red, strength);
                 }
                 else
                 {
-                    weaponEnergy = Mathf.Max(weaponEnergy, pulse);
                     BattleEffectKind kind = EffectFor(result.Note.Step.Kind);
                     Add(kind, HeroImpact, actor.Impact, age, duration, RhythmPlaybackView.GradeColor(result.Grade), strength);
-                    switch (result.Note.Step.Kind)
-                    {
-                        case GestureKind.Tap: y += size.y * .055f * pulse; tilt -= direction * 8 * pulse; break;
-                        case GestureKind.Hold: guardStrength = Mathf.Max(guardStrength, pulse); sy -= .05f * pulse; break;
-                        case GestureKind.Dive: x += direction * size.x * .065f * pulse; sy -= .09f * pulse; break;
-                        case GestureKind.Flick: y += size.y * .08f * pulse; tilt -= direction * 16 * pulse; break;
-                        case GestureKind.Shake: shakeStrength = Mathf.Max(shakeStrength, pulse); x += Mathf.Sin((float)age * 70) * 7 * pulse; break;
-                    }
                 }
                 ActiveResponseEffects++;
-                if (result.JudgedAtSeconds >= lastAction)
-                {
-                    lastAction = result.JudgedAtSeconds;
-                    action = result.Grade == RhythmGrade.Miss ? (result.Reason == MissReason.TooEarly ? "너무 이른 동작" : "대응 실패") :
-                        ActionLabel(result.Note.Step.Kind) + " · " + RhythmPlaybackView.GradeLabel(result.Grade);
-                }
             }
-            SetPose(hero, Mathf.Clamp(x, -size.x * .11f, size.x * .11f), Mathf.Clamp(y, -size.y * .035f, size.y * .1f),
+            // Imported frames share an 8% lower gutter. Register the actual soles on HeroFoot.
+            SetPose(hero, Mathf.Clamp(x, -size.x * .11f, size.x * .11f), Mathf.Clamp(y, -size.y * .035f, size.y * .1f) - hero.Root.rect.height * .08f,
                 Mathf.Clamp(tilt, -24, 24), Mathf.Clamp(sx, .8f, 1.2f), Mathf.Clamp(sy, .75f, 1.1f), Color.Lerp(Color.white, RunUI.Red, miss * .45f));
             heroLabel.text = action; heroLabel.color = miss > .1f ? RunUI.Red : weaponEnergy > .1f ? RunUI.Teal : RunUI.Gold;
         }
@@ -383,15 +388,15 @@ namespace BBSB.Runtime.UI
                 default: return BattleEffectKind.Counter;
             }
         }
-        private static string ActionLabel(GestureKind kind)
+        private static string ActionLabel(GestureKind kind, int punch)
         {
             switch (kind)
             {
-                case GestureKind.Hold: return "받아내기";
-                case GestureKind.Dive: return "회피 반격";
-                case GestureKind.Flick: return "올려 베기";
-                case GestureKind.Shake: return "무기 난무";
-                default: return "받아 베기";
+                case GestureKind.Hold: return "크로스가드";
+                case GestureKind.Dive: return "덕킹";
+                case GestureKind.Flick: return "점프";
+                case GestureKind.Shake: return "밀쳐내기";
+                default: return punch == 0 ? "왼손 펀치" : punch == 1 ? "오른손 펀치" : "어퍼";
             }
         }
     }
