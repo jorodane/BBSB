@@ -135,18 +135,49 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void GreenImportMattePreservesCostumeColorsAndSoftBlackEdges()
+        public void NativeAlphaAtlasPreservesGreenColorsAndPartialTransparency()
         {
-            PlayerChromaKey.Composite(0, 255, 0, 255, out _, out _, out _, out byte clear);
-            Check.Equal((byte)0, clear);
-            foreach (var color in new[] { (255, 255, 255), (20, 18, 25), (244, 55, 124), (209, 171, 112), (255, 220, 205) })
+            const int width = 64, height = 64;
+            var source = new byte[width * height * 4];
+            var colors = new[] { (0, 255, 0, 255), (14, 244, 49, 128), (244, 55, 124, 255), (255, 255, 255, 255) };
+            for (int cell = 0; cell < 4; cell++)
             {
-                PlayerChromaKey.Composite((byte)color.Item1, (byte)color.Item2, (byte)color.Item3, 255,
-                    out byte r, out byte g, out byte b, out byte a);
-                Check.Equal((byte)color.Item1, r); Check.Equal((byte)color.Item2, g); Check.Equal((byte)color.Item3, b); Check.Equal((byte)255, a);
+                var color = colors[cell];
+                for (int y = 8; y < 20; y++)
+                for (int x = 8; x < 20; x++)
+                {
+                    int at = ((cell / 2 * 32 + y) * width + cell % 2 * 32 + x) * 4;
+                    source[at] = (byte)color.Item1; source[at + 1] = (byte)color.Item2;
+                    source[at + 2] = (byte)color.Item3; source[at + 3] = (byte)color.Item4;
+                }
             }
-            PlayerChromaKey.Composite(0, 120, 0, 255, out byte er, out byte eg, out byte eb, out byte ea);
-            Check.Equal(true, ea > 100 && ea < 155); Check.Equal((byte)0, er); Check.Equal((byte)0, eg); Check.Equal((byte)0, eb);
+            var original = (byte[])source.Clone();
+            var output = PlayerAtlasProcessor.Prepare(source, width, height, 2, 2);
+            Check.Equal(true, source.SequenceEqual(original));
+            for (int cell = 0; cell < 4; cell++)
+            {
+                int center = ((cell / 2 * 32 + 8) * width + cell % 2 * 32 + 16) * 4;
+                var color = colors[cell];
+                Check.Equal((byte)color.Item1, output[center]); Check.Equal((byte)color.Item2, output[center + 1]);
+                Check.Equal((byte)color.Item3, output[center + 2]); Check.Equal((byte)color.Item4, output[center + 3]);
+                for (int edge = 0; edge < 32; edge++)
+                {
+                    Check.Equal((byte)0, output[((cell / 2 * 32) * width + cell % 2 * 32 + edge) * 4 + 3]);
+                    Check.Equal((byte)0, output[((cell / 2 * 32 + edge) * width + cell % 2 * 32) * 4 + 3]);
+                }
+            }
+        }
+
+        [Test]
+        public void OpaqueSheetIsNotKeyedOrRejectedBeforeTransparentArtIsSupplied()
+        {
+            var source = new byte[32 * 32 * 4];
+            for (int i = 0; i < source.Length; i += 4)
+            { source[i] = 2; source[i + 1] = 249; source[i + 2] = 56; source[i + 3] = 255; }
+            var original = (byte[])source.Clone();
+            var output = PlayerAtlasProcessor.Prepare(source, 32, 32, 2, 2);
+            Check.Equal(true, original.SequenceEqual(output));
+            Check.Equal(true, original.SequenceEqual(source));
         }
 
         private static RhythmRound Single(GestureKind kind) => Round(1, new PatternStep(kind, 0,

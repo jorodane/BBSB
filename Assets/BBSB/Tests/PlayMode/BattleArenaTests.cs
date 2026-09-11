@@ -65,8 +65,9 @@ namespace BBSB.Tests
                 {
                     Graphics.Blit(source, target); RenderTexture.active = target;
                     readable.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0); readable.Apply();
-                    Assert.Less(readable.GetPixel(0, 0).a, .01f, "Generated background must not appear in battle.");
-                    Assert.IsTrue(readable.GetPixels32().Any(p => p.a > 240), "The character must survive compositing.");
+                    // Transparency is supplied by the artist. Opaque placeholders keep their
+                    // background until replaced; import must not infer alpha from their color.
+                    Assert.IsTrue(readable.GetPixels32().Any(p => p.a > 240), "The character must survive importing.");
                 }
                 finally
                 { RenderTexture.active = previous; RenderTexture.ReleaseTemporary(target); Object.DestroyImmediate(readable); }

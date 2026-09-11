@@ -6,30 +6,29 @@ using UnityEngine;
 
 namespace BBSB.Editor
 {
-    /// <summary>Composite the generated green source atlases to RGBA once, during asset import.</summary>
+    /// <summary>Import the supplied PNG alpha and align transparent poses once during import.</summary>
     public sealed class PlayerMotionImporter : AssetPostprocessor
     {
         private bool IsPlayerAtlas => assetPath.StartsWith("Assets/BBSB/Resources/BBSB/BattleArt/PlayerMotion/", StringComparison.Ordinal)
             && assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
 
-        public override uint GetVersion() => 2;
+        // Reimport cached atlases after removing automatic background/color processing.
+        public override uint GetVersion() => 3;
 
         private void OnPreprocessTexture()
         {
             if (!IsPlayerAtlas) return;
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Default;
-            // These sources are opaque RGB. Allocate an alpha-bearing import buffer even when
-            // the PNG has no alpha; the temporary luminance alpha is replaced below, not used.
-            importer.alphaSource = TextureImporterAlphaSource.FromGrayScale;
-            importer.alphaIsTransparency = false;
+            importer.alphaSource = TextureImporterAlphaSource.FromInput;
+            importer.alphaIsTransparency = true;
             importer.sRGBTexture = true; importer.mipmapEnabled = false;
             importer.isReadable = false; importer.npotScale = TextureImporterNPOTScale.None;
             importer.filterMode = FilterMode.Bilinear; importer.wrapMode = TextureWrapMode.Clamp;
             importer.maxTextureSize = 2048;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             var platform = importer.GetDefaultPlatformTextureSettings();
-            // Source PNGs can be RGB. Force storage with alpha after compositing, on every target.
+            // Preserve the source PNG's alpha rather than inferring transparency from color.
             platform.format = TextureImporterFormat.RGBA32; platform.maxTextureSize = 2048;
             platform.textureCompression = TextureImporterCompression.Uncompressed;
             importer.SetPlatformTextureSettings(platform);
@@ -43,7 +42,7 @@ namespace BBSB.Editor
             for (int i = 0; i < pixels.Length; i++)
             {
                 var p = pixels[i]; int at = i * 4;
-                rgba[at] = p.r; rgba[at + 1] = p.g; rgba[at + 2] = p.b; rgba[at + 3] = 255;
+                rgba[at] = p.r; rgba[at + 1] = p.g; rgba[at + 2] = p.b; rgba[at + 3] = p.a;
             }
             string id = Path.GetFileNameWithoutExtension(assetPath);
             int columns = id == "idle" || id.StartsWith("tap-", StringComparison.Ordinal) ? 2 : 3;

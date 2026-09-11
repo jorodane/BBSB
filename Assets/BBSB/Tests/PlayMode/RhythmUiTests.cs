@@ -141,6 +141,37 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator HiddenPauseMenuReopensAfterManualFocusAndApplicationPause()
+        {
+            yield return Prepare(new RunRules(startingHealth: 10000));
+            var player = Begin(); yield return null;
+            var overlay = root.GetComponentsInChildren<RectTransform>(true).Single(x => x.name == "Pause overlay");
+            var scroll = overlay.GetComponentInChildren<ScrollRect>(true);
+            Assert.IsNotNull(scroll);
+            for (int source = 0; source < 4; source++)
+            {
+                Assert.IsFalse(overlay.gameObject.activeSelf);
+                if (source == 0) Click("메뉴");
+                else if (source == 1) player.Pause(); // Also used by the Escape key.
+                else if (source == 2) player.SendMessage("OnApplicationFocus", false);
+                else player.SendMessage("OnApplicationPause", true);
+                Assert.IsTrue(player.IsPaused); Assert.IsTrue(overlay.gameObject.activeSelf);
+                Assert.IsTrue(root.GetComponentsInChildren<Button>().Any(x => x.name == "Button 이어하기"));
+                yield return null; Canvas.ForceUpdateCanvases();
+                Assert.AreEqual(1, scroll.verticalNormalizedPosition, .001f);
+                Click("조작 방법"); yield return null; Canvas.ForceUpdateCanvases();
+                scroll.verticalNormalizedPosition = 0;
+                scroll.velocity = new Vector2(0, 200);
+                double frozen = player.Round.ElapsedSeconds;
+                yield return null;
+                Assert.AreEqual(frozen, player.Round.ElapsedSeconds);
+                Click("닫기");
+                Assert.IsFalse(player.IsPaused); Assert.IsFalse(overlay.gameObject.activeSelf);
+                LogAssert.NoUnexpectedReceived();
+            }
+        }
+
+        [UnityTest]
         public IEnumerator ExternalBattleResultStopsTheLiveRoundAndRejectsStaleResults()
         {
             yield return Prepare(); var player = Begin(); yield return null;

@@ -3,8 +3,8 @@ using System;
 namespace BBSB.Runtime.UI
 {
     /// <summary>
-    /// Import-only atlas preparation. Separates connected figures before packing, so a wide fallen
-    /// pose cannot clip or include a neighboring pose. RGBA rows are bottom-to-top, as in Unity.
+    /// Import-only pose alignment using the supplied alpha, without background removal or color
+    /// correction. Wide fallen poses stay separate. RGBA rows are bottom-to-top, as in Unity.
     /// </summary>
     public static class PlayerAtlasProcessor
     {
@@ -17,15 +17,15 @@ namespace BBSB.Runtime.UI
 
         public static byte[] Prepare(byte[] rgba, int width, int height, int columns, int rows)
         {
-            if (rgba == null || rgba.Length != width * height * 4 || columns <= 0 || rows <= 0)
+            if (rgba == null || width <= 0 || height <= 0 || rgba.Length != width * height * 4 || columns <= 0 || rows <= 0)
                 throw new ArgumentException("Invalid player atlas dimensions.");
-            var source = (byte[])rgba.Clone();
-            for (int i = 0; i < source.Length; i += 4)
-            {
-                PlayerChromaKey.Composite(source[i], source[i + 1], source[i + 2], source[i + 3],
-                    out byte r, out byte g, out byte b, out byte a);
-                source[i] = r; source[i + 1] = g; source[i + 2] = b; source[i + 3] = a;
-            }
+            var source = rgba;
+            bool hasTransparentPixels = false;
+            for (int i = 3; i < source.Length; i += 4)
+                if (source[i] < 24) { hasTransparentPixels = true; break; }
+            // An opaque sheet has no alpha silhouette to align. Keep it unchanged until the
+            // artist supplies a transparent PNG; a visible background is part of that source.
+            if (!hasTransparentPixels) return source;
             var labels = new int[width * height]; var queue = new int[labels.Length];
             var figures = new Figure[columns * rows]; int nextLabel = 0;
             double cellWidth = (double)width / columns, cellHeight = (double)height / rows;

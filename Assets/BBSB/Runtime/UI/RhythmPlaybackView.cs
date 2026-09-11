@@ -74,6 +74,8 @@ namespace BBSB.Runtime.UI
             ui.FloatingMenu(root, pause);
 
             var overlay = ui.Modal(root, "Pause overlay", "일시정지", resume, out var panel);
+            // Cache while building: the overlay is inactive when ShowPause opens it again.
+            var pauseScroll = panel.GetComponentInParent<ScrollRect>(true);
             var home = ui.Stack(panel, "Pause menu");
             var details = ui.Stack(panel, "Performance details");
             var help = ui.Stack(panel, "Input help");
@@ -82,7 +84,8 @@ namespace BBSB.Runtime.UI
                 home.gameObject.SetActive(page == home.gameObject);
                 details.gameObject.SetActive(page == details.gameObject);
                 help.gameObject.SetActive(page == help.gameObject);
-                panel.GetComponentInParent<ScrollRect>().verticalNormalizedPosition = 1;
+                pauseScroll.StopMovement();
+                pauseScroll.verticalNormalizedPosition = 1;
             };
             resetMenu = () => select(home.gameObject);
             ui.Label(home, "박자와 판정이 멈췄어. 받은 피해는 유지돼.\n유지 중이었다면 이어할 때 화면을 다시 눌러줘.", 24, RunUI.Muted, 92);
@@ -102,7 +105,7 @@ namespace BBSB.Runtime.UI
 
         private readonly Action resetMenu;
         public void ShowPause(bool value)
-        { if (value) resetMenu(); pauseOverlay.SetActive(value); arena.SetPaused(value); }
+        { pauseOverlay.SetActive(value); if (value) resetMenu(); arena.SetPaused(value); }
         public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자·Call 소리 끄기" : "박자·Call 소리 켜기"; }
 
         public void Refresh(double seconds, bool waitingForContact)
