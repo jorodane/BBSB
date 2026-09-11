@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="../../Assets/BBSB/Core/*.cs" />
     <Compile Include="../../Assets/BBSB/Runtime/UI/PlayerMotionTimeline.cs" />
+    <Compile Include="../../Assets/BBSB/Runtime/UI/PlayerChromaKey.cs" />
     <Compile Include="../../Assets/BBSB/Runtime/UI/PlayerAtlasProcessor.cs" />
     <Compile Include="../../Assets/BBSB/Tests/EditMode/*.cs" />
     <Compile Include="Program.cs" />
