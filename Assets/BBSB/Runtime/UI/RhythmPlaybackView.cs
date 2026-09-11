@@ -89,7 +89,7 @@ namespace BBSB.Runtime.UI
             ui.Button(home, "이어하기", resume, primary: true);
             ui.Button(home, "연주 정보 · 패턴", () => select(details.gameObject));
             ui.Button(home, "조작 방법", () => select(help.gameObject));
-            soundLabel = ui.Button(home, "박자음 끄기", sound).GetComponentInChildren<Text>();
+            soundLabel = ui.Button(home, "박자·Call 소리 끄기", sound).GetComponentInChildren<Text>();
             ui.Button(home, "준비로 돌아가기", leave);
             counters = ui.Label(details, "", 26, RunUI.Gold, 58);
             foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(details, ui, round, monster));
@@ -103,7 +103,7 @@ namespace BBSB.Runtime.UI
         private readonly Action resetMenu;
         public void ShowPause(bool value)
         { if (value) resetMenu(); pauseOverlay.SetActive(value); arena.SetPaused(value); }
-        public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자음 끄기" : "박자음 켜기"; }
+        public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자·Call 소리 끄기" : "박자·Call 소리 켜기"; }
 
         public void Refresh(double seconds, bool waitingForContact)
         {
@@ -157,8 +157,8 @@ namespace BBSB.Runtime.UI
                 var shakes = new List<string>();
                 foreach (var note in round.Notes)
                     if (note.Step.Kind == GestureKind.Shake && note.State == ResponseState.Holding)
-                        shakes.Add(ShakePercent(note));
-                if (shakes.Count > 0) contact.text = "Shake " + string.Join(" / ", shakes) + "  ·  50% 반미스 / 75% 성공";
+                        shakes.Add(ShakeStatus(note));
+                if (shakes.Count > 0) contact.text = "Shake " + string.Join(" / ", shakes) + "  ·  한 번 왕복";
             }
             foreach (var card in monsters) card.Refresh(seconds);
             arena.SetPaused(pauseOverlay.activeSelf || waitingForContact);
@@ -167,8 +167,9 @@ namespace BBSB.Runtime.UI
 
         public static string GradeLabel(RhythmGrade grade) => grade == RhythmGrade.Perfect ? "PERFECT" : grade == RhythmGrade.HalfMiss ? "반미스" : "MISS";
         public static Color GradeColor(RhythmGrade grade) => grade == RhythmGrade.Perfect ? RunUI.Teal : grade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Red;
-        // Don't round 49.9% up to 50% while its grade is still Miss.
-        private static string ShakePercent(ResponseNote note) => Math.Floor(note.ShakeCoverage * 100 + 1e-7).ToString("0") + "%";
+        private static string ShakeStatus(ResponseNote note) => note.ShakeCompleted ? "왕복 완료" :
+            note.State == ResponseState.Resolved ? (note.ShakeProgress >= .5 ? "복귀 미완료" : "왕복 미완료") :
+            note.ShakeProgress >= .5 ? "돌아와!" : "흔들어!";
 
         private static RectTransform Progress(Transform parent, RunUI ui, string name, float height)
         {
@@ -195,7 +196,7 @@ namespace BBSB.Runtime.UI
                 signal = ui.Label(card, "Call 대기", 24, RunUI.Muted, 54);
                 signal.gameObject.name = "Call signal " + plan.InstanceId;
                 var plot = ui.Rect("Live pattern", card); RunUI.Size(plot, 90);
-                graphic = plot.gameObject.AddComponent<MonsterPatternGraphic>(); graphic.Bind(plan.Monster);
+                graphic = plot.gameObject.AddComponent<MonsterPatternGraphic>(); graphic.Bind(plan.Monster.Patterns[0]);
                 result = ui.Label(card, "대응 결과", 23, RunUI.Muted, 54);
             }
 
@@ -204,10 +205,10 @@ namespace BBSB.Runtime.UI
             {
                 result.text = value.Note.Step.Kind + "  ·  " + GradeLabel(value.Grade);
                 result.text += "  ·  피해 " + value.DamageTaken.ToString("0.##");
-                if (value.Note.Step.Kind == GestureKind.Shake) result.text += "  ·  " + ShakePercent(value.Note);
+                if (value.Note.Step.Kind == GestureKind.Shake) result.text += "  ·  " + ShakeStatus(value.Note);
                 if (value.Reason == MissReason.TooEarly) result.text += "  너무 일찍 눌렀어";
                 else if (value.Reason == MissReason.MissingFlick) result.text += "  튕기며 떼어줘";
-                else if (value.Reason == MissReason.MissingShake) result.text += "  50% 이상 흔들어줘";
+                else if (value.Reason == MissReason.MissingShake) result.text += "  한 번 흔들었다 돌아와";
                 result.color = GradeColor(value.Grade);
             }
 
@@ -216,29 +217,29 @@ namespace BBSB.Runtime.UI
                 PlannedAttack current = null;
                 foreach (var attack in Plan.Attacks)
                 {
-                    double from = Time(attack.CallStartTick), until = Time(attack.ResponseStartTick + Plan.Monster.ResponseTicks + Plan.Monster.RestTicks);
+                    double from = Time(attack.CallStartTick), until = Time(attack.PhraseEndTick + attack.Pattern.RestTicks);
                     if (seconds >= from && seconds < until) current = attack;
                 }
                 graphic.SetPlayback(round, current, seconds);
                 if (current == null)
                 { phase.text = "대기"; phase.color = RunUI.Muted; signal.text = "Call 대기"; signal.color = RunUI.Muted; return; }
-                double response = Time(current.ResponseStartTick), rest = Time(current.ResponseStartTick + Plan.Monster.ResponseTicks);
+                double response = Time(current.ResponseStartTick), rest = Time(current.PhraseEndTick);
                 if (seconds < response)
                 {
-                    phase.text = "CALL"; phase.color = RunUI.Gold; signal.color = RunUI.Gold;
+                    phase.text = current.Pattern.Name + " · CALL"; phase.color = RunUI.Gold; signal.color = RunUI.Gold;
                     signal.text = (lastCall != null && lastCall.AttackId == current.Id ? lastCall.Label : "CALL") +
                         "  ·  " + ((response - seconds) / round.BeatSeconds).ToString("0.0") + "박 뒤 대응";
                 }
                 else if (seconds <= rest + round.HalfMissWindow)
                 {
-                    phase.text = "RESPONSE"; phase.color = RunUI.Teal; signal.color = RunUI.Teal;
+                    phase.text = current.Pattern.Name + " · RESPONSE"; phase.color = RunUI.Teal; signal.color = RunUI.Teal;
                     var actions = new List<string>();
                     foreach (var note in round.Notes)
                     {
                         if (note.Attack != current || note.State == ResponseState.Resolved) continue;
                         if (note.State == ResponseState.Holding)
                             actions.Add(note.Step.Kind + (note.Step.Kind == GestureKind.Dive ? " 끝에 떼기" : note.Step.Kind == GestureKind.Shake ?
-                                " " + ShakePercent(note) : " 유지"));
+                                " " + ShakeStatus(note) : " 유지"));
                         else if (note.StartSeconds - seconds <= round.BeatSeconds)
                             actions.Add(note.Step.Kind + " " + Math.Max(0, (note.StartSeconds - seconds) / round.BeatSeconds).ToString("0.0") + "박");
                     }

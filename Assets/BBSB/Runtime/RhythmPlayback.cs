@@ -25,9 +25,8 @@ namespace BBSB.Runtime
         {
             Round = round; onFinished = finished; onLeave = leave;
             surface = gameObject.AddComponent<RhythmInputSurface>(); surface.Bind(this);
-            var music = round.Plan.Stage.Music;
             view = new RhythmPlaybackView((RectTransform)transform, ui, round, session, Pause, Continue, ToggleSound, Leave);
-            metronome = new BeatMetronome(transform, music.Bpm, music.BeatsPerBar);
+            metronome = new BeatMetronome(transform, Round.Plan);
             RestartClock(true); view.Refresh(0, false);
         }
 

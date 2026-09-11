@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
-    /// <summary>One card per placed monster. Repeated occurrences share this same response pattern.</summary>
+    /// <summary>One card per monster, with every authored pattern and its independent occurrence count.</summary>
     public sealed class MonsterPatternView : MonoBehaviour
     {
         public MonsterPlan Plan { get; private set; }
@@ -19,16 +19,30 @@ namespace BBSB.Runtime.UI
             ui.Label(transform, "이번 곡 " + plan.Attacks.Count + "회 등장", 20, RunUI.Teal, 32);
             ui.Label(transform, "판정당 기본 피해 " + monster.DamagePerNote + "  ·  미스 100% / 반미스 75% / 퍼펙트 50%", 20, RunUI.Red, 52);
             ui.Label(transform, monster.Description, 21, RunUI.TextColor, 66);
+            ui.Label(transform, "메인 입력 " + monster.MainGesture + "  ·  패턴 " + monster.Patterns.Count + "개", 20, RunUI.Teal, 32);
+            foreach (var pattern in monster.Patterns)
+            {
+                int count = 0;
+                foreach (var attack in plan.Attacks) if (attack.Pattern == pattern) count++;
+                BindPattern(ui.Card(transform, 14), ui, pattern, count);
+            }
+        }
+
+        private static void BindPattern(Transform root, RunUI ui, MonsterPatternDefinition pattern, int count)
+        {
+            root.name = "Pattern variant " + pattern.Id;
+            ui.Label(root, pattern.Name + "  ·  이번 곡 " + count + "회", 24, RunUI.Gold, 40);
+            ui.Label(root, pattern.Description, 20, RunUI.TextColor, 64);
             var signals = new List<string>();
-            foreach (var signal in monster.Call)
-                signals.Add(Beat(monster.Pattern.CueLeadTicks - signal.OffsetTick) + "박 전: " + signal.Label);
-            ui.Label(transform, "CALL  ·  " + Beat(monster.Pattern.CueLeadTicks) + "박 전조\n" + string.Join("  /  ", signals), 20, RunUI.Gold, 68);
+            foreach (var signal in pattern.Call)
+                signals.Add(Beat(signal.OffsetTick + RhythmTime.TicksPerBeat) + "박: " + signal.Label);
+            ui.Label(root, "CALL  ·  " + Beat(pattern.Pattern.CueLeadTicks) + "박 전조\n" + string.Join("  /  ", signals), 20, RunUI.Gold, 68);
 
             var kinds = new List<GestureKind>();
-            foreach (var step in monster.Pattern.Steps) if (!kinds.Contains(step.Kind)) kinds.Add(step.Kind);
+            foreach (var step in pattern.Pattern.Steps) if (!kinds.Contains(step.Kind)) kinds.Add(step.Kind);
             kinds.Sort();
             float height = (kinds.Count + 2) * 34;
-            var plot = ui.Row(transform, height, 6);
+            var plot = ui.Row(root, height, 6);
             plot.GetComponent<HorizontalLayoutGroup>().childForceExpandWidth = false;
             var names = ui.Stack(plot, "Pattern lanes", 0, 0);
             var width = names.gameObject.AddComponent<LayoutElement>();
@@ -37,20 +51,20 @@ namespace BBSB.Runtime.UI
             foreach (var kind in kinds) ui.Label(names, kind.ToString(), 17, RunUI.Teal, 34);
             ui.Label(names, "REST", 17, RunUI.Muted, 34);
             var graph = ui.Rect("Call and response", plot); RunUI.Size(graph, height, 1);
-            graph.gameObject.AddComponent<MonsterPatternGraphic>().Bind(monster);
+            graph.gameObject.AddComponent<MonsterPatternGraphic>().Bind(pattern);
 
-            ui.Label(transform, "RESPONSE  ·  " + Beat(monster.ResponseTicks) + "박", 20, RunUI.Teal, 32);
+            ui.Label(root, "RESPONSE  ·  " + Beat(pattern.ResponseTicks) + "박", 20, RunUI.Teal, 32);
             // Times below are relative to this pattern, never absolute locations in the full song.
-            foreach (var step in monster.Pattern.Steps)
+            foreach (var step in pattern.Pattern.Steps)
             {
-                string label = Beat(step.OffsetTick) + "박  " + step.Kind;
-                if (step.DurationTicks > 0) label += "  ·  " + Beat(step.DurationTicks) + "박 유지";
-                if (step.Touch.End == TouchTransition.Release) label += "  ·  " + Beat(step.OffsetTick + step.DurationTicks) + "박에 떼기";
-                ui.Label(transform, label, 19, null, 32);
+                string label = Beat(pattern.Pattern.CueLeadTicks + step.OffsetTick + RhythmTime.TicksPerBeat) + "박  " + step.Kind;
+                if (step.DurationTicks > 0) label += "  ·  " + Beat(step.DurationTicks) + (step.Kind == GestureKind.Shake ? "박 안에 왕복" : "박 유지");
+                if (step.Touch.End == TouchTransition.Release) label += "  ·  " + Beat(pattern.Pattern.CueLeadTicks + step.OffsetTick + step.DurationTicks + RhythmTime.TicksPerBeat) + "박에 떼기";
+                ui.Label(root, label, 19, null, 32);
             }
-            ui.Label(transform, "대응 시작을 0박으로 표시해. 이후 " + Beat(monster.RestTicks) + "박 휴식.", 18, RunUI.Muted, 48);
+            ui.Label(root, "첫 Call을 1박으로 표시해. 대응 이후 " + Beat(pattern.RestTicks) + "박 휴식.", 18, RunUI.Muted, 48);
             if (kinds.Contains(GestureKind.Shake))
-                ui.Label(transform, "Shake  ·  흔든 시간 50% 이상 반미스 / 75% 이상 성공", 19, RunUI.Teal, 52);
+                ui.Label(root, "Shake  ·  한 번 왕복하면 성공. 돌아오기 전까지는 반미스.", 19, RunUI.Teal, 52);
         }
 
         private static string Beat(int tick) => (tick / (double)RhythmTime.TicksPerBeat).ToString("0.##", CultureInfo.InvariantCulture);

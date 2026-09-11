@@ -13,9 +13,6 @@ namespace BBSB.Core
         // Distances are fractions of the shorter screen dimension, independent of pixel density.
         public double ShakeOutDistance { get; }
         public double ShakeReturnDistance { get; }
-        public double ShakeHalfMissRatio { get; }
-        public double ShakePerfectRatio { get; }
-        public double ShakeMinSpeed { get; }
         public double ShakeMaxSampleGapSeconds { get; }
         public double FlickDistance { get; }
         public double FlickSpeed { get; }
@@ -24,18 +21,16 @@ namespace BBSB.Core
         public RhythmRules(double perfectSeconds = .07, double halfMissSeconds = .14,
             double shakeOutDistance = .08, double shakeReturnDistance = .035,
             double flickDistance = .06, double flickSpeed = .5, double flickLookbackSeconds = .12,
-            double shakeHalfMissRatio = .5, double shakePerfectRatio = .75,
-            double shakeMinSpeed = .08, double shakeMaxSampleGapSeconds = .1)
+            double shakeMaxSampleGapSeconds = .1)
         {
             foreach (double value in new[] { perfectSeconds, halfMissSeconds, shakeOutDistance, shakeReturnDistance,
-                flickDistance, flickSpeed, flickLookbackSeconds, shakeHalfMissRatio, shakePerfectRatio, shakeMinSpeed, shakeMaxSampleGapSeconds })
+                flickDistance, flickSpeed, flickLookbackSeconds, shakeMaxSampleGapSeconds })
                 if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) throw new ArgumentOutOfRangeException(nameof(perfectSeconds));
-            if (perfectSeconds >= halfMissSeconds || shakeReturnDistance >= shakeOutDistance ||
-                shakeHalfMissRatio >= shakePerfectRatio || shakePerfectRatio > 1) throw new ArgumentException("Invalid judgment windows, distances or coverage thresholds.");
+            if (perfectSeconds >= halfMissSeconds || shakeReturnDistance >= shakeOutDistance)
+                throw new ArgumentException("Invalid judgment windows or distances.");
             PerfectSeconds = perfectSeconds; HalfMissSeconds = halfMissSeconds;
             ShakeOutDistance = shakeOutDistance; ShakeReturnDistance = shakeReturnDistance;
-            ShakeHalfMissRatio = shakeHalfMissRatio; ShakePerfectRatio = shakePerfectRatio;
-            ShakeMinSpeed = shakeMinSpeed; ShakeMaxSampleGapSeconds = shakeMaxSampleGapSeconds;
+            ShakeMaxSampleGapSeconds = shakeMaxSampleGapSeconds;
             FlickDistance = flickDistance; FlickSpeed = flickSpeed; FlickLookbackSeconds = flickLookbackSeconds;
         }
     }
@@ -44,20 +39,21 @@ namespace BBSB.Core
     {
         public PlannedAttack Attack { get; }
         public int StepIndex { get; }
-        public PatternStep Step => Attack.Monster.Pattern.Steps[StepIndex];
+        public PatternStep Step => Attack.Placement.Pattern.Steps[StepIndex];
         public int StartTick => Attack.ResponseStartTick + Step.OffsetTick;
         public int EndTick => StartTick + Step.DurationTicks;
         public double StartSeconds { get; }
         public double EndSeconds { get; }
         public ResponseState State { get; internal set; }
         public RhythmResult Result { get; internal set; }
-        public double ShakeActiveSeconds { get; internal set; }
-        public double ShakeCoverage => Step.Kind == GestureKind.Shake ? Math.Min(1, ShakeActiveSeconds / (EndSeconds - StartSeconds)) : 0;
+        // Best single-contact gesture progress: 0 -> .5 outward -> 1 returned. Never time coverage.
+        public double ShakeProgress { get; internal set; }
+        public bool ShakeCompleted => ShakeProgress >= 1;
+        public double ShakeTravelDistance { get; internal set; }
         internal RhythmGrade StartGrade;
         internal double StartError;
         internal double OriginX, OriginY;
-        internal bool ShakeContact, ShakeWentOut, ShakeVerified;
-        internal double ShakeUnverifiedSeconds;
+        internal bool ShakeContact, ShakeWentOut;
 
         internal ResponseNote(PlannedAttack attack, int stepIndex, double bpm)
         {

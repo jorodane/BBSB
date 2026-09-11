@@ -252,14 +252,19 @@ namespace BBSB.Tests
                 var card = cards.Single(x => x.Plan.InstanceId == monster.InstanceId);
                 Assert.AreSame(monster, card.Plan);
                 Assert.IsTrue(card.GetComponentsInChildren<Text>().Any(x => x.text.Contains(monster.Monster.Name)));
-                var graphic = card.GetComponentInChildren<MonsterPatternGraphic>();
-                Assert.IsNotNull(graphic);
-                var renderer = graphic.GetComponent<CanvasRenderer>();
-                Assert.IsNotNull(renderer);
-                Assert.Greater(graphic.rectTransform.rect.width, 100);
-                renderer.cull = false;
-                graphic.SetVerticesDirty(); graphic.Rebuild(CanvasUpdate.PreRender);
-                Assert.IsNotNull(renderer.GetMesh()); Assert.Greater(renderer.GetMesh().vertexCount, 0);
+                var graphics = card.GetComponentsInChildren<MonsterPatternGraphic>();
+                Assert.AreEqual(monster.Monster.Patterns.Count, graphics.Length);
+                foreach (var pattern in monster.Monster.Patterns)
+                    Assert.IsTrue(card.GetComponentsInChildren<Text>().Any(x => x.text.Contains(pattern.Name)));
+                foreach (var graphic in graphics)
+                {
+                    var renderer = graphic.GetComponent<CanvasRenderer>();
+                    Assert.IsNotNull(renderer);
+                    Assert.Greater(graphic.rectTransform.rect.width, 100);
+                    renderer.cull = false;
+                    graphic.SetVerticesDirty(); graphic.Rebuild(CanvasUpdate.PreRender);
+                    Assert.IsNotNull(renderer.GetMesh()); Assert.Greater(renderer.GetMesh().vertexCount, 0);
+                }
             }
         }
 

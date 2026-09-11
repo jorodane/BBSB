@@ -55,7 +55,7 @@ namespace BBSB.Runtime.UI
             background.gameObject.AddComponent<BattleArenaGraphic>().SetBackdrop(round.Plan.Monsters.Count);
             foreach (var plan in round.Plan.Monsters)
             {
-                var actor = CreateActor(ui, plan.InstanceId, plan.Monster.Id, plan.Monster.Name);
+                var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name);
                 actor.Plan = plan; actor.Tint = MonsterColor(plan.Monster.Id);
                 monsters.Add(actor); portraits.Add(actor.Portrait);
             }
@@ -141,7 +141,7 @@ namespace BBSB.Runtime.UI
             PlannedAttack current = null;
             foreach (var attack in actor.Plan.Attacks)
             {
-                if (seconds >= Time(attack.CallStartTick) && seconds <= Time(attack.ResponseStartTick + actor.Plan.Monster.ResponseTicks + actor.Plan.Monster.RestTicks))
+                if (seconds >= Time(attack.CallStartTick) && seconds <= Time(attack.PhraseEndTick + attack.Pattern.RestTicks))
                     current = attack;
                 foreach (var signal in attack.Call)
                 {
@@ -164,7 +164,7 @@ namespace BBSB.Runtime.UI
             call = Mathf.Clamp01(call); attackPulse = Mathf.Clamp01(attackPulse); counter = Mathf.Clamp01(counter);
             float bounce = Mathf.Sin((float)beat * Mathf.PI * 2 + actor.Impact.x * 4);
             float x = 0, y = (bounce + 1) * 1.5f, tilt = bounce * 1.2f, squash = .015f;
-            switch (actor.Plan.Monster.Id)
+            switch (actor.Plan.Monster.ArtId)
             {
                 case "tap-slime": y += call * size.y * .065f; squash += call * .16f; break;
                 case "spark-bat": y += 7 + bounce * 5 + call * size.y * .04f; tilt += call * 14; break;
@@ -178,7 +178,7 @@ namespace BBSB.Runtime.UI
             y += windup * 7 - attackPulse * size.y * .055f + counter * 7;
             tilt += direction * (attackPulse * 9 - counter * 8);
             SetPose(actor, x, y, tilt, 1 + squash * call + attackPulse * .07f,
-                1 - squash * call - attackPulse * .035f, Color.Lerp(Color.white, RunUI.Teal, counter * .3f));
+                1 - squash * call - attackPulse * .035f, Color.Lerp(actor.Plan.Monster.ArtId == actor.Plan.Monster.Id ? Color.white : Color.Lerp(Color.white, actor.Tint, .35f), RunUI.Teal, counter * .3f));
             RefreshSignal(actor, current, seconds, call);
         }
 
@@ -201,7 +201,7 @@ namespace BBSB.Runtime.UI
                 foreach (var signal in current.Call) if (Time(signal.Tick) <= seconds) call = signal.Label;
                 label.text = "CALL · " + call; label.color = RunUI.Gold;
             }
-            else if (seconds <= Time(current.ResponseStartTick + actor.Plan.Monster.ResponseTicks) + round.HalfMissWindow)
+            else if (seconds <= Time(current.PhraseEndTick) + round.HalfMissWindow)
             { label.text = "RESPONSE"; label.color = RunUI.Teal; }
             else { label.text = "쉬는 박자"; label.color = RunUI.Muted; }
             label.rectTransform.localScale = Vector3.one * (1 + pulse * .1f);
@@ -226,8 +226,8 @@ namespace BBSB.Runtime.UI
                     case GestureKind.Shake:
                         // Holding is automatic for Shake. Only credited real movement animates the hero.
                         if (!shakeAmounts.TryGetValue(note, out var previous)) previous = 0;
-                        if (note.ShakeActiveSeconds > previous + 1e-9) shakeMovedAt[note] = seconds;
-                        shakeAmounts[note] = note.ShakeActiveSeconds;
+                        if (note.ShakeTravelDistance > previous + 1e-9) shakeMovedAt[note] = seconds;
+                        shakeAmounts[note] = note.ShakeTravelDistance;
                         if (shakeMovedAt.TryGetValue(note, out var moved)) shakeStrength = Mathf.Max(shakeStrength, Pulse(seconds - moved, .12));
                         if (shakeStrength > 0) action = "무기 휘젓기";
                         break;
@@ -301,6 +301,9 @@ namespace BBSB.Runtime.UI
             switch (id)
             {
                 case "tap-slime": return RunUI.Hex("A3E676");
+                case "march-slime": return RunUI.Hex("FFCE75");
+                case "tresillo-bat": return RunUI.Hex("7BDDE5");
+                case "offbeat-goblin": return RunUI.Hex("9CB4FF");
                 case "spark-bat": return RunUI.Hex("CE8BFF");
                 case "iron-turtle": return RunUI.Gold;
                 case "diving-ray": return RunUI.Hex("77BFFF");

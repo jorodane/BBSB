@@ -70,4 +70,4 @@ foreach (var candidate in candidates)
 
 미리보기에서 곡을 변경해도 이번 전투 곡과 몬스터 계획은 유지된다. 이 화면은 개발용이다. 위의 준비 화면에는 배치된 몬스터의 패턴 카드가 표시되며, 무기 편성은 이후 연결한다. `Show Battle Test Controls`를 끄면 미리보기와 테스트 결과 버튼만 숨겨진다.
 
-독립 실행 핵심 테스트 63개 중 음악 테스트는 11개다. Unity PlayMode에는 전투 이벤트 시점의 음악/몬스터 계획 준비, 미리보기와 패턴 카드의 CanvasRenderer/도형 생성, 샘플 탐색 중 계획 유지, 클리어 후 해제 검증이 있다. 작업 환경에 Unity Editor가 없어 PlayMode 실행과 실제 기기 확인은 아직 하지 못했다.
+독립 실행 음악 테스트 11개가 통과했다. Unity PlayMode에는 전투 이벤트 시점의 음악/몬스터 계획 준비, 미리보기와 패턴 카드의 CanvasRenderer/도형 생성, 샘플 탐색 중 계획 유지, 클리어 후 해제 검증이 있다. 작업 환경에 Unity Editor가 없어 PlayMode 실행과 실제 기기 확인은 아직 하지 못했다.

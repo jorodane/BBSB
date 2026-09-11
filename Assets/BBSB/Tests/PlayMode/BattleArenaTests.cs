@@ -23,7 +23,7 @@ namespace BBSB.Tests
         [Test]
         public void EveryBattlePortraitImportsAsASprite()
         {
-            foreach (var id in new[] { "weapon-master", "tap-slime", "spark-bat", "iron-turtle", "diving-ray", "bubble-spirit", "flick-goblin" })
+            foreach (var id in MonsterCatalog.All.Select(x => x.ArtId).Append("weapon-master").Distinct())
             {
                 var sprite = Resources.Load<Sprite>("BBSB/BattleArt/" + id);
                 Assert.IsNotNull(sprite, id); Assert.Greater(sprite.rect.width, 0, id);

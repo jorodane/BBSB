@@ -40,7 +40,7 @@ namespace BBSB.Core
             PerfectWindow = Math.Min(this.rules.PerfectSeconds, BeatSeconds * .16);
             HalfMissWindow = Math.Min(this.rules.HalfMissSeconds, BeatSeconds * .24);
             foreach (var attack in plan.Attacks)
-                for (int i = 0; i < attack.Monster.Pattern.Steps.Count; i++) notes.Add(new ResponseNote(attack, i, plan.Stage.Music.Bpm));
+                for (int i = 0; i < attack.Placement.Pattern.Steps.Count; i++) notes.Add(new ResponseNote(attack, i, plan.Stage.Music.Bpm));
             notes.Sort((a, b) => a.StartTick != b.StartTick ? a.StartTick.CompareTo(b.StartTick) :
                 a.Attack.Id != b.Attack.Id ? string.CompareOrdinal(a.Attack.Id, b.Attack.Id) : a.StepIndex.CompareTo(b.StepIndex));
             Notes = notes.AsReadOnly(); Results = results.AsReadOnly(); Calls = calls.AsReadOnly();
@@ -59,12 +59,12 @@ namespace BBSB.Core
                 if (note.State == ResponseState.Resolved) continue;
                 if (note.Step.Kind == GestureKind.Shake)
                 {
-                    // Shake is a coverage task, with no separate start/release timing gate.
+                    // A single round trip anywhere inside the interval completes Shake.
                     if (seconds >= note.StartSeconds) note.State = ResponseState.Holding;
                     if (seconds >= note.EndSeconds)
                     {
-                        var grade = note.ShakeCoverage + 1e-9 >= rules.ShakePerfectRatio ? RhythmGrade.Perfect :
-                            note.ShakeCoverage + 1e-9 >= rules.ShakeHalfMissRatio ? RhythmGrade.HalfMiss : RhythmGrade.Miss;
+                        var grade = note.ShakeCompleted ? RhythmGrade.Perfect :
+                            note.ShakeProgress >= .5 ? RhythmGrade.HalfMiss : RhythmGrade.Miss;
                         Resolve(note, grade, grade == RhythmGrade.Miss ? MissReason.MissingShake : MissReason.None, note.EndSeconds, 0);
                     }
                     continue;
@@ -123,7 +123,7 @@ namespace BBSB.Core
             double dt = seconds - touch.SampleSeconds;
             foreach (var note in notes)
             {
-                if (note.Step.Kind != GestureKind.Shake || note.State == ResponseState.Resolved) continue;
+                if (note.Step.Kind != GestureKind.Shake || note.State == ResponseState.Resolved || note.ShakeCompleted) continue;
                 if (!touch.Down || dt > rules.ShakeMaxSampleGapSeconds + 1e-9)
                 { EndShakeContact(note); continue; }
                 double from = Math.Max(touch.SampleSeconds, note.StartSeconds), to = Math.Min(seconds, note.EndSeconds);
@@ -133,20 +133,20 @@ namespace BBSB.Core
                 double bx = touch.X + (x - touch.X) * b, by = touch.Y + (y - touch.Y) * b;
                 if (!note.ShakeContact)
                 { note.ShakeContact = true; note.OriginX = ax; note.OriginY = ay; }
-                // Stationary holds and very slow drift add no shake time.
-                if (RhythmTouch.Distance(ax, ay, bx, by) / (to - from) + 1e-9 >= rules.ShakeMinSpeed)
-                {
-                    if (note.ShakeVerified) note.ShakeActiveSeconds += to - from;
-                    else note.ShakeUnverifiedSeconds += to - from;
-                }
+                note.ShakeTravelDistance += RhythmTouch.Distance(ax, ay, bx, by);
+                double distance = RhythmTouch.Distance(note.OriginX, note.OriginY, bx, by);
                 if (note.ShakeWentOut && SegmentDistance(note.OriginX, note.OriginY, ax, ay, bx, by) <= rules.ShakeReturnDistance + 1e-9)
                 {
-                    // Once this contact has demonstrated a round trip, its moving time is eligible.
-                    note.ShakeVerified = true;
-                    note.ShakeActiveSeconds += note.ShakeUnverifiedSeconds; note.ShakeUnverifiedSeconds = 0;
+                    note.ShakeProgress = 1;
                 }
-                else if (RhythmTouch.Distance(note.OriginX, note.OriginY, bx, by) + 1e-9 >= rules.ShakeOutDistance)
-                    note.ShakeWentOut = true;
+                else
+                {
+                    if (distance + 1e-9 >= rules.ShakeOutDistance) note.ShakeWentOut = true;
+                    double progress = note.ShakeWentOut
+                        ? .5 + .5 * Math.Max(0, (rules.ShakeOutDistance - distance) / (rules.ShakeOutDistance - rules.ShakeReturnDistance))
+                        : .5 * Math.Min(1, distance / rules.ShakeOutDistance);
+                    note.ShakeProgress = Math.Max(note.ShakeProgress, progress);
+                }
             }
         }
 
@@ -158,7 +158,7 @@ namespace BBSB.Core
         }
 
         private static void EndShakeContact(ResponseNote note)
-        { note.ShakeContact = note.ShakeWentOut = note.ShakeVerified = false; note.ShakeUnverifiedSeconds = 0; }
+        { note.ShakeContact = note.ShakeWentOut = false; }
 
         public void Release(double seconds, double x, double y)
         {

@@ -30,26 +30,26 @@ namespace BBSB.Tests
                     foreach (var monster in plan.Monsters)
                     {
                         seen.Add(monster.Monster.Id); Check.True(monster.Attacks.Count > 0);
-                        var starts = stage.FindPlacements(monster.Monster.Pattern).Select(x => x.StartTick).ToHashSet();
+                        var starts = monster.Monster.Patterns.ToDictionary(x => x.Id, x => stage.FindPlacements(x.Pattern).Select(y => y.StartTick).ToHashSet());
                         long responseAfter = 0, callAfter = 0;
                         foreach (var attack in monster.Attacks)
                         {
-                            Check.True(starts.Contains(attack.ResponseStartTick));
-                            Check.Equal(monster.Monster.Pattern.Steps.Count, attack.Placement.Slots.Count);
+                            Check.True(starts[attack.Pattern.Id].Contains(attack.ResponseStartTick));
+                            Check.Equal(attack.Placement.Pattern.Steps.Count, attack.Placement.Slots.Count);
                             Check.True(attack.CallStartTick >= callAfter && attack.ResponseStartTick >= responseAfter);
                             Check.True(attack.ResponseEndTick <= music.TotalTicks);
-                            Check.True((long)attack.ResponseStartTick + monster.Monster.ResponseTicks <= music.TotalTicks);
+                            Check.True((long)attack.ResponseStartTick + attack.Pattern.ResponseTicks <= music.TotalTicks);
                             foreach (var call in attack.Call)
                             {
                                 Check.True(call.Tick >= attack.CallStartTick && call.Tick < attack.ResponseStartTick);
                                 Check.Equal(attack.Id, call.AttackId); Check.Equal(monster.InstanceId, call.MonsterId);
                             }
-                            callAfter = (long)attack.ResponseStartTick + monster.Monster.ResponseTicks;
-                            responseAfter = callAfter + monster.Monster.RestTicks;
+                            callAfter = (long)attack.ResponseStartTick + attack.Pattern.ResponseTicks;
+                            responseAfter = callAfter + attack.Pattern.RestTicks;
                         }
                     }
                     for (int i = 0; i < plan.Attacks.Count; i++) for (int j = i + 1; j < plan.Attacks.Count; j++)
-                        Check.False(InputCompatibility.Conflict(plan.Attacks[i].Placement, plan.Attacks[j].Placement, out _));
+                        Check.False(BattlePlanner.Conflicts(plan.Attacks[i], plan.Attacks[j], out _));
                     foreach (var withdrawal in plan.Withdrawals)
                     {
                         Check.True(withdrawal.YieldingOccupiedBeats >= withdrawal.KeptOccupiedBeats);
@@ -58,14 +58,13 @@ namespace BBSB.Tests
                     }
                 }
             }
-            Check.Equal(6, MonsterCatalog.All.Count); Check.Equal(6, seen.Count);
+            Check.Equal(9, MonsterCatalog.All.Count); Check.Equal(9, seen.Count);
         }
 
         [Test]
         public void WholeTripleTapPhraseIsFollowedByOneRestBeat()
         {
-            var source = MonsterCatalog.All.Single(x => x.Id == "tap-slime");
-            var monster = new MonsterDefinition("always", "Always", "", source.Pattern, source.Call, 12, 4, 1);
+            var monster = TripleTap();
             var proposal = BattlePlanner.Propose(MusicStage.Generate(MusicCatalog.All[0]), "slime", monster, 7);
             Check.True(proposal.Placements.Count > 3);
             for (int i = 0; i < proposal.Placements.Count; i++)
@@ -144,7 +143,7 @@ namespace BBSB.Tests
         public void ExtraFlickCannotInterruptTapTapFlickButCanShareItsFlickEnding()
         {
             var stage = Fixture(2);
-            var bat = MonsterCatalog.All.Single(x => x.Id == "spark-bat");
+            var bat = Monster("bat", new[] { new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 2), new PatternStep(GestureKind.Flick, 6) }, 8);
             var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
             var phrase = At(stage, bat, 32); // Tap 32, Tap 34, Flick 38.
             foreach (int tick in new[] { 32, 34, 36 })
@@ -173,8 +172,8 @@ namespace BBSB.Tests
                 new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Tap, 0),
                 new PatternStep(GestureKind.Shake, 4, 4), new PatternStep(GestureKind.Flick, 8)
             }, 8);
-            Check.True(InputCompatibility.IsPlayable(compound.Pattern));
-            foreach (var monster in MonsterCatalog.All) Check.True(InputCompatibility.IsPlayable(monster.Pattern));
+            Check.True(InputCompatibility.IsPlayable(compound.Patterns[0].Pattern));
+            foreach (var monster in MonsterCatalog.All) foreach (var pattern in monster.Patterns) Check.True(InputCompatibility.IsPlayable(pattern.Pattern));
             var plan = BattlePlanner.Resolve(stage, new[] { Proposal(stage, compound, 16) }, 1);
             Check.Equal(0, plan.Withdrawals.Count); Check.Equal(1, plan.Attacks.Count);
             Check.Equal(3, plan.Monsters.Single(x => x.InstanceId == "compound").OccupiedBeatCount); // 16, 20, 24; not five steps + cues.
@@ -184,7 +183,7 @@ namespace BBSB.Tests
         public void MoreOccupiedBeatsYieldsTheWholeBundleEvenWithFewerOccurrences()
         {
             var stage = Fixture();
-            var triple = MonsterCatalog.All.Single(x => x.Id == "tap-slime");
+            var triple = TripleTap();
             var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
             var plan = BattlePlanner.Resolve(stage, new[] { Proposal(stage, triple, 16), Proposal(stage, flick, 20, 36) }, 1);
             Check.Equal(1, plan.Withdrawals.Count);
@@ -200,7 +199,7 @@ namespace BBSB.Tests
         public void OccupancyIsRecountedAfterEachWithdrawal()
         {
             var stage = Fixture();
-            var triple = MonsterCatalog.All.Single(x => x.Id == "tap-slime");
+            var triple = TripleTap();
             var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
             var plan = BattlePlanner.Resolve(stage, new[] { Proposal(stage, triple, 16, 48), Proposal(stage, flick, 20, 36, 52, 68) }, 1);
             Check.Equal(2, plan.Withdrawals.Count);
@@ -252,7 +251,7 @@ namespace BBSB.Tests
             Throws(() => BattlePlanner.Generate(stage, StageKind.Monster, 1, 0));
             Throws(() => BattlePlanner.Generate(stage, StageKind.Monster, 1, -1));
             Throws(() => BattlePlanner.Resolve(Fixture(), new[] { Proposal(stage, monster, 16) }, 1));
-            Throws(() => Proposal(stage, monster, 16, 20)); // Ignores the required rest.
+            Check.Equal(1, BattlePlanner.Resolve(stage, new[] { Proposal(stage, monster, 16, 20) }, 1).Withdrawals.Count);
             Throws(() => BattlePlanner.Resolve(stage, new[] { Proposal(stage, monster, 16), Proposal(stage, monster, 32) }, 1));
         }
 
@@ -263,7 +262,7 @@ namespace BBSB.Tests
             EnterBattle(run); var plan = run.BattlePlan;
             Check.True(plan != null && ReferenceEquals(plan.Stage, run.BattleMusic));
             Check.False(run.ResolveBattle("stale", true, run.Health)); Check.True(ReferenceEquals(plan, run.BattlePlan));
-            foreach (var monster in plan.Monsters) run.BattleMusic.FindPlacements(monster.Monster.Pattern).ToArray();
+            foreach (var monster in plan.Monsters) foreach (var pattern in monster.Monster.Patterns) run.BattleMusic.FindPlacements(pattern.Pattern).ToArray();
             Check.True(ReferenceEquals(plan, run.BattlePlan));
             Check.True(run.ResolveBattle(run.StageTicket, true, run.Health)); Check.True(run.BattlePlan == null);
             run.Restart(73); EnterBattle(run); Check.Equal(Fingerprint(plan), Fingerprint(run.BattlePlan));
@@ -313,13 +312,15 @@ namespace BBSB.Tests
             }
         }
 
+        private static MonsterDefinition TripleTap() => Monster("triple", new[] { new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4), new PatternStep(GestureKind.Tap, 8) }, 12);
+
         private static MonsterDefinition Monster(string id, IEnumerable<PatternStep> steps, int responseTicks, double chance = 1)
         {
             return new MonsterDefinition(id, id, "", new RhythmPattern(id, 4, steps), new[] { new CallSignal(0, "call") }, responseTicks, 4, chance);
         }
 
         private static PatternPlacement At(MusicStage stage, MonsterDefinition monster, int tick)
-            => stage.FindPlacements(monster.Pattern).Single(x => x.StartTick == tick);
+            => stage.FindPlacements(monster.Patterns[0].Pattern).Single(x => x.StartTick == tick);
         private static MonsterProposal Proposal(MusicStage stage, MonsterDefinition monster, params int[] ticks)
             => new MonsterProposal(monster.Id, monster, ticks.Select(x => At(stage, monster, x)));
 
