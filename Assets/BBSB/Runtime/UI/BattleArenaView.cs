@@ -201,7 +201,10 @@ namespace BBSB.Runtime.UI
             Anchor(hero.Portrait.rectTransform, Vector2.zero, Vector2.zero, offset * heroDisplayHeight, size, foot);
             hero.Portrait.preserveAspect = false; // The rectangle already has the exact source aspect.
             hero.Portrait.useSpriteMesh = false;
-            hero.Portrait.rectTransform.localScale = Vector3.one;
+            var deformation = PlayerSquashStretch.Calculate(CurrentHeroMotion, round.BeatSeconds,
+                playerDisplay != null ? playerDisplay.squashStretchStrength : PlayerSquashStretch.DefaultStrength);
+            // The Image pivot is the authored foot, so deformation cannot move its ground point.
+            hero.Portrait.rectTransform.localScale = new Vector3((float)deformation.X, (float)deformation.Y, 1);
             hero.Portrait.rectTransform.localRotation = Quaternion.identity;
         }
 

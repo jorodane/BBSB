@@ -4,7 +4,7 @@ using BBSB.Core;
 
 namespace BBSB.Runtime.UI
 {
-    public enum PlayerMotionPhase { Idle, Sustain, Impact, Recover }
+    public enum PlayerMotionPhase { Idle, Sustain, Impact, Recover, Prepare }
 
     /// <summary>A frame in a generated atlas, numbered from the top left in reading order.</summary>
     public readonly struct PlayerMotionFrame
@@ -19,13 +19,17 @@ namespace BBSB.Runtime.UI
         public MissReason Reason { get; }
         public int Punch { get; }
         public double Age { get; }
+        public double PhaseAge { get; }
         public bool IsFreeInput { get; }
         public bool IsFall => Grade == RhythmGrade.Miss && (Kind == GestureKind.Dive || Kind == GestureKind.Flick);
 
         internal PlayerMotionFrame(string sheet, int index, PlayerMotionPhase phase,
             GestureKind? kind = null, RhythmGrade? grade = null, MissReason reason = MissReason.None,
-            int punch = -1, double age = 0, bool isFreeInput = false)
-        { Sheet = sheet; Index = index; Phase = phase; Kind = kind; Grade = grade; Reason = reason; Punch = punch; Age = age; IsFreeInput = isFreeInput; }
+            int punch = -1, double age = 0, bool isFreeInput = false, double? phaseAge = null)
+        {
+            Sheet = sheet; Index = index; Phase = phase; Kind = kind; Grade = grade; Reason = reason;
+            Punch = punch; Age = age; PhaseAge = phaseAge ?? age; IsFreeInput = isFreeInput;
+        }
     }
 
     /// <summary>
@@ -40,6 +44,22 @@ namespace BBSB.Runtime.UI
             public int Punch = -1;
         }
 
+        private sealed class ShakePulse
+        {
+            private int pose = -1;
+            private double started, lastMoved = double.NegativeInfinity;
+
+            public void Reset() { pose = -1; lastMoved = double.NegativeInfinity; }
+
+            public double Age(int nextPose, double movedAt, double seconds)
+            {
+                // A stroke may span many input samples. Pulse on a new stroke, not every frame.
+                if (pose != nextPose || movedAt - lastMoved >= .14) { pose = nextPose; started = movedAt; }
+                lastMoved = movedAt;
+                return seconds - started;
+            }
+        }
+
         private readonly Random random;
         private readonly List<Reaction> reactions = new List<Reaction>();
         private readonly Dictionary<(GestureKind kind, int start, int end, double time), Reaction> shared =
@@ -47,6 +67,8 @@ namespace BBSB.Runtime.UI
         private readonly Dictionary<ResponseNote, double> contactStarted = new Dictionary<ResponseNote, double>();
         private readonly Dictionary<ResponseNote, double> shakeDistances = new Dictionary<ResponseNote, double>();
         private readonly Dictionary<ResponseNote, double> shakeMoved = new Dictionary<ResponseNote, double>();
+        private readonly Dictionary<ResponseNote, ShakePulse> shakePulses = new Dictionary<ResponseNote, ShakePulse>();
+        private readonly ShakePulse freeShakePulse = new ShakePulse();
         private RhythmRound boundRound;
         private int resultCursor, lastPunch = -1;
         private int freeCursor, freePunch = -1;
@@ -122,6 +144,7 @@ namespace BBSB.Runtime.UI
             if (freeCursor != input.Sequence)
             {
                 freeCursor = input.Sequence;
+                freeShakePulse.Reset();
                 if (kind == GestureKind.Tap) freePunch = NextPunch();
             }
             double seconds = round.ElapsedSeconds, age = seconds - input.StartedAtSeconds;
@@ -130,19 +153,27 @@ namespace BBSB.Runtime.UI
                 bool moving = kind == GestureKind.Shake && seconds - input.LastMovementSeconds < .14;
                 kind = moving ? GestureKind.Shake : GestureKind.Hold;
                 int pose = moving ? (input.IsOutward ? 1 : 0) : age < .065 ? 0 : 1;
+                double phaseAge = moving ? freeShakePulse.Age(pose, input.LastMovementSeconds, seconds) :
+                    input.Kind == GestureKind.Hold ? age - Math.Min(.18, round.BeatSeconds * .5) : double.PositiveInfinity;
                 return new PlayerMotionFrame(SheetFor(kind), pose, PlayerMotionPhase.Sustain, kind,
-                    age: age, isFreeInput: true);
+                    age: age, isFreeInput: true, phaseAge: phaseAge);
             }
             double impact = ImpactDuration(kind, round.BeatSeconds), duration = Math.Min(.48, round.BeatSeconds * .95);
             if (age < 0 || age >= duration) return null;
+            double preparation = kind == GestureKind.Tap ? TapPreparationDuration(round.BeatSeconds) : 0;
+            if (age < preparation)
+                return new PlayerMotionFrame("tap", freePunch * 4, PlayerMotionPhase.Prepare, kind,
+                    punch: freePunch, age: age, isFreeInput: true);
             bool recovering = age >= impact;
             int index = recovering ? (kind == GestureKind.Tap ? freePunch * 4 : kind == GestureKind.Flick ? 0 : 5) :
                 ResultIndex(kind, RhythmGrade.Perfect, freePunch);
             return new PlayerMotionFrame(SheetFor(kind), index, recovering ? PlayerMotionPhase.Recover : PlayerMotionPhase.Impact,
-                kind, punch: freePunch, age: age, isFreeInput: true);
+                kind, punch: freePunch, age: age, isFreeInput: true, phaseAge: age - (recovering ? impact : preparation));
         }
 
-        private static double ImpactDuration(GestureKind kind, double beatSeconds)
+        public static double TapPreparationDuration(double beatSeconds) => Math.Min(.035, ImpactDuration(GestureKind.Tap, beatSeconds) * .4);
+
+        internal static double ImpactDuration(GestureKind kind, double beatSeconds)
         {
             double duration = Math.Min(.24, beatSeconds * .55);
             // Recall punches and recover from ducks/jumps twice as soon, including at fast BPM.
@@ -159,7 +190,7 @@ namespace BBSB.Runtime.UI
                 var kind = note.Step.Kind;
                 if (kind != GestureKind.Hold && kind != GestureKind.Dive && kind != GestureKind.Shake) continue;
                 if (!contactStarted.TryGetValue(note, out double started)) contactStarted[note] = started = seconds;
-                int index;
+                int index; double phaseAge = seconds - started;
                 if (kind == GestureKind.Shake)
                 {
                     shakeDistances.TryGetValue(note, out double previous);
@@ -169,9 +200,12 @@ namespace BBSB.Runtime.UI
                     if (!shakeMoved.TryGetValue(note, out double shakeMovedAt) || seconds - shakeMovedAt >= .14) continue;
                     index = note.ShakeProgress >= .5 ? 1 : 0;
                     started = shakeMovedAt;
+                    if (!shakePulses.TryGetValue(note, out var pulse)) shakePulses[note] = pulse = new ShakePulse();
+                    phaseAge = pulse.Age(index, shakeMovedAt, seconds);
                 }
                 else index = seconds - started < .065 ? 0 : 1;
-                var frame = new PlayerMotionFrame(SheetFor(kind), index, PlayerMotionPhase.Sustain, kind, age: seconds - started);
+                var frame = new PlayerMotionFrame(SheetFor(kind), index, PlayerMotionPhase.Sustain, kind,
+                    age: seconds - started, phaseAge: phaseAge);
                 if (!selected.HasValue || kind == GestureKind.Shake ||
                     (selected.Value.Kind != GestureKind.Shake && Priority(kind) > Priority(selected.Value.Kind.Value))) selected = frame;
                 contactTime = Math.Max(contactTime, started);
@@ -194,15 +228,28 @@ namespace BBSB.Runtime.UI
             }
             duration = Math.Min(duration, Math.Max(impact, gap - .035));
             if (age >= duration || age < 0) return null;
+            // Actual inputs lead with their own ready pose. An automatic no-input hit is immediate.
+            double preparation = kind == GestureKind.Tap && result.Reason != MissReason.NoInput ? TapPreparationDuration(round.BeatSeconds) : 0;
+            if (age < preparation)
+                return new PlayerMotionFrame("tap", reaction.Punch * 4, PlayerMotionPhase.Prepare,
+                    kind, result.Grade, result.Reason, reaction.Punch, age);
             int frame = ResultIndex(kind, result.Grade, reaction.Punch);
             var phase = PlayerMotionPhase.Impact;
+            double phaseStart = preparation;
             if (age >= impact)
             {
                 phase = PlayerMotionPhase.Recover;
-                if (fall) frame = duration >= .6 && age < duration - .18 ? 4 : 5;
+                phaseStart = impact;
+                if (fall)
+                {
+                    bool sit = duration >= .6;
+                    frame = sit && age < duration - .18 ? 4 : 5;
+                    if (sit && frame == 5) phaseStart = Math.Max(impact, duration - .18);
+                }
                 else frame = kind == GestureKind.Tap ? reaction.Punch * 4 : kind == GestureKind.Flick ? 0 : 5;
             }
-            return new PlayerMotionFrame(SheetFor(kind), frame, phase, kind, result.Grade, result.Reason, reaction.Punch, age);
+            return new PlayerMotionFrame(SheetFor(kind), frame, phase, kind, result.Grade, result.Reason, reaction.Punch,
+                age, phaseAge: age - phaseStart);
         }
 
         public static int ResultIndex(GestureKind kind, RhythmGrade grade, int punch = 0)

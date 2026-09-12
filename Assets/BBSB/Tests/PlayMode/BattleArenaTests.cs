@@ -158,7 +158,9 @@ namespace BBSB.Tests
             var foot = parent.InverseTransformPoint(rect.TransformPoint(footLocal));
             Assert.AreEqual(parent.rect.xMin + parent.rect.width * arena.HeroGroundPosition.x, foot.x, .02f);
             Assert.AreEqual(parent.rect.yMin + parent.rect.height * arena.HeroGroundPosition.y + lift, foot.y, .02f);
-            Assert.AreEqual(Vector3.one, rect.localScale);
+            Assert.AreEqual(1, rect.localScale.x * rect.localScale.y, .0001f);
+            Assert.Greater(rect.localScale.x, .84f); Assert.Less(rect.localScale.x, 1.2f);
+            Assert.AreEqual(1, rect.localScale.z);
             Assert.AreEqual(Quaternion.identity, rect.localRotation);
             Assert.AreEqual(sprite.rect.width / sprite.rect.height, rect.rect.width / rect.rect.height, .0001f);
         }
@@ -174,13 +176,46 @@ namespace BBSB.Tests
             round.Press(.4, 0, 0); arena.Refresh();
             Assert.IsTrue(arena.CurrentHeroMotion.IsFreeInput);
             Assert.AreEqual(GestureKind.Tap, arena.CurrentHeroMotion.Kind);
-            Assert.AreEqual(1, arena.CurrentHeroMotion.Index % 4);
+            Assert.AreEqual(PlayerMotionPhase.Prepare, arena.CurrentHeroMotion.Phase);
+            Assert.AreEqual(0, arena.CurrentHeroMotion.Index % 4);
             Assert.AreEqual(0, arena.ActiveResponseEffects); Assert.AreEqual(Color.white, arena.HeroPortrait.color);
+            round.Advance(.44); arena.Refresh(); Assert.AreEqual(1, arena.CurrentHeroMotion.Index % 4);
             round.Release(.45, .1, 0); arena.Refresh();
             Assert.IsTrue(arena.CurrentHeroMotion.IsFreeInput);
             Assert.AreEqual(GestureKind.Flick, arena.CurrentHeroMotion.Kind);
             Assert.AreEqual(0, arena.ActiveResponseEffects); Assert.AreEqual(0, round.Results.Count);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator TapPreparationAndSquashKeepFeetFixedThroughRapidInputAndPause()
+        {
+            var display = ScriptableObject.CreateInstance<PlayerMotionDisplay>();
+            try
+            {
+                var round = Round(1, new PatternStep(GestureKind.Tap, 0));
+                var arena = Arena(round, display); yield return null; Canvas.ForceUpdateCanvases();
+                round.Press(.1, 0, 0); arena.Refresh();
+                Assert.AreEqual(PlayerMotionPhase.Prepare, arena.CurrentHeroMotion.Phase);
+                round.Advance(.117); arena.Refresh(); AssertGrounded(arena, 0);
+                var rect = arena.HeroPortrait.rectTransform; var compressed = rect.localScale;
+                Assert.Less(compressed.y, 1);
+                round.Suspend(); arena.SetPaused(true); round.Advance(100);
+                ((RectTransform)arena.transform).sizeDelta = new Vector2(1000, 700);
+                Canvas.ForceUpdateCanvases(); arena.Refresh();
+                Assert.AreEqual(compressed, rect.localScale); AssertGrounded(arena, 0);
+                round.Resume(true, 0, 0); arena.SetPaused(false); round.Move(.14, 0, 0); arena.Refresh();
+                Assert.AreEqual(PlayerMotionPhase.Impact, arena.CurrentHeroMotion.Phase);
+                Assert.AreEqual(1, arena.CurrentHeroMotion.Index % 4); AssertGrounded(arena, 0);
+                round.Release(.141, 0, 0); round.Press(.18, 0, 0); arena.Refresh();
+                Assert.AreEqual(PlayerMotionPhase.Prepare, arena.CurrentHeroMotion.Phase);
+                Assert.AreEqual(0, arena.CurrentHeroMotion.Index % 4);
+                display.squashStretchStrength = 0; round.Advance(.197); arena.Refresh();
+                Assert.AreEqual(Vector3.one, rect.localScale); AssertGrounded(arena, 0);
+                Assert.AreEqual(0, round.Results.Count); Assert.AreEqual(0, arena.ActiveResponseEffects);
+                LogAssert.NoUnexpectedReceived();
+            }
+            finally { Object.DestroyImmediate(display); }
         }
 
         [UnityTest]
@@ -366,8 +401,8 @@ namespace BBSB.Tests
             round.Press(2, 0, 0); arena.Refresh();
             Assert.AreEqual(3, round.PerfectCount); Assert.AreEqual(3, arena.ActiveResponseEffects);
             Assert.AreEqual(GestureKind.Tap, arena.CurrentHeroMotion.Kind);
-            Assert.AreEqual(PlayerMotionPhase.Impact, arena.CurrentHeroMotion.Phase);
-            Assert.AreEqual(1, arena.CurrentHeroMotion.Index % 4);
+            Assert.AreEqual(PlayerMotionPhase.Prepare, arena.CurrentHeroMotion.Phase);
+            Assert.AreEqual(0, arena.CurrentHeroMotion.Index % 4);
             Assert.IsTrue(arena.GetComponentsInChildren<Graphic>().All(x => !x.raycastTarget));
             foreach (var graphic in arena.GetComponentsInChildren<BattleArenaGraphic>())
             {
@@ -439,6 +474,8 @@ namespace BBSB.Tests
             perfect.Press(2, 0, 0); a.Refresh();
             half.Press(2.1, 0, 0); b.Refresh();
             Assert.AreEqual(1, half.HalfMissCount);
+            Assert.AreEqual(0, a.CurrentHeroMotion.Index % 4); Assert.AreEqual(0, b.CurrentHeroMotion.Index % 4);
+            perfect.Advance(2.04); a.Refresh(); half.Advance(2.14); b.Refresh();
             Assert.AreEqual(1, a.CurrentHeroMotion.Index % 4);
             Assert.AreEqual(2, b.CurrentHeroMotion.Index % 4);
             miss.Advance(2.121); c.Refresh();

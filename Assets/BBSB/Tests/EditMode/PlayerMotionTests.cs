@@ -20,6 +20,11 @@ namespace BBSB.Tests
                 var round = Single(kind); var timeline = new PlayerMotionTimeline(1);
                 Judge(round, kind, grade);
                 var result = round.Results.Single(); var frame = timeline.Evaluate(round);
+                if (kind == GestureKind.Tap && result.Reason != MissReason.NoInput)
+                {
+                    Check.Equal(PlayerMotionPhase.Prepare, frame.Phase); Check.Equal(0, frame.Index % 4);
+                    round.Advance(result.JudgedAtSeconds + .04); frame = timeline.Evaluate(round);
+                }
                 Check.Equal(grade, result.Grade);
                 Check.Equal(kind, frame.Kind.Value); Check.Equal(grade, frame.Grade.Value);
                 Check.Equal(PlayerMotionPhase.Impact, frame.Phase);
@@ -136,9 +141,12 @@ namespace BBSB.Tests
         public void FrozenSongTimeAndClockJumpsDoNotReselectOrReplayPunches()
         {
             var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline(3);
-            round.Press(2, 0, 0); var first = timeline.Evaluate(round);
+            round.Press(2, 0, 0); timeline.Evaluate(round); round.Advance(2.017);
+            var first = timeline.Evaluate(round); var shape = PlayerSquashStretch.Calculate(first, round.BeatSeconds);
+            Check.True(shape.Y < 1);
             round.Suspend(); round.Advance(20); var frozen = timeline.Evaluate(round);
             Check.Equal(first.Index, frozen.Index); Check.Equal(first.Age, frozen.Age); Check.Equal(1, timeline.PunchSelections);
+            Check.Equal(shape.Y, PlayerSquashStretch.Calculate(frozen, round.BeatSeconds).Y);
             round.Resume(false); round.Advance(5);
             Check.Equal(PlayerMotionPhase.Idle, timeline.Evaluate(round).Phase); Check.Equal(1, timeline.PunchSelections);
         }
@@ -149,9 +157,10 @@ namespace BBSB.Tests
             var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline(3);
             round.Press(.4, 0, 0); var first = timeline.Evaluate(round);
             Check.True(first.IsFreeInput); Check.Equal(GestureKind.Tap, first.Kind.Value);
-            Check.False(first.Grade.HasValue); Check.Equal(1, first.Index % 4);
+            Check.False(first.Grade.HasValue); Check.Equal(PlayerMotionPhase.Prepare, first.Phase); Check.Equal(0, first.Index % 4);
             round.Release(.43, 0, 0); Check.Equal(first.Punch, timeline.Evaluate(round).Punch);
             Check.Equal(1, timeline.PunchSelections);
+            round.Advance(.44); Check.Equal(1, timeline.Evaluate(round).Index % 4);
             round.Advance(.519); Check.Equal(PlayerMotionPhase.Impact, timeline.Evaluate(round).Phase);
             round.Advance(.521); var recall = timeline.Evaluate(round);
             Check.Equal(PlayerMotionPhase.Recover, recall.Phase); Check.Equal(first.Punch * 4, recall.Index);
@@ -234,6 +243,86 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void FastConsecutiveTapsAlwaysPrepareAndRecallWithoutDelayingJudgments()
+        {
+            foreach (double bpm in new[] { 120.0, 168.0, 240.0 })
+            {
+                var round = RoundAtBpm(bpm, 3, new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 2),
+                    new PatternStep(GestureKind.Tap, 4), new PatternStep(GestureKind.Tap, 6));
+                var timeline = new PlayerMotionTimeline(7); int previous = -1;
+                double beat = round.BeatSeconds;
+                for (int i = 0; i < 4; i++)
+                {
+                    double at = beat * (4 + i * .5), prepare = PlayerMotionTimeline.TapPreparationDuration(beat);
+                    round.Press(at, 0, 0); var ready = timeline.Evaluate(round);
+                    Check.Equal(PlayerMotionPhase.Prepare, ready.Phase); Check.Equal(0, ready.Index % 4);
+                    Check.True(ready.Punch != previous); previous = ready.Punch;
+                    Check.Equal((i + 1) * 3, round.PerfectCount); Check.Equal(at, round.Results.Last().JudgedAtSeconds);
+                    round.Advance(at + prepare * .5);
+                    Check.True(PlayerSquashStretch.Calculate(timeline.Evaluate(round), beat).Y < 1);
+                    round.Advance(at + prepare + .01); var strike = timeline.Evaluate(round);
+                    Check.Equal(PlayerMotionPhase.Impact, strike.Phase); Check.Equal(ready.Punch * 4 + 1, strike.Index);
+                    round.Advance(at + beat * .30); var recall = timeline.Evaluate(round);
+                    Check.Equal(PlayerMotionPhase.Recover, recall.Phase); Check.Equal(ready.Punch * 4, recall.Index);
+                    round.Release(round.ElapsedSeconds, 0, 0);
+                }
+                Check.Equal(4, timeline.PunchSelections); Check.Equal(0m, round.TotalDamageTaken);
+            }
+            // Unmatched rapid taps can interrupt a punch before its usual recall, but still show a ready pose.
+            var empty = Single(GestureKind.Tap); var free = new PlayerMotionTimeline(9);
+            for (int i = 0; i < 4; i++)
+            {
+                double at = .1 + i * .08;
+                empty.Press(at, 0, 0); Check.Equal(PlayerMotionPhase.Prepare, free.Evaluate(empty).Phase);
+                empty.Advance(at + .04); Check.Equal(PlayerMotionPhase.Impact, free.Evaluate(empty).Phase);
+                empty.Release(at + .041, 0, 0);
+            }
+            Check.Equal(0, empty.Results.Count); Check.Equal(0m, empty.TotalDamageTaken);
+        }
+
+        [Test]
+        public void EveryGestureHasBriefDeformationThatSettlesWithoutChangingItsGrade()
+        {
+            foreach (GestureKind kind in Enum.GetValues(typeof(GestureKind)))
+            foreach (RhythmGrade grade in Enum.GetValues(typeof(RhythmGrade)))
+            {
+                var round = Single(kind); var timeline = new PlayerMotionTimeline(3);
+                Judge(round, kind, grade); timeline.Evaluate(round);
+                var result = round.Results.Single(); double at = result.JudgedAtSeconds;
+                decimal damage = round.TotalDamageTaken;
+                round.Advance(at + .06); var frame = timeline.Evaluate(round);
+                var shape = PlayerSquashStretch.Calculate(frame, round.BeatSeconds);
+                Check.True(Math.Abs(shape.X - 1) > .005);
+                Check.True(shape.X > .9 && shape.X < 1.1 && shape.Y > .9 && shape.Y < 1.1);
+                Check.True(Math.Abs(shape.X * shape.Y - 1) < 1e-9);
+                var disabled = PlayerSquashStretch.Calculate(frame, round.BeatSeconds, 0);
+                Check.Equal(1.0, disabled.X); Check.Equal(1.0, disabled.Y);
+                round.Advance(at + .38);
+                var settled = PlayerSquashStretch.Calculate(timeline.Evaluate(round), round.BeatSeconds);
+                Check.Equal(1.0, settled.X); Check.Equal(1.0, settled.Y);
+                Check.Equal(grade, result.Grade); Check.Equal(1, round.Results.Count); Check.Equal(damage, round.TotalDamageTaken);
+            }
+        }
+
+        [Test]
+        public void ShakeDeformationPulsesPerStrokeInsteadOfRestartingOnEveryMovementSample()
+        {
+            var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline();
+            round.Press(.1, 0, 0); timeline.Evaluate(round);
+            round.Move(.12, .1, 0); timeline.Evaluate(round);
+            round.Move(.15, .11, 0);
+            Check.True(PlayerSquashStretch.Calculate(timeline.Evaluate(round), round.BeatSeconds).X > 1);
+            round.Move(.24, .12, 0);
+            Check.Equal(1.0, PlayerSquashStretch.Calculate(timeline.Evaluate(round), round.BeatSeconds).X);
+            round.Move(.27, 0, 0); timeline.Evaluate(round);
+            round.Move(.30, 0, 0);
+            Check.True(PlayerSquashStretch.Calculate(timeline.Evaluate(round), round.BeatSeconds).X > 1);
+            round.Advance(.6);
+            Check.Equal(1.0, PlayerSquashStretch.Calculate(timeline.Evaluate(round), round.BeatSeconds).X);
+            Check.Equal(0, round.Results.Count);
+        }
+
+        [Test]
         public void GreenImportMattePreservesCostumeColorsAndSoftBlackEdges()
         {
             PlayerChromaKey.Composite(0, 255, 0, 255, out _, out _, out _, out byte clear);
@@ -268,7 +357,9 @@ namespace BBSB.Tests
             }
         }
 
-        private static RhythmRound Round(int count, params PatternStep[] steps)
+        private static RhythmRound Round(int count, params PatternStep[] steps) => RoundAtBpm(120, count, steps);
+
+        private static RhythmRound RoundAtBpm(double bpm, int count, params PatternStep[] steps)
         {
             var slots = new List<SlotTemplate>();
             for (int tick = 0; tick < 16; tick += 2)
@@ -277,7 +368,7 @@ namespace BBSB.Tests
                 foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive, GestureKind.Shake })
                     slots.Add(new SlotTemplate(kind, tick, 4));
             }
-            var stage = MusicStage.Generate(new MusicDefinition("motion", "Motion", 120, 4, new[]
+            var stage = MusicStage.Generate(new MusicDefinition("motion", "Motion", bpm, 4, new[]
             { new MusicSection("INTRO", 0, 1, 1, false), new MusicSection("BODY", 1, 3, 1) }, new[] { slots }));
             var pattern = new RhythmPattern("motion", 4, steps);
             var monster = new MonsterDefinition("tap-slime", "Motion", "", pattern, new[] { new CallSignal(0, "통!") },

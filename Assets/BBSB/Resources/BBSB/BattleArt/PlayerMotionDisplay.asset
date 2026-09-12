@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundPosition: {x: 0.14, y: 0.15}
   characterScale: 0.5
+  squashStretchStrength: 1
   referencePose: {fileID: 8793639957104055765, guid: 810142f81a473c544a477a0a25ad0bdc, type: 3}
   sheets:
   - name: idle

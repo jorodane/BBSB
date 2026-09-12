@@ -15,6 +15,7 @@ namespace BBSB.Editor
             serializedObject.Update();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("groundPosition"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("characterScale"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("squashStretchStrength"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("referencePose"));
             var sheets = serializedObject.FindProperty("sheets");
             if (sheets.arraySize == 0)

@@ -15,6 +15,8 @@ namespace BBSB.Runtime.UI
         public Vector2 groundPosition = DefaultGround;
         [Min(.01f), Tooltip("Uniform size of the whole character, including every pose.")]
         public float characterScale = DefaultCharacterScale;
+        [Range(0, 2), Tooltip("Brief squash and stretch during battle. 0 disables deformation; 1 is the default intensity.")]
+        public float squashStretchStrength = PlayerSquashStretch.DefaultStrength;
         [Tooltip("Standing pose used as the common size reference. Empty uses idle_0.")]
         public Sprite referencePose;
         public Sheet[] sheets = Array.Empty<Sheet>();
@@ -71,6 +73,8 @@ namespace BBSB.Runtime.UI
         {
             groundPosition = new Vector2(Mathf.Clamp01(groundPosition.x), Mathf.Clamp01(groundPosition.y));
             characterScale = ValidScale(characterScale);
+            squashStretchStrength = float.IsNaN(squashStretchStrength) || float.IsInfinity(squashStretchStrength) ?
+                PlayerSquashStretch.DefaultStrength : Mathf.Clamp(squashStretchStrength, 0, 2);
         }
     }
 }
