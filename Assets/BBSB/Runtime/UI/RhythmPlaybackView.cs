@@ -13,6 +13,9 @@ namespace BBSB.Runtime.UI
         private readonly RunSession session;
         private readonly Text beatLabel, feedback, counters, contact;
         private readonly Text healthLabel, damageLabel;
+        private readonly Text enemyLabel;
+        private readonly RectTransform enemyFill;
+        private readonly Text[] weaponLabels;
         private readonly RectTransform healthFill;
         private readonly Image healthImage;
         private double damageShownAt = double.NegativeInfinity;
@@ -65,6 +68,24 @@ namespace BBSB.Runtime.UI
             damageLabel.gameObject.name = "Player damage";
             RunUI.Overlay(damageLabel.rectTransform, new Vector2(0, 1), new Vector2(.32f, 1), new Vector2(24, -194), new Vector2(0, -160));
 
+            if (round.Combat != null)
+            {
+                enemyLabel = ui.Label(root, "", 23, RunUI.Red, 34, TextAnchor.MiddleCenter);
+                enemyLabel.name = "Shared stage health";
+                RunUI.Overlay(enemyLabel.rectTransform, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -135), new Vector2(0, -101));
+                enemyFill = Progress(root, ui, "Shared stage health bar", 8);
+                enemyFill.GetComponent<Image>().color = RunUI.Red;
+                RunUI.Overlay((RectTransform)enemyFill.parent, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -149), new Vector2(0, -141));
+                var strip = ui.Rect("Live weapons", root);
+                RunUI.Overlay(strip, new Vector2(.35f, 1), new Vector2(.98f, 1), new Vector2(0, -217), new Vector2(0, -161));
+                weaponLabels = new Text[round.Combat.Loadout.Equipment.Count];
+                for (int i = 0; i < weaponLabels.Length; i++)
+                {
+                    var card = ui.Rect("Live weapon " + i, strip); ui.Background(card, RunUI.Panel);
+                    RunUI.Overlay(card, new Vector2((float)i / weaponLabels.Length, 0), new Vector2((float)(i + 1) / weaponLabels.Length, 1), new Vector2(3, 0), new Vector2(-3, 0));
+                    weaponLabels[i] = ui.Label(card, "", 17, RunUI.Muted, 56, TextAnchor.MiddleCenter); RunUI.Stretch(weaponLabels[i].rectTransform, 3);
+                }
+            }
             feedback = ui.Label(root, "Call을 보고 박자를 준비해", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
             feedback.gameObject.name = "Response feedback";
             RunUI.Overlay(feedback.rectTransform, new Vector2(.43f, 0), new Vector2(1, 0), new Vector2(0, 62), new Vector2(-24, 110));
@@ -93,8 +114,14 @@ namespace BBSB.Runtime.UI
             ui.Button(home, "연주 정보 · 패턴", () => select(details.gameObject));
             ui.Button(home, "조작 방법", () => select(help.gameObject));
             soundLabel = ui.Button(home, "박자·Call 소리 끄기", sound).GetComponentInChildren<Text>();
-            ui.Button(home, "준비로 돌아가기", leave);
+            ui.Button(home, round.Combat != null && round.Combat.IsPractice ? "배치로 돌아가기" : "준비로 돌아가기", leave);
             counters = ui.Label(details, "", 26, RunUI.Gold, 58);
+            if (round.Combat != null)
+                foreach (var state in round.Combat.Loadout.Equipment)
+                {
+                    var weapon = WeaponCatalog.Find(state.DefinitionId);
+                    ui.Label(details, weapon.Name + " +" + state.Level + " · " + weapon.PatternLabel + "\n" + weapon.EffectLabel, 22, RunUI.Teal, 94);
+                }
             foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(details, ui, round, monster));
             ui.Button(details, "메뉴로 돌아가기", resetMenu);
             ui.Controls(help);
@@ -110,8 +137,11 @@ namespace BBSB.Runtime.UI
 
         public void Refresh(double seconds, bool waitingForContact)
         {
-            healthLabel.text = "HP  " + session.Health.ToString("0.##") + " / " + session.MaxHealth;
-            float healthRatio = Mathf.Clamp01((float)(session.Health / session.MaxHealth));
+            bool practice = round.Combat != null && round.Combat.IsPractice;
+            decimal health = practice ? round.Combat.PlayerHealth : session.Health;
+            healthLabel.text = (practice ? "연습 HP  " : "HP  ") + health.ToString("0.##") + " / " + session.MaxHealth;
+            float healthRatio = Mathf.Clamp01((float)(health / session.MaxHealth));
+            RefreshWeapons(seconds);
             healthFill.anchorMax = new Vector2(healthRatio, 1);
             healthImage.color = healthLabel.color = healthRatio <= .25f ? RunUI.Red : RunUI.Teal;
             var music = round.Plan.Stage.Music;
@@ -152,20 +182,60 @@ namespace BBSB.Runtime.UI
             }
             damageLabel.enabled = seconds - damageShownAt < 1;
             counters.text = "정확 " + round.PerfectCount + "  ·  반미스 " + round.HalfMissCount + "  ·  미스 " + round.MissCount +
-                "  /  전체 " + round.Notes.Count;
+                "  /  전체 " + round.ResponseNoteCount;
             contact.text = waitingForContact ? "화면을 눌러 연주를 이어가" : round.IsDown ? "누르는 중" : "손을 뗀 상태";
             contact.color = waitingForContact ? RunUI.Gold : round.IsDown ? RunUI.Teal : RunUI.Muted;
             if (!waitingForContact)
             {
                 var shakes = new List<string>();
                 foreach (var note in round.Notes)
-                    if (note.Step.Kind == GestureKind.Shake && note.State == ResponseState.Holding)
+                    if (note.Step.Kind == GestureKind.Shake && note.State == ResponseState.Holding && (round.Combat == null || round.Combat.Allows(note.Attack)))
                         shakes.Add(ShakeStatus(note));
                 if (shakes.Count > 0) contact.text = "Shake " + string.Join(" / ", shakes) + "  ·  한 번 왕복";
+            }
+            if (round.Combat != null && round.Combat.Victory)
+            {
+                feedback.text = seconds < round.Combat.FinaleAtSeconds ? "OVERKILL · 마지막 패턴을 마무리해" : "STAGE CLEAR";
+                feedback.color = RunUI.Gold;
             }
             foreach (var card in monsters) card.Refresh(seconds);
             arena.SetPaused(pauseOverlay.activeSelf || waitingForContact);
             arena.Refresh();
+        }
+
+        private void RefreshWeapons(double seconds)
+        {
+            var combat = round.Combat; if (combat == null) return;
+            enemyLabel.text = (combat.IsPractice ? "연습 표적 HP " : "스테이지 HP ") + combat.EnemyHealth.Current.ToString("0.##") + " / " + combat.EnemyHealth.Maximum;
+            enemyFill.anchorMax = new Vector2((float)(combat.EnemyHealth.Current / combat.EnemyHealth.Maximum), 1);
+            for (int slot = 0; slot < weaponLabels.Length; slot++)
+            {
+                var definition = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
+                string state = combat.Loadout.At(slot) == null ? "미배치" : "대기";
+                Color tint = RunUI.Muted;
+                ResponseNote next = null;
+                foreach (var note in round.Notes)
+                {
+                    if (note.WeaponSlot != slot || note.State == ResponseState.Resolved || !combat.Allows(note.Attack)) continue;
+                    if (next == null || note.StartTick < next.StartTick) next = note;
+                }
+                if (next != null && seconds >= RhythmTime.Seconds(next.Attack.ResponseStartTick, round.Plan.Stage.Music.Bpm))
+                {
+                    state = next.Step.Kind + (next.State == ResponseState.Holding ? " 유지" : " · " + WeaponPreparationView.BeatLabel(next.StartTick - next.Attack.ResponseStartTick));
+                    tint = RunUI.Gold;
+                }
+                for (int i = combat.Activations.Count - 1; i >= 0; i--)
+                {
+                    var activation = combat.Activations[i];
+                    if (activation.Slot != slot || seconds - activation.AtSeconds >= .45) continue;
+                    state = activation.Guard > 0 ? "방어막 +" + activation.Guard.ToString("0.##") : "피해 " + activation.Damage.ToString("0.##");
+                    tint = RunUI.Teal; break;
+                }
+                if (definition.Kind == WeaponKind.Shield && combat.GuardAt(seconds) > 0)
+                    state = "방어막 " + combat.GuardAt(seconds).ToString("0.##");
+                weaponLabels[slot].text = (slot + 1) + " " + definition.Name + "\n" + state;
+                weaponLabels[slot].color = tint;
+            }
         }
 
         public static string GradeLabel(RhythmGrade grade) => grade == RhythmGrade.Perfect ? "PERFECT" : grade == RhythmGrade.HalfMiss ? "반미스" : "MISS";
@@ -239,7 +309,7 @@ namespace BBSB.Runtime.UI
                     var actions = new List<string>();
                     foreach (var note in round.Notes)
                     {
-                        if (note.Attack != current || note.State == ResponseState.Resolved) continue;
+                        if (note.IsWeapon || note.Attack != current || note.State == ResponseState.Resolved) continue;
                         if (note.State == ResponseState.Holding)
                             actions.Add(note.Step.Kind + (note.Step.Kind == GestureKind.Dive ? " 끝에 떼기" : note.Step.Kind == GestureKind.Shake ?
                                 " " + ShakeStatus(note) : " 유지"));

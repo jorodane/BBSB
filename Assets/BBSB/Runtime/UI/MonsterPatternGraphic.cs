@@ -28,7 +28,7 @@ namespace BBSB.Runtime.UI
                 if (attack != null && pattern != attack.Pattern) Bind(attack.Pattern);
                 liveAttack = attack; liveNotes = attack == null ? null : new ResponseNote[pattern.Pattern.Steps.Count];
                 if (attack != null) foreach (var note in round.Notes)
-                    if (note.Attack == attack) liveNotes[note.StepIndex] = note;
+                    if (!note.IsWeapon && note.Attack == attack) liveNotes[note.StepIndex] = note;
             }
             cursorTick = attack == null ? -1 : (float)(seconds / round.BeatSeconds * RhythmTime.TicksPerBeat - attack.CallStartTick);
             SetVerticesDirty();

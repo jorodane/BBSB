@@ -85,7 +85,7 @@ namespace BBSB.Tests
             var performance = player.Round;
             performance.Advance(plan.Stage.Music.DurationSeconds + 1);
             yield return null; yield return null;
-            Assert.IsTrue(performance.Finished); Assert.AreEqual(performance.Notes.Count, performance.MissCount);
+            Assert.IsTrue(performance.Finished); Assert.AreEqual(performance.ResponseNoteCount, performance.MissCount);
             Assert.IsNull(presenter.ActiveRound);
             Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "연주 결과"));
             Assert.AreEqual(RunPhase.Stage, presenter.Session.Phase);
@@ -226,6 +226,67 @@ namespace BBSB.Tests
             Assert.IsNull(root.GetComponentInChildren<RhythmPlayback>());
             Assert.IsFalse(presenter.StartRhythmRound());
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator WeaponEditorAcceptsDragDropAndPracticeReturnsWithRunStateUnchanged()
+        {
+            yield return Prepare(new RunRules(startingHealth: 10000));
+            var run = presenter.Session;
+            decimal health = run.Health, enemy = run.EnemyHealth.Current; int gold = run.Gold;
+            presenter.OpenWeaponPreparation(); yield return null; Canvas.ForceUpdateCanvases();
+            var editor = root.GetComponentInChildren<WeaponPreparationView>(); Assert.IsNotNull(editor);
+            Assert.AreEqual(5, root.GetComponentsInChildren<WeaponCardDrag>().Length);
+            editor.SelectWeapon(2); yield return null;
+            var source = root.GetComponentsInChildren<WeaponCardDrag>().Single(x => x.name == "Weapon card 2");
+            var pattern = editor.Arrangement.Patterns[editor.SelectedPattern];
+            int offset = editor.Arrangement.ValidOffsets(2, pattern).First();
+            var drop = root.GetComponentsInChildren<WeaponPlacementDrop>().First(x => x.Offset == offset);
+            var data = new PointerEventData(EventSystem.current) { pointerDrag = source.gameObject, position = Vector2.zero };
+            source.OnBeginDrag(data); drop.OnDrop(data); source.OnEndDrag(data); yield return null;
+            Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
+            Assert.IsFalse(editor.PlaceAt(int.MaxValue)); yield return null;
+            Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
+            Assert.IsTrue(presenter.StartWeaponPractice(editor.SelectedPattern)); yield return null;
+            var playback = root.GetComponentInChildren<RhythmPlayback>(); playback.SetBeatSound(false);
+            Assert.IsTrue(playback.Round.Combat.IsPractice); Assert.AreEqual(1, playback.Round.Plan.Attacks.Count);
+            Assert.IsNotNull(root.GetComponentsInChildren<Text>().Single(x => x.name == "Shared stage health"));
+            Click("메뉴"); yield return null;
+            Assert.IsTrue(playback.IsPaused); Click("이어하기");
+            playback.Round.Advance(100); yield return null; yield return null;
+            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "연습 결과"));
+            Assert.AreEqual(health, run.Health); Assert.AreEqual(enemy, run.EnemyHealth.Current); Assert.AreEqual(gold, run.Gold);
+            Assert.AreEqual(RunPhase.Stage, run.Phase); Assert.AreEqual(0, run.Offers.Count);
+            Click("배치로 돌아가기"); yield return null;
+            Assert.IsNotNull(root.GetComponentInChildren<WeaponPreparationView>());
+            Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
+        }
+
+        [UnityTest]
+        public IEnumerator DepletingSharedHealthFinishesOverkillAndGrantsRewardsOnce()
+        {
+            yield return Prepare(new RunRules(startingHealth: 10000));
+            var run = presenter.Session; string ticket = run.StageTicket; int gold = run.Gold;
+            RhythmRound round = null;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                var playback = Begin(); round = playback.Round;
+                foreach (double at in round.Notes.Where(n => n.Step.Touch.Start == TouchTransition.Press).Select(n => n.StartSeconds).Distinct().OrderBy(x => x))
+                {
+                    if (round.Finished) break;
+                    round.Press(at, 0, 0); round.Release(at + .001, 0, 0);
+                }
+                round.Advance(round.Plan.Stage.Music.DurationSeconds + 2);
+                yield return null; yield return null;
+                if (round.Combat.Victory) break;
+                Assert.AreEqual(RunPhase.Stage, run.Phase);
+                Click("다시 준비"); yield return null;
+            }
+            Assert.IsTrue(round.Combat.Victory);
+            Assert.IsNull(presenter.ActiveRound); Assert.AreEqual(RunPhase.Reward, run.Phase);
+            Assert.AreEqual(gold + 25, run.Gold); Assert.AreEqual(1, run.ClearedStages);
+            Assert.IsFalse(run.ResolveBattle(ticket, true, run.Health));
+            Assert.AreEqual(gold + 25, run.Gold);
         }
 
         private IEnumerator Prepare(RunRules rules = null)

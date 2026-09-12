@@ -17,6 +17,9 @@ namespace BBSB.Runtime
         private readonly int beatsPerBar;
         private int nextPulse, voice, nextCall, callVoice;
         public bool Muted { get; private set; }
+        private bool callsSuppressed;
+        public void SuppressCalls()
+        { if (callsSuppressed) return; callsSuppressed = true; foreach (var source in callVoices) source.Stop(); }
 
         public BeatMetronome(Transform parent, BattlePlan plan)
         {
@@ -69,7 +72,7 @@ namespace BBSB.Runtime
                 source.volume = strong ? .36f : half ? .12f : .24f;
                 source.PlayScheduled(at);
             }
-            while (nextCall < calls.Count)
+            while (!callsSuppressed && nextCall < calls.Count)
             {
                 var call = calls[nextCall]; double at = origin + call.seconds - offset;
                 if (at > dspNow + .15) break;

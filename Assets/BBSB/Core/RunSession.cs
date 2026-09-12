@@ -27,6 +27,8 @@ namespace BBSB.Core
         public string StageTicket { get; private set; }
         public MusicStage BattleMusic { get; private set; }
         public BattlePlan BattlePlan { get; private set; }
+        public StageHealth EnemyHealth { get; private set; }
+        public WeaponArrangement BattleLoadout { get; private set; }
         public RhythmRound ActiveRhythmRound { get; private set; }
         public bool ServiceClaimed => claimedService;
         public IReadOnlyList<WeaponState> Weapons { get; }
@@ -53,7 +55,7 @@ namespace BBSB.Core
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
             foreach (var id in new[] { "sword", "shield", "spear", "hammer", "dagger" })
                 weapons.Add(new WeaponState(id));
-            CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; claimedService = false;
+            CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false;
             Map = MapGenerator.Generate(1, mapRandom); Phase = RunPhase.Map;
         }
 
@@ -74,6 +76,12 @@ namespace BBSB.Core
             BattleMusic = CurrentNode.IsBattle
                 ? MusicCatalog.ForEncounter(Seed, Map.Number, CurrentNode.Row, CurrentNode.Column) : null;
             BattlePlan = CurrentNode.IsBattle ? BattlePlanner.ForEncounter(BattleMusic, Seed, CurrentNode, Map.Number) : null;
+            if (BattlePlan != null)
+            {
+                decimal maximum = (160 + (Map.Number - 1) * 50 + CurrentNode.Row * 20) *
+                    (CurrentNode.Kind == StageKind.Boss ? 2.5m : CurrentNode.Kind == StageKind.Elite ? 1.5m : 1m);
+                EnemyHealth = new StageHealth(maximum); BattleLoadout = new WeaponArrangement(BattlePlan, Weapons);
+            }
             if (CurrentNode.Kind == StageKind.Shop) GenerateOffers(true);
             return true;
         }
@@ -97,7 +105,7 @@ namespace BBSB.Core
         public RhythmRound StartRhythmRound()
         {
             if (Phase != RunPhase.Stage || BattlePlan == null || ActiveRhythmRound != null || Health <= 0) return null;
-            ActiveRhythmRound = new RhythmRound(BattlePlan);
+            ActiveRhythmRound = new RhythmRound(BattlePlan, combat: new WeaponBattle(BattleLoadout, EnemyHealth, Health, MaxHealth));
             ActiveRhythmRound.ResultJudged += ApplyRhythmDamage;
             return ActiveRhythmRound;
         }
@@ -185,7 +193,7 @@ namespace BBSB.Core
         {
             if (Phase != RunPhase.FieldCleared) return false;
             Map = MapGenerator.Generate(Map.Number + 1, mapRandom);
-            CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; visited.Clear(); claimedService = false;
+            CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; visited.Clear(); claimedService = false;
             Phase = RunPhase.Map;
             return true;
         }
@@ -230,7 +238,7 @@ namespace BBSB.Core
 
         private bool ValidSlot(int slot) => slot >= 0 && slot < weapons.Count;
         private bool IsService(StageKind kind) => Phase == RunPhase.Stage && CurrentNode != null && CurrentNode.Kind == kind;
-        private void CompleteStage() { visited.Add(CurrentNode.Id); ClearedStages++; StageTicket = null; BattleMusic = null; BattlePlan = null; }
+        private void CompleteStage() { visited.Add(CurrentNode.Id); ClearedStages++; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; }
         private void FinishReward()
         {
             offers.Clear();
@@ -242,7 +250,7 @@ namespace BBSB.Core
             // Retain only the reached field/stage count for the result screen. No inventory survives.
             Health = 0; MaxHealth = rules.StartingHealth; Gold = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); offers.Clear();
-            visited.Clear(); StageTicket = null; BattleMusic = null; BattlePlan = null; claimedService = false; Phase = RunPhase.GameOver;
+            visited.Clear(); StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false; Phase = RunPhase.GameOver;
         }
     }
 }

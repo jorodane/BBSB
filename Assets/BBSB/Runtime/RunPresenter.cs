@@ -30,6 +30,8 @@ namespace BBSB.Runtime
         private bool rendering;
         private readonly MusicPreview musicPreview = new MusicPreview();
         private RhythmRound completedRound;
+        private bool weaponEditor;
+        private int practicePattern;
 
         public void Initialize(RunRules runRules, Font font, int? seed, bool showTestControls)
         {
@@ -51,7 +53,7 @@ namespace BBSB.Runtime
         public bool SubmitBattleResult(string ticket, bool victory, decimal remainingHealth)
         {
             if (Session == null || !Session.ResolveBattle(ticket, victory, remainingHealth)) return false;
-            ActiveRound = completedRound = null;
+            ActiveRound?.Stop(); ActiveRound = completedRound = null; weaponEditor = false;
             menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return true;
         }
 
@@ -60,6 +62,7 @@ namespace BBSB.Runtime
             int seed = fixedSeed ?? Guid.NewGuid().GetHashCode();
             if (Session == null) Session = new RunSession(seed, rules); else Session.Restart(seed);
             ActiveRound = completedRound = null;
+            weaponEditor = false; practicePattern = 0;
             title = false; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
         }
 
@@ -78,6 +81,13 @@ namespace BBSB.Runtime
                 string ticket = Session.StageTicket;
                 screen.gameObject.AddComponent<RhythmPlayback>().Bind(ActiveRound, Session, ui,
                     round => FinishRhythmRound(ticket, round), () => LeaveRhythmRound(ticket));
+                rendering = false; return;
+            }
+            if (weaponEditor && Session.BattleLoadout != null && completedRound == null)
+            {
+                screen.gameObject.AddComponent<WeaponPreparationView>().Bind(ui, Session, practicePattern,
+                    index => StartWeaponPractice(index), () => { weaponEditor = false; StartRhythmRound(); },
+                    () => { weaponEditor = false; Render(); });
                 rendering = false; return;
             }
             // Scenes fill the viewport. HUD controls are siblings layered over the scene.
@@ -201,7 +211,8 @@ namespace BBSB.Runtime
         {
             if (!Session.Enter(nodeId)) return;
             ActiveRound = completedRound = null;
-            if (Session.CurrentNode.IsBattle) musicPreview.Reset(Session.BattleMusic);
+            weaponEditor = false; practicePattern = 0;
+            if (Session.CurrentNode.IsBattle) { musicPreview.Reset(Session.BattleMusic); Session.BattleLoadout.AutoArrange(); }
             menuPage = MenuPage.None; notice = ""; Render();
             if (Session.CurrentNode.IsBattle) BattleRequested?.Invoke(Session.StageTicket, Session.CurrentNode.Kind, Session.Map.Number);
         }
@@ -244,11 +255,17 @@ namespace BBSB.Runtime
             var stage = ui.Rect("Preparation arena", screen); RunUI.Stretch(stage);
             var arena = stage.gameObject.AddComponent<BattleArenaView>();
             // A still preview reads the same plan without starting playback or changing the session.
-            arena.Initialize(new RhythmRound(plan), ui.Font);
+            arena.Initialize(new RhythmRound(plan, combat: new WeaponBattle(Session.BattleLoadout,
+                new StageHealth(Session.EnemyHealth.Maximum), Session.Health, Session.MaxHealth, true)), ui.Font);
             var heading = ui.Label(screen, "준비하기", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
             RunUI.Overlay(heading.rectTransform, new Vector2(.3f, 1), new Vector2(.82f, 1), new Vector2(0, -58), new Vector2(0, -14));
             var song = ui.Label(screen, ContentCatalog.StageName(kind) + "  ·  " + music.Name + "  /  " + music.Bpm + " BPM", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
             RunUI.Overlay(song.rectTransform, new Vector2(.3f, 1), new Vector2(.82f, 1), new Vector2(0, -96), new Vector2(0, -60));
+            var enemy = ui.Label(screen, "스테이지 HP " + Session.EnemyHealth.Current.ToString("0.##") + " / " + Session.EnemyHealth.Maximum +
+                "  ·  모든 몬스터가 공유", 22, RunUI.Red, 34, TextAnchor.MiddleCenter);
+            RunUI.Overlay(enemy.rectTransform, new Vector2(.32f, 1), new Vector2(.85f, 1), new Vector2(0, -140), new Vector2(0, -106));
+            var weapons = ui.Button(screen, "무기 배치 · 연습", OpenWeaponPreparation, primary: true, height: 64);
+            RunUI.Pin((RectTransform)weapons.transform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(-40, 26), new Vector2(230, 64));
             var patterns = ui.Button(screen, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns), height: 76);
             RunUI.Pin((RectTransform)patterns.transform, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-260, 24), new Vector2(220, 76));
             var start = ui.Button(screen, "연주 시작", () => StartRhythmRound(), primary: true, height: 76);
@@ -270,7 +287,7 @@ namespace BBSB.Runtime
             var plan = Session.BattlePlan;
             var kind = Session.CurrentNode.Kind;
             ui.Label(body, "개발용 계획 요약  ·  공격 " + plan.Attacks.Count + "묶음 / 양보 " + plan.Withdrawals.Count + "묶음", 19, RunUI.Muted, 48);
-            ui.Label(body, "샘플 곡은 박자음으로 재생돼.\n플레이어 피해가 적용돼. 몬스터 피해는 무기 배치 구현 후 연결할 거야.", 20, RunUI.Muted, 82);
+            ui.Label(body, "샘플 곡은 박자음으로 재생돼.\n배치한 무기가 공유 HP를 깎아. HP 0 이후 Overkill을 마치면 클리어야.", 20, RunUI.Muted, 82);
             musicPreview.Draw(ui, body, RenderMusicPreview);
             var card = ui.Card(body);
             ui.Label(card, "테스트용 전투 결과", 21, RunUI.Gold, 40);
@@ -282,18 +299,35 @@ namespace BBSB.Runtime
             ui.Button(card, "게임오버 처리", () => SubmitBattleResult(ticket, false, 0));
         }
 
+        public void OpenWeaponPreparation()
+        {
+            if (Session?.BattleLoadout == null || ActiveRound != null) return;
+            completedRound = null; weaponEditor = true; menuPage = MenuPage.None; Render();
+        }
+
+        public bool StartWeaponPractice(int patternIndex)
+        {
+            if (Session?.BattleLoadout == null || ActiveRound != null || patternIndex < 0 || patternIndex >= Session.BattleLoadout.Patterns.Count) return false;
+            practicePattern = patternIndex;
+            ActiveRound = WeaponPractice.Create(Session.BattlePlan, Session.BattleLoadout,
+                Session.BattleLoadout.Patterns[patternIndex], Session.EnemyHealth.Maximum, Session.MaxHealth);
+            weaponEditor = false; completedRound = null; menuPage = MenuPage.None; Render(); return true;
+        }
+
         public bool StartRhythmRound()
         {
             if (Session == null || Session.Phase != RunPhase.Stage || Session.BattlePlan == null || ActiveRound != null) return false;
             ActiveRound = Session.StartRhythmRound();
             if (ActiveRound == null) return false;
-            completedRound = null;
+            completedRound = null; weaponEditor = false;
             menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return true;
         }
 
         private void FinishRhythmRound(string ticket, RhythmRound round)
         {
             if (ActiveRound != round) return;
+            if (round.Combat != null && round.Combat.IsPractice)
+            { completedRound = round; ActiveRound = null; Render(); return; }
             // Lethal incoming damage has already ended the run and invalidated its stage ticket.
             if (Session.Phase == RunPhase.GameOver)
             {
@@ -301,6 +335,8 @@ namespace BBSB.Runtime
                 menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return;
             }
             if (Session.StageTicket != ticket) return;
+            if (round.Combat != null && round.Combat.Victory)
+            { Session.ResolveBattle(ticket, true, Session.Health); ActiveRound = completedRound = null; Render(); return; }
             Session.CloseRhythmRound(round);
             completedRound = round; ActiveRound = null; Render();
         }
@@ -308,20 +344,38 @@ namespace BBSB.Runtime
         private void LeaveRhythmRound(string ticket)
         {
             if (Session.StageTicket != ticket || ActiveRound == null) return;
-            Session.CloseRhythmRound(ActiveRound);
+            if (ActiveRound.Combat != null && ActiveRound.Combat.IsPractice)
+            { ActiveRound.Stop(); ActiveRound = completedRound = null; weaponEditor = true; Render(); return; }
+            if (ActiveRound.Combat != null && ActiveRound.Combat.Victory) Session.ResolveBattle(ticket, true, Session.Health);
+            else Session.CloseRhythmRound(ActiveRound);
             ActiveRound = completedRound = null; notice = ""; Render();
         }
 
         private void DrawRoundReport()
         {
-            Heading("ROUND COMPLETE", "연주 결과", "남은 체력을 유지한 채 같은 몬스터 계획으로 다시 준비할 수 있어.");
+            bool practice = completedRound.Combat != null && completedRound.Combat.IsPractice;
+            Heading(practice ? "PRACTICE" : "ROUND COMPLETE", practice ? "연습 결과" : "연주 결과",
+                practice ? "연습이 끝났어. 배치를 조정하거나 같은 패턴을 다시 연습해." : "플레이어와 스테이지의 남은 HP를 유지한 채 다시 준비할 수 있어.");
             var card = ui.Card(body);
             ui.Label(card, completedRound.ScorePercent.ToString("0.0") + "%", 60, RunUI.Teal, 100, TextAnchor.MiddleCenter);
             ui.Label(card, "정확 " + completedRound.PerfectCount + "  ·  반미스 " + completedRound.HalfMissCount + "  ·  미스 " + completedRound.MissCount,
                 25, RunUI.TextColor, 60, TextAnchor.MiddleCenter);
             ui.Label(card, "정확 100% · 반미스 50% · 미스 0%로 집계했어.", 20, RunUI.Muted, 48);
             ui.Label(card, "받은 피해 " + completedRound.TotalDamageTaken.ToString("0.##") + "  ·  남은 HP " +
-                Session.Health.ToString("0.##") + " / " + Session.MaxHealth, 25, RunUI.Red, 54);
+                (practice ? completedRound.Combat.PlayerHealth : Session.Health).ToString("0.##") + " / " + Session.MaxHealth, 25, RunUI.Red, 54);
+            if (completedRound.Combat != null)
+            {
+                ui.Label(card, "무기 피해 " + completedRound.Combat.TotalDamage.ToString("0.##") + "  ·  흡수한 피해 " + completedRound.Combat.TotalBlocked.ToString("0.##"), 24, RunUI.Teal, 46);
+                ui.Label(card, "스테이지 HP " + completedRound.Combat.EnemyHealth.Current.ToString("0.##") + " / " + completedRound.Combat.EnemyHealth.Maximum, 24, RunUI.Gold, 46);
+                foreach (var placed in completedRound.Combat.Loadout.Placements)
+                {
+                    decimal damage = 0, guard = 0; int triggers = 0;
+                    foreach (var activation in completedRound.Combat.Activations) if (activation.Slot == placed.Slot)
+                    { triggers++; damage += activation.Damage; guard += activation.Guard; }
+                    ui.Label(card, WeaponCatalog.Find(completedRound.Combat.Loadout.Equipment[placed.Slot].DefinitionId).Name +
+                        " · 발동 " + triggers + " / 피해 " + damage.ToString("0.##") + " / 방어막 " + guard.ToString("0.##"), 21, RunUI.Muted, 40);
+                }
+            }
             foreach (var monster in completedRound.Plan.Monsters)
             {
                 int perfect = 0, half = 0, miss = 0;
@@ -334,7 +388,12 @@ namespace BBSB.Runtime
                 ui.Label(line, monster.Monster.Name, 27, RunUI.Gold, 42);
                 ui.Label(line, "정확 " + perfect + "  ·  반미스 " + half + "  ·  미스 " + miss, 23, null, 42);
             }
-            ui.Button(body, "다시 준비", () => { completedRound = null; Render(); }, primary: true, height: 82);
+            if (practice)
+            {
+                ui.Button(body, "다시 연습", () => StartWeaponPractice(practicePattern), primary: true, height: 72);
+                ui.Button(body, "배치로 돌아가기", OpenWeaponPreparation, height: 72);
+            }
+            else ui.Button(body, "다시 준비", () => { completedRound = null; Render(); }, primary: true, height: 82);
         }
 
         private void RenderMusicPreview()
@@ -454,7 +513,7 @@ namespace BBSB.Runtime
                     ui.Label(body, "FIELD " + Session.Map.Number.ToString("00") + "  ·  통과한 스테이지 " + Session.ClearedStages, 25, RunUI.Gold, 54);
                     ui.Button(body, "돌아가기", CloseMenu, primary: true);
                     ui.Button(body, "장비 · 가방 · 증강", () => OpenMenu(MenuPage.Inventory));
-                    if (Session.BattlePlan != null) ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns));
+                    if (Session.BattlePlan != null) { ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns)); ui.Button(body, "무기 배치 · 연습", OpenWeaponPreparation); }
                     ui.Button(body, "조작 방법", () => OpenMenu(MenuPage.Help));
                     if (testControls && Session.BattlePlan != null) ui.Button(body, "개발 도구", () => OpenMenu(MenuPage.Development));
                     ui.Button(body, "탐험 종료", () => OpenMenu(MenuPage.Abandon));
@@ -478,7 +537,7 @@ namespace BBSB.Runtime
             {
                 var card = ui.Card(body, 16); card.name = "Weapon " + i;
                 ui.Label(card, (i + 1) + "  " + WeaponName(i), 27, RunUI.TextColor, 44);
-                ui.Label(card, ContentCatalog.Find(Session.Weapons[i].DefinitionId).Description, 22, RunUI.Muted, 66);
+                ui.Label(card, WeaponCatalog.Find(Session.Weapons[i].DefinitionId).PatternLabel + "\n" + WeaponCatalog.Find(Session.Weapons[i].DefinitionId).EffectLabel, 22, RunUI.Muted, 100);
             }
         }
 

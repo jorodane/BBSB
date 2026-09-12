@@ -41,6 +41,7 @@ namespace BBSB.Runtime.UI
         private Actor hero;
         private BattleArenaGraphic foreground;
         private BattleArenaGraphic backdrop;
+        private WeaponBattleGraphic weaponGraphic;
         private Text heroLabel;
         private bool paused;
         private float weaponEnergy, guardStrength, shakeStrength;
@@ -69,6 +70,12 @@ namespace BBSB.Runtime.UI
             actorLayer = ui.Rect("Actors sorted by ground depth", area); RunUI.Stretch(actorLayer);
             var fx = ui.Rect("Battle effects and five weapons", area); RunUI.Stretch(fx);
             foreground = fx.gameObject.AddComponent<BattleArenaGraphic>();
+            if (round.Combat != null)
+            {
+                foreground.ShowLegacyWeapons = false;
+                var weapons = ui.Rect("Equipped weapon attacks", area); RunUI.Stretch(weapons);
+                weaponGraphic = weapons.gameObject.AddComponent<WeaponBattleGraphic>();
+            }
             labelLayer = ui.Rect("Actor labels", area); RunUI.Stretch(labelLayer);
             foreach (var plan in round.Plan.Monsters)
             {
@@ -93,7 +100,9 @@ namespace BBSB.Runtime.UI
         {
             if (round == null) return;
             if (!paused) foreach (var actor in monsters)
-                actor.Advance = (float)actor.StageMotion.Evaluate(round.ElapsedSeconds);
+                actor.Advance = round.Combat != null && round.Combat.Victory ?
+                    (float)actor.StageMotion.Evaluate(round.Combat.DefeatedAtSeconds) * Mathf.Clamp01(1 - (float)((round.ElapsedSeconds - round.Combat.DefeatedAtSeconds) / .3)) :
+                    (float)actor.StageMotion.Evaluate(round.ElapsedSeconds);
             LayoutActors();
             if (paused) { ApplyHeroLayout(); return; }
             effects.Clear(); ActiveResponseEffects = 0;
@@ -225,6 +234,7 @@ namespace BBSB.Runtime.UI
             PlannedAttack current = null;
             foreach (var attack in actor.Plan.Attacks)
             {
+                if (round.Combat != null && round.Combat.Victory) continue;
                 if (seconds >= Time(attack.CallStartTick) && seconds <= Time(attack.PhraseEndTick + attack.Pattern.RestTicks))
                     current = attack;
                 foreach (var signal in attack.Call)
@@ -239,15 +249,20 @@ namespace BBSB.Runtime.UI
             }
             foreach (var note in round.Notes)
             {
-                if (note.Attack.MonsterId != actor.Plan.InstanceId) continue;
+                if (note.IsWeapon || note.Attack.MonsterId != actor.Plan.InstanceId ||
+                    (round.Combat != null && !round.Combat.AllowsEnemyEffect(seconds))) continue;
                 // The monster always performs its scheduled attack, including a missed player's note.
                 if (attackTicks.Add(note.StartTick)) AttackBeat(note.StartSeconds, actor, seconds, ref attackPulse, ref windup,
                     anticipate: note.Attack.Pattern.SilentWaitTicks == 0 || note.StartTick != note.Attack.ResponseStartTick);
                 if (note.EndSeconds > note.StartSeconds && attackTicks.Add(note.EndTick))
                     AttackBeat(note.EndSeconds, actor, seconds, ref attackPulse, ref windup);
-                if (note.Result != null && note.Result.Grade != RhythmGrade.Miss)
+                if (round.Combat == null && note.Result != null && note.Result.Grade != RhythmGrade.Miss)
                     counter += Pulse(seconds - note.Result.JudgedAtSeconds - .08, .28) * (float)note.Result.Efficiency;
             }
+            if (round.Combat != null)
+                foreach (var activation in round.Combat.Activations)
+                    if (activation.Damage > 0 && activation.Target.MonsterId == actor.Plan.InstanceId)
+                        counter += Pulse(seconds - activation.AtSeconds - WeaponMotion.Duration(activation.Weapon.Kind) * .6, .22);
             attackTicks.Clear();
             call = Mathf.Clamp01(call); attackPulse = Mathf.Clamp01(attackPulse); counter = Mathf.Clamp01(counter);
             float direction = Mathf.Sign(HeroImpactPosition.x - actor.Impact.x);
@@ -258,6 +273,8 @@ namespace BBSB.Runtime.UI
             SetPose(actor, x, y, tilt, sx + attackPulse * .07f, sy - attackPulse * .035f,
                 Color.Lerp(Color.Lerp(baseTint, CueColor(CallMotion.Flash), flash * .45f), RunUI.Teal, counter * .3f));
             RefreshSignal(actor, current, seconds, call);
+            if (round.Combat != null && round.Combat.Victory)
+            { actor.Signal.text = "격파"; actor.Signal.color = RunUI.Teal; }
         }
 
         private void AttackBeat(double target, Actor actor, double seconds, ref float pulse, ref float windup, bool anticipate = true)
@@ -347,17 +364,30 @@ namespace BBSB.Runtime.UI
                 var actor = FindMonster(result.Note.Attack.MonsterId);
                 if (actor == null) continue;
                 float strength = result.Grade == RhythmGrade.Perfect ? 1 : result.Grade == RhythmGrade.HalfMiss ? .55f : .65f;
-                if (result.Grade == RhythmGrade.Miss)
+                if (result.Grade == RhythmGrade.Miss && result.DamageTaken > 0)
                 {
                     Add(BattleEffectKind.Miss, HeroImpactPosition, HeroImpactPosition, age, duration, RunUI.Red, strength);
                 }
-                else
+                else if (round.Combat == null)
                 {
                     BattleEffectKind kind = EffectFor(result.Note.Step.Kind);
                     Add(kind, HeroImpactPosition, actor.Impact, age, duration, RhythmPlaybackView.GradeColor(result.Grade), strength);
                 }
                 ActiveResponseEffects++;
             }
+            if (round.Combat != null)
+            {
+                weaponGraphic.SetFrame(round.Combat, seconds, HeroGroundPosition, HeroImpactPosition);
+                foreach (var activation in round.Combat.Activations)
+                {
+                    double age = seconds - activation.AtSeconds;
+                    if (age < 0 || age >= WeaponMotion.Duration(activation.Weapon.Kind)) continue;
+                    var target = FindMonster(activation.Target.MonsterId);
+                    if (target != null) { weaponGraphic.SetActivation(activation, target.Impact); ActiveResponseEffects++; }
+                }
+                weaponGraphic.Refresh();
+            }
+            if (motion.IsWeaponInput) action = ActionLabel(motion.Kind.Value, motion.Punch) + " · 무기 입력";
             hero.Portrait.color = Color.Lerp(Color.white, RunUI.Red, miss * .45f);
             heroLabel.text = action; heroLabel.color = miss > .1f ? RunUI.Red : weaponEnergy > .1f ? RunUI.Teal : RunUI.Gold;
         }

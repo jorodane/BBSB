@@ -49,7 +49,9 @@ namespace BBSB.Runtime
                 if (surface.Captured) Round.Move(now, surface.Position.x, surface.Position.y);
                 else Round.Advance(now);
                 if (Round.Finished) { Finish(); return; }
-                metronome.Schedule(AudioSettings.dspTime, origin, offset, Round.Plan.Stage.Music.DurationSeconds);
+                if (Round.Combat != null && Round.Combat.Victory) metronome.SuppressCalls();
+                metronome.Schedule(AudioSettings.dspTime, origin, offset,
+                    Round.Combat != null && Round.Combat.Victory ? Round.Combat.OverkillEndSeconds : Round.Plan.Stage.Music.DurationSeconds);
             }
             view.Refresh(Round.ElapsedSeconds, WaitingForContact);
             if (Round.Finished) Finish();

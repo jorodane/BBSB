@@ -38,9 +38,13 @@ namespace BBSB.Core
     public sealed class ResponseNote
     {
         public PlannedAttack Attack { get; }
+        private readonly PatternStep weaponStep;
+        private readonly int weaponOffset;
+        public int WeaponSlot { get; }
+        public bool IsWeapon => WeaponSlot >= 0;
         public int StepIndex { get; }
-        public PatternStep Step => Attack.Placement.Pattern.Steps[StepIndex];
-        public int StartTick => Attack.ResponseStartTick + Step.OffsetTick;
+        public PatternStep Step => weaponStep ?? Attack.Placement.Pattern.Steps[StepIndex];
+        public int StartTick => Attack.ResponseStartTick + weaponOffset + Step.OffsetTick;
         public int EndTick => StartTick + Step.DurationTicks;
         public double StartSeconds { get; }
         public double EndSeconds { get; }
@@ -55,9 +59,9 @@ namespace BBSB.Core
         internal double OriginX, OriginY;
         internal bool ShakeContact, ShakeWentOut;
 
-        internal ResponseNote(PlannedAttack attack, int stepIndex, double bpm)
+        internal ResponseNote(PlannedAttack attack, int stepIndex, double bpm, int weaponSlot = -1, PatternStep weaponStep = null, int weaponOffset = 0)
         {
-            Attack = attack; StepIndex = stepIndex;
+            Attack = attack; StepIndex = stepIndex; WeaponSlot = weaponSlot; this.weaponStep = weaponStep; this.weaponOffset = weaponOffset;
             StartSeconds = RhythmTime.Seconds(StartTick, bpm); EndSeconds = RhythmTime.Seconds(EndTick, bpm);
         }
     }
@@ -72,7 +76,9 @@ namespace BBSB.Core
         public double Efficiency => Grade == RhythmGrade.Perfect ? 1 : Grade == RhythmGrade.HalfMiss ? .5 : 0;
         // Incoming effects are canceled by Perfect and halved by HalfMiss, independently of score.
         public decimal DamageTakenMultiplier => Grade == RhythmGrade.Perfect ? 0m : Grade == RhythmGrade.HalfMiss ? .5m : 1m;
-        public decimal DamageTaken => Note.Attack.Monster.DamagePerNote * DamageTakenMultiplier;
+        public decimal RawDamageTaken => Note.IsWeapon ? 0 : Note.Attack.Monster.DamagePerNote * DamageTakenMultiplier;
+        public decimal BlockedDamage { get; internal set; }
+        public decimal DamageTaken => Math.Max(0, RawDamageTaken - BlockedDamage);
         internal RhythmResult(ResponseNote note, RhythmGrade grade, MissReason reason, double judgedAt, double error)
         { Note = note; Grade = grade; Reason = reason; JudgedAtSeconds = judgedAt; ErrorSeconds = error; }
     }

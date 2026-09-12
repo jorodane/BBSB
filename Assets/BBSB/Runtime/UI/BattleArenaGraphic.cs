@@ -25,6 +25,7 @@ namespace BBSB.Runtime.UI
     public sealed class BattleArenaGraphic : MaskableGraphic
     {
         private bool backdrop;
+        internal bool ShowLegacyWeapons { get; set; } = true;
         private readonly List<BattleGroundShadow> groundShadows = new List<BattleGroundShadow>();
         private double beat;
         private float energy, guard, shake;
@@ -65,7 +66,7 @@ namespace BBSB.Runtime.UI
             vh.Clear(); var r = rectTransform.rect;
             if (r.width <= 0 || r.height <= 0) return;
             if (backdrop) { Stage(vh, r); return; }
-            Weapons(vh, r);
+            if (ShowLegacyWeapons) Weapons(vh, r);
             if (effects == null) return;
             foreach (var effect in effects) Effect(vh, r, effect);
         }

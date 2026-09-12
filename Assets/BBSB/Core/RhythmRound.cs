@@ -10,10 +10,16 @@ namespace BBSB.Core
         private readonly RhythmTouch touch;
         private readonly List<ResponseNote> notes = new List<ResponseNote>();
         private readonly List<RhythmResult> results = new List<RhythmResult>();
+        private readonly List<RhythmResult> weaponResults = new List<RhythmResult>();
+        private readonly List<RhythmResult> motionResults = new List<RhythmResult>();
         private readonly List<ScheduledCall> calls = new List<ScheduledCall>();
         private int callCursor;
         private bool suspended;
         public BattlePlan Plan { get; }
+        public WeaponBattle Combat { get; }
+        public int ResponseNoteCount { get; }
+        public IReadOnlyList<RhythmResult> WeaponResults { get; }
+        public IReadOnlyList<RhythmResult> MotionResults { get; }
         public IReadOnlyList<ResponseNote> Notes { get; }
         public IReadOnlyList<RhythmResult> Results { get; }
         public IReadOnlyList<ScheduledCall> Calls { get; }
@@ -30,9 +36,9 @@ namespace BBSB.Core
         public int PerfectCount { get; private set; }
         public int HalfMissCount { get; private set; }
         public int MissCount { get; private set; }
-        public double ScorePercent => notes.Count == 0 ? 0 : (PerfectCount + HalfMissCount * .5) * 100.0 / notes.Count;
+        public double ScorePercent => ResponseNoteCount == 0 ? 0 : (PerfectCount + HalfMissCount * .5) * 100.0 / ResponseNoteCount;
 
-        public RhythmRound(BattlePlan plan, RhythmRules rules = null)
+        public RhythmRound(BattlePlan plan, RhythmRules rules = null, WeaponBattle combat = null)
         {
             Plan = plan ?? throw new ArgumentNullException(nameof(plan));
             this.rules = rules ?? new RhythmRules(); touch = new RhythmTouch(this.rules);
@@ -43,10 +49,28 @@ namespace BBSB.Core
             HalfMissWindow = Math.Min(this.rules.HalfMissSeconds, BeatSeconds * .24);
             foreach (var attack in plan.Attacks)
                 for (int i = 0; i < attack.Placement.Pattern.Steps.Count; i++) notes.Add(new ResponseNote(attack, i, plan.Stage.Music.Bpm));
-            notes.Sort((a, b) => a.StartTick != b.StartTick ? a.StartTick.CompareTo(b.StartTick) :
-                a.Attack.Id != b.Attack.Id ? string.CompareOrdinal(a.Attack.Id, b.Attack.Id) : a.StepIndex.CompareTo(b.StepIndex));
+            ResponseNoteCount = notes.Count;
+            Combat = combat; Combat?.Bind(plan, notes);
+            notes.Sort((a, b) => a.StartTick != b.StartTick ? a.StartTick.CompareTo(b.StartTick) : JudgeOrder(a, b));
             Notes = notes.AsReadOnly(); Results = results.AsReadOnly(); Calls = calls.AsReadOnly();
+            WeaponResults = weaponResults.AsReadOnly(); MotionResults = motionResults.AsReadOnly();
         }
+
+        private static int JudgeOrder(ResponseNote a, ResponseNote b)
+        {
+            // At the same instant, wards and resonance precede damage, then incoming effects.
+            if (a.IsWeapon != b.IsWeapon) return a.IsWeapon ? -1 : 1;
+            if (a.IsWeapon)
+            {
+                int priorityA = a.Step.Kind == GestureKind.Hold ? 0 : a.Step.Kind == GestureKind.Shake ? 1 : 2;
+                int priorityB = b.Step.Kind == GestureKind.Hold ? 0 : b.Step.Kind == GestureKind.Shake ? 1 : 2;
+                if (priorityA != priorityB) return priorityA.CompareTo(priorityB);
+                if (a.WeaponSlot != b.WeaponSlot) return a.WeaponSlot.CompareTo(b.WeaponSlot);
+            }
+            return a.Attack.Id != b.Attack.Id ? string.CompareOrdinal(a.Attack.Id, b.Attack.Id) : a.StepIndex.CompareTo(b.StepIndex);
+        }
+
+        private bool CanJudge(ResponseNote note) => note.State != ResponseState.Resolved && (Combat == null || Combat.Allows(note.Attack));
 
         public void Advance(double seconds) => Move(seconds, touch.X, touch.Y);
 
@@ -54,41 +78,54 @@ namespace BBSB.Core
         {
             ElapsedSeconds = seconds;
             while (callCursor < Plan.Calls.Count && Seconds(Plan.Calls[callCursor].Tick) <= seconds)
-                calls.Add(Plan.Calls[callCursor++]);
+            {
+                var call = Plan.Calls[callCursor++];
+                if (Combat == null || Combat.AllowsEnemyEffect(Seconds(call.Tick))) calls.Add(call);
+            }
+            var due = new List<(ResponseNote note, RhythmGrade grade, MissReason reason, double at, double error)>();
             foreach (var note in notes)
             {
-                if (Finished) break;
-                if (note.State == ResponseState.Resolved) continue;
+                if (!CanJudge(note)) continue;
                 if (note.Step.Kind == GestureKind.Shake)
                 {
-                    // A single round trip anywhere inside the interval completes Shake.
                     if (seconds >= note.StartSeconds) note.State = ResponseState.Holding;
                     if (seconds >= note.EndSeconds)
                     {
                         var grade = note.ShakeCompleted ? RhythmGrade.Perfect :
                             note.ShakeProgress >= .5 ? RhythmGrade.HalfMiss : RhythmGrade.Miss;
-                        Resolve(note, grade, grade == RhythmGrade.Miss ? MissReason.MissingShake : MissReason.None, note.EndSeconds, 0);
+                        due.Add((note, grade, grade == RhythmGrade.Miss ? MissReason.MissingShake : MissReason.None, note.EndSeconds, 0));
                     }
-                    continue;
                 }
-                if (note.State == ResponseState.Pending)
+                else if (note.State == ResponseState.Pending && seconds > note.StartSeconds + HalfMissWindow + 1e-9)
+                    due.Add((note, RhythmGrade.Miss, MissReason.NoInput, note.StartSeconds + HalfMissWindow, 0));
+                else if (note.State == ResponseState.Holding)
                 {
-                    if (seconds > note.StartSeconds + HalfMissWindow + 1e-9)
-                        Resolve(note, RhythmGrade.Miss, MissReason.NoInput, note.StartSeconds + HalfMissWindow, 0);
+                    if (note.Step.Kind == GestureKind.Hold && seconds >= note.EndSeconds && touch.Down)
+                        due.Add((note, note.StartGrade, MissReason.None, note.EndSeconds, note.StartError));
+                    else if (seconds > note.EndSeconds + HalfMissWindow + 1e-9)
+                        due.Add((note, RhythmGrade.Miss, MissReason.ReleaseTiming, note.EndSeconds + HalfMissWindow, 0));
                 }
-                if (note.State != ResponseState.Holding) continue;
-                if (note.Step.Kind == GestureKind.Hold && seconds >= note.EndSeconds && touch.Down)
-                    Resolve(note, note.StartGrade, MissReason.None, note.EndSeconds, note.StartError);
-                else if (seconds > note.EndSeconds + HalfMissWindow + 1e-9)
-                    Resolve(note, RhythmGrade.Miss, MissReason.ReleaseTiming, note.EndSeconds + HalfMissWindow, 0);
             }
-            if (!Finished && seconds > Plan.Stage.Music.DurationSeconds + HalfMissWindow + 1e-9)
+            // A long frame must not let a later shield/kill prevent an earlier lethal hit.
+            due.Sort((a, b) => a.at != b.at ? a.at.CompareTo(b.at) : JudgeOrder(a.note, b.note));
+            foreach (var item in due)
             {
-                foreach (var note in notes) if (note.State != ResponseState.Resolved)
-                    Resolve(note, RhythmGrade.Miss, MissReason.NoInput, seconds, 0);
-                Finished = true; touch.Release(); FreeInput.Consume();
+                if (Finished) break;
+                Resolve(item.note, item.grade, item.reason, item.at, item.error);
+            }
+            if (Combat != null && Combat.Victory) calls.RemoveAll(call => Seconds(call.Tick) >= Combat.DefeatedAtSeconds);
+            if (!Finished && Combat != null && Combat.Victory)
+            {
+                if (seconds >= Combat.OverkillEndSeconds) Finish();
+            }
+            else if (!Finished && seconds > Plan.Stage.Music.DurationSeconds + HalfMissWindow + 1e-9)
+            {
+                foreach (var note in notes) if (CanJudge(note)) Resolve(note, RhythmGrade.Miss, MissReason.NoInput, seconds, 0);
+                Finish();
             }
         }
+
+        private void Finish() { Finished = true; touch.Release(); FreeInput.Consume(); }
 
         public void Press(double seconds, double x, double y)
         {
@@ -96,21 +133,21 @@ namespace BBSB.Core
             if (Finished || suspended || touch.Down) return;
             touch.Press(seconds, x, y);
             FreeInput.Press(seconds, x, y);
-            int previousResults = results.Count;
+            int previousResults = motionResults.Count;
             int target = ClosestStart(seconds);
             if (target >= 0)
             {
                 foreach (var note in notes)
                 {
                     if (Finished) break;
-                    if (note.StartTick != target || note.State != ResponseState.Pending || note.Step.Touch.Start != TouchTransition.Press) continue;
+                    if (!CanJudge(note) || note.StartTick != target || note.State != ResponseState.Pending || note.Step.Touch.Start != TouchTransition.Press) continue;
                     double error = seconds - note.StartSeconds; var grade = Grade(error);
                     if (note.Step.Kind == GestureKind.Tap) Resolve(note, grade, MissReason.None, seconds, error);
                     else Begin(note, grade, error);
                 }
             }
             else LatchEarlyPress(seconds);
-            if (Finished || target >= 0 || results.Count != previousResults || HasResponseContact(seconds)) FreeInput.Consume();
+            if (Finished || target >= 0 || motionResults.Count != previousResults || HasResponseContact(seconds)) FreeInput.Consume();
         }
 
         public void Move(double seconds, double x, double y)
@@ -134,7 +171,7 @@ namespace BBSB.Core
             double dt = seconds - touch.SampleSeconds;
             foreach (var note in notes)
             {
-                if (note.Step.Kind != GestureKind.Shake || note.State == ResponseState.Resolved || note.ShakeCompleted) continue;
+                if (note.Step.Kind != GestureKind.Shake || !CanJudge(note) || note.ShakeCompleted) continue;
                 if (!touch.Down || dt > rules.ShakeMaxSampleGapSeconds + 1e-9)
                 { EndShakeContact(note); continue; }
                 double from = Math.Max(touch.SampleSeconds, note.StartSeconds), to = Math.Min(seconds, note.EndSeconds);
@@ -177,11 +214,12 @@ namespace BBSB.Core
             if (Finished || suspended || !touch.Down) return;
             bool flick = touch.IsFlick(seconds);
             int target = ClosestRelease(seconds);
-            int previousResults = results.Count;
-            foreach (var note in notes)
+            int previousResults = motionResults.Count;
+            var releaseOrder = new List<ResponseNote>(notes); releaseOrder.Sort(JudgeOrder);
+            foreach (var note in releaseOrder)
             {
                 if (Finished) break;
-                if (note.State == ResponseState.Resolved) continue;
+                if (!CanJudge(note)) continue;
                 if (note.Step.Kind == GestureKind.Flick && note.State == ResponseState.Pending && note.StartTick == target)
                     Resolve(note, flick ? Grade(seconds - note.StartSeconds) : RhythmGrade.Miss,
                         flick ? MissReason.None : MissReason.MissingFlick, seconds, seconds - note.StartSeconds);
@@ -199,7 +237,7 @@ namespace BBSB.Core
                     }
                 }
             }
-            if (Finished || target >= 0 || results.Count != previousResults) FreeInput.Consume();
+            if (Finished || target >= 0 || motionResults.Count != previousResults) FreeInput.Consume();
             else FreeInput.Release(seconds, flick);
             touch.Release();
             foreach (var note in notes) if (note.Step.Kind == GestureKind.Shake) EndShakeContact(note);
@@ -237,7 +275,7 @@ namespace BBSB.Core
         {
             foreach (var note in notes)
             {
-                if (note.State == ResponseState.Resolved) continue;
+                if (!CanJudge(note)) continue;
                 if (note.State == ResponseState.Holding && note.Step.Kind != GestureKind.Shake) return true;
                 if (note.Step.Kind == GestureKind.Shake && seconds >= note.StartSeconds - HalfMissWindow && seconds < note.EndSeconds)
                     return true;
@@ -252,7 +290,7 @@ namespace BBSB.Core
             int target = -1; double best = double.MaxValue;
             foreach (var note in notes)
             {
-                if (note.State != ResponseState.Pending || note.Step.Touch.Start != TouchTransition.Press) continue;
+                if (!CanJudge(note) || note.State != ResponseState.Pending || note.Step.Touch.Start != TouchTransition.Press) continue;
                 double distance = Math.Abs(seconds - note.StartSeconds);
                 if (distance <= HalfMissWindow + 1e-9 && distance < best) { best = distance; target = note.StartTick; }
             }
@@ -266,7 +304,7 @@ namespace BBSB.Core
             {
                 bool pendingFlick = note.Step.Kind == GestureKind.Flick && note.State == ResponseState.Pending;
                 bool heldDive = note.Step.Kind == GestureKind.Dive && note.State == ResponseState.Holding;
-                if (!pendingFlick && !heldDive) continue;
+                if (!CanJudge(note) || (!pendingFlick && !heldDive)) continue;
                 double distance = Math.Abs(seconds - note.EndSeconds);
                 if (distance <= HalfMissWindow + 1e-9 && distance < best) { best = distance; target = note.EndTick; }
             }
@@ -277,12 +315,12 @@ namespace BBSB.Core
         {
             int target = -1;
             foreach (var note in notes)
-                if (note.State == ResponseState.Pending && note.StartSeconds > seconds) { target = note.StartTick; break; }
+                if (CanJudge(note) && note.State == ResponseState.Pending && note.StartSeconds > seconds) { target = note.StartTick; break; }
             if (target < 0) return;
             double at = Seconds(target);
             if (seconds < at - BeatSeconds * .5 || seconds >= at - HalfMissWindow || Occupied(target - RhythmTime.TicksPerBeat / 2)) return;
             foreach (var note in notes)
-                if (note.State == ResponseState.Pending && note.StartTick == target && note.Step.Touch.Start == TouchTransition.Press)
+                if (CanJudge(note) && note.State == ResponseState.Pending && note.StartTick == target && note.Step.Touch.Start == TouchTransition.Press)
                     Resolve(note, RhythmGrade.Miss, MissReason.TooEarly, seconds, seconds - at);
         }
 
@@ -303,9 +341,15 @@ namespace BBSB.Core
 
         private void Resolve(ResponseNote note, RhythmGrade grade, MissReason reason, double at, double error)
         {
-            if (Finished || note.State == ResponseState.Resolved) return;
+            if (Finished || !CanJudge(note)) return;
             note.State = ResponseState.Resolved;
-            note.Result = new RhythmResult(note, grade, reason, at, error); results.Add(note.Result);
+            note.Result = new RhythmResult(note, grade, reason, at, error);
+            motionResults.Add(note.Result);
+            if (note.IsWeapon)
+            {
+                weaponResults.Add(note.Result); Combat?.JudgeWeapon(note.Result); return;
+            }
+            Combat?.JudgeIncoming(note.Result); results.Add(note.Result);
             if (grade == RhythmGrade.Perfect) PerfectCount++; else if (grade == RhythmGrade.HalfMiss) HalfMissCount++; else MissCount++;
             TotalDamageTaken += note.Result.DamageTaken;
             ResultJudged?.Invoke(note.Result);
