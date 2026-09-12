@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
-    internal enum BattleEffectKind { Call, CallStep, CallStomp, CallSweep, CallRise, CallDip, CallSway, CallFlash, Attack, Counter, Guard, Dive, Flick, Shake, Miss }
+    internal enum BattleEffectKind { Call, CallStep, CallStomp, CallSweep, CallRise, CallDip, CallSway, CallFlash, Counter, Guard, ShieldAbsorb, Dive, Flick, Shake, Miss }
 
     internal struct BattleEffect
     {
@@ -199,17 +199,12 @@ namespace BBSB.Runtime.UI
                     Spark(vh, to, p, unit * 1.4f, tint);
                     Diamond(vh, to, new Vector2(size * .5f, size), tint);
                     break;
-                case BattleEffectKind.Attack:
-                    if (p < .5f)
-                    {
-                        float travel = p * 2;
-                        FlyingArrow(vh, r, fx.From, fx.To, travel, false, unit, fx.Tint);
-                    }
-                    else Spark(vh, to, (p - .5f) * 2, unit, tint);
-                    break;
                 case BattleEffectKind.Guard:
                     Arc(vh, from, new Vector2(size * 1.1f, size * 1.3f), 5, 170, 6 * unit, tint);
                     Counter(vh, r, fx.From, fx.To, p, unit, tint);
+                    break;
+                case BattleEffectKind.ShieldAbsorb:
+                    Arc(vh, from, new Vector2(size * 1.1f, size * 1.3f), 5, 170, 6 * unit, tint);
                     break;
                 case BattleEffectKind.Dive:
                     Arc(vh, from, new Vector2(size * 1.9f, size * .5f), 10, 260, 4 * unit, tint);

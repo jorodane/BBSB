@@ -231,7 +231,7 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator CounterArrowUsesTheUpperRouteAboveTheIncomingArrow()
+        public IEnumerator CounterRouteStaysAboveTheIncomingImageSlot()
         {
             var round = Round(1, new PatternStep(GestureKind.Tap, 0));
             var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
@@ -239,7 +239,10 @@ namespace BBSB.Tests
             var renderer = graphic.GetComponent<CanvasRenderer>(); renderer.cull = false;
             round.Advance(1.9); arena.Refresh(); graphic.Rebuild(CanvasUpdate.PreRender);
             float height = graphic.rectTransform.rect.height, bottom = graphic.rectTransform.rect.yMin;
-            Assert.Less((renderer.GetMesh().vertices.Max(v => v.y) - bottom) / height, .55f);
+            var incoming = arena.GetComponentsInChildren<MonsterAttackGraphic>().Single();
+            incoming.Rebuild(CanvasUpdate.PreRender);
+            Assert.Greater(incoming.GetComponent<CanvasRenderer>().GetMesh().vertexCount, 0);
+            Assert.Less(incoming.rectTransform.anchoredPosition.y / height, .55f);
             round.Press(2, 0, 0); round.Advance(2.1); arena.Refresh(); graphic.Rebuild(CanvasUpdate.PreRender);
             Assert.AreEqual(1, arena.ActiveResponseEffects);
             Assert.Greater((renderer.GetMesh().vertices.Max(v => v.y) - bottom) / height, .55f);
@@ -372,7 +375,7 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator WaitingPatternsStayQuietWithoutALastMomentAttackWindup()
+        public IEnumerator WaitingPatternsKeepTheirSpeciesSpecificCountingBehavior()
         {
             var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "steady-pulse"));
             foreach (var monster in MonsterCatalog.All.Where(x => x.Patterns.Any(p => p.SilentWaitTicks > 0)))
@@ -387,14 +390,85 @@ namespace BBSB.Tests
                 Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "CALL · " + pattern.Call[0].Label));
                 double target = RhythmTime.Seconds(64, stage.Music.Bpm);
                 round.Advance(target - .1); arena.Refresh();
-                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "쉼 · 박자 기억하기"));
+                bool walking = monster.Id == "clock-spirit";
+                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text ==
+                    (walking ? "쉼 · 인형의 걸음 따라가기" : "쉼 · 박자 기억하기")));
+                Assert.AreEqual(walking ? 1 : 0, arena.MonsterAttacks.ActiveCount);
+                if (walking)
+                {
+                    var doll = arena.GetComponentsInChildren<MonsterAttackGraphic>().Single();
+                    Assert.Less(doll.Frame.Progress, 1); Assert.Greater(doll.Frame.Progress, .8);
+                }
                 Assert.AreEqual(0f, arena.MonsterPortraits.Single().rectTransform.anchoredPosition.x, .001f);
                 Assert.AreEqual(1, round.Calls.Count); Assert.AreEqual(0, round.Results.Count);
                 round.Advance(target); arena.Refresh();
                 Assert.Less(arena.MonsterPortraits.Single().rectTransform.anchoredPosition.x, 0);
                 Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "RESPONSE"));
+                Assert.AreEqual(1, arena.MonsterAttacks.ActiveCount);
             }
             LogAssert.NoUnexpectedReceived();
+        }
+
+        [Test]
+        public void AttackArtLoadsIncrementallyAndSortsNumberedFramesNumerically()
+        {
+            var texture = new Texture2D(4, 4); var sprites = new List<Sprite>();
+            try
+            {
+                foreach (var name in new[] { "travel-10", "travel-2", "travel-0", "travel-1", "travel-3", "travel-4", "travel-5",
+                    "travel-6", "travel-7", "travel-8", "travel-9", "perfect" })
+                {
+                    var sprite = Sprite.Create(texture, new Rect(0, 0, 4, 4), Vector2.one * .5f); sprite.name = name; sprites.Add(sprite);
+                }
+                int loads = 0;
+                var art = new MonsterAttackSprites(path => { loads++; return sprites.ToArray(); });
+                Assert.AreEqual("travel-2", art.Get("test", "travel", 2).name);
+                Assert.AreEqual("travel-10", art.Get("test", "travel", 10).name);
+                Assert.AreEqual("travel-0", art.Get("test", "travel", 11).name);
+                Assert.AreEqual("perfect", art.Get("test", "perfect").name);
+                Assert.IsNull(art.Get("test", "miss")); Assert.AreEqual(1, loads);
+                var empty = new MonsterAttackSprites(path => new Sprite[0]);
+                Assert.IsNull(empty.Get("test", "travel"));
+            }
+            finally
+            { foreach (var sprite in sprites) Object.DestroyImmediate(sprite); Object.DestroyImmediate(texture); }
+        }
+
+        [UnityTest]
+        public IEnumerator AttackSlotsFollowPlayerCalibrationAndKeepTheirPhaseWhilePaused()
+        {
+            var display = ScriptableObject.CreateInstance<PlayerMotionDisplay>();
+            display.groundPosition = new Vector2(.18f, .19f); display.characterScale = .6f;
+            try
+            {
+                var round = Round(3, new PatternStep(GestureKind.Tap, 0)); var arena = Arena(round, display);
+                yield return null; Canvas.ForceUpdateCanvases();
+                round.Advance(1.75); arena.Refresh();
+                var slots = arena.GetComponentsInChildren<MonsterAttackGraphic>();
+                Assert.AreEqual(3, slots.Length); Assert.AreEqual(3, arena.MonsterAttacks.ActiveCount);
+                var progress = slots.Select(x => x.Frame.Progress).ToArray();
+                round.Suspend(); arena.SetPaused(true); round.Advance(999);
+                ((RectTransform)arena.transform).sizeDelta = new Vector2(1280, 800);
+                display.characterScale = .8f; arena.Refresh();
+                CollectionAssert.AreEqual(progress, slots.Select(x => x.Frame.Progress).ToArray());
+                round.Resume(false); arena.SetPaused(false); round.Advance(2); arena.Refresh();
+                var size = ((RectTransform)arena.transform).rect.size;
+                foreach (var slot in slots)
+                {
+                    Assert.AreEqual(MonsterAttackPhase.Contact, slot.Frame.Phase);
+                    Assert.AreEqual(arena.HeroImpactPosition.x * size.x, slot.rectTransform.anchoredPosition.x, .01f);
+                    Assert.AreEqual(arena.HeroImpactPosition.y * size.y, slot.rectTransform.anchoredPosition.y, .01f);
+                    Assert.IsFalse(slot.raycastTarget);
+                }
+                round.Press(2, 0, 0); arena.Refresh();
+                Assert.AreEqual(3, round.Results.Count);
+                Assert.IsTrue(slots.All(x => x.Frame.Phase == MonsterAttackPhase.Contact));
+                round.Advance(2 + PlayerMotionTimeline.TapPreparationDuration(round.BeatSeconds)); arena.Refresh();
+                Assert.IsTrue(slots.All(x => x.Frame.Phase == MonsterAttackPhase.Perfect));
+                round.Advance(3); arena.Refresh(); Assert.AreEqual(0, arena.MonsterAttacks.ActiveCount);
+                LogAssert.NoUnexpectedReceived();
+            }
+            finally { Object.DestroyImmediate(display); }
         }
 
         [UnityTest]

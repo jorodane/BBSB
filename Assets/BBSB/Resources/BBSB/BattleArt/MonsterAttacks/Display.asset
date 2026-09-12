@@ -1,0 +1,1856 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4407dce63af4d5c9a53f543df3332b1, type: 3}
+  m_Name: Display
+  m_EditorClassIdentifier:
+  punch: {x: 0.24, y: 0.46}
+  guard: {x: 0.17, y: 0.47}
+  head: {x: 0.05, y: 0.78}
+  feet: {x: 0.03, y: 0.08}
+  push: {x: 0.24, y: 0.47}
+  slots:
+  - monsterId: tap-slime
+    patternId: count-four-tap
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: tap-slime
+    patternId: tresillo-call-tap
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: march-slime
+    patternId: march-three
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: march-slime
+    patternId: march-three
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: march-slime
+    patternId: march-three
+    stepIndex: 2
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: march-slime
+    patternId: march-spaced
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: march-slime
+    patternId: march-spaced
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: tresillo-bat
+    patternId: tresillo-taps
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: tresillo-bat
+    patternId: tresillo-taps
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: tresillo-bat
+    patternId: tresillo-taps
+    stepIndex: 2
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: tresillo-bat
+    patternId: rotated-tresillo
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: tresillo-bat
+    patternId: rotated-tresillo
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: tresillo-bat
+    patternId: rotated-tresillo
+    stepIndex: 2
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: offbeat-goblin
+    patternId: offbeat-single-tap
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: offbeat-goblin
+    patternId: offbeat-pair
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: offbeat-goblin
+    patternId: offbeat-pair
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: drowsy-slime
+    patternId: drowsy-quick-tap
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: drowsy-slime
+    patternId: drowsy-four-beat-wait
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: clock-spirit
+    patternId: clock-quick-tap
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: clock-spirit
+    patternId: clock-seven-beat-wait
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: seesaw-goblin
+    patternId: seesaw-steady-tap
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: seesaw-goblin
+    patternId: seesaw-early-finish
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: seesaw-goblin
+    patternId: seesaw-early-finish
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: spark-bat
+    patternId: bat-quick-taps
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: spark-bat
+    patternId: bat-quick-taps
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: spark-bat
+    patternId: bat-hold
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: iron-turtle
+    patternId: turtle-long-hold
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: iron-turtle
+    patternId: turtle-hold-tap
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: iron-turtle
+    patternId: turtle-hold-tap
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: diving-ray
+    patternId: ray-deep-dive
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: diving-ray
+    patternId: ray-short-dive
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: bubble-spirit
+    patternId: one-beat-shake
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: bubble-spirit
+    patternId: two-bubble-shakes
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: bubble-spirit
+    patternId: two-bubble-shakes
+    stepIndex: 1
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: flick-goblin
+    patternId: counted-flick
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+  - monsterId: flick-goblin
+    patternId: offbeat-flick
+    stepIndex: 0
+    scale: 1
+    sourceOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    imageOffset: {x: 0, y: 0}
+    framesPerBeat: 2
+    poses:
+    - phase: 1
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 2
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 3
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 4
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 5
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 6
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}
+    - phase: 7
+      scale: 1
+      offset: {x: 0, y: 0}
+      rotation: 0
+      overridePivot: 0
+      pivot: {x: 0.5, y: 0.5}

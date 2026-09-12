@@ -29,7 +29,8 @@ namespace BBSB.Core
         public int ResponseTicks { get; }
         public int RestTicks { get; }
         public int CueAlignmentTicks { get; }
-        // Beat distance from the final Call to the first Response; no additional cue during this authored wait.
+        // Beat distance from the final Call to the first Response; no additional ScheduledCall.
+        // A species may count visually through its attack (for example the seven-beat walking doll).
         public int SilentWaitTicks { get; }
         public double ParticipationChance { get; }
         public MonsterPatternDefinition(string name, string description, RhythmPattern pattern,
