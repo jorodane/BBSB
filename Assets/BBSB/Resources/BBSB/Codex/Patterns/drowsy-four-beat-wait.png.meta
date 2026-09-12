@@ -1,0 +1,542 @@
+fileFormatVersion: 2
+guid: 2414369a2d9b4e9459a618534118f92b
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2340831875175064502
+    second: drowsy-four-beat-wait_0
+  - first:
+      213: -7228030433981870705
+    second: drowsy-four-beat-wait_1
+  - first:
+      213: 5289032336525697160
+    second: drowsy-four-beat-wait_2
+  - first:
+      213: -223691506599595643
+    second: drowsy-four-beat-wait_3
+  - first:
+      213: 2124326823770170292
+    second: drowsy-four-beat-wait_4
+  - first:
+      213: 4862895467661326616
+    second: drowsy-four-beat-wait_5
+  - first:
+      213: 6423909709381376067
+    second: drowsy-four-beat-wait_6
+  - first:
+      213: 8837346261753857500
+    second: drowsy-four-beat-wait_7
+  - first:
+      213: 3760134752873495568
+    second: drowsy-four-beat-wait_8
+  - first:
+      213: -4411536442846673219
+    second: drowsy-four-beat-wait_9
+  - first:
+      213: -5760332376656727979
+    second: drowsy-four-beat-wait_10
+  - first:
+      213: 3932340578502272907
+    second: drowsy-four-beat-wait_11
+  - first:
+      213: -6308529954182871511
+    second: drowsy-four-beat-wait_12
+  - first:
+      213: -8693740546923394862
+    second: drowsy-four-beat-wait_13
+  - first:
+      213: 6986030907235879922
+    second: drowsy-four-beat-wait_14
+  - first:
+      213: -6858843105522733641
+    second: drowsy-four-beat-wait_15
+  - first:
+      213: 7650980843682922412
+    second: drowsy-four-beat-wait_16
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 256
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_0
+      rect:
+        serializedVersion: 2
+        x: 512
+        y: 1171
+        width: 68
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b3a8be203e4c7020800000000000000
+      internalID: 2340831875175064502
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_1
+      rect:
+        serializedVersion: 2
+        x: 619
+        y: 1187
+        width: 73
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f8d4cc4bd90e0bb90800000000000000
+      internalID: -7228030433981870705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_2
+      rect:
+        serializedVersion: 2
+        x: 689
+        y: 1158
+        width: 74
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8802b2833ea666940800000000000000
+      internalID: 5289032336525697160
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_3
+      rect:
+        serializedVersion: 2
+        x: 786
+        y: 1195
+        width: 168
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 581fbd982c945ecf0800000000000000
+      internalID: -223691506599595643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_4
+      rect:
+        serializedVersion: 2
+        x: 470
+        y: 1175
+        width: 46
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4b3a7a5bdff1b7d10800000000000000
+      internalID: 2124326823770170292
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_5
+      rect:
+        serializedVersion: 2
+        x: 522
+        y: 1173
+        width: 6
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8197fc1c9a97c7340800000000000000
+      internalID: 4862895467661326616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_6
+      rect:
+        serializedVersion: 2
+        x: 639
+        y: 1175
+        width: 27
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3481cd868df462950800000000000000
+      internalID: 6423909709381376067
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_7
+      rect:
+        serializedVersion: 2
+        x: 665
+        y: 1173
+        width: 11
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cd507f05a9f84aa70800000000000000
+      internalID: 8837346261753857500
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_8
+      rect:
+        serializedVersion: 2
+        x: 762
+        y: 1173
+        width: 11
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 01c30acb2aeae2430800000000000000
+      internalID: 3760134752873495568
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_9
+      rect:
+        serializedVersion: 2
+        x: 24
+        y: 0
+        width: 1175
+        height: 1172
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: db60f628af217c2c0800000000000000
+      internalID: -4411536442846673219
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_10
+      rect:
+        serializedVersion: 2
+        x: 108
+        y: 907
+        width: 14
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 550b13519303f00b0800000000000000
+      internalID: -5760332376656727979
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_11
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 924
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b876b75fbea729630800000000000000
+      internalID: 3932340578502272907
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_12
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 742
+        width: 69
+        height: 122
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 926c4024e699378a0800000000000000
+      internalID: -6308529954182871511
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_13
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 554
+        width: 73
+        height: 154
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2d88833b801a95780800000000000000
+      internalID: -8693740546923394862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_14
+      rect:
+        serializedVersion: 2
+        x: 1206
+        y: 497
+        width: 17
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2fbc1b7b81e53f060800000000000000
+      internalID: 6986030907235879922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_15
+      rect:
+        serializedVersion: 2
+        x: 1163
+        y: 465
+        width: 14
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bd2e25098e70d0a0800000000000000
+      internalID: -6858843105522733641
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: drowsy-four-beat-wait_16
+      rect:
+        serializedVersion: 2
+        x: 1163
+        y: 401
+        width: 32
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: caff90b6a8ebd2a60800000000000000
+      internalID: 7650980843682922412
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable: {}
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
