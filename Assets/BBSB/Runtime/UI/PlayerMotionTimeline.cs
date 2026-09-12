@@ -73,7 +73,7 @@ namespace BBSB.Runtime.UI
             if (latest != null)
             {
                 double age = seconds - latest.Result.JudgedAtSeconds;
-                double impact = Math.Min(.24, round.BeatSeconds * .55);
+                double impact = ImpactDuration(latest.Result.Note.Step.Kind, round.BeatSeconds);
                 // New contact immediately interrupts even a long fall. A continuing guard returns
                 // after the brief impact; an old result must not hide it for its entire recovery.
                 if (sustain.HasValue && (contactTime > latest.Result.JudgedAtSeconds + 1e-9 || age >= impact))
@@ -133,13 +133,20 @@ namespace BBSB.Runtime.UI
                 return new PlayerMotionFrame(SheetFor(kind), pose, PlayerMotionPhase.Sustain, kind,
                     age: age, isFreeInput: true);
             }
-            double impact = Math.Min(.24, round.BeatSeconds * .55), duration = Math.Min(.48, round.BeatSeconds * .95);
+            double impact = ImpactDuration(kind, round.BeatSeconds), duration = Math.Min(.48, round.BeatSeconds * .95);
             if (age < 0 || age >= duration) return null;
             bool recovering = age >= impact;
             int index = recovering ? (kind == GestureKind.Tap ? freePunch * 4 : kind == GestureKind.Flick ? 0 : 5) :
                 ResultIndex(kind, RhythmGrade.Perfect, freePunch);
             return new PlayerMotionFrame(SheetFor(kind), index, recovering ? PlayerMotionPhase.Recover : PlayerMotionPhase.Impact,
                 kind, punch: freePunch, age: age, isFreeInput: true);
+        }
+
+        private static double ImpactDuration(GestureKind kind, double beatSeconds)
+        {
+            double duration = Math.Min(.24, beatSeconds * .55);
+            // Recall punches and recover from ducks/jumps twice as soon, including at fast BPM.
+            return kind == GestureKind.Tap || kind == GestureKind.Dive || kind == GestureKind.Flick ? duration * .5 : duration;
         }
 
         private PlayerMotionFrame? ObserveContact(RhythmRound round, out double contactTime)

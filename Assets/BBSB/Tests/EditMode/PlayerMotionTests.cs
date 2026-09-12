@@ -32,6 +32,15 @@ namespace BBSB.Tests
                 decimal damage = round.TotalDamageTaken; int count = round.Results.Count;
                 for (int i = 0; i < 10; i++) Check.Equal(frame.Index, timeline.Evaluate(round).Index);
                 Check.Equal(count, round.Results.Count); Check.Equal(damage, round.TotalDamageTaken);
+                double judgedAt = result.JudgedAtSeconds;
+                round.Advance(judgedAt + .119);
+                Check.Equal(PlayerMotionPhase.Impact, timeline.Evaluate(round).Phase);
+                round.Advance(judgedAt + .121);
+                var transition = timeline.Evaluate(round);
+                bool faster = kind == GestureKind.Tap || kind == GestureKind.Dive || kind == GestureKind.Flick;
+                Check.Equal(faster ? PlayerMotionPhase.Recover : PlayerMotionPhase.Impact, transition.Phase);
+                Check.Equal(grade, transition.Grade.Value);
+                Check.Equal(count, round.Results.Count); Check.Equal(damage, round.TotalDamageTaken);
             }
         }
 
@@ -64,7 +73,7 @@ namespace BBSB.Tests
                 var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline(seed);
                 Judge(round, GestureKind.Tap, grade); var strike = timeline.Evaluate(round); seen.Add(strike.Punch);
                 Check.Equal(strike.Punch, strike.Index / 4);
-                round.Advance(round.ElapsedSeconds + .25); var recover = timeline.Evaluate(round);
+                round.Advance(round.ElapsedSeconds + .125); var recover = timeline.Evaluate(round);
                 Check.Equal(strike.Punch, recover.Punch); Check.Equal(strike.Punch * 4, recover.Index);
             }
             Check.Equal(3, seen.Count);
@@ -143,6 +152,9 @@ namespace BBSB.Tests
             Check.False(first.Grade.HasValue); Check.Equal(1, first.Index % 4);
             round.Release(.43, 0, 0); Check.Equal(first.Punch, timeline.Evaluate(round).Punch);
             Check.Equal(1, timeline.PunchSelections);
+            round.Advance(.519); Check.Equal(PlayerMotionPhase.Impact, timeline.Evaluate(round).Phase);
+            round.Advance(.521); var recall = timeline.Evaluate(round);
+            Check.Equal(PlayerMotionPhase.Recover, recall.Phase); Check.Equal(first.Punch * 4, recall.Index);
             round.Press(.65, 0, 0); var second = timeline.Evaluate(round);
             Check.True(second.IsFreeInput && second.Punch != first.Punch);
             round.Release(.68, 0, 0); round.Advance(1.2);
@@ -162,6 +174,8 @@ namespace BBSB.Tests
             round.Release(.5, 0, 0); var released = timeline.Evaluate(round);
             Check.True(released.IsFreeInput); Check.Equal(GestureKind.Dive, released.Kind.Value);
             Check.Equal(1, released.Index); Check.False(released.IsFall);
+            round.Advance(.621); var recovered = timeline.Evaluate(round);
+            Check.True(recovered.IsFreeInput); Check.Equal(PlayerMotionPhase.Recover, recovered.Phase); Check.Equal(5, recovered.Index);
             Check.Equal(0, round.Results.Count); Check.Equal(0m, round.TotalDamageTaken);
         }
 
@@ -172,6 +186,8 @@ namespace BBSB.Tests
             flick.Press(.2, 0, 0); a.Evaluate(flick); flick.Release(.25, .1, 0);
             var jump = a.Evaluate(flick);
             Check.True(jump.IsFreeInput); Check.Equal(GestureKind.Flick, jump.Kind.Value); Check.Equal(1, jump.Index);
+            flick.Advance(.371); var landed = a.Evaluate(flick);
+            Check.True(landed.IsFreeInput); Check.Equal(PlayerMotionPhase.Recover, landed.Phase); Check.Equal(0, landed.Index);
             var shake = Single(GestureKind.Tap); var b = new PlayerMotionTimeline();
             shake.Press(.2, 0, 0); b.Evaluate(shake); shake.Move(.24, .1, 0);
             var outward = b.Evaluate(shake);
