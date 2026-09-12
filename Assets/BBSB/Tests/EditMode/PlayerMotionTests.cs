@@ -135,6 +135,89 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void EmptyPressesSwingOnceWithoutCreatingGradesOrDamage()
+        {
+            var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline(3);
+            round.Press(.4, 0, 0); var first = timeline.Evaluate(round);
+            Check.True(first.IsFreeInput); Check.Equal(GestureKind.Tap, first.Kind.Value);
+            Check.False(first.Grade.HasValue); Check.Equal(1, first.Index % 4);
+            round.Release(.43, 0, 0); Check.Equal(first.Punch, timeline.Evaluate(round).Punch);
+            Check.Equal(1, timeline.PunchSelections);
+            round.Press(.65, 0, 0); var second = timeline.Evaluate(round);
+            Check.True(second.IsFreeInput && second.Punch != first.Punch);
+            round.Release(.68, 0, 0); round.Advance(1.2);
+            Check.Equal(PlayerMotionPhase.Idle, timeline.Evaluate(round).Phase);
+            Check.Equal(0, round.Results.Count); Check.Equal(0, round.MissCount); Check.Equal(0m, round.TotalDamageTaken);
+            Check.Equal(ResponseState.Pending, round.Notes.Single().State);
+        }
+
+        [Test]
+        public void EmptyHoldGuardsAndItsReleasePlaysADuck()
+        {
+            var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline();
+            round.Press(.2, 0, 0); timeline.Evaluate(round); round.Advance(.4);
+            var held = timeline.Evaluate(round);
+            Check.True(held.IsFreeInput); Check.Equal(GestureKind.Hold, held.Kind.Value);
+            Check.Equal(PlayerMotionPhase.Sustain, held.Phase);
+            round.Release(.5, 0, 0); var released = timeline.Evaluate(round);
+            Check.True(released.IsFreeInput); Check.Equal(GestureKind.Dive, released.Kind.Value);
+            Check.Equal(1, released.Index); Check.False(released.IsFall);
+            Check.Equal(0, round.Results.Count); Check.Equal(0m, round.TotalDamageTaken);
+        }
+
+        [Test]
+        public void EmptyFlickAndShakeUseTheirOwnInputMotion()
+        {
+            var flick = Single(GestureKind.Tap); var a = new PlayerMotionTimeline();
+            flick.Press(.2, 0, 0); a.Evaluate(flick); flick.Release(.25, .1, 0);
+            var jump = a.Evaluate(flick);
+            Check.True(jump.IsFreeInput); Check.Equal(GestureKind.Flick, jump.Kind.Value); Check.Equal(1, jump.Index);
+            var shake = Single(GestureKind.Tap); var b = new PlayerMotionTimeline();
+            shake.Press(.2, 0, 0); b.Evaluate(shake); shake.Move(.24, .1, 0);
+            var outward = b.Evaluate(shake);
+            Check.True(outward.IsFreeInput); Check.Equal(GestureKind.Shake, outward.Kind.Value);
+            Check.Equal(PlayerMotionPhase.Sustain, outward.Phase); Check.Equal(1, outward.Index);
+            shake.Move(.28, 0, 0); Check.Equal(0, b.Evaluate(shake).Index);
+            shake.Release(.42, 0, 0); var push = b.Evaluate(shake);
+            Check.True(push.IsFreeInput); Check.Equal(GestureKind.Shake, push.Kind.Value); Check.Equal(2, push.Index);
+            Check.Equal(0, flick.Results.Count); Check.Equal(0, shake.Results.Count);
+        }
+
+        [Test]
+        public void RealGesturePreparationAndNewEmptyInputsKeepTheirOwnPriority()
+        {
+            var flick = Single(GestureKind.Flick); var a = new PlayerMotionTimeline();
+            flick.Press(1.95, 0, 0); Check.False(a.Evaluate(flick).IsFreeInput);
+            flick.Release(2, .1, 0); var valid = a.Evaluate(flick);
+            Check.False(valid.IsFreeInput); Check.Equal(RhythmGrade.Perfect, valid.Grade.Value);
+            var tap = Single(GestureKind.Tap); var b = new PlayerMotionTimeline(5);
+            tap.Press(2, 0, 0); var punch = b.Evaluate(tap); tap.Release(2.01, 0, 0);
+            tap.Press(2.04, 0, 0); var empty = b.Evaluate(tap);
+            Check.True(empty.IsFreeInput && empty.Punch != punch.Punch);
+            Check.Equal(1, tap.PerfectCount); Check.Equal(1, tap.Results.Count); Check.Equal(0m, tap.TotalDamageTaken);
+            var miss = Single(GestureKind.Dive); var c = new PlayerMotionTimeline();
+            miss.Advance(2.121); Check.True(c.Evaluate(miss).IsFall);
+            miss.Press(2.14, 0, 0); Check.True(c.Evaluate(miss).IsFreeInput);
+            Check.Equal(1, miss.MissCount);
+        }
+
+        [Test]
+        public void FreeInputFreezesAndRecontactDoesNotInventAnotherGesture()
+        {
+            var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline();
+            round.Press(.1, 0, 0); timeline.Evaluate(round); round.Advance(.35);
+            var held = timeline.Evaluate(round); int sequence = round.FreeInput.Sequence;
+            round.Suspend(); round.Advance(100);
+            Check.Equal(held.Kind, timeline.Evaluate(round).Kind); Check.Equal(.35, round.ElapsedSeconds);
+            round.Resume(true, 10, 10); round.Move(.36, 10, 10);
+            Check.Equal(sequence, round.FreeInput.Sequence); Check.Equal(GestureKind.Hold, timeline.Evaluate(round).Kind.Value);
+            round.Release(.4, 10, 10); timeline.Evaluate(round); round.Advance(1.2);
+            Check.Equal(PlayerMotionPhase.Idle, timeline.Evaluate(round).Phase);
+            round.Stop(); round.Press(1.3, 0, 0);
+            Check.False(round.FreeInput.Kind.HasValue); Check.Equal(0, round.Results.Count);
+        }
+
+        [Test]
         public void GreenImportMattePreservesCostumeColorsAndSoftBlackEdges()
         {
             PlayerChromaKey.Composite(0, 255, 0, 255, out _, out _, out _, out byte clear);

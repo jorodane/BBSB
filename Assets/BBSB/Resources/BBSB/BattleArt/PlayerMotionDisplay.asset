@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cf6c243085a4f0e8e2deb2d78a8c33f, type: 3}
   m_Name: PlayerMotionDisplay
   m_EditorClassIdentifier: 
-  groundPosition: {x: 0.24, y: 0.17}
-  characterScale: 1
+  groundPosition: {x: 0.14, y: 0.15}
+  characterScale: 0.5
   referencePose: {fileID: 8793639957104055765, guid: 810142f81a473c544a477a0a25ad0bdc, type: 3}
   sheets:
   - name: idle

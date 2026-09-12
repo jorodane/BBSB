@@ -19,16 +19,17 @@ namespace BBSB.Runtime.UI
         public MissReason Reason { get; }
         public int Punch { get; }
         public double Age { get; }
+        public bool IsFreeInput { get; }
         public bool IsFall => Grade == RhythmGrade.Miss && (Kind == GestureKind.Dive || Kind == GestureKind.Flick);
 
         internal PlayerMotionFrame(string sheet, int index, PlayerMotionPhase phase,
             GestureKind? kind = null, RhythmGrade? grade = null, MissReason reason = MissReason.None,
-            int punch = -1, double age = 0)
-        { Sheet = sheet; Index = index; Phase = phase; Kind = kind; Grade = grade; Reason = reason; Punch = punch; Age = age; }
+            int punch = -1, double age = 0, bool isFreeInput = false)
+        { Sheet = sheet; Index = index; Phase = phase; Kind = kind; Grade = grade; Reason = reason; Punch = punch; Age = age; IsFreeInput = isFreeInput; }
     }
 
     /// <summary>
-    /// Read-only animation selection from actual judged results and credited contact movement.
+    /// Read-only animation selection from judged results, credited contact and unclaimed input.
     /// Uses song time, never wall time; does not resolve notes, block input, or apply damage.
     /// </summary>
     public sealed class PlayerMotionTimeline
@@ -48,6 +49,7 @@ namespace BBSB.Runtime.UI
         private readonly Dictionary<ResponseNote, double> shakeMoved = new Dictionary<ResponseNote, double>();
         private RhythmRound boundRound;
         private int resultCursor, lastPunch = -1;
+        private int freeCursor, freePunch = -1;
 
         public PlayerMotionTimeline(int? seed = null) { random = seed.HasValue ? new Random(seed.Value) : new Random(); }
         public int PunchSelections { get; private set; }
@@ -61,6 +63,7 @@ namespace BBSB.Runtime.UI
             ObserveResults(round);
             double seconds = round.ElapsedSeconds;
             PlayerMotionFrame? sustain = ObserveContact(round, out double contactTime);
+            PlayerMotionFrame? free = ObserveFreeInput(round);
             Reaction latest = null;
             foreach (var reaction in reactions)
             {
@@ -75,10 +78,13 @@ namespace BBSB.Runtime.UI
                 // after the brief impact; an old result must not hide it for its entire recovery.
                 if (sustain.HasValue && (contactTime > latest.Result.JudgedAtSeconds + 1e-9 || age >= impact))
                     return sustain.Value;
+                if (free.HasValue && (round.FreeInput.StartedAtSeconds > latest.Result.JudgedAtSeconds + 1e-9 ||
+                    (free.Value.Phase == PlayerMotionPhase.Sustain && age >= impact))) return free.Value;
                 var frame = ReactionFrame(round, latest, age, impact);
                 if (frame.HasValue) return frame.Value;
             }
             if (sustain.HasValue) return sustain.Value;
+            if (free.HasValue) return free.Value;
             return new PlayerMotionFrame("idle", (int)(seconds / round.BeatSeconds * 2) % 2, PlayerMotionPhase.Idle);
         }
 
@@ -96,13 +102,44 @@ namespace BBSB.Runtime.UI
                 }
                 var reaction = new Reaction { Result = result };
                 if (note.Step.Kind == GestureKind.Tap)
-                {
-                    int next = lastPunch < 0 ? random.Next(3) : random.Next(2);
-                    if (lastPunch >= 0 && next >= lastPunch) next++;
-                    reaction.Punch = lastPunch = next; PunchSelections++;
-                }
+                    reaction.Punch = NextPunch();
                 shared.Add(key, reaction); reactions.Add(reaction);
             }
+        }
+
+        private int NextPunch()
+        {
+            int next = lastPunch < 0 ? random.Next(3) : random.Next(2);
+            if (lastPunch >= 0 && next >= lastPunch) next++;
+            lastPunch = next; PunchSelections++; return next;
+        }
+
+        private PlayerMotionFrame? ObserveFreeInput(RhythmRound round)
+        {
+            var input = round.FreeInput;
+            if (!input.Kind.HasValue) return null;
+            var kind = input.Kind.Value;
+            if (freeCursor != input.Sequence)
+            {
+                freeCursor = input.Sequence;
+                if (kind == GestureKind.Tap) freePunch = NextPunch();
+            }
+            double seconds = round.ElapsedSeconds, age = seconds - input.StartedAtSeconds;
+            if (input.IsHeld && kind != GestureKind.Tap)
+            {
+                bool moving = kind == GestureKind.Shake && seconds - input.LastMovementSeconds < .14;
+                kind = moving ? GestureKind.Shake : GestureKind.Hold;
+                int pose = moving ? (input.IsOutward ? 1 : 0) : age < .065 ? 0 : 1;
+                return new PlayerMotionFrame(SheetFor(kind), pose, PlayerMotionPhase.Sustain, kind,
+                    age: age, isFreeInput: true);
+            }
+            double impact = Math.Min(.24, round.BeatSeconds * .55), duration = Math.Min(.48, round.BeatSeconds * .95);
+            if (age < 0 || age >= duration) return null;
+            bool recovering = age >= impact;
+            int index = recovering ? (kind == GestureKind.Tap ? freePunch * 4 : kind == GestureKind.Flick ? 0 : 5) :
+                ResultIndex(kind, RhythmGrade.Perfect, freePunch);
+            return new PlayerMotionFrame(SheetFor(kind), index, recovering ? PlayerMotionPhase.Recover : PlayerMotionPhase.Impact,
+                kind, punch: freePunch, age: age, isFreeInput: true);
         }
 
         private PlayerMotionFrame? ObserveContact(RhythmRound round, out double contactTime)

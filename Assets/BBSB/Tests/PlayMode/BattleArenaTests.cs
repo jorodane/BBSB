@@ -164,6 +164,42 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator FreeInputMovesTheSmallerHeroWithoutCounterEffects()
+        {
+            var round = Round(1, new PatternStep(GestureKind.Tap, 0));
+            var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+            Assert.Less(arena.HeroGroundPosition.x, .2f);
+            Assert.Less(arena.HeroPortrait.rectTransform.rect.height / ((RectTransform)arena.transform).rect.height, .4f);
+            Assert.Less(arena.MonsterPortraits[0].rectTransform.rect.height / ((RectTransform)arena.transform).rect.height, .25f);
+            round.Press(.4, 0, 0); arena.Refresh();
+            Assert.IsTrue(arena.CurrentHeroMotion.IsFreeInput);
+            Assert.AreEqual(GestureKind.Tap, arena.CurrentHeroMotion.Kind);
+            Assert.AreEqual(1, arena.CurrentHeroMotion.Index % 4);
+            Assert.AreEqual(0, arena.ActiveResponseEffects); Assert.AreEqual(Color.white, arena.HeroPortrait.color);
+            round.Release(.45, .1, 0); arena.Refresh();
+            Assert.IsTrue(arena.CurrentHeroMotion.IsFreeInput);
+            Assert.AreEqual(GestureKind.Flick, arena.CurrentHeroMotion.Kind);
+            Assert.AreEqual(0, arena.ActiveResponseEffects); Assert.AreEqual(0, round.Results.Count);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator CounterArrowUsesTheUpperRouteAboveTheIncomingArrow()
+        {
+            var round = Round(1, new PatternStep(GestureKind.Tap, 0));
+            var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+            var graphic = arena.transform.Find("Battle effects and five weapons").GetComponent<BattleArenaGraphic>();
+            var renderer = graphic.GetComponent<CanvasRenderer>(); renderer.cull = false;
+            round.Advance(1.9); arena.Refresh(); graphic.Rebuild(CanvasUpdate.PreRender);
+            float height = graphic.rectTransform.rect.height, bottom = graphic.rectTransform.rect.yMin;
+            Assert.Less((renderer.GetMesh().vertices.Max(v => v.y) - bottom) / height, .55f);
+            round.Press(2, 0, 0); round.Advance(2.1); arena.Refresh(); graphic.Rebuild(CanvasUpdate.PreRender);
+            Assert.AreEqual(1, arena.ActiveResponseEffects);
+            Assert.Greater((renderer.GetMesh().vertices.Max(v => v.y) - bottom) / height, .55f);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator MonsterStageVisitKeepsItsGroundLabelsAndShadowsTogether()
         {
             var round = Round(3, new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4),

@@ -17,6 +17,7 @@ namespace BBSB.Core
         public IReadOnlyList<ResponseNote> Notes { get; }
         public IReadOnlyList<RhythmResult> Results { get; }
         public IReadOnlyList<ScheduledCall> Calls { get; }
+        public RhythmFreeInput FreeInput { get; }
         public double ElapsedSeconds { get; private set; }
         public double PerfectWindow { get; }
         public double HalfMissWindow { get; }
@@ -36,6 +37,7 @@ namespace BBSB.Core
             Plan = plan ?? throw new ArgumentNullException(nameof(plan));
             this.rules = rules ?? new RhythmRules(); touch = new RhythmTouch(this.rules);
             BeatSeconds = 60.0 / plan.Stage.Music.Bpm;
+            FreeInput = new RhythmFreeInput(this.rules, BeatSeconds);
             // Adjacent half-beat targets must not have overlapping windows at high BPM.
             PerfectWindow = Math.Min(this.rules.PerfectSeconds, BeatSeconds * .16);
             HalfMissWindow = Math.Min(this.rules.HalfMissSeconds, BeatSeconds * .24);
@@ -84,7 +86,7 @@ namespace BBSB.Core
             {
                 foreach (var note in notes) if (note.State != ResponseState.Resolved)
                     Resolve(note, RhythmGrade.Miss, MissReason.NoInput, seconds, 0);
-                Finished = true; touch.Release();
+                Finished = true; touch.Release(); FreeInput.Consume();
             }
         }
 
@@ -93,6 +95,8 @@ namespace BBSB.Core
             ValidatePoint(x, y); Advance(seconds);
             if (Finished || suspended || touch.Down) return;
             touch.Press(seconds, x, y);
+            FreeInput.Press(seconds, x, y);
+            int previousResults = results.Count;
             int target = ClosestStart(seconds);
             if (target >= 0)
             {
@@ -106,6 +110,7 @@ namespace BBSB.Core
                 }
             }
             else LatchEarlyPress(seconds);
+            if (Finished || target >= 0 || results.Count != previousResults || HasResponseContact(seconds)) FreeInput.Consume();
         }
 
         public void Move(double seconds, double x, double y)
@@ -116,6 +121,12 @@ namespace BBSB.Core
             TrackShakeMotion(seconds, x, y);
             touch.Move(seconds, x, y);
             AdvanceNotes(seconds);
+            if (Finished) FreeInput.Consume();
+            else if (touch.Down)
+            {
+                if (HasResponseContact(seconds)) FreeInput.Consume();
+                else FreeInput.Move(seconds, x, y);
+            }
         }
 
         private void TrackShakeMotion(double seconds, double x, double y)
@@ -166,6 +177,7 @@ namespace BBSB.Core
             if (Finished || suspended || !touch.Down) return;
             bool flick = touch.IsFlick(seconds);
             int target = ClosestRelease(seconds);
+            int previousResults = results.Count;
             foreach (var note in notes)
             {
                 if (Finished) break;
@@ -187,6 +199,8 @@ namespace BBSB.Core
                     }
                 }
             }
+            if (Finished || target >= 0 || results.Count != previousResults) FreeInput.Consume();
+            else FreeInput.Release(seconds, flick);
             touch.Release();
             foreach (var note in notes) if (note.Step.Kind == GestureKind.Shake) EndShakeContact(note);
         }
@@ -199,7 +213,7 @@ namespace BBSB.Core
         public void Stop()
         {
             if (Finished) return;
-            Aborted = Finished = true; touch.Release();
+            Aborted = Finished = true; touch.Release(); FreeInput.Consume();
         }
 
         public void Resume(bool regrab, double x = 0, double y = 0)
@@ -215,7 +229,22 @@ namespace BBSB.Core
             }
             else if (notes.Exists(n => n.State == ResponseState.Holding && n.Step.Kind != GestureKind.Shake))
                 throw new InvalidOperationException("An active held gesture must be regrabbed before resuming.");
+            FreeInput.Resume(regrab, x, y);
             suspended = false;
+        }
+
+        private bool HasResponseContact(double seconds)
+        {
+            foreach (var note in notes)
+            {
+                if (note.State == ResponseState.Resolved) continue;
+                if (note.State == ResponseState.Holding && note.Step.Kind != GestureKind.Shake) return true;
+                if (note.Step.Kind == GestureKind.Shake && seconds >= note.StartSeconds - HalfMissWindow && seconds < note.EndSeconds)
+                    return true;
+                if (note.Step.Kind == GestureKind.Flick && seconds >= note.StartSeconds - Math.Max(HalfMissWindow, rules.FlickLookbackSeconds) &&
+                    seconds <= note.StartSeconds + HalfMissWindow) return true;
+            }
+            return false;
         }
 
         private int ClosestStart(double seconds)

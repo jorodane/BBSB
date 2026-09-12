@@ -46,7 +46,7 @@ namespace BBSB.Runtime.UI
         private float weaponEnergy, guardStrength, shakeStrength;
         private float heroDisplayHeight;
         public Vector2 HeroGroundPosition { get; private set; } = PlayerMotionDisplay.DefaultGround;
-        public Vector2 HeroImpactPosition { get; private set; } = new Vector2(.24f, .49f);
+        public Vector2 HeroImpactPosition { get; private set; } = new Vector2(.14f, .31f);
 
         public Image HeroPortrait => hero?.Portrait;
         public IReadOnlyList<Image> MonsterPortraits => portraits;
@@ -147,11 +147,12 @@ namespace BBSB.Runtime.UI
             Vector2 size = area.rect.size;
             if (size.x <= 0 || size.y <= 0) return;
             HeroGroundPosition = playerDisplay != null ? playerDisplay.groundPosition : PlayerMotionDisplay.DefaultGround;
-            heroDisplayHeight = PlayerMotionDisplay.ReferenceDisplayHeight(size, playerDisplay != null ? playerDisplay.characterScale : 1);
+            heroDisplayHeight = PlayerMotionDisplay.ReferenceDisplayHeight(size,
+                playerDisplay != null ? playerDisplay.characterScale : PlayerMotionDisplay.DefaultCharacterScale);
             HeroImpactPosition = HeroGroundPosition + new Vector2(0, heroDisplayHeight / size.y * .46f);
             hero.Ground = HeroGroundPosition;
             Anchor(hero.Root, HeroGroundPosition, HeroGroundPosition, Vector2.zero, Vector2.zero, new Vector2(.5f, 0));
-            var labelPoint = HeroGroundPosition - new Vector2(0, .11f);
+            var labelPoint = HeroGroundPosition - new Vector2(0, .09f);
             Anchor(heroLabel.rectTransform, labelPoint, labelPoint, Vector2.zero, new Vector2(420, 36), new Vector2(.5f, 0));
             backdrop.SetHeroAnchors(HeroGroundPosition, HeroImpactPosition);
             foreground.SetHeroAnchors(HeroGroundPosition, HeroImpactPosition);
@@ -302,7 +303,9 @@ namespace BBSB.Runtime.UI
             hero.Portrait.sprite = playerSprites.Get(motion);
             ApplyHeroLayout();
             string action = "WEAPON MASTER";
-            if (motion.Phase == PlayerMotionPhase.Sustain)
+            if (motion.IsFreeInput)
+                action = ActionLabel(motion.Kind.Value, motion.Punch) + " · 공미스";
+            else if (motion.Phase == PlayerMotionPhase.Sustain)
             {
                 switch (motion.Kind)
                 {

@@ -8,12 +8,13 @@ namespace BBSB.Runtime.UI
     public sealed class PlayerMotionDisplay : ScriptableObject
     {
         public const string ResourcePath = "BBSB/BattleArt/PlayerMotionDisplay";
-        public static readonly Vector2 DefaultGround = new Vector2(.24f, .17f);
+        public static readonly Vector2 DefaultGround = new Vector2(.14f, .15f);
+        public const float DefaultCharacterScale = .5f;
 
         [Tooltip("Player's ground point in arena coordinates, from bottom-left (0,0) to top-right (1,1).")]
         public Vector2 groundPosition = DefaultGround;
         [Min(.01f), Tooltip("Uniform size of the whole character, including every pose.")]
-        public float characterScale = 1;
+        public float characterScale = DefaultCharacterScale;
         [Tooltip("Standing pose used as the common size reference. Empty uses idle_0.")]
         public Sprite referencePose;
         public Sheet[] sheets = Array.Empty<Sheet>();

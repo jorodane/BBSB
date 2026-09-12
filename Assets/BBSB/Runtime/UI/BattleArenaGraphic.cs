@@ -30,7 +30,7 @@ namespace BBSB.Runtime.UI
         private float energy, guard, shake;
         private IReadOnlyList<BattleEffect> effects;
         private Vector2 heroGround = PlayerMotionDisplay.DefaultGround;
-        private Vector2 heroImpact = new Vector2(.24f, .49f);
+        private Vector2 heroImpact = new Vector2(.14f, .31f);
 
         internal void SetHeroAnchors(Vector2 ground, Vector2 impact)
         {
@@ -103,8 +103,9 @@ namespace BBSB.Runtime.UI
 
         private void Weapons(VertexHelper vh, Rect r)
         {
-            var center = Point(r, heroImpact - new Vector2(0, .035f));
-            float unit = Mathf.Min(r.width, r.height) / 600;
+            float heroHeight = (heroImpact.y - heroGround.y) * r.height / .46f;
+            var center = Point(r, heroImpact) - Vector2.up * heroHeight * .05f;
+            float unit = heroHeight / 420;
             float turn = (float)(beat * .24);
             // A small oscillation accelerates the orbit during Shake without introducing a second clock.
             turn += Mathf.Sin((float)beat * 12) * shake * .25f;
@@ -112,7 +113,7 @@ namespace BBSB.Runtime.UI
             for (int i = 0; i < 5; i++)
             {
                 float a = i * Mathf.PI * 2 / 5 + turn;
-                var p = center + new Vector2(Mathf.Cos(a) * r.width * .13f, Mathf.Sin(a) * r.height * .085f);
+                var p = center + new Vector2(Mathf.Cos(a) * heroHeight * .33f, Mathf.Sin(a) * heroHeight * .12f);
                 float size = (20 + energy * 7) * unit;
                 var up = new Vector2(Mathf.Sin(a) * .45f, 1).normalized;
                 var right = new Vector2(up.y, -up.x);
@@ -141,8 +142,8 @@ namespace BBSB.Runtime.UI
             if (guard > 0)
             {
                 var p = Point(r, heroImpact);
-                Arc(vh, p, new Vector2(r.width * .09f, r.height * .15f), -75, 150, 5 * unit, Alpha(RunUI.Teal, guard * .85f));
-                Arc(vh, p, new Vector2(r.width * .10f, r.height * .17f), -70, 140, unit, Alpha(RunUI.Gold, guard * .6f));
+                Arc(vh, p, new Vector2(heroHeight * .23f, heroHeight * .215f), -75, 150, 5 * unit, Alpha(RunUI.Teal, guard * .85f));
+                Arc(vh, p, new Vector2(heroHeight * .255f, heroHeight * .245f), -70, 140, unit, Alpha(RunUI.Gold, guard * .6f));
             }
         }
 
@@ -201,33 +202,30 @@ namespace BBSB.Runtime.UI
                     if (p < .5f)
                     {
                         float travel = p * 2;
-                        var head = Vector2.Lerp(from, to, travel);
-                        var tail = Vector2.Lerp(from, to, Mathf.Max(0, travel - .22f));
-                        Line(vh, tail, head, 5 * unit, Alpha(fx.Tint, .75f));
-                        Diamond(vh, head, new Vector2(6, 12) * unit, fx.Tint);
+                        FlyingArrow(vh, r, fx.From, fx.To, travel, false, unit, fx.Tint);
                     }
                     else Spark(vh, to, (p - .5f) * 2, unit, tint);
                     break;
                 case BattleEffectKind.Guard:
                     Arc(vh, from, new Vector2(size * 1.1f, size * 1.3f), 5, 170, 6 * unit, tint);
-                    Counter(vh, from, to, p, unit, tint);
+                    Counter(vh, r, fx.From, fx.To, p, unit, tint);
                     break;
                 case BattleEffectKind.Dive:
                     Arc(vh, from, new Vector2(size * 1.9f, size * .5f), 10, 260, 4 * unit, tint);
-                    Counter(vh, from, to, p, unit, tint);
+                    Counter(vh, r, fx.From, fx.To, p, unit, tint);
                     break;
                 case BattleEffectKind.Shake:
                     for (int i = 0; i < 3; i++)
                         Arc(vh, from, Vector2.one * (size + i * 12 * unit), p * 320 + i * 120, 85, 3 * unit, tint);
-                    Counter(vh, from, to, p, unit, tint);
+                    Counter(vh, r, fx.From, fx.To, p, unit, tint);
                     break;
                 case BattleEffectKind.Flick:
                     Arc(vh, from + Vector2.right * size * .5f, new Vector2(size, size * 1.6f), 110 + p * 130, 120, 7 * unit, tint);
-                    Counter(vh, from, to, p, unit, tint);
+                    Counter(vh, r, fx.From, fx.To, p, unit, tint);
                     break;
                 case BattleEffectKind.Counter:
                     Arc(vh, from, new Vector2(size * 1.4f, size), 15 + p * 150, 130, 6 * unit, tint);
-                    Counter(vh, from, to, p, unit, tint);
+                    Counter(vh, r, fx.From, fx.To, p, unit, tint);
                     break;
                 case BattleEffectKind.Miss:
                     var offset = new Vector2(12, 12) * unit * (1 + p);
@@ -237,16 +235,44 @@ namespace BBSB.Runtime.UI
             }
         }
 
-        private static void Counter(VertexHelper vh, Vector2 from, Vector2 to, float p, float unit, Color tint)
+        private static void Counter(VertexHelper vh, Rect r, Vector2 from, Vector2 to, float p, float unit, Color tint)
         {
-            float travel = Mathf.Clamp01(p * 3);
-            Line(vh, Vector2.Lerp(from, to, Mathf.Max(0, travel - .3f)), Vector2.Lerp(from, to, travel), 3 * unit, tint);
-            if (p > .2f)
+            const float arrival = (float)BattleTrajectory.CounterArrival;
+            if (p < arrival) FlyingArrow(vh, r, from, to, p / arrival, true, unit, tint);
+            else
             {
-                var offset = new Vector2(30, 40) * unit * Mathf.Min(1, p * 4);
-                Line(vh, to - offset, to + offset, 5 * unit, tint);
-                Spark(vh, to, p, unit, tint);
+                float impact = (p - arrival) / (1 - arrival);
+                var target = Point(r, to);
+                var offset = new Vector2(20, 27) * unit * (1 - impact * .3f);
+                Line(vh, target - offset, target + offset, 5 * unit, tint);
+                Spark(vh, target, impact, unit, tint);
             }
+        }
+
+        private static void FlyingArrow(VertexHelper vh, Rect r, Vector2 from, Vector2 to,
+            float progress, bool outgoing, float unit, Color tint)
+        {
+            float start = Mathf.Max(0, progress - .2f);
+            var previous = PathPoint(r, from, to, start, outgoing);
+            for (int i = 1; i <= 12; i++)
+            {
+                var next = PathPoint(r, from, to, Mathf.Lerp(start, progress, i / 12f), outgoing);
+                Line(vh, previous, next, (outgoing ? 3 : 4) * unit, tint);
+                previous = next;
+            }
+            var head = PathPoint(r, from, to, progress, outgoing);
+            var direction = (PathPoint(r, from, to, Mathf.Min(1, progress + .005f), outgoing) -
+                PathPoint(r, from, to, Mathf.Max(0, progress - .005f), outgoing)).normalized;
+            var normal = new Vector2(-direction.y, direction.x);
+            Triangle(vh, head, head - direction * 13 * unit + normal * 6 * unit,
+                head - direction * 13 * unit - normal * 6 * unit, tint);
+        }
+
+        private static Vector2 PathPoint(Rect r, Vector2 from, Vector2 to, float progress, bool outgoing)
+        {
+            var point = outgoing ? BattleTrajectory.Counter(from.x, from.y, to.x, to.y, progress) :
+                BattleTrajectory.Incoming(from.x, from.y, to.x, to.y, progress);
+            return Point(r, new Vector2((float)point.X, (float)point.Y));
         }
 
         private static void Spark(VertexHelper vh, Vector2 p, float progress, float unit, Color tint)
