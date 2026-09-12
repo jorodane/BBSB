@@ -98,7 +98,9 @@ namespace BBSB.Runtime.UI
                 double impact = ImpactDuration(latest.Result.Note.Step.Kind, round.BeatSeconds);
                 // New contact immediately interrupts even a long fall. A continuing guard returns
                 // after the brief impact; an old result must not hide it for its entire recovery.
-                if (sustain.HasValue && (contactTime > latest.Result.JudgedAtSeconds + 1e-9 || age >= impact))
+                // A completed Hold must not lift the body out of a Dive still awaiting release.
+                if (sustain.HasValue && ((sustain.Value.Kind == GestureKind.Dive && latest.Result.Note.Step.Kind == GestureKind.Hold) ||
+                    contactTime > latest.Result.JudgedAtSeconds + 1e-9 || age >= impact))
                     return sustain.Value;
                 if (free.HasValue && (round.FreeInput.StartedAtSeconds > latest.Result.JudgedAtSeconds + 1e-9 ||
                     (free.Value.Phase == PlayerMotionPhase.Sustain && age >= impact))) return free.Value;
@@ -159,6 +161,13 @@ namespace BBSB.Runtime.UI
                     age: age, isFreeInput: true, phaseAge: phaseAge);
             }
             double impact = ImpactDuration(kind, round.BeatSeconds), duration = Math.Min(.48, round.BeatSeconds * .95);
+            if (kind == GestureKind.Hold)
+            {
+                // Releasing a free guard goes directly to its recovery pose, without a hit or duck.
+                if (age < 0 || age >= duration - impact) return null;
+                return new PlayerMotionFrame("hold", 5, PlayerMotionPhase.Recover, kind,
+                    age: age, isFreeInput: true, phaseAge: age);
+            }
             if (age < 0 || age >= duration) return null;
             double preparation = kind == GestureKind.Tap ? TapPreparationDuration(round.BeatSeconds) : 0;
             if (age < preparation)

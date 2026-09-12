@@ -173,19 +173,75 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void EmptyHoldGuardsAndItsReleasePlaysADuck()
+        public void EmptyHoldReleaseRecoversTheGuardWithoutAnUnmatchedDive()
         {
-            var round = Single(GestureKind.Tap); var timeline = new PlayerMotionTimeline();
-            round.Press(.2, 0, 0); timeline.Evaluate(round); round.Advance(.4);
-            var held = timeline.Evaluate(round);
-            Check.True(held.IsFreeInput); Check.Equal(GestureKind.Hold, held.Kind.Value);
-            Check.Equal(PlayerMotionPhase.Sustain, held.Phase);
-            round.Release(.5, 0, 0); var released = timeline.Evaluate(round);
-            Check.True(released.IsFreeInput); Check.Equal(GestureKind.Dive, released.Kind.Value);
-            Check.Equal(1, released.Index); Check.False(released.IsFall);
-            round.Advance(.621); var recovered = timeline.Evaluate(round);
-            Check.True(recovered.IsFreeInput); Check.Equal(PlayerMotionPhase.Recover, recovered.Phase); Check.Equal(5, recovered.Index);
-            Check.Equal(0, round.Results.Count); Check.Equal(0m, round.TotalDamageTaken);
+            foreach (double bpm in new[] { 120.0, 168.0, 240.0 })
+            foreach (bool longHold in new[] { false, true })
+            {
+                var round = RoundAtBpm(bpm, 1, new PatternStep(GestureKind.Dive, 0, 4));
+                var timeline = new PlayerMotionTimeline(); double beat = round.BeatSeconds;
+                round.Press(beat * .2, 0, 0); timeline.Evaluate(round); round.Advance(beat * .8);
+                var held = timeline.Evaluate(round);
+                Check.True(held.IsFreeInput); Check.Equal(GestureKind.Hold, held.Kind.Value);
+                Check.Equal("hold", held.Sheet); Check.Equal(PlayerMotionPhase.Sustain, held.Phase);
+                double release = beat * (longHold ? 2.5 : 1);
+                round.Release(release, 0, 0); var released = timeline.Evaluate(round);
+                Check.Equal(GestureKind.Hold, round.FreeInput.Kind.Value); Check.False(round.FreeInput.IsHeld);
+                Check.True(released.IsFreeInput); Check.Equal("hold", released.Sheet);
+                Check.Equal(PlayerMotionPhase.Recover, released.Phase); Check.Equal(5, released.Index);
+                Check.False(released.Grade.HasValue); Check.False(released.IsFall);
+                round.Suspend(); round.Advance(100);
+                Check.Equal(released.PhaseAge, timeline.Evaluate(round).PhaseAge);
+                round.Resume(false); round.Advance(release + beat * .6);
+                Check.Equal(PlayerMotionPhase.Idle, timeline.Evaluate(round).Phase);
+                Check.Equal(0, round.Results.Count); Check.Equal(0m, round.TotalDamageTaken);
+                Check.Equal(ResponseState.Pending, round.Notes.Single().State);
+            }
+        }
+
+        [Test]
+        public void HeldInputUsesTheAuthoredHoldOrDivePoseAndKeepsItsTimingGrade()
+        {
+            foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
+            foreach (double offset in new[] { 0.0, .1 })
+            {
+                var round = Single(kind); var timeline = new PlayerMotionTimeline();
+                round.Press(2 + offset, 0, 0); var preparing = timeline.Evaluate(round);
+                Check.False(preparing.IsFreeInput); Check.Equal(kind, preparing.Kind.Value);
+                Check.Equal(PlayerMotionTimeline.SheetFor(kind), preparing.Sheet);
+                Check.Equal(PlayerMotionPhase.Sustain, preparing.Phase);
+                round.Advance(2.3); var held = timeline.Evaluate(round);
+                Check.Equal(kind, held.Kind.Value); Check.Equal(1, held.Index);
+                Check.False(held.Grade.HasValue); Check.Equal(0, round.Results.Count);
+                round.Suspend(); round.Advance(100); Check.Equal(2.3, round.ElapsedSeconds);
+                round.Resume(true, 10, 10); var resumed = timeline.Evaluate(round);
+                Check.Equal(held.Kind, resumed.Kind); Check.Equal(held.Index, resumed.Index);
+                Check.False(round.FreeInput.Kind.HasValue);
+                round.Advance(2.5);
+                Check.Equal(kind == GestureKind.Dive ? 0 : 1, round.Results.Count);
+                if (kind == GestureKind.Dive) Check.Equal(PlayerMotionPhase.Sustain, timeline.Evaluate(round).Phase);
+                round.Release(2.5, 10, 10); var result = timeline.Evaluate(round);
+                Check.Equal(kind, result.Kind.Value); Check.False(result.IsFreeInput);
+                Check.Equal(offset == 0 ? RhythmGrade.Perfect : RhythmGrade.HalfMiss, result.Grade.Value);
+                Check.Equal(1, round.Results.Count); Check.Equal(offset == 0 ? 0m : 2m, round.TotalDamageTaken);
+            }
+        }
+
+        [Test]
+        public void CompletedHoldCannotReplaceADiveThatIsStillHeld()
+        {
+            var round = Round(1, new PatternStep(GestureKind.Hold, 0, 4), new PatternStep(GestureKind.Dive, 0, 4));
+            var timeline = new PlayerMotionTimeline();
+            round.Press(2, 0, 0); var started = timeline.Evaluate(round);
+            Check.Equal(GestureKind.Dive, started.Kind.Value); Check.False(started.IsFreeInput);
+            round.Advance(2.5); var waitingForRelease = timeline.Evaluate(round);
+            Check.Equal(1, round.PerfectCount); Check.True(round.IsDown);
+            Check.Equal(GestureKind.Hold, round.Results.Single().Note.Step.Kind);
+            Check.Equal(GestureKind.Dive, waitingForRelease.Kind.Value);
+            Check.Equal(PlayerMotionPhase.Sustain, waitingForRelease.Phase); Check.Equal("dive", waitingForRelease.Sheet);
+            round.Release(2.5, 0, 0); var finished = timeline.Evaluate(round);
+            Check.Equal(2, round.PerfectCount); Check.Equal(0m, round.TotalDamageTaken);
+            Check.Equal(GestureKind.Dive, finished.Kind.Value); Check.Equal(RhythmGrade.Perfect, finished.Grade.Value);
         }
 
         [Test]

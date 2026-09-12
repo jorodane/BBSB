@@ -184,6 +184,18 @@ namespace BBSB.Tests
             Assert.IsTrue(arena.CurrentHeroMotion.IsFreeInput);
             Assert.AreEqual(GestureKind.Flick, arena.CurrentHeroMotion.Kind);
             Assert.AreEqual(0, arena.ActiveResponseEffects); Assert.AreEqual(0, round.Results.Count);
+            round.Press(.6, 0, 0); round.Advance(.8); arena.Refresh();
+            Assert.AreEqual(GestureKind.Hold, arena.CurrentHeroMotion.Kind);
+            Assert.AreEqual(PlayerMotionPhase.Sustain, arena.CurrentHeroMotion.Phase);
+            round.Release(.9, 0, 0); arena.Refresh();
+            Assert.IsTrue(arena.CurrentHeroMotion.IsFreeInput);
+            Assert.AreEqual("hold", arena.CurrentHeroMotion.Sheet);
+            Assert.AreEqual(PlayerMotionPhase.Recover, arena.CurrentHeroMotion.Phase);
+            Assert.AreEqual(5, arena.CurrentHeroMotion.Index);
+            using (var sprites = new PlayerMotionSprites())
+                Assert.AreSame(sprites.Get("hold", 5), arena.HeroPortrait.sprite);
+            Assert.AreEqual(0, arena.ActiveResponseEffects); Assert.AreEqual(0, round.Results.Count);
+            Assert.AreEqual(0m, round.TotalDamageTaken);
             LogAssert.NoUnexpectedReceived();
         }
 

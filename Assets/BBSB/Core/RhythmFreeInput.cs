@@ -49,7 +49,8 @@ namespace BBSB.Core
             tracking = false;
             if (flick) Record(GestureKind.Flick, seconds);
             else if (shook) Record(GestureKind.Shake, seconds);
-            else if (seconds - PressedAtSeconds >= holdSeconds) Record(GestureKind.Dive, seconds);
+            // An unmatched release only lowers the guard. Dive belongs to an authored note.
+            else if (seconds - PressedAtSeconds >= holdSeconds) Record(GestureKind.Hold, seconds);
             // A quick release completes the Tap already shown on press, without a second punch.
         }
 
