@@ -1,0 +1,218 @@
+[
+  {
+    "kind": "monster",
+    "id": "tap-slime",
+    "name": "젤리 슬라임 소녀",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/tap-slime.png"
+  },
+  {
+    "kind": "monster",
+    "id": "march-slime",
+    "name": "도자기 골렘 소녀",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/march-slime.png"
+  },
+  {
+    "kind": "monster",
+    "id": "tresillo-bat",
+    "name": "깃춤 하피",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/tresillo-bat.png"
+  },
+  {
+    "kind": "monster",
+    "id": "offbeat-goblin",
+    "name": "여우불 여우요괴",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/offbeat-goblin.png"
+  },
+  {
+    "kind": "monster",
+    "id": "drowsy-slime",
+    "name": "꿈먹는 맥 소녀",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/drowsy-slime.png"
+  },
+  {
+    "kind": "monster",
+    "id": "clock-spirit",
+    "name": "태엽 인형 소녀",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/clock-spirit.png"
+  },
+  {
+    "kind": "monster",
+    "id": "seesaw-goblin",
+    "name": "쌍꼬리 네코마타",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/seesaw-goblin.png"
+  },
+  {
+    "kind": "monster",
+    "id": "spark-bat",
+    "name": "뇌수 소녀",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/spark-bat.png"
+  },
+  {
+    "kind": "monster",
+    "id": "iron-turtle",
+    "name": "갑각 용인 소녀",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/iron-turtle.png"
+  },
+  {
+    "kind": "monster",
+    "id": "diving-ray",
+    "name": "장막 라미아",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/diving-ray.png"
+  },
+  {
+    "kind": "monster",
+    "id": "bubble-spirit",
+    "name": "해파리 소녀",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/bubble-spirit.png"
+  },
+  {
+    "kind": "monster",
+    "id": "flick-goblin",
+    "name": "실 잣는 아라크네",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Monsters/flick-goblin.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "count-four-tap",
+    "name": "셋 세고 통!",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/count-four-tap.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "tresillo-call-tap",
+    "name": "출렁, 출렁, 통!",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/tresillo-call-tap.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "march-three",
+    "name": "세 걸음 권격",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/march-three.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "march-spaced",
+    "name": "큰 보폭 권격",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/march-spaced.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "tresillo-taps",
+    "name": "세 갈래 깃춤",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/tresillo-taps.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "rotated-tresillo",
+    "name": "돌아서는 깃춤",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/rotated-tresillo.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "offbeat-single-tap",
+    "name": "뒤따르는 불씨",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/offbeat-single-tap.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "offbeat-pair",
+    "name": "두 꼬리불 장난",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/offbeat-pair.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "drowsy-quick-tap",
+    "name": "깜짝 꿈방울",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/drowsy-quick-tap.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "drowsy-four-beat-wait",
+    "name": "네 박 낮잠",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/drowsy-four-beat-wait.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "clock-quick-tap",
+    "name": "째깍 인형 던지기",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/clock-quick-tap.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "clock-seven-beat-wait",
+    "name": "뚜방뚜방 일곱 걸음",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/clock-seven-beat-wait.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "seesaw-steady-tap",
+    "name": "꼬리 또각",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/seesaw-steady-tap.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "seesaw-early-finish",
+    "name": "내가 먼저!",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/seesaw-early-finish.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "bat-quick-taps",
+    "name": "찌릿 두 번",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/bat-quick-taps.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "bat-hold",
+    "name": "꼬리 축전",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/bat-hold.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "turtle-long-hold",
+    "name": "비늘 방패 밀기",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/turtle-long-hold.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "turtle-hold-tap",
+    "name": "꼬리까지 조심!",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/turtle-hold-tap.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "ray-deep-dive",
+    "name": "긴 장막",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/ray-deep-dive.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "ray-short-dive",
+    "name": "짧은 장막",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/ray-short-dive.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "one-beat-shake",
+    "name": "우산막 하나",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/one-beat-shake.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "two-bubble-shakes",
+    "name": "우산막 둘",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/two-bubble-shakes.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "counted-flick",
+    "name": "둘 세고 당기기",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/counted-flick.png"
+  },
+  {
+    "kind": "pattern",
+    "id": "offbeat-flick",
+    "name": "반 박 먼저 걷기",
+    "path": "Assets/BBSB/Resources/BBSB/Codex/Patterns/offbeat-flick.png"
+  }
+]

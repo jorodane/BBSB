@@ -293,6 +293,37 @@ namespace BBSB.Tests
             Assert.AreEqual(gold + 25, run.Gold);
         }
 
+        [UnityTest]
+        public IEnumerator CodexPreviewKeepsTheBattlePausedAndPreservesHeldContact()
+        {
+            yield return Prepare(new RunRules(startingHealth: 10000));
+            var player = Begin(); yield return null;
+            var surface = root.GetComponentInChildren<RhythmInputSurface>();
+            var contact = Pointer(11, new Vector2(100, 200)); surface.OnPointerDown(contact);
+            Click("메뉴");
+            double frozen = player.Round.ElapsedSeconds; int results = player.Round.Results.Count;
+            decimal health = presenter.Session.Health;
+            Click("몬스터 도감"); yield return null;
+            var codex = root.GetComponentInChildren<MonsterCodexView>(); Assert.IsNotNull(codex);
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex clock-spirit").onClick.Invoke();
+            Click("소리 켜짐"); Click(MonsterCatalog.All.Single(x => x.Id == "clock-spirit").Patterns[1].Name);
+            surface.OnPointerDown(contact);
+            yield return null; yield return null;
+            Assert.IsFalse(surface.Captured); Assert.IsFalse(player.CanReceiveInput);
+            Assert.AreEqual(frozen, player.Round.ElapsedSeconds);
+            Assert.AreEqual(results, player.Round.Results.Count); Assert.AreEqual(health, presenter.Session.Health);
+            codex.Back(); yield return null;
+            Assert.IsTrue(player.IsPaused); Assert.IsNotNull(root.GetComponentInChildren<MonsterCodexView>());
+            codex.Close(); yield return null;
+            Assert.IsTrue(player.IsPaused); Assert.IsFalse(player.WaitingForContact);
+            Assert.IsNull(root.GetComponentInChildren<MonsterCodexView>());
+            Click("이어하기"); Assert.IsTrue(player.WaitingForContact);
+            surface.OnPointerDown(contact); Assert.IsFalse(player.IsPaused); Assert.IsTrue(player.Round.IsDown);
+            Assert.AreEqual(results, player.Round.Results.Count);
+            surface.OnPointerUp(contact);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         private IEnumerator Prepare(RunRules rules = null)
         {
             root = new GameObject("Rhythm UI test");

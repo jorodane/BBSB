@@ -28,7 +28,7 @@ namespace BBSB.Runtime.UI
         private int callCursor, resultCursor;
 
         public RhythmPlaybackView(RectTransform root, RunUI ui, RhythmRound round, RunSession session,
-            Action pause, Action resume, Action sound, Action leave)
+            Action pause, Action resume, Action sound, Action leave, Action codex)
         {
             this.round = round; this.session = session; var music = round.Plan.Stage.Music;
             root.name = "Rhythm playback";
@@ -112,6 +112,7 @@ namespace BBSB.Runtime.UI
             ui.Label(home, "박자와 판정이 멈췄어. 받은 피해는 유지돼.\n유지 중이었다면 이어할 때 화면을 다시 눌러줘.", 24, RunUI.Muted, 92);
             ui.Button(home, "이어하기", resume, primary: true);
             ui.Button(home, "연주 정보 · 패턴", () => select(details.gameObject));
+            ui.Button(home, "몬스터 도감", codex);
             ui.Button(home, "조작 방법", () => select(help.gameObject));
             soundLabel = ui.Button(home, "박자·Call 소리 끄기", sound).GetComponentInChildren<Text>();
             ui.Button(home, round.Combat != null && round.Combat.IsPractice ? "배치로 돌아가기" : "준비로 돌아가기", leave);
@@ -133,6 +134,11 @@ namespace BBSB.Runtime.UI
         private readonly Action resetMenu;
         public void ShowPause(bool value)
         { pauseOverlay.SetActive(value); if (value) resetMenu(); arena.SetPaused(value); }
+        public void SetCodexOpen(bool value)
+        {
+            var group = pauseOverlay.GetComponent<CanvasGroup>() ?? pauseOverlay.AddComponent<CanvasGroup>();
+            group.interactable = group.blocksRaycasts = !value;
+        }
         public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자·Call 소리 끄기" : "박자·Call 소리 켜기"; }
 
         public void Refresh(double seconds, bool waitingForContact)

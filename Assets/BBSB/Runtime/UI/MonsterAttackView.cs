@@ -48,35 +48,8 @@ namespace BBSB.Runtime.UI
 
         internal Sprite Body(MonsterPlan monster, double seconds, Sprite fallback, out bool authoredPose)
         {
-            authoredPose = false;
-            var idle = Sprites.Get(MonsterAttackDefinition.ResourceRoot + monster.Monster.Id, "idle", seconds / round.BeatSeconds * 2);
-            if (round.Combat != null && round.Combat.Victory) return idle != null ? idle : fallback;
-            Sprite selected = null; double latest = double.NegativeInfinity;
-            foreach (var attack in monster.Attacks)
-            {
-                string folder = MonsterAttackDefinition.ResourceRoot + monster.Monster.Id + "/" + attack.Pattern.Id + "/body";
-                for (int i = 0; i < attack.Call.Count; i++)
-                {
-                    double time = RhythmTime.Seconds(attack.Call[i].Tick, round.Plan.Stage.Music.Bpm);
-                    if (seconds >= time && seconds < time + round.BeatSeconds * .65 && time >= latest)
-                    {
-                        var sprite = Sprites.Get(folder, "call-" + i, (seconds - time) / round.BeatSeconds * 2);
-                        if (sprite != null) { selected = sprite; latest = time; }
-                    }
-                }
-                foreach (var step in attack.Pattern.Pattern.Steps)
-                {
-                    double start = RhythmTime.Seconds(attack.ResponseStartTick + step.OffsetTick, round.Plan.Stage.Music.Bpm);
-                    double end = start + Math.Max(step.DurationTicks / 4.0, .3) * round.BeatSeconds;
-                    bool contact = seconds >= start && seconds < end;
-                    double time = contact ? start : end;
-                    if (seconds < start || seconds >= end + round.BeatSeconds * .35 || time < latest) continue;
-                    var sprite = Sprites.Get(folder, contact ? "attack" : "recover", (seconds - time) / round.BeatSeconds * 2);
-                    if (sprite != null) { selected = sprite; latest = time; }
-                }
-            }
-            authoredPose = selected != null;
-            return selected != null ? selected : idle != null ? idle : fallback;
+            return Sprites.Body(monster, seconds, round.BeatSeconds, fallback,
+                round.Combat != null && round.Combat.Victory, out authoredPose);
         }
 
         internal void Refresh(double seconds, Vector2 heroGround, float heroHeight)

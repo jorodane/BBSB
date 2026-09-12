@@ -22,6 +22,35 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator CodexOpensBeforeARunAndReturnsToTheRunMenu()
+        {
+            root = new GameObject("Codex UI smoke test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            Click("몬스터 도감"); yield return null; Canvas.ForceUpdateCanvases();
+            Assert.IsNull(presenter.Session);
+            var codex = root.GetComponentInChildren<MonsterCodexView>();
+            var grid = codex.GetComponentInChildren<GridLayoutGroup>();
+            Assert.AreEqual(MonsterCatalog.All.Count, grid.transform.childCount);
+            Assert.Greater(grid.cellSize.x, 100);
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex tap-slime").onClick.Invoke();
+            yield return null; Canvas.ForceUpdateCanvases();
+            Assert.IsNotNull(codex.GetComponentInChildren<MonsterCodexStage>());
+            Assert.AreEqual(3, codex.GetComponentsInChildren<Button>().Count(x => x.name == "Codex idle" || x.name.StartsWith("Codex pattern ")));
+            Click("소리 켜짐");
+            Click(MonsterCatalog.All[0].Patterns[0].Name); yield return null;
+            Assert.IsNotNull(codex.GetComponentInChildren<MonsterPatternGraphic>());
+            Click("평상시"); Assert.IsNull(codex.GetComponentInChildren<MonsterPatternGraphic>());
+            codex.Back(); yield return null; Assert.IsTrue(grid.gameObject.activeInHierarchy);
+            codex.Close(); yield return null; Click("탐험 시작"); yield return null;
+            var map = presenter.Session.Map;
+            Click("메뉴"); Click("몬스터 도감"); yield return null;
+            root.GetComponentInChildren<MonsterCodexView>().Close(); yield return null;
+            Assert.AreSame(map, presenter.Session.Map); Click("돌아가기");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator BootstrapCreatesKoreanUIAndStartButtonOpensMap()
         {
             root = new GameObject("UI smoke test");

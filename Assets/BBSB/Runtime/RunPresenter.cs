@@ -32,6 +32,7 @@ namespace BBSB.Runtime
         private RhythmRound completedRound;
         private bool weaponEditor;
         private int practicePattern;
+        private MonsterCodexView codex;
 
         public void Initialize(RunRules runRules, Font font, int? seed, bool showTestControls)
         {
@@ -70,6 +71,7 @@ namespace BBSB.Runtime
         {
             if (rendering || ui == null) return;
             rendering = true;
+            if (codex != null) codex.Close();
             if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
             ClearMenu();
             screen = ui.Rect("Run screen", safeArea); RunUI.Stretch(screen);
@@ -127,6 +129,11 @@ namespace BBSB.Runtime
 
         private void Update()
         {
+            if (codex != null)
+            {
+                if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) codex.Back();
+                return;
+            }
             if (title || ActiveRound != null || Session == null || Session.Phase == RunPhase.GameOver) return;
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
@@ -147,7 +154,9 @@ namespace BBSB.Runtime
             ui.Label(card, "네 곳의 몬스터 지역 중 하나에서 탐험을 시작해.\n여섯 번째 단계의 보스를 넘으면 다음 필드로 향해.", 24, null, 125);
             ui.Label(card, "탐험이 끝나면 획득한 장비와 보상도 초기화돼.", 21, RunUI.Muted, 70);
             ui.Label(content, "무기 5개  ·  분기 선택  ·  보스 도전", 22, RunUI.Muted, 70);
-            ui.Button(panel, "탐험 시작", StartRun, primary: true, height: 84);
+            var actions = ui.Row(panel, 84);
+            ui.Button(actions, "탐험 시작", StartRun, primary: true, height: 84);
+            ui.Button(actions, "몬스터 도감", OpenCodex, height: 84);
         }
 
         private void DrawHud()
@@ -479,6 +488,24 @@ namespace BBSB.Runtime
             ui.Button(card, "처음으로", () => { title = true; Render(); });
         }
 
+        private void OpenCodex()
+        {
+            if (codex != null) return;
+            var group = screen.GetComponent<CanvasGroup>(); group.interactable = group.blocksRaycasts = false;
+            CanvasGroup menuGroup = null;
+            if (menuOverlay != null)
+            {
+                menuGroup = menuOverlay.GetComponent<CanvasGroup>() ?? menuOverlay.gameObject.AddComponent<CanvasGroup>();
+                menuGroup.interactable = menuGroup.blocksRaycasts = false;
+            }
+            codex = MonsterCodexView.Open(safeArea, ui, () =>
+            {
+                codex = null;
+                if (group != null) group.interactable = group.blocksRaycasts = menuPage == MenuPage.None;
+                if (menuGroup != null) menuGroup.interactable = menuGroup.blocksRaycasts = true;
+            });
+        }
+
         private void OpenMenu(MenuPage page)
         {
             menuPage = page; RenderMenu();
@@ -514,6 +541,7 @@ namespace BBSB.Runtime
                     ui.Button(body, "돌아가기", CloseMenu, primary: true);
                     ui.Button(body, "장비 · 가방 · 증강", () => OpenMenu(MenuPage.Inventory));
                     if (Session.BattlePlan != null) { ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns)); ui.Button(body, "무기 배치 · 연습", OpenWeaponPreparation); }
+                    ui.Button(body, "몬스터 도감", OpenCodex);
                     ui.Button(body, "조작 방법", () => OpenMenu(MenuPage.Help));
                     if (testControls && Session.BattlePlan != null) ui.Button(body, "개발 도구", () => OpenMenu(MenuPage.Development));
                     ui.Button(body, "탐험 종료", () => OpenMenu(MenuPage.Abandon));

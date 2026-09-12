@@ -12,7 +12,7 @@ namespace BBSB.Runtime
         public RhythmRound Round { get; private set; }
         public bool IsPaused { get; private set; }
         public bool WaitingForContact { get; private set; }
-        public bool CanReceiveInput => Round != null && !Round.Finished && !completed && (!IsPaused || WaitingForContact);
+        public bool CanReceiveInput => codex == null && Round != null && !Round.Finished && !completed && (!IsPaused || WaitingForContact);
         private RhythmInputSurface surface;
         private RhythmPlaybackView view;
         private BeatMetronome metronome;
@@ -20,12 +20,14 @@ namespace BBSB.Runtime
         private Action onLeave;
         private double origin, offset;
         private bool heldAtPause, completed;
+        private MonsterCodexView codex;
+        private RunUI ui;
 
         internal void Bind(RhythmRound round, RunSession session, RunUI ui, Action<RhythmRound> finished, Action leave)
         {
-            Round = round; onFinished = finished; onLeave = leave;
+            this.ui = ui; Round = round; onFinished = finished; onLeave = leave;
             surface = gameObject.AddComponent<RhythmInputSurface>(); surface.Bind(this);
-            view = new RhythmPlaybackView((RectTransform)transform, ui, round, session, Pause, Continue, ToggleSound, Leave);
+            view = new RhythmPlaybackView((RectTransform)transform, ui, round, session, Pause, Continue, ToggleSound, Leave, OpenCodex);
             metronome = new BeatMetronome(transform, Round.Plan);
             RestartClock(true); view.Refresh(0, false);
         }
@@ -35,6 +37,7 @@ namespace BBSB.Runtime
         private void Update()
         {
             if (Round == null || completed || Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame) return;
+            if (codex != null) { codex.Back(); return; }
             if (IsPaused && !WaitingForContact) Continue(); else Pause();
         }
 
@@ -99,10 +102,19 @@ namespace BBSB.Runtime
 
         private void Continue()
         {
-            if (!IsPaused || completed) return;
+            if (codex != null || !IsPaused || completed) return;
             view.ShowPause(false);
             if (heldAtPause) WaitingForContact = true;
             else { Round.Resume(false); IsPaused = false; RestartClock(); }
+        }
+
+        private void OpenCodex()
+        {
+            if (codex != null || completed) return;
+            Pause(); if (completed) return;
+            view.SetCodexOpen(true);
+            codex = MonsterCodexView.Open((RectTransform)transform, ui, () =>
+            { codex = null; view.SetCodexOpen(false); });
         }
 
         public void SetBeatSound(bool enabled)
@@ -120,7 +132,7 @@ namespace BBSB.Runtime
         { if (completed) return; completed = true; metronome.Stop(); surface.Cancel(); onLeave?.Invoke(); }
         private void OnApplicationPause(bool paused) { if (paused) Pause(); }
         private void OnApplicationFocus(bool focused) { if (!focused) Pause(); }
-        private void OnDisable() { metronome?.Stop(); if (surface != null) surface.Cancel(); }
+        private void OnDisable() { if (codex != null) codex.Close(); metronome?.Stop(); if (surface != null) surface.Cancel(); }
         private void OnDestroy() { metronome?.Dispose(); }
     }
 }
