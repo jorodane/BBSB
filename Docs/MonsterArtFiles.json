@@ -4,8 +4,8 @@
   "runtimeBaseCommit": "936fd591ca34b200cab9700983928e4f24ac5f2f",
   "branch": "codex/roguelike-foundation",
   "root": "Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/",
-  "status": "Specification only. No new PNGs have been generated.",
-  "dimensions": "Final delivered PNG pixels (width x height). Chosen for this production pass, not hard-coded texture dimensions.",
+  "status": "All 316 PNGs uploaded in ced553b and connected to battle, practice and codex.",
+  "dimensions": "Original production target pixels, not the native dimensions of the generated PNGs. Uploaded PNG bytes retain their generated sizes; runtime layout uses aspect ratio and Display.asset.",
   "sourceRules": "Generate each sources entry once at canonicalPath; copy the identical PNG bytes to files with the same sourceId. Do not copy Unity .meta GUIDs.",
   "counts": {"species": 12, "patterns": 24, "attackSlots": 36, "attackFamilies": 16, "attackOriginals": 84, "bodyOriginals": 54, "attackPngFiles": 223, "bodyPngFiles": 93, "totalOriginals": 138, "totalPngFiles": 316, "copiedPngFiles": 178},
   "sources": [

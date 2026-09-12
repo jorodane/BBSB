@@ -224,7 +224,7 @@ namespace BBSB.Runtime.UI
         }
 
         private Sprite Portrait(MonsterDefinition monster) => sprites.Get(IconRoot + "Monsters", monster.Id) ??
-            Resources.Load<Sprite>(MonsterAttackDefinition.ResourceRoot + monster.Id + "/idle") ?? Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
+            sprites.Get(MonsterAttackDefinition.ResourceRoot + monster.Id, "idle") ?? Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
 
         private void SetIcon(RectTransform root, Sprite sprite, string fallback)
         {

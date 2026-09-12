@@ -15,7 +15,7 @@
 
 ## 이미지 넣기
 
-별도 배포한 `BBSB_EncyclopediaIcons.zip`의 `Assets` 폴더를 프로젝트와 합친다. 파일별 대응은 [MonsterCodexIcons.json](MonsterCodexIcons.json)에 있다. PNG는 도감 코드 커밋에 포함하지 않는다.
+`Upload Monster Images` 커밋(`ced553b`)의 도감 아이콘 36개와 본체·공격 PNG 316개가 연결되어 있다. 파일별 대응은 [MonsterCodexIcons.json](MonsterCodexIcons.json)과 [MonsterArtFiles.json](MonsterArtFiles.json)에 있다.
 
 | 용도 | 파일 경로 |
 |---|---|
@@ -25,10 +25,16 @@
 
 새 얼굴 초상 12개와 기존 공격 장면을 활용한 패턴 아이콘 24개를 사용한다. 본체와 공격은 앞서 배포한 `BBSB_AllMonsterArt.zip`을 그대로 사용한다. 새 도감 아이콘이 없으면 본체/공격 이미지로, 본체도 없으면 기존 전투 이미지 또는 이름으로 표시한다.
 
+도감과 전투는 `MonsterAttackSprites`의 같은 파일 조회 코드를 사용한다. 이미지가 필요한 순간에 정확한 Resources 경로에서 읽어 캐시하며, 평상시 본체 한 장을 위해 다른 패턴 폴더 전체를 로드하지 않는다. 인형의 `travel-0`~`travel-3`은 번호순으로 반복한다. PNG 한 장은 한 포즈이며, Single 이미지에 남아 있는 자동 슬라이스 이름은 모션 프레임으로 사용하지 않는다.
+
+도감 본체도 업로드된 Sprite 피벗으로 지면을 잡는다. 공격의 배율·출발/도착 오프셋·이미지 오프셋·상태별 피벗/회전·프레임 속도는 전투와 같은 `MonsterAttacks/Display.asset`을 읽는다. 도감의 무대 크기와 반응 위치는 미리보기 레이아웃에 맞춘다.
+
 `MonsterCodexImporter`는 새 PNG를 Single Sprite, 입력 알파 유지, Clamp, Bilinear, 밉맵 없음, 압축 없음, 최대 256으로 임포트한다. 이미 Sprite로 조정한 파일은 설정을 유지한다. 원본 PNG를 자르거나 배경을 제거하지 않는다. 본체·공격의 기존 임포터와 경로는 그대로다.
 
 ## 검증
 
 `Tools/CoreChecks`의 `MonsterPreviewTests`는 모든 종족·패턴과 60/120/200 BPM에서 Call과 입력 간격, 공격의 정시 도착, 긴 쉼과 엇박 표시, Dive 끝 떼기, 회복 구간, 반복 시점, 다른 라운드와의 분리를 검증한다.
+
+`NamedResourceClipsTests`는 파일 경로 조회, 불필요한 폴더 로드 방지, 번호 프레임 우선순위/반복, Call 번호 분리, 기존 명명된 아틀라스 호환을 검증한다. Unity의 `MonsterArtIntegrationTests`는 실제 Resources에서 아이콘 36개·본체 93개·공격 223개를 하나씩 로드하고, 모든 패턴의 보이는 상태와 정시 도착이 해당 이미지에 연결되는지 검사한다.
 
 Unity PlayMode에는 시작 전 도감 탐색/평상시 복귀/메뉴 복귀, 전투를 누른 채 멈추고 도감을 열었다 닫는 경우의 시계·HP·재접촉 보존 검사를 추가했다. 이 환경에서는 Unity Editor를 실행할 수 없어 PlayMode 실행과 실제 기기의 화면·소리 확인은 별도 확인이 필요하다.

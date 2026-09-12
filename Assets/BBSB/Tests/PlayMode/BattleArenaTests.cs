@@ -336,7 +336,7 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator TurtleTailCueLooksDifferentWhileBothResponsesAreStillPending()
+        public IEnumerator TurtleTailCueUsesAuthoredPosesWhileBothResponsesAreStillPending()
         {
             var turtle = MonsterCatalog.All.Single(x => x.Id == "iron-turtle");
             var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "steady-pulse"));
@@ -345,11 +345,24 @@ namespace BBSB.Tests
             var plan = BattlePlanner.Resolve(stage, proposals, 1); Assert.AreEqual(2, plan.Monsters.Count);
             var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
             round.Advance(RhythmTime.Seconds(24, stage.Music.Bpm)); arena.Refresh();
-            Assert.IsTrue(arena.MonsterPortraits.All(x => x.rectTransform.localScale.y < .9f));
+            for (int i = 0; i < plan.Monsters.Count; i++)
+            {
+                string pattern = plan.Monsters[i].Attacks.Single().Pattern.Id;
+                Assert.AreSame(Resources.Load<Sprite>(MonsterAttackDefinition.ResourceRoot + "iron-turtle/" + pattern + "/body/call-0"),
+                    arena.MonsterPortraits[i].sprite);
+                Assert.AreEqual(Vector3.one, arena.MonsterPortraits[i].rectTransform.localScale,
+                    "An authored Call pose must not also receive the old procedural squash.");
+            }
             Assert.AreEqual(2, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 쿵"));
             round.Advance(RhythmTime.Seconds(28, stage.Music.Bpm)); arena.Refresh();
-            Assert.Greater(Quaternion.Angle(arena.MonsterPortraits[0].rectTransform.localRotation,
-                arena.MonsterPortraits[1].rectTransform.localRotation), 25);
+            for (int i = 0; i < plan.Monsters.Count; i++)
+            {
+                string pattern = plan.Monsters[i].Attacks.Single().Pattern.Id;
+                string image = pattern == "turtle-hold-tap" ? pattern + "/body/call-1" : "idle";
+                Assert.AreSame(Resources.Load<Sprite>(MonsterAttackDefinition.ResourceRoot + "iron-turtle/" + image),
+                    arena.MonsterPortraits[i].sprite);
+                Assert.AreEqual(Quaternion.identity, arena.MonsterPortraits[i].rectTransform.localRotation);
+            }
             Assert.AreEqual(1, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 휙!"));
             Assert.AreEqual(0, round.Results.Count);
             Assert.IsTrue(round.Notes.All(x => x.StartSeconds > round.ElapsedSeconds));
@@ -421,7 +434,8 @@ namespace BBSB.Tests
                     var sprite = Sprite.Create(texture, new Rect(0, 0, 4, 4), Vector2.one * .5f); sprite.name = name; sprites.Add(sprite);
                 }
                 int loads = 0;
-                var art = new MonsterAttackSprites(path => { loads++; return sprites.ToArray(); });
+                var art = new MonsterAttackSprites(path =>
+                { if (path != "test") return new Sprite[0]; loads++; return sprites.ToArray(); });
                 Assert.AreEqual("travel-2", art.Get("test", "travel", 2).name);
                 Assert.AreEqual("travel-10", art.Get("test", "travel", 10).name);
                 Assert.AreEqual("travel-0", art.Get("test", "travel", 11).name);
