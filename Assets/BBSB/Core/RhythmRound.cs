@@ -10,16 +10,13 @@ namespace BBSB.Core
         private readonly RhythmTouch touch;
         private readonly List<ResponseNote> notes = new List<ResponseNote>();
         private readonly List<RhythmResult> results = new List<RhythmResult>();
-        private readonly List<RhythmResult> weaponResults = new List<RhythmResult>();
-        private readonly List<RhythmResult> motionResults = new List<RhythmResult>();
         private readonly List<ScheduledCall> calls = new List<ScheduledCall>();
         private int callCursor;
         private bool suspended;
         public BattlePlan Plan { get; }
         public WeaponBattle Combat { get; }
         public int ResponseNoteCount { get; }
-        public IReadOnlyList<RhythmResult> WeaponResults { get; }
-        public IReadOnlyList<RhythmResult> MotionResults { get; }
+        public IReadOnlyList<WeaponJudgment> WeaponResults => Combat?.Judgments ?? Array.Empty<WeaponJudgment>();
         public IReadOnlyList<ResponseNote> Notes { get; }
         public IReadOnlyList<RhythmResult> Results { get; }
         public IReadOnlyList<ScheduledCall> Calls { get; }
@@ -53,20 +50,13 @@ namespace BBSB.Core
             Combat = combat; Combat?.Bind(plan, notes);
             notes.Sort((a, b) => a.StartTick != b.StartTick ? a.StartTick.CompareTo(b.StartTick) : JudgeOrder(a, b));
             Notes = notes.AsReadOnly(); Results = results.AsReadOnly(); Calls = calls.AsReadOnly();
-            WeaponResults = weaponResults.AsReadOnly(); MotionResults = motionResults.AsReadOnly();
         }
 
-        private static int JudgeOrder(ResponseNote a, ResponseNote b)
+        private int JudgeOrder(ResponseNote a, ResponseNote b)
         {
-            // At the same instant, wards and resonance precede damage, then incoming effects.
-            if (a.IsWeapon != b.IsWeapon) return a.IsWeapon ? -1 : 1;
-            if (a.IsWeapon)
-            {
-                int priorityA = a.Step.Kind == GestureKind.Hold ? 0 : a.Step.Kind == GestureKind.Shake ? 1 : 2;
-                int priorityB = b.Step.Kind == GestureKind.Hold ? 0 : b.Step.Kind == GestureKind.Shake ? 1 : 2;
-                if (priorityA != priorityB) return priorityA.CompareTo(priorityB);
-                if (a.WeaponSlot != b.WeaponSlot) return a.WeaponSlot.CompareTo(b.WeaponSlot);
-            }
+            // Order simultaneous monster results by their subscribed effects: shields first.
+            int left = Combat?.JudgmentOrder(a) ?? 0, right = Combat?.JudgmentOrder(b) ?? 0;
+            if (left != right) return left.CompareTo(right);
             return a.Attack.Id != b.Attack.Id ? string.CompareOrdinal(a.Attack.Id, b.Attack.Id) : a.StepIndex.CompareTo(b.StepIndex);
         }
 
@@ -133,7 +123,7 @@ namespace BBSB.Core
             if (Finished || suspended || touch.Down) return;
             touch.Press(seconds, x, y);
             FreeInput.Press(seconds, x, y);
-            int previousResults = motionResults.Count;
+            int previousResults = results.Count;
             int target = ClosestStart(seconds);
             if (target >= 0)
             {
@@ -147,7 +137,7 @@ namespace BBSB.Core
                 }
             }
             else LatchEarlyPress(seconds);
-            if (Finished || target >= 0 || motionResults.Count != previousResults || HasResponseContact(seconds)) FreeInput.Consume();
+            if (Finished || target >= 0 || results.Count != previousResults || HasResponseContact(seconds)) FreeInput.Consume();
         }
 
         public void Move(double seconds, double x, double y)
@@ -214,7 +204,7 @@ namespace BBSB.Core
             if (Finished || suspended || !touch.Down) return;
             bool flick = touch.IsFlick(seconds);
             int target = ClosestRelease(seconds);
-            int previousResults = motionResults.Count;
+            int previousResults = results.Count;
             var releaseOrder = new List<ResponseNote>(notes); releaseOrder.Sort(JudgeOrder);
             foreach (var note in releaseOrder)
             {
@@ -237,7 +227,7 @@ namespace BBSB.Core
                     }
                 }
             }
-            if (Finished || target >= 0 || motionResults.Count != previousResults) FreeInput.Consume();
+            if (Finished || target >= 0 || results.Count != previousResults) FreeInput.Consume();
             else FreeInput.Release(seconds, flick);
             touch.Release();
             foreach (var note in notes) if (note.Step.Kind == GestureKind.Shake) EndShakeContact(note);
@@ -344,11 +334,7 @@ namespace BBSB.Core
             if (Finished || !CanJudge(note)) return;
             note.State = ResponseState.Resolved;
             note.Result = new RhythmResult(note, grade, reason, at, error);
-            motionResults.Add(note.Result);
-            if (note.IsWeapon)
-            {
-                weaponResults.Add(note.Result); Combat?.JudgeWeapon(note.Result); return;
-            }
+            Combat?.JudgeWeapons(note.Result);
             Combat?.JudgeIncoming(note.Result); results.Add(note.Result);
             if (grade == RhythmGrade.Perfect) PerfectCount++; else if (grade == RhythmGrade.HalfMiss) HalfMissCount++; else MissCount++;
             TotalDamageTaken += note.Result.DamageTaken;

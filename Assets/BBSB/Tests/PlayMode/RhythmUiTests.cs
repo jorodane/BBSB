@@ -250,6 +250,8 @@ namespace BBSB.Tests
             Assert.IsTrue(presenter.StartWeaponPractice(editor.SelectedPattern)); yield return null;
             var playback = root.GetComponentInChildren<RhythmPlayback>(); playback.SetBeatSound(false);
             Assert.IsTrue(playback.Round.Combat.IsPractice); Assert.AreEqual(1, playback.Round.Plan.Attacks.Count);
+            Assert.AreEqual(pattern.Placement.Pattern.Steps.Count, playback.Round.Notes.Count);
+            Assert.IsTrue(playback.Round.Combat.Bindings.All(x => playback.Round.Notes.Contains(x.Note)));
             Assert.IsNotNull(root.GetComponentsInChildren<Text>().Single(x => x.name == "Shared stage health"));
             Click("메뉴"); yield return null;
             Assert.IsTrue(playback.IsPaused); Click("이어하기");
@@ -268,7 +270,9 @@ namespace BBSB.Tests
             yield return Prepare(new RunRules(startingHealth: 10000));
             var run = presenter.Session; string ticket = run.StageTicket; int gold = run.Gold;
             RhythmRound round = null;
-            for (int attempt = 0; attempt < 3; attempt++)
+            // The fixture has two matching spear beats per song; retry until shared HP is depleted.
+            int maxAttempts = (int)System.Math.Ceiling(run.EnemyHealth.Maximum / WeaponCatalog.Find("spear").Damage[0]);
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
                 var playback = Begin(); round = playback.Round;
                 foreach (double at in round.Notes.Where(n => n.Step.Touch.Start == TouchTransition.Press).Select(n => n.StartSeconds).Distinct().OrderBy(x => x))

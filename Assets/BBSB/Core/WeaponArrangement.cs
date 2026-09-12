@@ -17,7 +17,6 @@ namespace BBSB.Core
     /// <summary>One assignment per equipped slot, repeated for every occurrence of its monster pattern.</summary>
     public sealed class WeaponArrangement
     {
-        private readonly BattlePlan plan;
         private readonly List<WeaponState> equipment = new List<WeaponState>();
         private readonly List<WeaponPlacement> placements = new List<WeaponPlacement>();
         private readonly List<PlannedAttack> patterns = new List<PlannedAttack>();
@@ -27,7 +26,7 @@ namespace BBSB.Core
 
         public WeaponArrangement(BattlePlan plan, IReadOnlyList<WeaponState> weapons)
         {
-            this.plan = plan ?? throw new ArgumentNullException(nameof(plan));
+            if (plan == null) throw new ArgumentNullException(nameof(plan));
             if (weapons == null || weapons.Count > RunRules.WeaponSlots) throw new ArgumentException("Invalid equipment.");
             foreach (var weapon in weapons)
             {
@@ -57,27 +56,24 @@ namespace BBSB.Core
             var pattern = WeaponCatalog.Find(equipment[slot].DefinitionId).Pattern;
             if (offset >= source.Pattern.ResponseTicks || offset + pattern.EndOffsetTick > source.Pattern.ResponseTicks)
             { reason = "무기 패턴이 Response 구간을 벗어나"; return false; }
-            foreach (var attack in plan.Attacks)
-            {
-                if (attack.MonsterId != monsterId || attack.Pattern.Id != patternId) continue;
-                var candidate = PlacePattern(pattern, attack.ResponseStartTick + offset);
-                foreach (var other in plan.Attacks)
-                {
-                    if (other != attack && other.MonsterId == monsterId && other.Pattern.Id == patternId &&
-                        InputCompatibility.PhysicalConflict(candidate, PlacePattern(pattern, other.ResponseStartTick + offset), out _))
-                    { reason = "같은 무기의 다음 발동과 입력이 겹쳐"; return false; }
-                    if (InputCompatibility.PhysicalConflict(candidate, other.Placement, out _))
-                    { reason = "몬스터 입력과 동시에 수행할 수 없어"; return false; }
-                    foreach (var placed in placements)
-                    {
-                        if (placed.Slot == slot || !placed.Matches(other)) continue;
-                        var otherPattern = WeaponCatalog.Find(equipment[placed.Slot].DefinitionId).Pattern;
-                        if (InputCompatibility.PhysicalConflict(candidate, PlacePattern(otherPattern, other.ResponseStartTick + placed.OffsetTick), out _))
-                        { reason = "이미 배치한 무기의 입력과 충돌해"; return false; }
-                    }
-                }
-            }
+            // Weapons subscribe to existing Response judgments. Other equipped weapons never
+            // occupy or consume these positions, and placement cannot add a new player input.
+            foreach (var step in pattern.Steps)
+                if (MatchingStep(source.Placement.Pattern, step, offset) < 0)
+                { reason = "이 위치에는 무기 패턴에 맞는 몬스터 박자가 없어"; return false; }
+
             return true;
+        }
+
+        internal static int MatchingStep(RhythmPattern source, PatternStep required, int offset)
+        {
+            for (int i = 0; i < source.Steps.Count; i++)
+            {
+                var step = source.Steps[i];
+                if (step.OffsetTick == (long)offset + required.OffsetTick && step.Kind == required.Kind &&
+                    step.DurationTicks == required.DurationTicks) return i;
+            }
+            return -1;
         }
 
         public IReadOnlyList<int> ValidOffsets(int slot, PlannedAttack pattern)

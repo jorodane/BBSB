@@ -30,17 +30,6 @@ namespace BBSB.Core
             return tick >= 0;
         }
 
-        // Weapons may add a Shake to a held gesture or a Flick to its release. Only physical
-        // contradictions matter here; the stricter monster-vs-monster Call rule stays above.
-        public static bool PhysicalConflict(PatternPlacement a, PatternPlacement b, out int tick)
-        {
-            if (a == null || b == null) throw new ArgumentNullException(a == null ? nameof(a) : nameof(b));
-            tick = -1;
-            foreach (var left in a.Pattern.Steps) foreach (var right in b.Pattern.Steps)
-                if (PhysicalConflict(left, a.StartTick, right, b.StartTick, out int at)) Record(ref tick, at);
-            return tick >= 0;
-        }
-
         // Instantaneous steps protect their kind until the next input of the same phrase.
         // Thus an extra Flick between Tap, Tap, Flick is rejected; sharing its final Flick is fine.
         // Sustained steps protect their entire duration, including the ending input position.

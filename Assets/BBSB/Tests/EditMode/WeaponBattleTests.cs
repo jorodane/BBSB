@@ -28,6 +28,7 @@ namespace BBSB.Tests
                 Check.Equal(1000 - damage[weapon.Id], round.Combat.EnemyHealth.Current);
                 Check.Equal(0m, round.TotalDamageTaken);
                 Check.Equal(weapon.Pattern.Steps.Count, round.PerfectCount);
+                Check.Equal(weapon.Pattern.Steps.Count, round.Notes.Count);
                 Check.Equal(weapon.Pattern.Steps.Count, round.WeaponResults.Count);
                 Check.Equal(weapon.Id == "shield" ? 12m : 0m, round.Combat.GuardAt(round.ElapsedSeconds));
             }
@@ -50,39 +51,66 @@ namespace BBSB.Tests
         public void SharedInputTriggersEveryEquippedCopyWithoutDuplicatingMonsterDamageOrBodyMotion()
         {
             var plan = Plan(new PatternStep(GestureKind.Tap, 0));
-            var loadout = Loadout(plan, "spear", "spear");
-            Place(loadout, 0, plan.Attacks[0], 0); Place(loadout, 1, plan.Attacks[0], 0);
-            var round = Round(plan, loadout); round.Press(2, 0, 0);
-            Check.Equal(40m, round.Combat.TotalDamage); Check.Equal(2, round.Combat.Activations.Count);
+            var loadout = Loadout(plan, "spear", "spear", "spear", "spear", "spear");
+            for (int slot = 0; slot < 5; slot++) Place(loadout, slot, plan.Attacks[0], 0);
+            var round = Round(plan, loadout, 20); round.Press(2, 0, 0);
+            Check.Equal(100m, round.Combat.TotalDamage); Check.Equal(5, round.Combat.Activations.Count);
+            Check.True(round.Combat.Victory); Check.Equal(0m, round.Combat.EnemyHealth.Current);
+            Check.Equal(1, round.Notes.Count); Check.Equal(1, round.Results.Count);
+            Check.Equal(5, round.WeaponResults.Count);
+            Check.True(round.WeaponResults.All(x => ReferenceEquals(x.Source, round.Results[0])));
+            Check.True(round.Combat.Activations.All(x => x.AtSeconds == 2));
             Check.Equal(1, round.PerfectCount); Check.Equal(100.0, round.ScorePercent);
-            var motion = new PlayerMotionTimeline(1); var frame = motion.Evaluate(round);
-            Check.Equal(1, motion.PunchSelections); Check.False(frame.IsWeaponInput);
+            var motion = new PlayerMotionTimeline(1); motion.Evaluate(round);
+            Check.Equal(1, motion.PunchSelections);
             round.Release(2.001, 0, 0); round.Advance(2.1);
-            Check.Equal(40m, round.Combat.TotalDamage);
+            Check.Equal(100m, round.Combat.TotalDamage);
         }
 
         [Test]
-        public void ExtraWeaponTapIsNotAnEarlyMonsterMissOrAnUnclaimedGesture()
+        public void PlacementRequiresExistingMonsterBeatsAndCannotAddAnExtraInput()
         {
             var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4));
-            var loadout = Loadout(plan, "dagger"); Place(loadout, 0, plan.Attacks[0], 0);
+            var loadout = Loadout(plan, "sword", "dagger"); var source = plan.Attacks[0];
+            Place(loadout, 0, source, 0);
+            Check.False(loadout.TryPlace(1, source.MonsterId, source.Pattern.Id, 0, out _));
+            Check.Equal(0, loadout.ValidOffsets(1, source).Count);
             var round = Round(plan, loadout);
-            foreach (double at in new[] { 2.0, 2.25, 2.5 }) { round.Press(at, 0, 0); round.Release(at + .001, 0, 0); }
-            Check.Equal(2, round.PerfectCount); Check.Equal(0, round.MissCount); Check.Equal(12m, round.Combat.TotalDamage);
+            var unarmed = new RhythmRound(plan);
+            Check.Equal(unarmed.ResponseNoteCount, round.ResponseNoteCount);
+            Check.True(round.Notes.Select(x => (x.Attack.Id, x.StepIndex, x.StartTick, x.Step.Kind, x.Step.DurationTicks))
+                .SequenceEqual(unarmed.Notes.Select(x => (x.Attack.Id, x.StepIndex, x.StartTick, x.Step.Kind, x.Step.DurationTicks))));
+            Perform(round, source.Placement.Pattern.Steps, 2);
+            Check.Equal(2, round.PerfectCount); Check.Equal(0, round.MissCount); Check.Equal(28m, round.Combat.TotalDamage);
             Check.False(round.FreeInput.Kind.HasValue);
         }
 
         [Test]
-        public void AWeaponMissDoesNotApplyIncomingDamageOrCreateAnAutomaticBodyHit()
+        public void SharedMissReachesEveryWeaponButDamagesAndReactsOnlyOnce()
         {
-            var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4));
-            var loadout = Loadout(plan, "dagger"); Place(loadout, 0, plan.Attacks[0], 0);
+            var plan = Plan(new PatternStep(GestureKind.Tap, 0));
+            var loadout = Loadout(plan, "spear", "spear", "spear", "spear", "spear");
+            for (int slot = 0; slot < 5; slot++) Place(loadout, slot, plan.Attacks[0], 0);
             var round = Round(plan, loadout); var motion = new PlayerMotionTimeline(3);
-            round.Press(2, 0, 0); round.Release(2.001, 0, 0); motion.Evaluate(round);
-            round.Advance(2.4); var frame = motion.Evaluate(round);
-            Check.Equal(0m, round.TotalDamageTaken); Check.Equal(0, round.MissCount);
-            Check.Equal(1, round.WeaponResults.Count(x => x.Grade == RhythmGrade.Miss));
-            Check.False(frame.Grade == RhythmGrade.Miss);
+            round.Advance(2.2); var frame = motion.Evaluate(round);
+            Check.Equal(4m, round.TotalDamageTaken); Check.Equal(1, round.MissCount);
+            Check.Equal(5, round.WeaponResults.Count(x => x.Grade == RhythmGrade.Miss));
+            Check.True(round.WeaponResults.All(x => ReferenceEquals(x.Source, round.Results.Single())));
+            Check.Equal(0, round.Combat.Activations.Count); Check.Equal(0m, round.Combat.TotalDamage);
+            Check.Equal(1, motion.PunchSelections); Check.True(frame.Grade == RhythmGrade.Miss);
+        }
+
+        [Test]
+        public void SharedHoldStacksEveryShieldFromOneHalfMissJudgment()
+        {
+            var plan = Plan(new PatternStep(GestureKind.Hold, 0, 4));
+            var loadout = Loadout(plan, "shield", "shield", "shield", "shield", "shield");
+            for (int slot = 0; slot < 5; slot++) Place(loadout, slot, plan.Attacks[0], 0);
+            var round = Round(plan, loadout); round.Press(2.1, 0, 0); round.Release(2.5, 0, 0);
+            Check.Equal(1, round.HalfMissCount); Check.Equal(5, round.Combat.Activations.Count);
+            Check.True(round.WeaponResults.All(x => x.Grade == RhythmGrade.HalfMiss && ReferenceEquals(x.Source, round.Results[0])));
+            Check.Equal(2m, round.Combat.TotalBlocked); Check.Equal(0m, round.TotalDamageTaken);
+            Check.Equal(28m, round.Combat.GuardAt(2.5)); // Five shields at half strength, one incoming hit.
         }
 
         [Test]
@@ -93,41 +121,51 @@ namespace BBSB.Tests
             Place(loadout, 0, source, 0); Place(loadout, 0, source, 4);
             Check.Equal(1, loadout.Placements.Count); Check.Equal(4, loadout.At(0).OffsetTick);
             var round = Round(plan, loadout);
-            Check.Equal(4, round.Notes.Count(x => x.IsWeapon));
-            Check.True(round.Notes.Where(x => x.IsWeapon).Select(x => x.StartTick).SequenceEqual(new[] { 20, 24, 52, 56 }));
+            Check.Equal(6, round.Notes.Count); Check.Equal(4, round.Combat.Bindings.Count);
+            Check.True(round.Combat.Bindings.Select(x => x.Note.StartTick).SequenceEqual(new[] { 20, 24, 52, 56 }));
             Check.False(loadout.TryPlace(0, source.MonsterId, source.Pattern.Id, 11, out _));
             Check.Equal(4, loadout.At(0).OffsetTick);
+            Perform(round, source.Placement.Pattern.Steps, 2); Perform(round, source.Placement.Pattern.Steps, 6);
+            Check.Equal(56m, round.Combat.TotalDamage); Check.Equal(6, round.PerfectCount);
+            Check.Equal(2, round.Combat.Activations.Count(x => x.CompletedPattern));
         }
 
         [Test]
-        public void ConflictingHoldsAreRejectedWhileShakeAndFlickCanEnhanceADive()
+        public void WeaponsUseTheAuthoredDiveShakeAndFlickJudgmentsWithoutAddingGestures()
         {
-            var plan = Plan(new PatternStep(GestureKind.Dive, 0, 4)); var source = plan.Attacks[0];
-            var loadout = Loadout(plan, "sword", "bell", "blade");
-            Check.False(loadout.TryPlace(0, source.MonsterId, source.Pattern.Id, 0, out _));
-            Place(loadout, 1, source, 0); Place(loadout, 2, source, 4);
+            var plan = Plan(new PatternStep(GestureKind.Dive, 0, 4), new PatternStep(GestureKind.Shake, 0, 4),
+                new PatternStep(GestureKind.Flick, 4)); var source = plan.Attacks[0];
+            var loadout = Loadout(plan, "greatsword", "bell", "blade");
+            Place(loadout, 0, source, 0); Place(loadout, 1, source, 0); Place(loadout, 2, source, 4);
             var round = Round(plan, loadout);
             round.Press(2, 0, 0); round.Move(2.08, .1, 0); round.Move(2.16, 0, 0);
             round.Move(2.25, 0, 0); round.Move(2.34, 0, 0); round.Move(2.42, .08, 0); round.Release(2.5, .16, 0);
-            Check.Equal(1, round.PerfectCount); Check.Equal(0m, round.TotalDamageTaken);
-            Check.Equal(3, round.MotionResults.Count);
-            Check.Equal(32m, round.Combat.TotalDamage); // Bell 8, then amplified blade 16 * 1.5.
+            Check.Equal(3, round.PerfectCount); Check.Equal(0m, round.TotalDamageTaken);
+            Check.Equal(3, round.Notes.Count); Check.Equal(3, round.Results.Count); Check.Equal(3, round.Combat.Activations.Count);
+            Check.True(round.WeaponResults.All(x => round.Results.Contains(x.Source)));
+            Check.Equal(78m, round.Combat.TotalDamage); // Bell 8, amplified greatsword 36 * 1.5, then blade 16.
         }
 
         [Test]
-        public void EveryOccurrenceIsCheckedAgainstOtherMonstersAndWeapons()
+        public void OtherWeaponsNeverConsumeAPlacementAndSharedBeatsTriggerAllPatterns()
         {
-            var stage = Stage();
-            var a = Proposal(stage, "a", new[] { new PatternStep(GestureKind.Tap, 0) }, new[] { 16, 48 });
-            var b = Proposal(stage, "b", new[] { new PatternStep(GestureKind.Hold, 0, 4) }, new[] { 52 });
-            var plan = BattlePlanner.Resolve(stage, new[] { a, b }, 1);
-            var loadout = Loadout(plan, "sword", "shield", "dagger");
-            var source = plan.Attacks.First(x => x.MonsterId == "a");
-            Check.False(loadout.TryPlace(0, "a", source.Pattern.Id, 2, out _)); // Second occurrence presses inside b's hold.
-            var local = Plan(new PatternStep(GestureKind.Tap, 0));
-            loadout = Loadout(local, "shield", "dagger"); source = local.Attacks[0];
-            Place(loadout, 0, source, 0);
-            Check.False(loadout.TryPlace(1, source.MonsterId, source.Pattern.Id, 0, out _));
+            var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 2),
+                new PatternStep(GestureKind.Tap, 4), new PatternStep(GestureKind.Tap, 8)); var source = plan.Attacks[0];
+            foreach (var order in new[] { new[] { 0, 1, 2, 3, 4 }, new[] { 4, 3, 2, 1, 0 } })
+            {
+                var loadout = Loadout(plan, "sword", "spear", "hammer", "dagger", "spear");
+                var offsets = Enumerable.Range(0, 5).Select(slot => loadout.ValidOffsets(slot, source).ToArray()).ToArray();
+                foreach (int slot in order)
+                {
+                    Place(loadout, slot, source, 0);
+                    for (int other = 0; other < 5; other++)
+                        Check.True(offsets[other].SequenceEqual(loadout.ValidOffsets(other, source)));
+                }
+                var round = Round(plan, loadout); round.Press(2, 0, 0); round.Release(2.001, 0, 0);
+                Check.Equal(5, round.Combat.Activations.Count); Check.Equal(1, round.PerfectCount);
+                foreach (double at in new[] { 2.25, 2.5, 3.0 }) { round.Press(at, 0, 0); round.Release(at + .001, 0, 0); }
+                Check.Equal(130m, round.Combat.TotalDamage); Check.Equal(4, round.Notes.Count); Check.Equal(4, round.PerfectCount);
+            }
         }
 
         [Test]
@@ -145,9 +183,9 @@ namespace BBSB.Tests
         {
             var plan = Plan(new[] { new PatternStep(GestureKind.Flick, 0) }, new[] { 16, 18 });
             Check.Equal(1, plan.Attacks.Count); Check.True(plan.Withdrawals.Any(x => x.IsSelfConflict));
-            var loadout = Loadout(plan, "shield"); var source = plan.Attacks[0];
-            Place(loadout, 0, source, 4);
-            var round = Round(plan, loadout); Check.Equal(1, round.Notes.Count(x => x.IsWeapon));
+            var loadout = Loadout(plan, "blade"); var source = plan.Attacks[0];
+            Place(loadout, 0, source, 0);
+            var round = Round(plan, loadout); Check.Equal(1, round.Notes.Count); Check.Equal(1, round.Combat.Bindings.Count);
         }
 
         [Test]
@@ -177,7 +215,7 @@ namespace BBSB.Tests
         [Test]
         public void LongFrameResolvesEarlierIncomingDamageBeforeALaterShield()
         {
-            var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 2));
+            var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Hold, 2, 4));
             var loadout = Loadout(plan, "shield"); Place(loadout, 0, plan.Attacks[0], 2);
             var round = Round(plan, loadout); round.Press(2.25, 0, 0); round.Advance(3);
             Check.Equal(4m, round.TotalDamageTaken); Check.Equal(0m, round.Combat.TotalBlocked);
@@ -240,6 +278,8 @@ namespace BBSB.Tests
             string ticket = run.StageTicket; decimal health = run.Health, enemy = run.EnemyHealth.Current; int gold = run.Gold;
             var assignments = run.BattleLoadout.Placements.ToArray();
             var practice = WeaponPractice.Create(plan, run.BattleLoadout, plan.Attacks[0], run.EnemyHealth.Maximum, run.MaxHealth);
+            Check.Equal(plan.Attacks[0].Placement.Pattern.Steps.Count, practice.Notes.Count);
+            Check.True(practice.Combat.Bindings.All(x => practice.Notes.Contains(x.Note)));
             practice.Advance(100);
             Check.True(practice.Combat.IsPractice); Check.True(practice.TotalDamageTaken > 0);
             Check.Equal(health, run.Health); Check.Equal(enemy, run.EnemyHealth.Current); Check.Equal(gold, run.Gold);
@@ -255,7 +295,7 @@ namespace BBSB.Tests
             var source = run.BattleLoadout.Patterns.First(p => run.BattleLoadout.CanPlace(2, p.MonsterId, p.Pattern.Id, 0, out _));
             Place(run.BattleLoadout, 2, source, 0);
             var round = run.StartRhythmRound();
-            double time = round.Notes.First(x => x.WeaponSlot == 2).StartSeconds;
+            double time = round.Combat.Bindings.First(x => x.Slot == 2).Note.StartSeconds;
             round.Press(time, 0, 0); Check.True(round.Combat.TotalDamage > 0);
             decimal remaining = run.EnemyHealth.Current; var enemy = run.EnemyHealth;
             Check.True(run.CloseRhythmRound(round)); var replay = run.StartRhythmRound();

@@ -21,15 +21,14 @@ namespace BBSB.Runtime.UI
         public double Age { get; }
         public double PhaseAge { get; }
         public bool IsFreeInput { get; }
-        public bool IsWeaponInput { get; }
         public bool IsFall => Grade == RhythmGrade.Miss && (Kind == GestureKind.Dive || Kind == GestureKind.Flick);
 
         internal PlayerMotionFrame(string sheet, int index, PlayerMotionPhase phase,
             GestureKind? kind = null, RhythmGrade? grade = null, MissReason reason = MissReason.None,
-            int punch = -1, double age = 0, bool isFreeInput = false, double? phaseAge = null, bool isWeaponInput = false)
+            int punch = -1, double age = 0, bool isFreeInput = false, double? phaseAge = null)
         {
             Sheet = sheet; Index = index; Phase = phase; Kind = kind; Grade = grade; Reason = reason;
-            Punch = punch; Age = age; PhaseAge = phaseAge ?? age; IsFreeInput = isFreeInput; IsWeaponInput = isWeaponInput;
+            Punch = punch; Age = age; PhaseAge = phaseAge ?? age; IsFreeInput = isFreeInput;
         }
     }
 
@@ -113,16 +112,14 @@ namespace BBSB.Runtime.UI
 
         private void ObserveResults(RhythmRound round)
         {
-            while (resultCursor < round.MotionResults.Count)
+            while (resultCursor < round.Results.Count)
             {
-                var result = round.MotionResults[resultCursor++]; var note = result.Note;
-                if (note.IsWeapon && (result.Reason == MissReason.NoInput || result.Reason == MissReason.MissingShake)) continue;
+                var result = round.Results[resultCursor++]; var note = result.Note;
                 var key = (note.Step.Kind, note.StartTick, note.EndTick, result.JudgedAtSeconds);
                 if (shared.TryGetValue(key, out var existing))
                 {
                     // A shared gesture has one body pose. Retain the worst grade if sources differ.
-                    if ((existing.Result.Note.IsWeapon && !note.IsWeapon) ||
-                        (existing.Result.Note.IsWeapon == note.IsWeapon && result.Grade < existing.Result.Grade)) existing.Result = result;
+                    if (result.Grade < existing.Result.Grade) existing.Result = result;
                     continue;
                 }
                 var reaction = new Reaction { Result = result };
@@ -235,7 +232,7 @@ namespace BBSB.Runtime.UI
             double preparation = kind == GestureKind.Tap && result.Reason != MissReason.NoInput ? TapPreparationDuration(round.BeatSeconds) : 0;
             if (age < preparation)
                 return new PlayerMotionFrame("tap", reaction.Punch * 4, PlayerMotionPhase.Prepare,
-                    kind, result.Grade, result.Reason, reaction.Punch, age, isWeaponInput: result.Note.IsWeapon);
+                    kind, result.Grade, result.Reason, reaction.Punch, age);
             int frame = ResultIndex(kind, result.Grade, reaction.Punch);
             var phase = PlayerMotionPhase.Impact;
             double phaseStart = preparation;
@@ -252,7 +249,7 @@ namespace BBSB.Runtime.UI
                 else frame = kind == GestureKind.Tap ? reaction.Punch * 4 : kind == GestureKind.Flick ? 0 : 5;
             }
             return new PlayerMotionFrame(SheetFor(kind), frame, phase, kind, result.Grade, result.Reason, reaction.Punch,
-                age, phaseAge: age - phaseStart, isWeaponInput: result.Note.IsWeapon);
+                age, phaseAge: age - phaseStart);
         }
 
         public static int ResultIndex(GestureKind kind, RhythmGrade grade, int punch = 0)

@@ -214,9 +214,10 @@ namespace BBSB.Runtime.UI
                 string state = combat.Loadout.At(slot) == null ? "미배치" : "대기";
                 Color tint = RunUI.Muted;
                 ResponseNote next = null;
-                foreach (var note in round.Notes)
+                foreach (var binding in combat.Bindings)
                 {
-                    if (note.WeaponSlot != slot || note.State == ResponseState.Resolved || !combat.Allows(note.Attack)) continue;
+                    var note = binding.Note;
+                    if (binding.Slot != slot || note.State == ResponseState.Resolved || !combat.Allows(note.Attack)) continue;
                     if (next == null || note.StartTick < next.StartTick) next = note;
                 }
                 if (next != null && seconds >= RhythmTime.Seconds(next.Attack.ResponseStartTick, round.Plan.Stage.Music.Bpm))
@@ -309,7 +310,7 @@ namespace BBSB.Runtime.UI
                     var actions = new List<string>();
                     foreach (var note in round.Notes)
                     {
-                        if (note.IsWeapon || note.Attack != current || note.State == ResponseState.Resolved) continue;
+                        if (note.Attack != current || note.State == ResponseState.Resolved) continue;
                         if (note.State == ResponseState.Holding)
                             actions.Add(note.Step.Kind + (note.Step.Kind == GestureKind.Dive ? " 끝에 떼기" : note.Step.Kind == GestureKind.Shake ?
                                 " " + ShakeStatus(note) : " 유지"));

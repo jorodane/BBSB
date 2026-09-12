@@ -37,7 +37,7 @@ namespace BBSB.Runtime.UI
             var header = ui.Row(page, 48);
             ui.Label(header, "무기 배치 · 연습", 29, RunUI.Gold, 48);
             SmallButton(header, "준비로", close, 130);
-            status = ui.Label(page, "무기를 고른 뒤 밝은 칸을 누르거나 드래그해. 같은 패턴이 나올 때마다 발동해.", 20, RunUI.Teal, 48);
+            status = ui.Label(page, "무기를 몬스터 박자에 배치해. 같은 박자에 여러 무기를 놓으면 함께 발동해.", 20, RunUI.Teal, 48);
             var selector = ui.Row(page, 48);
             SmallButton(selector, "이전", () => ChangePattern(-1), 90);
             patternName = ui.Label(selector, "", 24, RunUI.TextColor, 48, TextAnchor.MiddleCenter);
@@ -51,7 +51,7 @@ namespace BBSB.Runtime.UI
             detail = ui.Stack(right, "Selected weapon details", 0, 4); RunUI.Size(detail, 96);
             grid = ui.Scroll(right);
             var footer = ui.Row(page, 52);
-            ui.Button(footer, "자동 배치", () => { loadout.AutoArrange(); status.text = "가능한 입력에 자동 배치했어. 무기별 위치를 확인해줘."; RefreshPanels(); }, height: 52);
+            ui.Button(footer, "자동 배치", () => { loadout.AutoArrange(); status.text = "몬스터 박자에 맞춰 자동 배치했어. 무기별 위치를 확인해줘."; RefreshPanels(); }, height: 52);
             ui.Button(footer, "선택 무기 해제", () => { loadout.Remove(selectedSlot); RefreshPanels(); }, height: 52);
             ui.Button(footer, "이 패턴 연습", () => practice(SelectedPattern), Current != null, true, 52);
             ui.Button(footer, "전투 시작", start, primary: true, height: 52);
@@ -82,7 +82,7 @@ namespace BBSB.Runtime.UI
         {
             if (Current == null) return false;
             bool accepted = loadout.TryPlace(selectedSlot, Current.MonsterId, Current.Pattern.Id, offset, out string reason);
-            status.text = accepted ? "배치 완료 · 같은 무기는 한 곳에만 배치돼. 같은 입력에 여러 무기를 겹칠 수 있어." : reason;
+            status.text = accepted ? "배치 완료 · 이 박자의 Response 판정을 배치된 모든 무기가 함께 받아." : reason;
             status.color = accepted ? RunUI.Teal : RunUI.Red; dirty = true; return accepted;
         }
 
@@ -113,7 +113,7 @@ namespace BBSB.Runtime.UI
             if (Current == null)
             { patternName.text = "배치할 몬스터 패턴이 없어"; return; }
             patternName.text = (SelectedPattern + 1) + " / " + loadout.Patterns.Count + "   " + Current.Monster.Name + " · " + Current.Pattern.Name;
-            ui.Label(grid, "몬스터: " + StepsLabel(Current.Placement.Pattern) + "\n추가한 무기 입력도 함께 수행해. 숫자는 Response 시작부터의 박자야.", 19, RunUI.Muted, 65);
+            ui.Label(grid, "몬스터: " + StepsLabel(Current.Placement.Pattern) + "\n몬스터의 Response만 수행하면 돼. 숫자는 Response 시작부터의 박자야.", 19, RunUI.Muted, 65);
             // Eight quarter-beat cells per page keep every drop target >= 70 px at 1280x720.
             int total = Current.Pattern.ResponseTicks + 1, pages = (total + 7) / 8;
             tickPage = Mathf.Clamp(tickPage, 0, pages - 1);

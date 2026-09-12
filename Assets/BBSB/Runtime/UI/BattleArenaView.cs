@@ -249,7 +249,7 @@ namespace BBSB.Runtime.UI
             }
             foreach (var note in round.Notes)
             {
-                if (note.IsWeapon || note.Attack.MonsterId != actor.Plan.InstanceId ||
+                if (note.Attack.MonsterId != actor.Plan.InstanceId ||
                     (round.Combat != null && !round.Combat.AllowsEnemyEffect(seconds))) continue;
                 // The monster always performs its scheduled attack, including a missed player's note.
                 if (attackTicks.Add(note.StartTick)) AttackBeat(note.StartSeconds, actor, seconds, ref attackPulse, ref windup,
@@ -387,7 +387,6 @@ namespace BBSB.Runtime.UI
                 }
                 weaponGraphic.Refresh();
             }
-            if (motion.IsWeaponInput) action = ActionLabel(motion.Kind.Value, motion.Punch) + " · 무기 입력";
             hero.Portrait.color = Color.Lerp(Color.white, RunUI.Red, miss * .45f);
             heroLabel.text = action; heroLabel.color = miss > .1f ? RunUI.Red : weaponEnergy > .1f ? RunUI.Teal : RunUI.Gold;
         }
