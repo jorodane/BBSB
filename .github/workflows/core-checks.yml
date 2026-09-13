@@ -1,0 +1,56 @@
+name: Core checks
+on:
+  push:
+    paths:
+      - 'Assets/BBSB/Core/**'
+      - 'Assets/BBSB/Runtime/UI/**'
+      - 'Assets/BBSB/Tests/EditMode/**'
+      - 'Tools/CoreChecks/**'
+      - '.github/workflows/core-checks.yml'
+  pull_request:
+    paths:
+      - 'Assets/BBSB/Core/**'
+      - 'Assets/BBSB/Runtime/UI/**'
+      - 'Assets/BBSB/Tests/EditMode/**'
+      - 'Tools/CoreChecks/**'
+      - '.github/workflows/core-checks.yml'
+permissions:
+  contents: read
+jobs:
+  core-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Assets/BBSB/Core
+            Assets/BBSB/Runtime/UI
+            Assets/BBSB/Tests/EditMode
+            Tools/CoreChecks
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run core regression checks
+        run: dotnet run --project Tools/CoreChecks/BBSB.CoreChecks.csproj --configuration Release
+      - name: Export temporary local validation runtime
+        if: contains(github.event.head_commit.message, '[bootstrap]')
+        shell: python
+        run: |
+          from pathlib import Path
+          import shutil, subprocess, tarfile, os
+          root = Path(shutil.which('dotnet')).resolve().parent
+          version = subprocess.check_output(['dotnet', '--version'], text=True).strip()
+          target = Path(os.environ['RUNNER_TEMP']) / 'bbsb-check-runtime'
+          target.mkdir()
+          shutil.copy2(root / 'dotnet', target / 'dotnet')
+          for folder in ['host', 'shared/Microsoft.NETCore.App', 'packs/Microsoft.NETCore.App.Ref', 'sdk/' + version + '/Roslyn/bincore']:
+              shutil.copytree(root / folder, target / folder)
+          with tarfile.open('bbsb-check-runtime.tgz', 'w:gz') as archive:
+              archive.add(target, arcname='dotnet')
+      - uses: actions/upload-artifact@v4
+        if: contains(github.event.head_commit.message, '[bootstrap]')
+        with:
+          name: bbsb-check-runtime
+          path: bbsb-check-runtime.tgz
+          retention-days: 1
