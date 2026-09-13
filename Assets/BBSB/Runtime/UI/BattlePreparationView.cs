@@ -103,7 +103,7 @@ namespace BBSB.Runtime.UI
             RunUI.Pin(crest.rectTransform, new Vector2(.025f, .07f), Vector2.zero, Vector2.zero, new Vector2(42, 55));
             var name = Label(root, "WEAPON MASTER", 26, Color.white, new Vector2(.078f, .107f), new Vector2(.38f, .153f));
             name.alignment = TextAnchor.MiddleLeft; name.fontStyle = FontStyle.BoldAndItalic; Fit(name, 20);
-            var title = Label(root, "이기어의 계승자", 17, RunUI.TextColor, new Vector2(.078f, .071f), new Vector2(.38f, .106f));
+            var title = Label(root, "다섯 현의 조종자", 17, RunUI.TextColor, new Vector2(.078f, .071f), new Vector2(.38f, .106f));
             title.alignment = TextAnchor.MiddleLeft;
             int count = session.BattlePlan.Monsters.Count;
             for (int i = 0; i < count; i++)
