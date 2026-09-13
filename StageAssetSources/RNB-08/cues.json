@@ -1,0 +1,115 @@
+{
+  "stage_id": "RNB-08",
+  "name": "장미빛 안뜰",
+  "map_id": "RNB",
+  "bpm": 84,
+  "bpm_unit": "quarter",
+  "meter": "4/4",
+  "bars": 28,
+  "duration_seconds": 80,
+  "audio_offset_seconds": 0,
+  "sample_rate": 44100,
+  "composition": "Original authored instrumental score; deterministic synthesized instruments; no third-party samples.",
+  "instruments": {
+    "0": "brass",
+    "1": "rhodes",
+    "2": "bass",
+    "3": "vibes",
+    "4": "clean",
+    "5": "pad",
+    "9": "drums"
+  },
+  "sections": [
+    {
+      "name": "INTRO",
+      "start_bar": 0,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 2,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 1",
+      "start_bar": 4,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 8,
+      "bars": 4,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 2",
+      "start_bar": 12,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 16,
+      "bars": 4,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 3",
+      "start_bar": 20,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 24,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "OUTRO",
+      "start_bar": 26,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    }
+  ],
+  "hooks": [
+    {
+      "index": 1,
+      "start_bar": 4,
+      "bars": 4,
+      "start_seconds": 11.428571428571429,
+      "end_seconds": 22.857142857142858,
+      "requires_monster_response": true
+    },
+    {
+      "index": 2,
+      "start_bar": 12,
+      "bars": 4,
+      "start_seconds": 34.285714285714285,
+      "end_seconds": 45.714285714285715,
+      "requires_monster_response": true
+    },
+    {
+      "index": 3,
+      "start_bar": 20,
+      "bars": 4,
+      "start_seconds": 57.142857142857146,
+      "end_seconds": 68.57142857142857,
+      "requires_monster_response": true
+    }
+  ],
+  "note_events": 1083,
+  "audio_sha256": "f73254537ca4e5aa0826ed35edb0b81980b87fde90f34f3096d712fc199026b6"
+}

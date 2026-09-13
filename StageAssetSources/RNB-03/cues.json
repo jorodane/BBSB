@@ -1,0 +1,115 @@
+{
+  "stage_id": "RNB-03",
+  "name": "세탁소 새벽 두 시",
+  "map_id": "RNB",
+  "bpm": 96,
+  "bpm_unit": "quarter",
+  "meter": "4/4",
+  "bars": 32,
+  "duration_seconds": 80,
+  "audio_offset_seconds": 0,
+  "sample_rate": 44100,
+  "composition": "Original authored instrumental score; deterministic synthesized instruments; no third-party samples.",
+  "instruments": {
+    "0": "vibes",
+    "1": "rhodes",
+    "2": "bass",
+    "3": "vibes",
+    "4": "clean",
+    "5": "pad",
+    "9": "drums"
+  },
+  "sections": [
+    {
+      "name": "INTRO",
+      "start_bar": 0,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 2,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 1",
+      "start_bar": 4,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 8,
+      "bars": 8,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 2",
+      "start_bar": 16,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 20,
+      "bars": 4,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 3",
+      "start_bar": 24,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 28,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "OUTRO",
+      "start_bar": 30,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    }
+  ],
+  "hooks": [
+    {
+      "index": 1,
+      "start_bar": 4,
+      "bars": 4,
+      "start_seconds": 10.0,
+      "end_seconds": 20.0,
+      "requires_monster_response": true
+    },
+    {
+      "index": 2,
+      "start_bar": 16,
+      "bars": 4,
+      "start_seconds": 40.0,
+      "end_seconds": 50.0,
+      "requires_monster_response": true
+    },
+    {
+      "index": 3,
+      "start_bar": 24,
+      "bars": 4,
+      "start_seconds": 60.0,
+      "end_seconds": 70.0,
+      "requires_monster_response": true
+    }
+  ],
+  "note_events": 1162,
+  "audio_sha256": "227cb55d53e54617e44a3e63b689328adbc976a1c067d502c546c8f7b8cc0949"
+}

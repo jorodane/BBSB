@@ -1,0 +1,115 @@
+{
+  "stage_id": "BARD-02",
+  "name": "참나무 여관",
+  "map_id": "BARD",
+  "bpm": 96,
+  "bpm_unit": "quarter",
+  "meter": "4/4",
+  "bars": 32,
+  "duration_seconds": 80,
+  "audio_offset_seconds": 0,
+  "sample_rate": 44100,
+  "composition": "Original authored instrumental score; deterministic synthesized instruments; no third-party samples.",
+  "instruments": {
+    "0": "lute",
+    "1": "lute",
+    "2": "bass",
+    "3": "harp",
+    "4": "flute",
+    "5": "pad",
+    "9": "drums"
+  },
+  "sections": [
+    {
+      "name": "INTRO",
+      "start_bar": 0,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 2,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 1",
+      "start_bar": 4,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 8,
+      "bars": 8,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 2",
+      "start_bar": 16,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 20,
+      "bars": 4,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 3",
+      "start_bar": 24,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 28,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "OUTRO",
+      "start_bar": 30,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    }
+  ],
+  "hooks": [
+    {
+      "index": 1,
+      "start_bar": 4,
+      "bars": 4,
+      "start_seconds": 10.0,
+      "end_seconds": 20.0,
+      "requires_monster_response": true
+    },
+    {
+      "index": 2,
+      "start_bar": 16,
+      "bars": 4,
+      "start_seconds": 40.0,
+      "end_seconds": 50.0,
+      "requires_monster_response": true
+    },
+    {
+      "index": 3,
+      "start_bar": 24,
+      "bars": 4,
+      "start_seconds": 60.0,
+      "end_seconds": 70.0,
+      "requires_monster_response": true
+    }
+  ],
+  "note_events": 1094,
+  "audio_sha256": "2e26ba74ab3f0d5d1a8c69a15ab9d5d75b229b61c5fb86542884f0f093766baf"
+}

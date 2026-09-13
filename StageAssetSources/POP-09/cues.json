@@ -1,0 +1,115 @@
+{
+  "stage_id": "POP-09",
+  "name": "네온 익스프레스",
+  "map_id": "POP",
+  "bpm": 144,
+  "bpm_unit": "quarter",
+  "meter": "4/4",
+  "bars": 48,
+  "duration_seconds": 80,
+  "audio_offset_seconds": 0,
+  "sample_rate": 44100,
+  "composition": "Original authored instrumental score; deterministic synthesized instruments; no third-party samples.",
+  "instruments": {
+    "0": "bell",
+    "1": "pad",
+    "2": "bass",
+    "3": "square",
+    "4": "bell",
+    "5": "pad",
+    "9": "drums"
+  },
+  "sections": [
+    {
+      "name": "INTRO",
+      "start_bar": 0,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 2,
+      "bars": 6,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 1",
+      "start_bar": 8,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 12,
+      "bars": 12,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 2",
+      "start_bar": 24,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 28,
+      "bars": 12,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 3",
+      "start_bar": 40,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 44,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "OUTRO",
+      "start_bar": 46,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    }
+  ],
+  "hooks": [
+    {
+      "index": 1,
+      "start_bar": 8,
+      "bars": 4,
+      "start_seconds": 13.333333333333334,
+      "end_seconds": 20.0,
+      "requires_monster_response": true
+    },
+    {
+      "index": 2,
+      "start_bar": 24,
+      "bars": 4,
+      "start_seconds": 40.0,
+      "end_seconds": 46.66666666666667,
+      "requires_monster_response": true
+    },
+    {
+      "index": 3,
+      "start_bar": 40,
+      "bars": 4,
+      "start_seconds": 66.66666666666667,
+      "end_seconds": 73.33333333333334,
+      "requires_monster_response": true
+    }
+  ],
+  "note_events": 1744,
+  "audio_sha256": "891ac1ecd330c779484630aa31544f193bf478f75deb78c20d3bd48936bdcce6"
+}

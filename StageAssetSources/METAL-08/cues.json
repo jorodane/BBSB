@@ -1,0 +1,115 @@
+{
+  "stage_id": "METAL-08",
+  "name": "흑요석 대성당",
+  "map_id": "METAL",
+  "bpm": 108,
+  "bpm_unit": "dotted_quarter",
+  "meter": "6/8",
+  "bars": 72,
+  "duration_seconds": 80,
+  "audio_offset_seconds": 0,
+  "sample_rate": 44100,
+  "composition": "Original authored instrumental score; deterministic synthesized instruments; no third-party samples.",
+  "instruments": {
+    "0": "organ",
+    "1": "guitar",
+    "2": "bass",
+    "3": "guitar",
+    "4": "strings",
+    "5": "pad",
+    "9": "drums"
+  },
+  "sections": [
+    {
+      "name": "INTRO",
+      "start_bar": 0,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 2,
+      "bars": 10,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 1",
+      "start_bar": 12,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 16,
+      "bars": 20,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 2",
+      "start_bar": 36,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 40,
+      "bars": 24,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 3",
+      "start_bar": 64,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 68,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "OUTRO",
+      "start_bar": 70,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    }
+  ],
+  "hooks": [
+    {
+      "index": 1,
+      "start_bar": 12,
+      "bars": 4,
+      "start_seconds": 13.333333333333334,
+      "end_seconds": 17.77777777777778,
+      "requires_monster_response": true
+    },
+    {
+      "index": 2,
+      "start_bar": 36,
+      "bars": 4,
+      "start_seconds": 40.0,
+      "end_seconds": 44.44444444444444,
+      "requires_monster_response": true
+    },
+    {
+      "index": 3,
+      "start_bar": 64,
+      "bars": 4,
+      "start_seconds": 71.11111111111111,
+      "end_seconds": 75.55555555555556,
+      "requires_monster_response": true
+    }
+  ],
+  "note_events": 2408,
+  "audio_sha256": "9e3ca06107f78347f98748b04e449e0b8ff72feede0b4bbf7b42bb447a734f01"
+}

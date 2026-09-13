@@ -1,0 +1,115 @@
+{
+  "stage_id": "JAZZ-09",
+  "name": "황금빛 급행",
+  "map_id": "JAZZ",
+  "bpm": 156,
+  "bpm_unit": "quarter",
+  "meter": "4/4",
+  "bars": 52,
+  "duration_seconds": 80,
+  "audio_offset_seconds": 0,
+  "sample_rate": 44100,
+  "composition": "Original authored instrumental score; deterministic synthesized instruments; no third-party samples.",
+  "instruments": {
+    "0": "brass",
+    "1": "piano",
+    "2": "bass",
+    "3": "clean",
+    "4": "vibes",
+    "5": "pad",
+    "9": "drums"
+  },
+  "sections": [
+    {
+      "name": "INTRO",
+      "start_bar": 0,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 2,
+      "bars": 6,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 1",
+      "start_bar": 8,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 12,
+      "bars": 12,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 2",
+      "start_bar": 24,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 28,
+      "bars": 16,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 3",
+      "start_bar": 44,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 48,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "OUTRO",
+      "start_bar": 50,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    }
+  ],
+  "hooks": [
+    {
+      "index": 1,
+      "start_bar": 8,
+      "bars": 4,
+      "start_seconds": 12.307692307692308,
+      "end_seconds": 18.461538461538463,
+      "requires_monster_response": true
+    },
+    {
+      "index": 2,
+      "start_bar": 24,
+      "bars": 4,
+      "start_seconds": 36.92307692307693,
+      "end_seconds": 43.07692307692308,
+      "requires_monster_response": true
+    },
+    {
+      "index": 3,
+      "start_bar": 44,
+      "bars": 4,
+      "start_seconds": 67.6923076923077,
+      "end_seconds": 73.84615384615385,
+      "requires_monster_response": true
+    }
+  ],
+  "note_events": 1937,
+  "audio_sha256": "02ad528eca5b2093a518d88471843b82043e0939bbf2d79607f99f028bc25d2b"
+}

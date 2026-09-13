@@ -1,0 +1,115 @@
+{
+  "stage_id": "CELT-06",
+  "name": "은빛 폭포길",
+  "map_id": "CELT",
+  "bpm": 84,
+  "bpm_unit": "dotted_quarter",
+  "meter": "6/8",
+  "bars": 56,
+  "duration_seconds": 80,
+  "audio_offset_seconds": 0,
+  "sample_rate": 44100,
+  "composition": "Original authored instrumental score; deterministic synthesized instruments; no third-party samples.",
+  "instruments": {
+    "0": "fiddle",
+    "1": "acoustic",
+    "2": "bass",
+    "3": "harp",
+    "4": "harp",
+    "5": "pad",
+    "9": "drums"
+  },
+  "sections": [
+    {
+      "name": "INTRO",
+      "start_bar": 0,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 2,
+      "bars": 10,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 1",
+      "start_bar": 12,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 16,
+      "bars": 12,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 2",
+      "start_bar": 28,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 32,
+      "bars": 16,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "HOOK 3",
+      "start_bar": 48,
+      "bars": 4,
+      "is_hook": true,
+      "allows_response": true
+    },
+    {
+      "name": "GROOVE",
+      "start_bar": 52,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": true
+    },
+    {
+      "name": "OUTRO",
+      "start_bar": 54,
+      "bars": 2,
+      "is_hook": false,
+      "allows_response": false
+    }
+  ],
+  "hooks": [
+    {
+      "index": 1,
+      "start_bar": 12,
+      "bars": 4,
+      "start_seconds": 17.142857142857142,
+      "end_seconds": 22.857142857142858,
+      "requires_monster_response": true
+    },
+    {
+      "index": 2,
+      "start_bar": 28,
+      "bars": 4,
+      "start_seconds": 40.0,
+      "end_seconds": 45.714285714285715,
+      "requires_monster_response": true
+    },
+    {
+      "index": 3,
+      "start_bar": 48,
+      "bars": 4,
+      "start_seconds": 68.57142857142857,
+      "end_seconds": 74.28571428571429,
+      "requires_monster_response": true
+    }
+  ],
+  "note_events": 1424,
+  "audio_sha256": "0ccd4c3629dfbeeac998db8e442a27866b2d8701328b6664f7a107fadcfd6df5"
+}
