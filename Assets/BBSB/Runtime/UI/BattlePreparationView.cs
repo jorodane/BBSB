@@ -145,7 +145,7 @@ namespace BBSB.Runtime.UI
                 int slot = active[i]; var state = session.BattleLoadout.Equipment[slot];
                 var cell = ui.Rect("Automatic weapon " + slot, icons);
                 RunUI.Overlay(cell, new Vector2(i * span, 0), new Vector2((i + 1) * span, 1), Vector2.zero, Vector2.zero);
-                var weapon = cell.gameObject.AddComponent<WeaponIconGraphic>(); weapon.Bind(WeaponCatalog.Find(state.DefinitionId).Kind);
+                var weapon = cell.gameObject.AddComponent<WeaponIconGraphic>(); weapon.Bind(state);
             }
         }
 
@@ -165,10 +165,10 @@ namespace BBSB.Runtime.UI
                 ui.Background(cell, new Color(.11f, .14f, .22f, .96f));
                 var icon = ui.Rect("Weapon icon " + slot, cell);
                 RunUI.Overlay(icon, new Vector2(0, .14f), new Vector2(.29f, .9f), new Vector2(3, 0), Vector2.zero);
-                var graphic = icon.gameObject.AddComponent<WeaponIconGraphic>(); graphic.Bind(weapon.Kind); equippedIcons.Add(graphic);
-                var name = Text(cell, weapon.Name + " +" + state.Level, 17, RunUI.TextColor);
+                var graphic = icon.gameObject.AddComponent<WeaponIconGraphic>(); graphic.Bind(state); equippedIcons.Add(graphic);
+                var name = Text(cell, WeaponRarities.Name(state.Rarity) + " " + weapon.Name + " +" + state.Level, 15, WeaponIconGraphic.RarityColor(state.Rarity));
                 RunUI.Overlay(name.rectTransform, new Vector2(.31f, .51f), new Vector2(1, .91f), Vector2.zero, new Vector2(-5, 0));
-                var actions = Text(cell, weapon.ActionLabelAt(state.Level), 14, RunUI.Teal);
+                var actions = Text(cell, weapon.ActionLabelAt(state.Rarity), 14, RunUI.Teal);
                 RunUI.Overlay(actions.rectTransform, new Vector2(.31f, .12f), new Vector2(1, .51f), Vector2.zero, new Vector2(-5, 0));
             }
             StartButton = ui.Button(footer, "연주 시작", start, primary: true, height: 84);

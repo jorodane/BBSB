@@ -1,6 +1,6 @@
 """Rebuild the bundled Korean UI subset. Requires fonttools; input is the upstream static OTF.
 
-python Tools/subset_font.py /path/to/NotoSansCJKkr-Regular.otf
+python Tools/subset_font.py /path/to/NotoSansCJKkr-Regular.otf [output.otf]
 The upstream font is not downloaded automatically. See the bundled font notice for its source/license.
 """
 import sys
@@ -31,7 +31,7 @@ if 'CFF ' in font:
     cff.fontNames = ['BBSBUI-Regular']
     cff.topDictIndex[0].FamilyName = 'BBSB UI'
     cff.topDictIndex[0].FullName = 'BBSB UI Regular'
-output = root / 'Assets/BBSB/Resources/BBSB/Fonts/BBSBUI.otf'
+output = Path(sys.argv[2]) if len(sys.argv) > 2 else root / 'Assets/BBSB/Resources/BBSB/Fonts/BBSBUI.otf'
 output.parent.mkdir(parents=True, exist_ok=True)
 font.save(output)
 print(f'Saved {output.name}: {output.stat().st_size:,} bytes, {len(font.getBestCmap())} characters')

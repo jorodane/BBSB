@@ -245,13 +245,13 @@ namespace BBSB.Runtime
                     { if (Session.Rest()) { notice = "체력을 회복했어."; Render(); } }, !Session.ServiceClaimed, true);
                     LeaveButton(); break;
                 case StageKind.Upgrade:
-                    Heading("TUNE YOUR WEAPONS", "강화", "무기 한 개를 골라 +1 강화해. 최대 +3까지 가능해.");
+                    Heading("TUNE YOUR WEAPONS", "강화", "무기 한 개의 능력치를 강화해. 단계마다 기본 수치의 25%, 최대 +3까지 올라.");
                     for (int i = 0; i < Session.Weapons.Count; i++)
                     {
                         int slot = i; var weapon = Session.Weapons[i];
                         int nextLevel = Math.Min(RunRules.MaximumUpgrade, weapon.Level + 1);
                         ui.Button(body, WeaponName(i) + "  →  +" + nextLevel + "\n" +
-                            WeaponCatalog.Find(weapon.DefinitionId).ActionLabelAt(nextLevel), () =>
+                            "능력치 " + (100 + 25 * weapon.Level) + "% → " + (100 + 25 * nextLevel) + "%", () =>
                         { if (Session.Upgrade(slot)) { notice = WeaponName(slot) + " 강화 완료!"; Render(); } },
                             !Session.ServiceClaimed && weapon.Level < RunRules.MaximumUpgrade, height: 76);
                     }
@@ -417,7 +417,8 @@ namespace BBSB.Runtime
                 var card = ui.Card(body, 18);
                 string category = definition.Kind == RewardKind.Weapon ? "무기" : definition.Kind == RewardKind.Item ? "아이템" : "증강";
                 ui.Label(card, category + "  /  " + definition.Name, 28, RunUI.Gold, 44);
-                ui.Label(card, definition.Description, 22, RunUI.Muted, 78);
+                if (definition.Kind == RewardKind.Weapon) DrawWeaponSummary(card, new WeaponState(definition.Id, offer.Rarity));
+                else ui.Label(card, definition.Description, 22, RunUI.Muted, 78);
                 bool enabled = !offer.Purchased && (!shop || Session.Gold >= offer.Price);
                 string label = offer.Purchased ? "구매 완료" : shop ? offer.Price + " G  ·  구매" : "선택";
                 if (shop && !offer.Purchased && Session.Gold < offer.Price) label += "  ·  골드 부족";
@@ -442,7 +443,7 @@ namespace BBSB.Runtime
         private void DrawReplacement()
         {
             var offer = Session.Offers[pendingOffer];
-            Heading("FIVE WEAPONS, ONE RHYTHM", offer.Content.Name + " 장착", "다섯 무기 중 교체할 슬롯을 골라줘. 교체한 무기와 강화는 사라져.");
+            Heading("FIVE WEAPONS, ONE RHYTHM", WeaponRarities.Name(offer.Rarity) + " " + offer.Content.Name + " 장착", "다섯 무기 중 교체할 슬롯을 골라줘. 교체한 무기와 강화는 사라져.");
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
                 int slot = i;
@@ -548,11 +549,23 @@ namespace BBSB.Runtime
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
                 var card = ui.Card(body, 16); card.name = "Weapon " + i;
-                var state = Session.Weapons[i]; var definition = WeaponCatalog.Find(state.DefinitionId);
+                var state = Session.Weapons[i];
                 ui.Label(card, (i + 1) + "  " + WeaponName(i), 27, RunUI.TextColor, 44);
-                ui.Label(card, definition.ActionLabelAt(state.Level) + "\n" + definition.EffectLabelAt(state.Level) + "\n" +
-                    definition.ProgressionLabel, 22, RunUI.Muted, (definition.ActionCountAt(state.Level) + 3) * 30);
+                DrawWeaponSummary(card, state);
             }
+        }
+
+        private void DrawWeaponSummary(RectTransform parent, WeaponState state)
+        {
+            var definition = WeaponCatalog.Find(state.DefinitionId);
+            var row = ui.Row(parent, 100);
+            var icon = ui.Rect("Weapon artwork " + state.DefinitionId, row);
+            var layout = RunUI.Size(icon, 100); layout.minWidth = layout.preferredWidth = 100;
+            icon.gameObject.AddComponent<WeaponIconGraphic>().Bind(state);
+            ui.Label(row, WeaponRarities.Name(state.Rarity) + " · 소켓 " + definition.ActionCountAt(state.Rarity) +
+                "개\n" + definition.ActionLabelAt(state.Rarity), 23, WeaponIconGraphic.RarityColor(state.Rarity), 100);
+            ui.Label(parent, definition.EffectLabelAt(state.Rarity, state.Level), 21, RunUI.Muted,
+                definition.ActionCountAt(state.Rarity) * 60);
         }
 
         private void DrawInventory()
@@ -590,7 +603,7 @@ namespace BBSB.Runtime
         private string WeaponName(int index)
         {
             var weapon = Session.Weapons[index];
-            return ContentCatalog.Find(weapon.DefinitionId).Name + " +" + weapon.Level;
+            return WeaponRarities.Name(weapon.Rarity) + " " + ContentCatalog.Find(weapon.DefinitionId).Name + " +" + weapon.Level;
         }
     }
 }

@@ -162,7 +162,7 @@ namespace BBSB.Core
         public bool ChooseReward(int index, int replaceSlot = -1)
         {
             if (Phase != RunPhase.Reward || index < 0 || index >= offers.Count) return false;
-            if (!Grant(offers[index].Content, replaceSlot)) return false;
+            if (!Grant(offers[index], replaceSlot)) return false;
             FinishReward(); return true;
         }
 
@@ -176,7 +176,7 @@ namespace BBSB.Core
         {
             if (!IsService(StageKind.Shop) || index < 0 || index >= offers.Count) return false;
             var offer = offers[index];
-            if (offer.Purchased || Gold < offer.Price || !Grant(offer.Content, replaceSlot)) return false;
+            if (offer.Purchased || Gold < offer.Price || !Grant(offer, replaceSlot)) return false;
             Gold -= offer.Price; offer.Purchased = true;
             foreach (var remaining in offers)
                 if (!remaining.Purchased) remaining.Price = DiscountedPrice(remaining.Content);
@@ -217,20 +217,22 @@ namespace BBSB.Core
             foreach (RewardKind kind in Enum.GetValues(typeof(RewardKind)))
             {
                 var content = ContentCatalog.Pick(kind, rewardRandom);
-                offers.Add(new Offer(content, shop ? DiscountedPrice(content) : 0));
+                var rarity = kind == RewardKind.Weapon ? WeaponRarities.Roll(rewardRandom) : WeaponRarity.Common;
+                offers.Add(new Offer(content, shop ? DiscountedPrice(content) : 0, rarity));
             }
         }
 
         private int DiscountedPrice(ContentDefinition content)
-        { return content.Price * (100 - Math.Min(60, CountAugment("bargain") * 20)) / 100; }
+            => content.Price * (100 - Math.Min(60, CountAugment("bargain") * 20)) / 100;
 
-        private bool Grant(ContentDefinition content, int slot)
+        private bool Grant(Offer offer, int slot)
         {
+            var content = offer.Content;
             switch (content.Kind)
             {
                 case RewardKind.Weapon:
                     if (!ValidSlot(slot)) return false;
-                    weapons[slot] = new WeaponState(content.Id);
+                    weapons[slot] = new WeaponState(content.Id, offer.Rarity);
                     break;
                 case RewardKind.Item: items.Add(content.Id); break;
                 case RewardKind.Augment:

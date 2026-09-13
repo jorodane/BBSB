@@ -21,7 +21,7 @@ namespace BBSB.Tests
                 Check.False(run.Weapons.Any(w => w.DefinitionId == "shield"));
                 foreach (GestureKind kind in Enum.GetValues(typeof(GestureKind)))
                 {
-                    var supported = run.Weapons.Select(w => WeaponCatalog.Find(w.DefinitionId).ActionFor(kind, w.Level)).Where(a => a != null).ToArray();
+                    var supported = run.Weapons.Select(w => WeaponCatalog.Find(w.DefinitionId).ActionFor(kind, w.Rarity)).Where(a => a != null).ToArray();
                     Check.Equal(1, supported.Length); Check.True(supported.Any(a => a.Damage > 0));
                     var monster = MonsterCatalog.All.First(m => m.Patterns.Any(p => p.Pattern.Steps.Count == 1 && p.Pattern.Steps[0].Kind == kind));
                     var pattern = monster.Patterns.First(p => p.Pattern.Steps.Count == 1 && p.Pattern.Steps[0].Kind == kind);
@@ -62,7 +62,7 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void AllWeaponsUnlockTheExpectedActionsAndApplyOnlyUnlockedEffectsAtEveryUpgrade()
+        public void RarityControlsActionsWhileEveryUpgradeScalesOnlyTheirEffects()
         {
             var damageTable = new Dictionary<string, decimal[]> {
                 { "sword", new[] { 12m, 18m, 24m } }, { "shield", new[] { 0m, 8m } }, { "spear", new[] { 20m, 16m, 24m } },
@@ -74,16 +74,17 @@ namespace BBSB.Tests
                 bool shield = weapon.Kind == WeaponKind.Shield;
                 Check.Equal(shield ? 2 : 3, weapon.Actions.Count);
                 Check.Equal(weapon.Actions.Count, weapon.Actions.Select(a => a.Kind).Distinct().Count());
+                foreach (var rarity in WeaponRarities.All)
                 for (int level = 0; level <= 3; level++)
                 {
-                    int count = shield ? (level == 3 ? 2 : 1) : new[] { 1, 2, 2, 3 }[level];
-                    Check.Equal(count, weapon.ActionsAt(level).Count);
+                    int count = shield ? (rarity == WeaponRarity.Legendary ? 2 : 1) : new[] { 1, 2, 2, 3 }[(int)rarity];
+                    Check.Equal(count, weapon.ActionsAt(rarity).Count);
                     for (int i = 0; i < weapon.Actions.Count; i++)
                     {
                         var action = weapon.Actions[i];
                         var step = new PatternStep(action.Kind, 0, action.Kind == GestureKind.Hold || action.Kind == GestureKind.Dive ? 8 : 0);
                         var plan = Plan(step);
-                        var loadout = new WeaponLoadout(plan, new[] { new WeaponState(weapon.Id, level) });
+                        var loadout = new WeaponLoadout(plan, new[] { new WeaponState(weapon.Id, rarity, level) });
                         var round = Round(plan, loadout); Perform(round, new[] { step }, 2);
                         decimal expected = i < count ? damageTable[weapon.Id][i] * (1 + .25m * level) : 0;
                         Check.Equal(expected, round.Combat.TotalDamage); Check.Equal(1000 - expected, round.Combat.EnemyHealth.Current);
@@ -104,7 +105,7 @@ namespace BBSB.Tests
                 ("shield", GestureKind.Hold, 0, 0m), ("blade", GestureKind.Flick, 0, 8m) })
             {
                 var step = new PatternStep(item.Item2, 0, item.Item2 == GestureKind.Hold || item.Item2 == GestureKind.Dive ? 8 : 0);
-                var plan = Plan(step); var loadout = new WeaponLoadout(plan, new[] { new WeaponState(item.Item1, item.Item3) });
+                var plan = Plan(step); var loadout = new WeaponLoadout(plan, new[] { new WeaponState(item.Item1, item.Item3 == 0 ? WeaponRarity.Common : WeaponRarity.Rare, item.Item3) });
                 var round = Round(plan, loadout); Perform(round, new[] { step }, 2, .1);
                 Check.Equal(item.Item4, round.Combat.TotalDamage); Check.Equal(1, round.HalfMissCount);
                 Check.Equal(item.Item1 == "shield" ? 4m : 0m, round.Combat.GuardAt(round.ElapsedSeconds));
@@ -134,7 +135,7 @@ namespace BBSB.Tests
         public void AutomaticResponsesCoverEveryMatchingStepWithoutAddingAnInput()
         {
             var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4));
-            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("sword"), new WeaponState("dagger", 1) });
+            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("sword"), new WeaponState("dagger", WeaponRarity.Rare, 1) });
             var round = Round(plan, loadout); var unarmed = new RhythmRound(plan);
             Check.Equal(unarmed.ResponseNoteCount, round.ResponseNoteCount);
             Check.True(round.Notes.Select(x => (x.Attack.Id, x.StepIndex, x.StartTick, x.Step.Kind, x.Step.DurationTicks))
@@ -220,10 +221,10 @@ namespace BBSB.Tests
         {
             var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Flick, 4));
             var equipment = new[] { new WeaponState("sword") }; var loadout = new WeaponLoadout(plan, equipment);
-            equipment[0] = new WeaponState("sword", 3); Check.Equal(0, loadout.Equipment[0].Level);
+            equipment[0] = new WeaponState("sword", WeaponRarity.Legendary, 3); Check.Equal(0, loadout.Equipment[0].Level);
             var round = Round(plan, loadout);
             Check.False(ReferenceEquals(loadout.Equipment[0], round.Combat.Loadout.Equipment[0]));
-            Check.Equal(1, round.Combat.Bindings.Count); Check.Equal(0, round.Combat.Loadout.Equipment[0].Level);
+            Check.Equal(1, round.Combat.Bindings.Count); Check.Equal(0, round.Combat.Loadout.Equipment[0].Level); Check.Equal(WeaponRarity.Common, round.Combat.Loadout.Equipment[0].Rarity);
             Perform(round, plan.Attacks[0].Placement.Pattern.Steps, 2); Check.Equal(12m, round.Combat.TotalDamage);
             var replay = Round(plan, new WeaponLoadout(plan, equipment));
             Check.Equal(2, replay.Combat.Bindings.Count); Perform(replay, plan.Attacks[0].Placement.Pattern.Steps, 2);
@@ -244,7 +245,7 @@ namespace BBSB.Tests
         {
             var step = new PatternStep(GestureKind.Tap, 0);
             var plan = Plan(new[] { step }, new[] { 16, 36, 56, 76 });
-            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("dagger", 1) }); var round = Round(plan, loadout);
+            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("dagger", WeaponRarity.Rare, 1) }); var round = Round(plan, loadout);
             Perform(round, new[] { step }, 2); Perform(round, new[] { step }, 4.5);
             Check.Equal(15m, round.Combat.TotalDamage);
             round.Advance(7.2); Perform(round, new[] { step }, 9.5);
@@ -321,7 +322,7 @@ namespace BBSB.Tests
         {
             var run = Session(); var plan = run.BattlePlan;
             string ticket = run.StageTicket; decimal health = run.Health, enemy = run.EnemyHealth.Current; int gold = run.Gold;
-            var weapons = run.Weapons.Select(w => (w.DefinitionId, w.Level)).ToArray();
+            var weapons = run.Weapons.Select(w => (w.DefinitionId, w.Rarity, w.Level)).ToArray();
             var practice = WeaponPractice.Create(plan, run.BattleLoadout, plan.Attacks[0], run.EnemyHealth.Maximum, run.MaxHealth);
             Check.Equal(plan.Attacks[0].Placement.Pattern.Steps.Count, practice.Notes.Count);
             Check.True(practice.Combat.Bindings.All(x => practice.Notes.Contains(x.Note)));
@@ -329,7 +330,7 @@ namespace BBSB.Tests
             Check.True(practice.Combat.IsPractice); Check.True(practice.TotalDamageTaken > 0);
             Check.Equal(health, run.Health); Check.Equal(enemy, run.EnemyHealth.Current); Check.Equal(gold, run.Gold);
             Check.Equal(RunPhase.Stage, run.Phase); Check.Equal(ticket, run.StageTicket); Check.Equal(0, run.Offers.Count);
-            Check.True(run.ActiveRhythmRound == null); Check.True(weapons.SequenceEqual(run.Weapons.Select(w => (w.DefinitionId, w.Level))));
+            Check.True(run.ActiveRhythmRound == null); Check.True(weapons.SequenceEqual(run.Weapons.Select(w => (w.DefinitionId, w.Rarity, w.Level))));
             Check.Equal(1, practice.Plan.Attacks.Count); Check.Equal(plan.Stage.Music.Bpm, practice.Plan.Stage.Music.Bpm);
         }
 
@@ -425,11 +426,12 @@ namespace BBSB.Tests
             foreach (var monster in MonsterCatalog.All)
             foreach (var pattern in monster.Patterns)
             foreach (var weapon in WeaponCatalog.All)
+            foreach (var rarity in WeaponRarities.All)
             for (int level = 0; level <= 3; level++)
             {
                 var preview = new MonsterPreview(monster, pattern); var plan = preview.Round.Plan;
-                var loadout = new WeaponLoadout(plan, new[] { new WeaponState(weapon.Id, level) }); var round = Round(plan, loadout);
-                var supported = new HashSet<GestureKind>(weapon.ActionsAt(level).Select(a => a.Kind));
+                var loadout = new WeaponLoadout(plan, new[] { new WeaponState(weapon.Id, rarity, level) }); var round = Round(plan, loadout);
+                var supported = new HashSet<GestureKind>(weapon.ActionsAt(rarity).Select(a => a.Kind));
                 var expected = preview.Round.Notes.Where(n => supported.Contains(n.Step.Kind)).ToArray();
                 Check.Equal(preview.Round.Notes.Count, round.Notes.Count); Check.Equal(expected.Length, round.Combat.Bindings.Count);
                 Check.Equal(expected.Length, round.Combat.Bindings.Select(b => b.Note).Distinct().Count());
@@ -446,7 +448,7 @@ namespace BBSB.Tests
             foreach (int duration in new[] { 1, 2, 3, 4, 6, 8, 12, 16, 24 })
             {
                 var step = new PatternStep(action.Kind, 0, duration);
-                var plan = Plan(step); var loadout = new WeaponLoadout(plan, new[] { new WeaponState(weapon.Id, 3) });
+                var plan = Plan(step); var loadout = new WeaponLoadout(plan, new[] { new WeaponState(weapon.Id, WeaponRarity.Legendary, 3) });
                 var round = Round(plan, loadout); var note = round.Notes.Single();
                 Check.Equal(duration, note.EndTick - note.StartTick);
                 round.Press(note.StartSeconds, 0, 0); round.Advance(note.EndSeconds - .001);
@@ -463,15 +465,16 @@ namespace BBSB.Tests
         public void MaximumShieldAnswersBothCoincidentActionsAndPracticeKeepsBoth()
         {
             var plan = Plan(new PatternStep(GestureKind.Hold, 0, 8), new PatternStep(GestureKind.Shake, 0));
+            foreach (var rarity in WeaponRarities.All)
             for (int level = 0; level <= 3; level++)
             {
-                var loadout = new WeaponLoadout(plan, new[] { new WeaponState("shield", level) });
+                var loadout = new WeaponLoadout(plan, new[] { new WeaponState("shield", rarity, level) });
                 var practice = WeaponPractice.Create(plan, loadout, plan.Attacks[0], 1000, 100);
                 for (int cycle = 0; cycle < 3; cycle++)
                 {
-                    Check.Equal(level == 3 ? 2 : 1, practice.Combat.Bindings.Count);
+                    Check.Equal(rarity == WeaponRarity.Legendary ? 2 : 1, practice.Combat.Bindings.Count);
                     Check.True(practice.Combat.Bindings.Any(b => b.Action.Kind == GestureKind.Hold));
-                    Check.Equal(level == 3, practice.Combat.Bindings.Any(b => b.Action.Kind == GestureKind.Shake));
+                    Check.Equal(rarity == WeaponRarity.Legendary, practice.Combat.Bindings.Any(b => b.Action.Kind == GestureKind.Shake));
                     Check.Equal(1, practice.Combat.Loadout.RespondingSlots(practice.Plan.Attacks[0]).Count);
                     Check.True(practice.Combat.Bindings.All(b => practice.Notes.Contains(b.Note)));
                     practice = practice.RepeatPractice();
@@ -483,7 +486,7 @@ namespace BBSB.Tests
         public void OneBinaryShakeAppliesEveryUnlockedEffectInOrderAndOutwardMotionAloneAppliesNone()
         {
             var plan = Plan(new PatternStep(GestureKind.Shake, 0));
-            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("bell"), new WeaponState("blade", 1), new WeaponState("shield", 3) });
+            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("bell"), new WeaponState("blade", WeaponRarity.Rare, 1), new WeaponState("shield", WeaponRarity.Legendary, 3) });
             var round = Round(plan, loadout);
             round.Press(2, 0, 0); round.Move(2.04, .1, 0); round.Move(2.08, 0, 0);
             Check.Equal(1, round.PerfectCount); Check.Equal(0, round.HalfMissCount);
@@ -523,12 +526,12 @@ namespace BBSB.Tests
             var plan = BattlePlanner.Resolve(stage, new[] {
                 Proposal(stage, "tap", new[] { new PatternStep(GestureKind.Tap, 0) }, new[] { 16 }),
                 Proposal(stage, "flick", new[] { new PatternStep(GestureKind.Flick, 0) }, new[] { 48 }) }, 1);
-            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("sword", 1), new WeaponState("spear"), new WeaponState("shield") });
+            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("sword", WeaponRarity.Rare, 1), new WeaponState("spear"), new WeaponState("shield") });
             Check.True(loadout.RespondingSlots(loadout.Patterns.First(p => p.MonsterId == "tap")).SequenceEqual(new[] { 0, 1 }));
             Check.True(loadout.RespondingSlots(loadout.Patterns.First(p => p.MonsterId == "flick")).SequenceEqual(new[] { 0 }));
             Check.Equal(3, Round(plan, loadout).Combat.Bindings.Count);
             var mixed = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4), new PatternStep(GestureKind.Flick, 8));
-            var one = new WeaponLoadout(mixed, new[] { new WeaponState("sword", 1) });
+            var one = new WeaponLoadout(mixed, new[] { new WeaponState("sword", WeaponRarity.Rare, 1) });
             Check.Equal(1, one.RespondingSlots(one.Patterns[0]).Count); Check.Equal(3, Round(mixed, one).Combat.Bindings.Count);
         }
 

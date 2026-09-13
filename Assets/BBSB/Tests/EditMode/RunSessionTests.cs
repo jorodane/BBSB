@@ -364,7 +364,7 @@ namespace BBSB.Tests
             run.Restart(555);
             Check.Equal(1, run.Map.Number); Check.Equal(100, run.Health); Check.Equal(100, run.MaxHealth);
             Check.Equal(60, run.Gold); Check.Equal(0, run.ClearedStages);
-            Check.Equal(5, run.Weapons.Count); Check.True(run.Weapons.All(x => x.Level == 0));
+            Check.Equal(5, run.Weapons.Count); Check.True(run.Weapons.All(x => x.Level == 0 && x.Rarity == WeaponRarity.Common));
         }
 
         [Test]
@@ -404,6 +404,40 @@ namespace BBSB.Tests
             first.Buy(1); FinishField(first); FinishField(second);
             first.AdvanceField(); second.AdvanceField();
             Check.Equal(Fingerprint(first.Map), Fingerprint(second.Map));
+        }
+
+        [Test]
+        public void RewardAndShopRetainTheirRolledRarityThroughReplacementAndUpgrade()
+        {
+            var seen = new HashSet<WeaponRarity>();
+            for (int seed = 0; seed < 400 && seen.Count < 4; seed++)
+            {
+                var run = Stage(StageKind.Monster, seed); Win(run);
+                var offer = run.Offers[0]; var rarity = offer.Rarity; seen.Add(rarity);
+                Check.False(run.ChooseReward(0)); Check.Equal(rarity, run.Offers[0].Rarity);
+                Check.True(run.ChooseReward(0, 2)); Check.Equal(rarity, run.Weapons[2].Rarity);
+                Check.Equal(0, run.Weapons[2].Level);
+                var definition = WeaponCatalog.Find(run.Weapons[2].DefinitionId);
+                int actions = definition.ActionCountAt(rarity);
+                FinishField(run); Check.True(run.AdvanceField()); Reach(run, StageKind.Upgrade);
+                Check.True(run.Upgrade(2)); Check.Equal(1, run.Weapons[2].Level);
+                Check.Equal(rarity, run.Weapons[2].Rarity);
+                Check.Equal(actions, definition.ActionsAt(run.Weapons[2].Rarity).Count);
+                Check.False(run.Upgrade(2));
+            }
+            Check.Equal(4, seen.Count);
+            seen.Clear();
+            for (int seed = 0; seed < 400 && seen.Count < 4; seed++)
+            {
+                var run = Stage(StageKind.Shop, seed, new RunRules(startingGold: 1000));
+                var offer = run.Offers[0]; var rarity = offer.Rarity; seen.Add(rarity);
+                int gold = run.Gold;
+                Check.False(run.Buy(0)); Check.Equal(gold, run.Gold); Check.Equal(rarity, offer.Rarity);
+                Check.True(run.Buy(0, 4)); Check.Equal(gold - offer.Price, run.Gold);
+                Check.Equal(rarity, run.Weapons[4].Rarity); Check.Equal(0, run.Weapons[4].Level);
+                Check.False(run.Buy(0, 4));
+            }
+            Check.Equal(4, seen.Count);
         }
 
         private static RunSession Stage(StageKind kind, int seed = 42, RunRules rules = null)

@@ -125,7 +125,7 @@ namespace BBSB.Runtime.UI
                 foreach (var state in round.Combat.Loadout.Equipment)
                 {
                     var weapon = WeaponCatalog.Find(state.DefinitionId);
-                    ui.Label(details, weapon.Name + " +" + state.Level + " · " + weapon.ActionLabelAt(state.Level) + "\n" + weapon.EffectLabelAt(state.Level), 22, RunUI.Teal, 120);
+                    ui.Label(details, WeaponRarities.Name(state.Rarity) + " " + weapon.Name + " +" + state.Level + " · " + weapon.ActionLabelAt(state.Rarity) + "\n" + weapon.EffectLabelAt(state.Rarity, state.Level), 22, WeaponIconGraphic.RarityColor(state.Rarity), (weapon.ActionCountAt(state.Rarity) + 1) * 60);
                 }
             foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(details, ui, round, monster));
             ui.Button(details, "메뉴로 돌아가기", resetMenu);
@@ -229,7 +229,7 @@ namespace BBSB.Runtime.UI
             for (int slot = 0; slot < weaponLabels.Length; slot++)
             {
                 var definition = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
-                string state = definition.ActionLabelAt(combat.Loadout.Equipment[slot].Level) + " 대기";
+                string state = definition.ActionLabelAt(combat.Loadout.Equipment[slot].Rarity) + " 대기";
                 Color tint = RunUI.Muted;
                 ResponseNote next = null;
                 foreach (var binding in combat.Bindings)

@@ -1,0 +1,787 @@
+{
+  "version": 1,
+  "format": "RGBA PNG",
+  "coordinateOrigin": "bottom-left",
+  "socketOrder": "top-to-bottom, then left-to-right within one row",
+  "assets": [
+    {
+      "weaponId": "bell",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bell/common.png",
+      "resourcePath": "BBSB/WeaponArt/bell/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "693b25cec9e798bc85ccac2364dece5f472c61d2b376b084953237b6656ac19a",
+      "sockets": [
+        {
+          "action": "Shake",
+          "x": 0.499601,
+          "y": 0.530702,
+          "radiusX": 0.102472,
+          "radiusY": 0.104067
+        }
+      ]
+    },
+    {
+      "weaponId": "bell",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bell/epic.png",
+      "resourcePath": "BBSB/WeaponArt/bell/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "9cd1240c8707f3bf9d41d07a6e2d87dfb9f04550fd7fb50a65d5c37a6c59087e",
+      "sockets": [
+        {
+          "action": "Shake",
+          "x": 0.368022,
+          "y": 0.533493,
+          "radiusX": 0.077751,
+          "radiusY": 0.076555
+        },
+        {
+          "action": "Hold",
+          "x": 0.63118,
+          "y": 0.533892,
+          "radiusX": 0.077751,
+          "radiusY": 0.076954
+        }
+      ]
+    },
+    {
+      "weaponId": "bell",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bell/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/bell/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "d7a51df21d9e9fcbeb721b99b960184ed3c3e26c2a3aea1d5facfd868ec8574c",
+      "sockets": [
+        {
+          "action": "Shake",
+          "x": 0.5,
+          "y": 0.635167,
+          "radiusX": 0.067783,
+          "radiusY": 0.066587
+        },
+        {
+          "action": "Hold",
+          "x": 0.366029,
+          "y": 0.452153,
+          "radiusX": 0.070175,
+          "radiusY": 0.069378
+        },
+        {
+          "action": "Tap",
+          "x": 0.633971,
+          "y": 0.452153,
+          "radiusX": 0.070175,
+          "radiusY": 0.069378
+        }
+      ]
+    },
+    {
+      "weaponId": "bell",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bell/rare.png",
+      "resourcePath": "BBSB/WeaponArt/bell/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "890a2d6144cf12a7044fa9dbfcfd55025875ac0780f60fc7001980a5413a5a80",
+      "sockets": [
+        {
+          "action": "Shake",
+          "x": 0.381978,
+          "y": 0.522727,
+          "radiusX": 0.072568,
+          "radiusY": 0.078549
+        },
+        {
+          "action": "Hold",
+          "x": 0.617225,
+          "y": 0.523525,
+          "radiusX": 0.072568,
+          "radiusY": 0.078549
+        }
+      ]
+    },
+    {
+      "weaponId": "blade",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/blade/common.png",
+      "resourcePath": "BBSB/WeaponArt/blade/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "6c82fddfd38d00b1bafe9f8d420cd2b22d653fc0a1195ac632b49dbc06dbaf10",
+      "sockets": [
+        {
+          "action": "Flick",
+          "x": 0.536683,
+          "y": 0.522329,
+          "radiusX": 0.051834,
+          "radiusY": 0.052632
+        }
+      ]
+    },
+    {
+      "weaponId": "blade",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/blade/epic.png",
+      "resourcePath": "BBSB/WeaponArt/blade/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "67c54ae2da311205efe87cf117a5d5d905b217c15cdbbc9d0be7bb2723f934e4",
+      "sockets": [
+        {
+          "action": "Flick",
+          "x": 0.555423,
+          "y": 0.634769,
+          "radiusX": 0.052233,
+          "radiusY": 0.052632
+        },
+        {
+          "action": "Shake",
+          "x": 0.559809,
+          "y": 0.427831,
+          "radiusX": 0.052632,
+          "radiusY": 0.05303
+        }
+      ]
+    },
+    {
+      "weaponId": "blade",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/blade/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/blade/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5cb98d68862d79bbdf943f3d19903da42d0910e3109724633045db771f0bf7ec",
+      "sockets": [
+        {
+          "action": "Flick",
+          "x": 0.543062,
+          "y": 0.672249,
+          "radiusX": 0.044657,
+          "radiusY": 0.044657
+        },
+        {
+          "action": "Shake",
+          "x": 0.543062,
+          "y": 0.50638,
+          "radiusX": 0.044657,
+          "radiusY": 0.044657
+        },
+        {
+          "action": "Dive",
+          "x": 0.543062,
+          "y": 0.341308,
+          "radiusX": 0.044657,
+          "radiusY": 0.044657
+        }
+      ]
+    },
+    {
+      "weaponId": "blade",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/blade/rare.png",
+      "resourcePath": "BBSB/WeaponArt/blade/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "1c38859400ee4c2df30d2fbf149816191ef3bd62b674885a4204404c505b8798",
+      "sockets": [
+        {
+          "action": "Flick",
+          "x": 0.527512,
+          "y": 0.586523,
+          "radiusX": 0.050638,
+          "radiusY": 0.050638
+        },
+        {
+          "action": "Shake",
+          "x": 0.526715,
+          "y": 0.435008,
+          "radiusX": 0.049841,
+          "radiusY": 0.049841
+        }
+      ]
+    },
+    {
+      "weaponId": "dagger",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/dagger/common.png",
+      "resourcePath": "BBSB/WeaponArt/dagger/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "40b99df066c5916b458bb0310c3acfd1aa2cca64e7deab29858d8c123597fa2d",
+      "sockets": [
+        {
+          "action": "Dive",
+          "x": 0.500399,
+          "y": 0.463317,
+          "radiusX": 0.049043,
+          "radiusY": 0.049442
+        }
+      ]
+    },
+    {
+      "weaponId": "dagger",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/dagger/epic.png",
+      "resourcePath": "BBSB/WeaponArt/dagger/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "d67ae54a5a7d06ce0533d6b6fd1806125bdefc5b1c59421de2a8f0ec00e874f5",
+      "sockets": [
+        {
+          "action": "Dive",
+          "x": 0.499601,
+          "y": 0.562998,
+          "radiusX": 0.044258,
+          "radiusY": 0.044657
+        },
+        {
+          "action": "Tap",
+          "x": 0.499601,
+          "y": 0.423046,
+          "radiusX": 0.044258,
+          "radiusY": 0.044258
+        }
+      ]
+    },
+    {
+      "weaponId": "dagger",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/dagger/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/dagger/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "3bde63d66ba08025a4d72c63f002b0701ea3e6a15d8da72193ea2be147ec04b9",
+      "sockets": [
+        {
+          "action": "Dive",
+          "x": 0.5,
+          "y": 0.61563,
+          "radiusX": 0.04067,
+          "radiusY": 0.04067
+        },
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.491228,
+          "radiusX": 0.04067,
+          "radiusY": 0.04067
+        },
+        {
+          "action": "Flick",
+          "x": 0.5,
+          "y": 0.366826,
+          "radiusX": 0.04067,
+          "radiusY": 0.04067
+        }
+      ]
+    },
+    {
+      "weaponId": "dagger",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/dagger/rare.png",
+      "resourcePath": "BBSB/WeaponArt/dagger/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5c7bdfd5cc306a710f05591b68c67719558fce2090203593b794800d35d10d7b",
+      "sockets": [
+        {
+          "action": "Dive",
+          "x": 0.500399,
+          "y": 0.564992,
+          "radiusX": 0.043461,
+          "radiusY": 0.043461
+        },
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.427033,
+          "radiusX": 0.048644,
+          "radiusY": 0.048246
+        }
+      ]
+    },
+    {
+      "weaponId": "greatsword",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/greatsword/common.png",
+      "resourcePath": "BBSB/WeaponArt/greatsword/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "c0ca6a17cc111f1b269b69dc9e6dcccca50757cd1dada60a429c33a29c0d7d2a",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.5,
+          "y": 0.391148,
+          "radiusX": 0.032695,
+          "radiusY": 0.033094
+        }
+      ]
+    },
+    {
+      "weaponId": "greatsword",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/greatsword/epic.png",
+      "resourcePath": "BBSB/WeaponArt/greatsword/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "acffbd7ee89b6021bfbd7fdbda522d8f1bb0de3bd2d1a9dac6ab618fe34948c0",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.5,
+          "y": 0.51874,
+          "radiusX": 0.032695,
+          "radiusY": 0.033094
+        },
+        {
+          "action": "Dive",
+          "x": 0.5,
+          "y": 0.386364,
+          "radiusX": 0.035088,
+          "radiusY": 0.035486
+        }
+      ]
+    },
+    {
+      "weaponId": "greatsword",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/greatsword/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/greatsword/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "10e9aaf8904c6eddbb189f28db7e4836e2ca219e50fe88c672c9cc3c92997178",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.5,
+          "y": 0.742823,
+          "radiusX": 0.035088,
+          "radiusY": 0.035486
+        },
+        {
+          "action": "Dive",
+          "x": 0.499601,
+          "y": 0.546252,
+          "radiusX": 0.034689,
+          "radiusY": 0.035088
+        },
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.40311,
+          "radiusX": 0.035885,
+          "radiusY": 0.036284
+        }
+      ]
+    },
+    {
+      "weaponId": "greatsword",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/greatsword/rare.png",
+      "resourcePath": "BBSB/WeaponArt/greatsword/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "8cd63c6b587f217394f962134245c323c7c44118c58ed43be2aeeedef808d32d",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.5,
+          "y": 0.539872,
+          "radiusX": 0.03429,
+          "radiusY": 0.035088
+        },
+        {
+          "action": "Dive",
+          "x": 0.5,
+          "y": 0.393541,
+          "radiusX": 0.03429,
+          "radiusY": 0.034689
+        }
+      ]
+    },
+    {
+      "weaponId": "hammer",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/hammer/common.png",
+      "resourcePath": "BBSB/WeaponArt/hammer/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "96b8bdd1805703778f92ce212d0bd6b36d64d27cee2d2b2c704131557a1f0c72",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.768341,
+          "radiusX": 0.073365,
+          "radiusY": 0.073764
+        }
+      ]
+    },
+    {
+      "weaponId": "hammer",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/hammer/epic.png",
+      "resourcePath": "BBSB/WeaponArt/hammer/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5706b912d6fdd51986e634c3bbb58a16c49ef93d5aeb95961973e9c0a7b6645f",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.385566,
+          "y": 0.76555,
+          "radiusX": 0.05941,
+          "radiusY": 0.059809
+        },
+        {
+          "action": "Hold",
+          "x": 0.614833,
+          "y": 0.76555,
+          "radiusX": 0.059011,
+          "radiusY": 0.059809
+        }
+      ]
+    },
+    {
+      "weaponId": "hammer",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/hammer/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/hammer/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "2c81de5da3d0cbe0387e82ee35424da83f6852903bf3e29969986d846fb5a830",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.314195,
+          "y": 0.759171,
+          "radiusX": 0.056619,
+          "radiusY": 0.056619
+        },
+        {
+          "action": "Hold",
+          "x": 0.500399,
+          "y": 0.758772,
+          "radiusX": 0.057018,
+          "radiusY": 0.057018
+        },
+        {
+          "action": "Shake",
+          "x": 0.686204,
+          "y": 0.759171,
+          "radiusX": 0.05622,
+          "radiusY": 0.056619
+        }
+      ]
+    },
+    {
+      "weaponId": "hammer",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/hammer/rare.png",
+      "resourcePath": "BBSB/WeaponArt/hammer/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "7156f748bfa22b0d21013f0979a5f1535730e699e5a2562b289dc1094dd6feff",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.389952,
+          "y": 0.75638,
+          "radiusX": 0.062998,
+          "radiusY": 0.063397
+        },
+        {
+          "action": "Hold",
+          "x": 0.610048,
+          "y": 0.75638,
+          "radiusX": 0.062998,
+          "radiusY": 0.063397
+        }
+      ]
+    },
+    {
+      "weaponId": "shield",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/shield/common.png",
+      "resourcePath": "BBSB/WeaponArt/shield/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "8cdcb8a81530c5af7ee58b7a2039ec58a926c94606337a470c9eaaf8cd146f76",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.499601,
+          "y": 0.564195,
+          "radiusX": 0.112839,
+          "radiusY": 0.112839
+        }
+      ]
+    },
+    {
+      "weaponId": "shield",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/shield/epic.png",
+      "resourcePath": "BBSB/WeaponArt/shield/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5e195f05bb26db1df141024f7df289d73be58d4e4e82afafccf2551044bf5206",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.5,
+          "y": 0.564593,
+          "radiusX": 0.113238,
+          "radiusY": 0.113238
+        }
+      ]
+    },
+    {
+      "weaponId": "shield",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/shield/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/shield/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "ae3fb86fdc62cc03f86593318848c103cb0091981382111b4eb9c635e5c7d89b",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.499601,
+          "y": 0.682616,
+          "radiusX": 0.084928,
+          "radiusY": 0.083732
+        },
+        {
+          "action": "Shake",
+          "x": 0.5,
+          "y": 0.405104,
+          "radiusX": 0.08453,
+          "radiusY": 0.082935
+        }
+      ]
+    },
+    {
+      "weaponId": "shield",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/shield/rare.png",
+      "resourcePath": "BBSB/WeaponArt/shield/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "ac77817b8289fca9463f6ec15b2c9642c58d78a51abc85282af039a8ba425d83",
+      "sockets": [
+        {
+          "action": "Hold",
+          "x": 0.498804,
+          "y": 0.563397,
+          "radiusX": 0.111244,
+          "radiusY": 0.111244
+        }
+      ]
+    },
+    {
+      "weaponId": "spear",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/spear/common.png",
+      "resourcePath": "BBSB/WeaponArt/spear/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "e1e28ed3824decaff1f6cf743cbc3c87e7c64a489604fb73b331035a5e26f200",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.500399,
+          "y": 0.600877,
+          "radiusX": 0.026715,
+          "radiusY": 0.026715
+        }
+      ]
+    },
+    {
+      "weaponId": "spear",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/spear/epic.png",
+      "resourcePath": "BBSB/WeaponArt/spear/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "f86e7f7f56bc2d951de8bc4c5c28c763d1192db5fafba734a554a7c66e5b310c",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.67504,
+          "radiusX": 0.027113,
+          "radiusY": 0.026715
+        },
+        {
+          "action": "Flick",
+          "x": 0.5,
+          "y": 0.572169,
+          "radiusX": 0.027113,
+          "radiusY": 0.026715
+        }
+      ]
+    },
+    {
+      "weaponId": "spear",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/spear/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/spear/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "70bc2f6e8f21e62f92a384d08d16e5b6869b7710a986d4caa16634ccbf04ff85",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.499601,
+          "y": 0.705343,
+          "radiusX": 0.026715,
+          "radiusY": 0.026715
+        },
+        {
+          "action": "Flick",
+          "x": 0.5,
+          "y": 0.608054,
+          "radiusX": 0.027113,
+          "radiusY": 0.026715
+        },
+        {
+          "action": "Dive",
+          "x": 0.5,
+          "y": 0.514753,
+          "radiusX": 0.027113,
+          "radiusY": 0.026715
+        }
+      ]
+    },
+    {
+      "weaponId": "spear",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/spear/rare.png",
+      "resourcePath": "BBSB/WeaponArt/spear/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "11ed3cc8f0577e76bd39e605755202a7091a1c98d7a90531bcd3fc9624d81c5e",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.500399,
+          "y": 0.673445,
+          "radiusX": 0.026715,
+          "radiusY": 0.026715
+        },
+        {
+          "action": "Flick",
+          "x": 0.500399,
+          "y": 0.574561,
+          "radiusX": 0.026715,
+          "radiusY": 0.026715
+        }
+      ]
+    },
+    {
+      "weaponId": "sword",
+      "rarity": "common",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/sword/common.png",
+      "resourcePath": "BBSB/WeaponArt/sword/common",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "a44c9195c3f96ec011951b4c1d0926a9618a8510281bc8496caa01680f588d82",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.391547,
+          "radiusX": 0.03748,
+          "radiusY": 0.03748
+        }
+      ]
+    },
+    {
+      "weaponId": "sword",
+      "rarity": "epic",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/sword/epic.png",
+      "resourcePath": "BBSB/WeaponArt/sword/epic",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "38e01957965072292daf3ccf52fc2494b189700b404f9afc1f98bc532b8b67d8",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.550239,
+          "radiusX": 0.032695,
+          "radiusY": 0.032695
+        },
+        {
+          "action": "Flick",
+          "x": 0.5,
+          "y": 0.392743,
+          "radiusX": 0.038278,
+          "radiusY": 0.037879
+        }
+      ]
+    },
+    {
+      "weaponId": "sword",
+      "rarity": "legendary",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/sword/legendary.png",
+      "resourcePath": "BBSB/WeaponArt/sword/legendary",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "5ca231c544a0a9ef1d6dbf9325a712518d698e5b306f2607e886cca9c51e613d",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.602871,
+          "radiusX": 0.033493,
+          "radiusY": 0.033493
+        },
+        {
+          "action": "Flick",
+          "x": 0.5,
+          "y": 0.452153,
+          "radiusX": 0.039075,
+          "radiusY": 0.039075
+        },
+        {
+          "action": "Hold",
+          "x": 0.500399,
+          "y": 0.324163,
+          "radiusX": 0.030702,
+          "radiusY": 0.030702
+        }
+      ]
+    },
+    {
+      "weaponId": "sword",
+      "rarity": "rare",
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/sword/rare.png",
+      "resourcePath": "BBSB/WeaponArt/sword/rare",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "cb161c44e3ed6cc686814650e84c0c53a759232ad97f375c299c24a7d1e6ca62",
+      "sockets": [
+        {
+          "action": "Tap",
+          "x": 0.5,
+          "y": 0.53748,
+          "radiusX": 0.036683,
+          "radiusY": 0.036683
+        },
+        {
+          "action": "Flick",
+          "x": 0.499601,
+          "y": 0.391946,
+          "radiusX": 0.037879,
+          "radiusY": 0.037879
+        }
+      ]
+    }
+  ]
+}

@@ -19,7 +19,7 @@ namespace BBSB.Core
             {
                 if (weapon == null) throw new ArgumentException("A weapon slot cannot be null.", nameof(weapons));
                 WeaponCatalog.Find(weapon.DefinitionId);
-                equipment.Add(new WeaponState(weapon.DefinitionId, weapon.Level));
+                equipment.Add(new WeaponState(weapon.DefinitionId, weapon.Rarity, weapon.Level));
             }
             foreach (var attack in plan.Attacks)
                 if (!patterns.Exists(p => p.MonsterId == attack.MonsterId && p.Pattern.Id == attack.Pattern.Id)) patterns.Add(attack);
@@ -30,7 +30,7 @@ namespace BBSB.Core
         {
             if (slot < 0 || slot >= equipment.Count) return null;
             var state = equipment[slot];
-            return WeaponCatalog.Find(state.DefinitionId).ActionFor(kind, state.Level);
+            return WeaponCatalog.Find(state.DefinitionId).ActionFor(kind, state.Rarity);
         }
 
         public bool RespondsTo(int slot, PlannedAttack pattern)

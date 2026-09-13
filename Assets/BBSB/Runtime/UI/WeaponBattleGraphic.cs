@@ -12,6 +12,8 @@ namespace BBSB.Runtime.UI
         private Vector2 ground, hero;
         private readonly Vector2[] targets = new Vector2[RunRules.WeaponSlots];
         private readonly WeaponActivation[] active = new WeaponActivation[RunRules.WeaponSlots];
+        private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[RunRules.WeaponSlots];
+        private readonly string[] boundIds = new string[RunRules.WeaponSlots];
         internal float WeaponSizeMultiplier { get; set; } = 1;
         private static readonly Color Edge = RunUI.Hex("CBA66F"), Metal = RunUI.Hex("251D31"), Glow = RunUI.Hex("FF4C9B");
 
@@ -23,7 +25,50 @@ namespace BBSB.Runtime.UI
         }
         internal void SetActivation(WeaponActivation value, Vector2 target)
         { active[value.Slot] = value; targets[value.Slot] = target; }
-        internal void Refresh() { SetVerticesDirty(); }
+        internal void Refresh()
+        {
+            Rect r = rectTransform.rect;
+            float unit = Mathf.Min(r.width, r.height) / 720;
+            for (int slot = 0; slot < icons.Length; slot++)
+            {
+                bool visible = combat != null && slot < combat.Loadout.Equipment.Count && r.width > 0 && r.height > 0;
+                if (!visible) { if (icons[slot] != null) icons[slot].gameObject.SetActive(false); continue; }
+                var state = combat.Loadout.Equipment[slot]; var weapon = WeaponCatalog.Find(state.DefinitionId);
+                if (icons[slot] == null)
+                {
+                    var child = new GameObject("Battle weapon " + slot, typeof(RectTransform), typeof(CanvasRenderer));
+                    child.transform.SetParent(transform, false); icons[slot] = child.AddComponent<WeaponIconGraphic>();
+                    icons[slot].rectTransform.anchorMin = icons[slot].rectTransform.anchorMax = Vector2.zero;
+                }
+                var icon = icons[slot]; icon.gameObject.SetActive(true);
+                if (boundIds[slot] != state.DefinitionId || icon.Rarity != state.Rarity)
+                { icon.Bind(state); boundIds[slot] = state.DefinitionId; }
+                Vector2 origin = Origin(r, slot), point = origin;
+                float rotation = -20 + slot * 10, scale = 1;
+                var activation = active[slot];
+                if (activation != null)
+                {
+                    double progress = (seconds - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion);
+                    var frame = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
+                        new BattlePathPoint(targets[slot].x, targets[slot].y), progress);
+                    point = new Vector2((float)frame.Position.X, (float)frame.Position.Y);
+                    rotation = (float)frame.Rotation; scale = (float)frame.Scale;
+                }
+                float length = weapon.Kind == WeaponKind.Spear ? 3.3f : weapon.Kind == WeaponKind.Greatsword ? 2.95f : 2.6f;
+                float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale * length * WeaponSizeMultiplier;
+                icon.rectTransform.anchoredPosition = new Vector2(point.x * r.width, point.y * r.height);
+                icon.rectTransform.sizeDelta = new Vector2(size, size);
+                icon.rectTransform.localRotation = Quaternion.Euler(0, 0, rotation);
+                icon.SetActivity(combat, slot, seconds);
+            }
+            SetVerticesDirty();
+        }
+        private Vector2 Origin(Rect r, int slot)
+        {
+            float heroHeight = (hero.y - ground.y) / .46f, angle = (135 - slot * 65) * Mathf.Deg2Rad;
+            return hero + new Vector2(Mathf.Cos(angle) * heroHeight * r.height / r.width * .5f,
+                Mathf.Sin(angle) * heroHeight * .42f + heroHeight * .09f);
+        }
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
@@ -31,22 +76,18 @@ namespace BBSB.Runtime.UI
             Rect r = rectTransform.rect;
             if (r.width <= 0 || r.height <= 0) return;
             float unit = Mathf.Min(r.width, r.height) / 720;
-            float heroHeight = (hero.y - ground.y) / .46f;
             for (int slot = 0; slot < combat.Loadout.Equipment.Count; slot++)
             {
                 var weapon = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
-                float angle = (135 - slot * 65) * Mathf.Deg2Rad;
-                var origin = hero + new Vector2(Mathf.Cos(angle) * heroHeight * r.height / r.width * .5f,
-                    Mathf.Sin(angle) * heroHeight * .42f + heroHeight * .09f);
+                var origin = Origin(r, slot);
                 var activation = active[slot];
-                var point = origin; float rotation = -20 + slot * 10, scale = 1;
+                var point = origin;
                 if (activation != null)
                 {
                     float p = (float)((seconds - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion));
                     var frame = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
                         new BattlePathPoint(targets[slot].x, targets[slot].y), p);
                     point = new Vector2((float)frame.Position.X, (float)frame.Position.Y);
-                    rotation = (float)frame.Rotation; scale = (float)frame.Scale;
                     var target = Point(r, targets[slot]);
                     Color glow = Glow; glow.a = 1 - p;
                     if (activation.Action.Motion == WeaponAttackStyle.Resonance)
@@ -76,8 +117,6 @@ namespace BBSB.Runtime.UI
                         }
                     }
                 }
-                float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale * WeaponSizeMultiplier;
-                DrawWeapon(vh, weapon.Kind, Point(r, point), size, rotation);
             }
             if (combat.GuardAt(seconds) > 0)
                 Arc(vh, Point(r, hero), 65 * unit, -70, 140, 3 * unit, RunUI.Teal);

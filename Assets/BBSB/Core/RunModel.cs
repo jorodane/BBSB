@@ -105,12 +105,15 @@ namespace BBSB.Core
     public sealed class WeaponState
     {
         public string DefinitionId { get; }
+        public WeaponRarity Rarity { get; }
         public int Level { get; internal set; }
-        public WeaponState(string definitionId) : this(definitionId, 0) { }
-        public WeaponState(string definitionId, int level)
+        public WeaponState(string definitionId) : this(definitionId, WeaponRarity.Common, 0) { }
+        public WeaponState(string definitionId, int level) : this(definitionId, WeaponRarity.Common, level) { }
+        public WeaponState(string definitionId, WeaponRarity rarity, int level = 0)
         {
             if (level < 0 || level > RunRules.MaximumUpgrade) throw new ArgumentOutOfRangeException(nameof(level));
-            DefinitionId = definitionId; Level = level;
+            WeaponRarities.Validate(rarity);
+            DefinitionId = definitionId; Rarity = rarity; Level = level;
         }
     }
 
@@ -128,8 +131,10 @@ namespace BBSB.Core
     public sealed class Offer
     {
         public ContentDefinition Content { get; }
+        public WeaponRarity Rarity { get; }
         public int Price { get; internal set; }
         public bool Purchased { get; internal set; }
-        internal Offer(ContentDefinition content, int price) { Content = content; Price = price; }
+        internal Offer(ContentDefinition content, int price, WeaponRarity rarity = WeaponRarity.Common)
+        { WeaponRarities.Validate(rarity); Content = content; Price = price; Rarity = content.Kind == RewardKind.Weapon ? rarity : WeaponRarity.Common; }
     }
 }

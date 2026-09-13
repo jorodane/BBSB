@@ -34,8 +34,8 @@ namespace BBSB.Core
         public WeaponKind Kind { get; }
         public IReadOnlyList<WeaponActionDefinition> Actions { get; }
         private readonly IReadOnlyList<WeaponActionDefinition>[] unlocked;
-        public string ActionLabel => ActionLabelAt(RunRules.MaximumUpgrade);
-        public string EffectLabel => EffectLabelAt(RunRules.MaximumUpgrade);
+        public string ActionLabel => ActionLabelAt(WeaponRarity.Legendary);
+        public string EffectLabel => EffectLabelAt(WeaponRarity.Legendary);
 
         internal WeaponDefinition(string id, WeaponKind kind, params WeaponActionDefinition[] actions)
         {
@@ -51,28 +51,38 @@ namespace BBSB.Core
         }
         public WeaponActionDefinition ActionFor(GestureKind kind)
         { foreach (var action in Actions) if (action.Kind == kind) return action; return null; }
-        public WeaponActionDefinition ActionFor(GestureKind kind, int level)
-        { foreach (var action in ActionsAt(level)) if (action.Kind == kind) return action; return null; }
-        public int ActionCountAt(int level)
+        public WeaponActionDefinition ActionFor(GestureKind kind, WeaponRarity rarity)
+        { foreach (var action in ActionsAt(rarity)) if (action.Kind == kind) return action; return null; }
+        public int ActionCountAt(WeaponRarity rarity)
         {
-            if (level < 0 || level > RunRules.MaximumUpgrade) throw new ArgumentOutOfRangeException(nameof(level));
-            if (Kind == WeaponKind.Shield) return level == RunRules.MaximumUpgrade ? 2 : 1;
-            return level == 0 ? 1 : level == RunRules.MaximumUpgrade ? 3 : 2;
+            WeaponRarities.Validate(rarity);
+            if (Kind == WeaponKind.Shield) return rarity == WeaponRarity.Legendary ? 2 : 1;
+            return rarity == WeaponRarity.Common ? 1 : rarity == WeaponRarity.Legendary ? 3 : 2;
         }
-        public IReadOnlyList<WeaponActionDefinition> ActionsAt(int level) => unlocked[ActionCountAt(level) - 1];
-        public string ActionLabelAt(int level)
+        public IReadOnlyList<WeaponActionDefinition> ActionsAt(WeaponRarity rarity) => unlocked[ActionCountAt(rarity) - 1];
+        public string ActionLabelAt(WeaponRarity rarity)
         {
-            var labels = new List<string>(); foreach (var action in ActionsAt(level)) labels.Add(action.Kind.ToString());
+            var labels = new List<string>(); foreach (var action in ActionsAt(rarity)) labels.Add(action.Kind.ToString());
             return string.Join(" / ", labels);
         }
-        public string EffectLabelAt(int level)
+        public string EffectLabelAt(WeaponRarity rarity, int level = 0)
         {
-            var labels = new List<string>();
-            foreach (var action in ActionsAt(level)) labels.Add(action.Kind + " · " + action.Name + ": " + action.EffectLabel);
+            if (level < 0 || level > RunRules.MaximumUpgrade) throw new ArgumentOutOfRangeException(nameof(level));
+            var labels = new List<string>(); decimal scale = LevelMultiplier(level);
+            foreach (var action in ActionsAt(rarity))
+            {
+                var effects = new List<string>();
+                if (action.Damage > 0) effects.Add((action.Damage * scale).ToString("0.##") + " 피해" + (action.PerfectOnly ? " · Perfect 전용" : ""));
+                if (action.Guard > 0) effects.Add("방어막 " + (action.Guard * scale).ToString("0.##") + " · 4박 유지");
+                if (action.PerfectBonus > 0) effects.Add("Perfect 추가 " + (action.PerfectBonus * scale).ToString("0.##"));
+                if (action.BuildsCombo) effects.Add("연속 성공 +" + (2 * scale).ToString("0.##") + " · 최대 +" + (6 * scale).ToString("0.##"));
+                if (action.GrantsResonance) effects.Add("2박 안의 다음 공격 +50%");
+                labels.Add(action.Kind + " · " + action.Name + ": " + string.Join(" · ", effects));
+            }
             return string.Join("\n", labels);
         }
-        public string ProgressionLabel => "+0 " + Actions[0].Kind + (Kind == WeaponKind.Shield ? "  ·  +3 " : "  ·  +1 ") +
-            Actions[1].Kind + (Actions.Count > 2 ? "  ·  +3 " + Actions[2].Kind : "");
+        public string ProgressionLabel => "일반 " + Actions[0].Kind + (Kind == WeaponKind.Shield ? "  ·  전설 " : "  ·  희귀 ") +
+            Actions[1].Kind + (Actions.Count > 2 ? "  ·  전설 " + Actions[2].Kind : "");
         public decimal LevelMultiplier(int level) => 1m + .25m * level;
     }
 
