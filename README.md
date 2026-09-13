@@ -103,6 +103,8 @@ Unity 모바일 버전의 탐험 흐름, 음악 슬롯, 몬스터 전투 계획�
 dotnet run --project Tools/CoreChecks/BBSB.CoreChecks.csproj --configuration Release
 ```
 
+단독 검사도 `BBSB.Core`·Unity 비의존 Runtime 코드·테스트를 각각 별도 어셈블리로 컴파일한다. Unity의 asmdef 경계처럼 테스트에서 Core의 `internal` 멤버에 접근하는 실수를 컴파일 단계에서 잡는다. 강화된 무기 상태는 `new WeaponState(id, level)`로 생성하며 레벨은 0~`RunRules.MaximumUpgrade` 범위를 검증한다.
+
 Unity에서는 **Window → General → Test Runner**에서 EditMode의 `BBSB.Core.Tests`, PlayMode의 `BBSB.UI.Tests`를 실행한다. PlayMode에는 21개 맵 노드의 배치와 비중첩, 물음표 표시·진입·복귀, 연주/박자/결과/재준비, 포인터와 일시정지, 외부 승패, 가로 레이아웃과 메뉴, 캐릭터 모션 검증이 있다. Call 합성음의 안정적인 구분과 거북의 대응 전 꼬리 모션 검증도 추가했다. 긴 쉼의 정적인 안내와 대응 직전 공격 준비 동작 억제도 검사한다. 연결된 Call과 현재 Tap을 함께 표시하는 PlayMode 테스트도 추가했다. 체력 HUD의 수치·비율과 입력 통과, 준비 복귀 시 HP 유지, 사망 시 연주 해제와 게임오버 표시도 추가했다. 발 피벗·원본 Sprite 재사용·포즈와 배율 변경·일시정지 중 화면 크기 변경 테스트도 추가했다. 작업 환경에는 Unity Editor가 없어 **Unity 컴파일·PlayMode 테스트·모바일 빌드는 아직 실행하지 못했다.** `RunMap`의 16:9와 16:10 Game 뷰에서 판정별 HP 감소, 메뉴/재준비 시 HP 유지, 사망을 확인한다.
 
 한글 글꼴은 OFL 라이선스의 Noto Sans CJK KR 일부를 `BBSB UI`로 이름을 바꿔 포함했다. 새 한글 텍스트를 넣을 때는 `Tools/subset_font.py`로 글자 집합을 갱신한다. 출처와 라이선스는 폰트 폴더에 있다.

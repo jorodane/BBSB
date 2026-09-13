@@ -32,7 +32,7 @@ namespace BBSB.Core
             foreach (var weapon in weapons)
             {
                 WeaponCatalog.Find(weapon.DefinitionId);
-                equipment.Add(new WeaponState(weapon.DefinitionId) { Level = weapon.Level });
+                equipment.Add(new WeaponState(weapon.DefinitionId, weapon.Level));
             }
             foreach (var attack in plan.Attacks)
                 if (!patterns.Exists(p => p.MonsterId == attack.MonsterId && p.Pattern.Id == attack.Pattern.Id)) patterns.Add(attack);

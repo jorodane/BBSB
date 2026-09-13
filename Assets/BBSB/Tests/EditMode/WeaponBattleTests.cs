@@ -12,6 +12,21 @@ namespace BBSB.Tests
     public sealed class WeaponBattleTests
     {
         [Test]
+        public void InitialWeaponLevelRespectsTheUpgradeLimit()
+        {
+            Check.Equal(0, new WeaponState("spear").Level);
+            for (int level = 0; level <= RunRules.MaximumUpgrade; level++)
+                Check.Equal(level, new WeaponState("spear", level).Level);
+            foreach (int level in new[] { -1, RunRules.MaximumUpgrade + 1 })
+            {
+                bool rejected = false;
+                try { new WeaponState("spear", level); }
+                catch (ArgumentOutOfRangeException) { rejected = true; }
+                Check.True(rejected);
+            }
+        }
+
+        [Test]
         public void AllEightWeaponsHaveTwoIndependentActionsAndApplyTheirEffectsAtEveryUpgrade()
         {
             Check.Equal(8, WeaponCatalog.All.Count);
@@ -29,7 +44,7 @@ namespace BBSB.Tests
                     var action = weapon.Actions[i]; var step = new PatternStep(action.Kind, 0,
                         action.Kind == GestureKind.Hold || action.Kind == GestureKind.Dive ? 8 : 0);
                     var plan = Plan(step);
-                    var loadout = new WeaponArrangement(plan, new[] { new WeaponState(weapon.Id) { Level = level } });
+                    var loadout = new WeaponArrangement(plan, new[] { new WeaponState(weapon.Id, level) });
                     Place(loadout, 0, plan.Attacks[0], 0); var round = Round(plan, loadout);
                     Perform(round, new[] { step }, 2);
                     decimal damage = expected[weapon.Id][i] * (1 + .25m * level);

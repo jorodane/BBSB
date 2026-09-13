@@ -104,7 +104,12 @@ namespace BBSB.Core
     {
         public string DefinitionId { get; }
         public int Level { get; internal set; }
-        public WeaponState(string definitionId) { DefinitionId = definitionId; }
+        public WeaponState(string definitionId) : this(definitionId, 0) { }
+        public WeaponState(string definitionId, int level)
+        {
+            if (level < 0 || level > RunRules.MaximumUpgrade) throw new ArgumentOutOfRangeException(nameof(level));
+            DefinitionId = definitionId; Level = level;
+        }
     }
 
     public sealed class ContentDefinition
