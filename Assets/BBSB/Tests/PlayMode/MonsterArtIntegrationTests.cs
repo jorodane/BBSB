@@ -43,7 +43,9 @@ namespace BBSB.Tests
                     SameImage(sprites, folder, "travel", 4, "travel-0");
                 }
                 else { SameImage(sprites, folder, "travel"); attacks++; }
-                if (definition.Motion == MonsterAttackMotion.WaitRush) { SameImage(sprites, folder, "wait"); attacks++; }
+                // Harpy and tail waiting was added after the pack; these slots intentionally reuse travel art.
+                if (definition.Motion == MonsterAttackMotion.WaitRush && !CanReuseTravelWhileWaiting(definition))
+                { SameImage(sprites, folder, "wait"); attacks++; }
             }
             Assert.AreEqual(36, icons); Assert.AreEqual(95, bodies); Assert.AreEqual(211, attacks);
         }
@@ -63,8 +65,11 @@ namespace BBSB.Tests
                     {
                         var frame = MonsterAttackTimeline.Evaluate(note, definition, time, preview.BeatSeconds, preview.Round.HalfMissWindow);
                         if (!frame.Visible) continue;
-                        Assert.IsNotNull(sprites.Attack(definition, frame, 2, preview.BeatSeconds, out bool exact), definition.ResourceFolder);
-                        Assert.IsTrue(exact, definition.ResourceFolder + "/" + frame.ImageName + " must not use another phase as a fallback.");
+                        var image = sprites.Attack(definition, frame, 2, preview.BeatSeconds, out bool exact);
+                        Assert.IsNotNull(image, definition.ResourceFolder);
+                        if (!exact && frame.Phase == MonsterAttackPhase.Wait && CanReuseTravelWhileWaiting(definition))
+                            Assert.AreSame(sprites.Get(definition.ResourceFolder, "travel"), image);
+                        else Assert.IsTrue(exact, definition.ResourceFolder + "/" + frame.ImageName + " must not use another phase as a fallback.");
                     }
                     var arrival = MonsterAttackTimeline.Evaluate(note, definition, note.StartSeconds, preview.BeatSeconds, preview.Round.HalfMissWindow);
                     Assert.AreEqual(MonsterAttackPhase.Contact, arrival.Phase);
@@ -73,6 +78,9 @@ namespace BBSB.Tests
                 }
             }
         }
+
+        private static bool CanReuseTravelWhileWaiting(MonsterAttackDefinition definition) =>
+            definition.Shape == MonsterAttackShape.Feather || definition.Shape == MonsterAttackShape.Tail;
 
         private static void SameImage(MonsterAttackSprites sprites, string folder, string clip, double frame = 0, string file = null)
         {

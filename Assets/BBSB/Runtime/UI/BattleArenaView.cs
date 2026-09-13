@@ -383,6 +383,7 @@ namespace BBSB.Runtime.UI
                     action = motion.Index == 4 ? "잠깐 정비" : "다시 준비";
             }
             weaponEnergy = Mathf.Max(weaponEnergy, Mathf.Max(guardStrength * .4f, shakeStrength * .8f));
+            RefreshContactFeedback(seconds);
             foreach (var result in round.Results)
             {
                 double age = seconds - result.JudgedAtSeconds;
@@ -424,6 +425,30 @@ namespace BBSB.Runtime.UI
         {
             if (age < 0 || age >= duration) return;
             effects.Add(new BattleEffect { Kind = kind, From = from, To = to, Progress = (float)(age / duration), Tint = tint, Strength = strength });
+        }
+
+        private void RefreshContactFeedback(double seconds)
+        {
+            if (round.Combat != null && !round.Combat.AllowsEnemyEffect(seconds)) return;
+            var size = area.rect.size;
+            foreach (var note in round.Notes)
+            {
+                var feedback = MonsterAttackTimeline.ContactFeedback(note, seconds, round.BeatSeconds, round.HalfMissWindow);
+                if (!feedback.Active) continue;
+                var definition = MonsterAttackCatalog.For(note);
+                var calibration = monsterAttackDisplay != null ? monsterAttackDisplay.Find(definition) : null;
+                var socket = monsterAttackDisplay != null ? monsterAttackDisplay.Socket(note.Step.Kind) : MonsterAttackDisplay.DefaultSocket(note.Step.Kind);
+                socket += calibration?.targetOffset ?? Vector2.zero;
+                var point = HeroGroundPosition + new Vector2(socket.x * heroDisplayHeight / size.x, socket.y * heroDisplayHeight / size.y);
+                bool dive = note.Step.Kind == GestureKind.Dive, shake = note.Step.Kind == GestureKind.Shake;
+                var kind = feedback.IsEnding ? (dive ? BattleEffectKind.DiveEnd : BattleEffectKind.SustainEnd) :
+                    shake ? BattleEffectKind.ShakeCharge : dive ? BattleEffectKind.DiveSustain : BattleEffectKind.HoldSustain;
+                var tint = feedback.IsEnding ? RunUI.Gold : round.IsDown ? RunUI.Teal : RunUI.Muted;
+                if (shake && feedback.IsEnding && note.Result != null) tint = RhythmPlaybackView.GradeColor(note.Result.Grade);
+                effects.Add(new BattleEffect { Kind = kind, From = point, To = point, Tint = tint, Strength = 1,
+                    Progress = (float)(feedback.IsEnding ? feedback.EndProgress : feedback.Progress), Pulse = (float)feedback.Pulse,
+                    Beats = shake ? 2 : Math.Max(1, note.Step.DurationTicks / RhythmTime.TicksPerBeat) });
+            }
         }
         private Actor FindMonster(string id)
         { foreach (var actor in monsters) if (actor.Plan.InstanceId == id) return actor; return null; }

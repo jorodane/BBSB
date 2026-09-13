@@ -36,31 +36,37 @@ namespace BBSB.Core
             var steady = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 1 ? 0 : 1];
             var shift = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 2 ? 0 : 1];
             var steadyAt = Index(stage, steady); var shiftAt = Index(stage, shift);
-            // Start on a main beat, establish it, shift offbeat, then establish the returned main beat.
-            // Every next Call coincides with the previous pattern's final Tap, including each early Tap.
+            // One uninterrupted run per available span. Every next Call coincides with the
+            // previous final Tap; extending the run never inserts a new count-in or rest.
             foreach (var first in BattlePlanner.Candidates(stage, steady))
             {
                 if (first.CueStartTick % RhythmTime.TicksPerBeat != 0) continue;
-                var placements = new List<PatternPlacement>(); int call = first.CueStartTick; bool fits = true;
-                for (int phase = 0; phase < 3 && fits; phase++)
+                var placements = new List<PatternPlacement>(); int call = first.CueStartTick, steadyCount = 0;
+                int transitions = 0, returnedSteady = 0;
+                while (true)
                 {
-                    for (int beat = 0; beat < SteadyCallsPerPhase; beat++)
+                    bool transition = steadyCount >= SteadyCallsPerPhase;
+                    PatternPlacement placement;
+                    if (!transition || !shiftAt.TryGetValue(call + 4, out placement) || !steadyAt.ContainsKey(placement.EndTick + 4))
                     {
-                        if (!steadyAt.TryGetValue(call + 4, out var placement)) { fits = false; break; }
-                        placements.Add(placement); call = placement.EndTick;
+                        transition = false;
+                        if (!steadyAt.TryGetValue(call + 4, out placement)) break;
                     }
-                    if (phase == 2 || !fits) continue;
-                    if (!shiftAt.TryGetValue(call + 4, out var transition)) { fits = false; break; }
-                    placements.Add(transition); call = transition.EndTick;
+                    var definition = transition ? shift : steady;
+                    int end = placement.StartTick + definition.ResponseTicks;
+                    bool crossesBreak = false;
+                    foreach (var section in stage.Music.Sections)
+                        if (!section.AllowsResponse && first.StartTick < (section.StartBar + section.BarCount) * stage.Music.TicksPerBar &&
+                            end > section.StartBar * stage.Music.TicksPerBar) { crossesBreak = true; break; }
+                    if (crossesBreak) break;
+                    placements.Add(placement); call = placement.EndTick;
+                    steadyCount = transition ? 0 : steadyCount + 1;
+                    if (transition) transitions++;
+                    else if (transitions == 2) returnedSteady++;
                 }
-                if (!fits) continue;
-                int end = placements[placements.Count - 1].StartTick + steady.ResponseTicks;
-                // The chain may count in during an intro, but it cannot bridge a response-free break.
-                int firstResponse = placements[0].StartTick;
-                foreach (var section in stage.Music.Sections)
-                    if (!section.AllowsResponse && firstResponse < (section.StartBar + section.BarCount) * stage.Music.TicksPerBar &&
-                        end > section.StartBar * stage.Music.TicksPerBar) { fits = false; break; }
-                if (fits) result.Add(new PatternChain("beat-shift-loop", monster, placements, RhythmTime.TicksPerBeat,
+                // Keep the original teaching minimum: establish both phases and return to main beats.
+                if (returnedSteady >= SteadyCallsPerPhase)
+                    result.Add(new PatternChain("beat-shift-loop", monster, placements, 0,
                     overlapCallsAndResponses: true));
             }
             return result;
@@ -69,18 +75,14 @@ namespace BBSB.Core
         public MonsterProposal Propose(MusicStage stage, string instanceId, MonsterDefinition monster, int seed)
         {
             var candidates = Candidates(stage, monster); var result = new List<PatternChain>();
-            var random = new SeededRandom(seed); long callAfter = 0;
-            var steady = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 1 ? 0 : 1];
+            long callAfter = 0;
             foreach (var candidate in candidates)
             {
                 if (candidate.CallStartTick < callAfter) continue;
-                double chance = 1 - Math.Pow(1 - steady.ParticipationChance, candidate.Placements[0].Weight);
-                if (random.Next(1000000) / 1000000.0 >= chance) continue;
                 result.Add(candidate);
-                // The next one-beat Call can use the final one-beat rest.
+                // Later candidates in the same span are suffixes, not separate random bursts.
                 callAfter = candidate.PhraseEndTick;
             }
-            if (result.Count == 0 && candidates.Count > 0) result.Add(candidates[random.Next(candidates.Count)]);
             return new MonsterProposal(instanceId, monster, result);
         }
 

@@ -41,6 +41,15 @@ namespace BBSB.Runtime.UI
 
         public double SpawnSeconds(ResponseNote note, double beatSeconds) =>
             (note.Attack.Call[Math.Min(CallIndex, note.Attack.Call.Count - 1)].Tick + SpawnOffsetTicks) * beatSeconds / RhythmTime.TicksPerBeat;
+
+        // Main-beat and offbeat tails keep their own lanes, including either direction of a phase change.
+        public double LaneHeight(ResponseNote note) => Shape == MonsterAttackShape.Tail ?
+            (note.StartTick % RhythmTime.TicksPerBeat == 0 ? .16 : -.16) : 0;
+
+        public double ReactionDuration(double beatSeconds) => Shape == MonsterAttackShape.Tail ?
+            // Leave room for the latest HalfMiss and the player's punch preparation
+            // before the next half-beat tail. Other attacks retain their full reaction.
+            Math.Min(.10, beatSeconds * .12) : MonsterAttackTimeline.ReactionSeconds;
     }
 
     public static class MonsterAttackCatalog
@@ -84,7 +93,7 @@ namespace BBSB.Runtime.UI
                     case "tresillo-call-tap": values.Add(D(MonsterAttackMotion.Relay, MonsterAttackShape.Jelly, MonsterAttackReaction.Burst, height: .34, arc: .30)); break;
                     case "march-three": values.Add(D(MonsterAttackMotion.Linear, MonsterAttackShape.Gauntlet, MonsterAttackReaction.Recoil, delay: offset, height: .30)); break;
                     case "march-spaced": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Gauntlet, MonsterAttackReaction.Recoil, delay: offset, height: .34, arc: .36)); break;
-                    case "tresillo-taps": values.Add(D(MonsterAttackMotion.Linear, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter, call: i, height: .30)); break;
+                    case "tresillo-taps": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter, call: i, height: .30, rush: 2)); break;
                     case "rotated-tresillo": values.Add(D(MonsterAttackMotion.Linear, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter, height: .30)); break;
                     case "offbeat-single-tap": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Foxfire, MonsterAttackReaction.Fade)); break;
                     case "offbeat-pair": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Foxfire, MonsterAttackReaction.Fade, call: i)); break;
@@ -92,8 +101,8 @@ namespace BBSB.Runtime.UI
                     case "drowsy-four-beat-wait": values.Add(D(MonsterAttackMotion.Materialize, MonsterAttackShape.Dream, MonsterAttackReaction.Fade, height: .32)); break;
                     case "clock-quick-tap": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Doll, MonsterAttackReaction.Recoil, height: .52, arc: .75, landsAfterMiss: true)); break;
                     case "clock-seven-beat-wait": values.Add(D(MonsterAttackMotion.Walk, MonsterAttackShape.Doll, MonsterAttackReaction.Recoil, height: .52, grounded: true)); break;
-                    case "seesaw-steady-tap": values.Add(D(MonsterAttackMotion.Extend, MonsterAttackShape.Tail, MonsterAttackReaction.Withdraw, height: .17, stretch: true)); break;
-                    case "seesaw-early-finish": values.Add(D(MonsterAttackMotion.Extend, MonsterAttackShape.Tail, MonsterAttackReaction.Withdraw, delay: offset, height: .17, stretch: true)); break;
+                    case "seesaw-steady-tap": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Tail, MonsterAttackReaction.Withdraw, height: .14, rush: 1, stretch: true)); break;
+                    case "seesaw-early-finish": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Tail, MonsterAttackReaction.Withdraw, delay: offset, height: .14, rush: 1, stretch: true)); break;
                     case "bat-quick-taps": values.Add(D(MonsterAttackMotion.Linear, MonsterAttackShape.Electric, MonsterAttackReaction.Scatter, call: i, height: .25)); break;
                     case "bat-hold": values.Add(D(MonsterAttackMotion.Extend, MonsterAttackShape.Electric, MonsterAttackReaction.Fade, height: .30, stretch: true)); break;
                     case "turtle-long-hold": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Scale, MonsterAttackReaction.Recoil, height: .60, arc: .08)); break;

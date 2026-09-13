@@ -449,6 +449,101 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator HarpyFeathersWaitAtOneOriginThenReachThePunchAtTheirOwnBeat()
+        {
+            var monster = MonsterCatalog.All.Single(x => x.Id == "tresillo-bat");
+            var round = new MonsterPreview(monster, monster.Patterns.Single(x => x.Id == "tresillo-taps")).Round;
+            var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+            round.Advance(round.Plan.Calls.Last().Tick * round.BeatSeconds / 4 + round.BeatSeconds * .1); arena.Refresh();
+            var slots = arena.GetComponentsInChildren<MonsterAttackGraphic>().OrderBy(x => x.name).ToArray();
+            Assert.AreEqual(3, slots.Length);
+            var origin = slots[0].rectTransform.anchoredPosition;
+            Assert.IsTrue(slots.All(x => x.Frame.Progress == 0));
+            Assert.IsTrue(slots.All(x => Vector2.Distance(origin, x.rectTransform.anchoredPosition) < .01f));
+            Assert.AreEqual(3, slots.Select(x => x.rectTransform.localRotation).Distinct().Count());
+            for (int i = 0; i < round.Notes.Count; i++)
+            {
+                var note = round.Notes[i];
+                round.Advance(note.StartSeconds - round.BeatSeconds * .25); arena.Refresh();
+                var size = ((RectTransform)arena.transform).rect.size;
+                var target = Vector2.Scale(arena.HeroImpactPosition, size);
+                Assert.AreEqual(.5, slots[i].Frame.Progress, 1e-6);
+                Assert.Less(Vector2.Distance(Vector2.Lerp(origin, target, .5f), slots[i].rectTransform.anchoredPosition), .01f);
+                round.Advance(note.StartSeconds); arena.Refresh();
+                Assert.AreEqual(MonsterAttackPhase.Contact, slots[i].Frame.Phase);
+                Assert.Less(Vector2.Distance(target, slots[i].rectTransform.anchoredPosition), .01f);
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator NekomataUsesOppositeLanesInBothPhaseChangesWithoutOldTailsRemaining()
+        {
+            var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "rapid-drive"));
+            var monster = MonsterCatalog.All.Single(x => x.Id == "seesaw-goblin");
+            var chain = monster.PatternPlanner.Candidates(stage, monster).Single(x => x.CallStartTick == 16);
+            var round = new RhythmRound(BattlePlanner.Resolve(stage,
+                new[] { new MonsterProposal(monster.Id, monster, new List<PatternChain> { chain }) }, 1));
+            var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+            foreach (var attack in round.Plan.Attacks.Where(x => x.Pattern.Id == "seesaw-early-finish").Take(2))
+            {
+                var notes = round.Notes.Where(x => ReferenceEquals(x.Attack, attack)).ToArray();
+                var slots = arena.GetComponentsInChildren<MonsterAttackGraphic>(true)
+                    .Where(x => x.name.StartsWith("Attack " + attack.Id + "/step-")).OrderBy(x => x.name).ToArray();
+                round.Advance(notes[0].StartSeconds); arena.Refresh();
+                float firstY = TailTip(slots[0]).y, tailHeight = slots[0].rectTransform.rect.height;
+                round.Advance(notes[1].StartSeconds); arena.Refresh();
+                Assert.IsFalse(slots[0].gameObject.activeSelf, "The previous missed tail must already be gone.");
+                float direction = notes[0].StartTick % 4 == 0 ? -1 : 1;
+                Assert.Greater((TailTip(slots[1]).y - firstY) * direction, tailHeight * 1.5f);
+                Assert.AreEqual(MonsterAttackPhase.Contact, slots[1].Frame.Phase);
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static Vector3 TailTip(MonsterAttackGraphic slot) =>
+            slot.rectTransform.TransformPoint(new Vector3(slot.rectTransform.rect.xMin, 0, 0));
+
+        [UnityTest]
+        public IEnumerator SustainedArtChangesThroughoutContactAndShowsAnEndCueAfterAnEarlyMiss()
+        {
+            foreach (string id in new[] { "turtle-long-hold", "bat-hold", "ray-short-dive", "ray-deep-dive" })
+            {
+                var monster = MonsterCatalog.All.Single(x => x.Patterns.Any(p => p.Id == id));
+                var round = new MonsterPreview(monster, monster.Patterns.Single(x => x.Id == id)).Round;
+                var note = round.Notes.Single(); var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+                round.Press(note.StartSeconds, 0, 0); arena.Refresh();
+                var slot = arena.GetComponentsInChildren<MonsterAttackGraphic>().Single();
+                Assert.IsNotNull(slot.CurrentSprite, id + " must use the supplied art.");
+                var initialSize = slot.rectTransform.sizeDelta;
+                round.Release(note.StartSeconds + .01, 0, 0);
+                round.Advance(note.StartSeconds + (note.EndSeconds - note.StartSeconds) * .75); arena.Refresh();
+                bool dive = note.Step.Kind == GestureKind.Dive;
+                Assert.Less(dive ? slot.rectTransform.rect.width : slot.rectTransform.rect.height,
+                    dive ? initialSize.x : initialSize.y);
+                Assert.AreEqual(1, round.MissCount);
+                var foreground = arena.GetComponentsInChildren<BattleArenaGraphic>().Single(x => x.name == "Battle effects and five weapons");
+                round.Advance(note.EndSeconds); arena.Refresh();
+                var finish = RenderMesh(foreground); int finishVertices = finish.vertexCount;
+                var frozen = finish.vertices;
+                if (dive) Assert.IsTrue(RenderMesh(slot).colors32.All(x => x.a == 0), "The trailing edge clears at the release beat.");
+                round.Suspend(); arena.SetPaused(true); round.Advance(100); arena.Refresh();
+                CollectionAssert.AreEqual(frozen, RenderMesh(foreground).vertices);
+                round.Resume(false); arena.SetPaused(false); round.Advance(note.EndSeconds + .25); arena.Refresh();
+                Assert.Greater(finishVertices, RenderMesh(foreground).vertexCount, "The end cue must expire independently of the early miss.");
+                Assert.IsTrue(RenderMesh(slot).colors32.All(x => x.a == 0), "Expired contact art must not reappear during its result tail.");
+                Assert.AreEqual(1, round.Results.Count);
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private static Mesh RenderMesh(Graphic graphic)
+        {
+            graphic.canvasRenderer.cull = false; graphic.SetVerticesDirty(); graphic.Rebuild(CanvasUpdate.PreRender);
+            return graphic.canvasRenderer.GetMesh();
+        }
+
+        [UnityTest]
         public IEnumerator ThrownDollMeetsThePunchBeforeItsMissLandingAcrossLayouts()
         {
             var display = ScriptableObject.CreateInstance<PlayerMotionDisplay>();

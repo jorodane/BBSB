@@ -167,7 +167,7 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void HarpyEchoesTheCallOneBeatLaterWithEqualConstantFlightSpeed()
+        public void HarpyWaitsAfterEachCallThenRushesForTheSameFinalHalfBeat()
         {
             foreach (double bpm in new[] { 60.0, 120.0, 200.0 })
             {
@@ -184,8 +184,11 @@ namespace BBSB.Tests
                     for (int tick = 0; tick < 16; tick++)
                     {
                         var frame = Sample(round, note, calls[i] + tick * round.BeatSeconds / 4);
-                        Near(tick / 16.0, frame.Progress); Near(0, frame.Lift);
+                        Near(Math.Max(0, (tick - 14) / 2.0), frame.Progress); Near(0, frame.Lift);
+                        if (tick > 0 && tick < 14) Check.Equal(MonsterAttackPhase.Wait, frame.Phase);
                     }
+                    Near(.5, Sample(round, note, note.StartSeconds - round.BeatSeconds * .25).Progress);
+                    Check.Equal(MonsterAttackPhase.Contact, Sample(round, note, note.StartSeconds).Phase);
                 }
                 var quick = Round("rotated-tresillo", bpm);
                 Check.Equal(1, quick.Notes.Count); Check.Equal(1, quick.Plan.Calls.Count);
@@ -251,6 +254,63 @@ namespace BBSB.Tests
             round.Resume(false); round.Advance(note.EndSeconds + 1);
             for (int i = 0; i < 100; i++) Check.False(Sample(round, note, round.ElapsedSeconds).Visible);
             Check.Equal(1, round.Results.Count); Check.Equal(1, round.Calls.Count); Check.Equal(4m, round.TotalDamageTaken);
+        }
+
+        [Test]
+        public void SustainsExposeContinuousProgressAndAnExactEndCueEvenWithoutInput()
+        {
+            foreach (double bpm in new[] { 60.0, 120.0, 200.0, 240.0 })
+            foreach (var id in new[] { "turtle-long-hold", "bat-hold", "ray-short-dive", "ray-deep-dive" })
+            {
+                var round = Round(id, bpm); var note = round.Notes.Single();
+                MonsterContactFeedback Cue(double at) => MonsterAttackTimeline.ContactFeedback(note, at, round.BeatSeconds, round.HalfMissWindow);
+                Check.False(Cue(note.StartSeconds - .001).Active);
+                var first = Cue(note.StartSeconds); Check.True(first.Active); Near(0, first.Progress); Near(1, first.Pulse);
+                var middle = Cue((note.StartSeconds + note.EndSeconds) / 2); Near(.5, middle.Progress); Check.False(middle.IsEnding);
+                var last = Cue(note.EndSeconds - .001); Check.True(last.Progress < 1); Check.False(last.IsEnding);
+                var end = Cue(note.EndSeconds); Check.True(end.IsEnding); Near(1, end.Progress); Near(0, end.EndProgress);
+                Check.False(Cue(note.EndSeconds + .23).Active);
+                round.Press(note.StartSeconds, 0, 0);
+                round.Release(note.StartSeconds + .01, 0, 0); Check.Equal(RhythmGrade.Miss, note.Result.Grade);
+                Check.True(Cue(note.EndSeconds - .001).Active); Check.True(Cue(note.EndSeconds).IsEnding);
+            }
+        }
+
+        [Test]
+        public void ShakeFeedbackTracksRealOutAndBackMovementInsteadOfAHoldTimer()
+        {
+            var round = Round("one-beat-shake"); var note = round.Notes.Single(); double at = note.StartSeconds;
+            MonsterContactFeedback Cue(double time) => MonsterAttackTimeline.ContactFeedback(note, time, round.BeatSeconds, round.HalfMissWindow);
+            round.Press(at - round.HalfMissWindow, 0, 0);
+            round.Move(at - .04, .1, 0); var outward = Cue(round.ElapsedSeconds);
+            Check.True(outward.Active); Check.False(outward.IsEnding); Check.True(outward.Progress >= .5 && outward.Progress < 1);
+            round.Move(at, 0, 0); Check.Equal(1, round.PerfectCount);
+            var done = Cue(round.ElapsedSeconds); Check.True(done.IsEnding); Near(1, done.Progress);
+            Check.False(Cue(at + .3).Active); Check.Equal(1, round.Results.Count);
+        }
+
+        [Test]
+        public void NekomataTailsRushLateAndWithdrawBeforeTheNextHalfBeatForEveryGrade()
+        {
+            foreach (double bpm in new[] { 60.0, 120.0, 200.0, 240.0 })
+            foreach (int grade in new[] { 0, 1, 2 })
+            {
+                var round = Round("seesaw-early-finish", bpm); var first = round.Notes[0]; var second = round.Notes[1];
+                var art = MonsterAttackCatalog.For(first); var other = MonsterAttackCatalog.For(second);
+                Near(.16, art.LaneHeight(first)); Near(-.16, other.LaneHeight(second));
+                Near(0, Sample(round, first, first.StartSeconds - round.BeatSeconds * .5).Progress);
+                Near(.5, Sample(round, first, first.StartSeconds - round.BeatSeconds * .125).Progress);
+                if (grade < 2)
+                {
+                    double error = grade == 0 ? 0 : round.HalfMissWindow - .0001;
+                    round.Press(first.StartSeconds + error, 0, 0); round.Release(round.ElapsedSeconds + .001, 0, 0);
+                }
+                else round.Advance(first.StartSeconds + round.HalfMissWindow + .001);
+                Check.Equal(1, round.Results.Count);
+                var cleared = Sample(round, first, second.StartSeconds - .001);
+                Check.True(!cleared.Visible, $"Tail still {cleared.Phase} at {bpm} BPM, grade {first.Result.Grade}, age {cleared.PhaseAge}, window {round.HalfMissWindow}");
+                Check.Equal(MonsterAttackPhase.Contact, Sample(round, second, second.StartSeconds).Phase);
+            }
         }
 
         private static MonsterAttackFrame Sample(RhythmRound round, ResponseNote note, double seconds) =>

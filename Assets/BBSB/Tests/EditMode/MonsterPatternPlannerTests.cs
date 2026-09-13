@@ -15,14 +15,14 @@ namespace BBSB.Tests
         {
             var stage = Stage(); var monster = Seesaw(); var chain = At(stage, monster, 16);
             var plan = Resolve(stage, monster, chain);
-            Check.Equal(11, plan.Attacks.Count); Check.Equal(11, plan.Calls.Count);
-            Check.True(plan.Calls.Select(x => x.Tick).SequenceEqual(new[] { 16, 20, 24, 28, 34, 38, 42, 46, 52, 56, 60 }));
-            Check.True(new RhythmRound(plan).Notes.Select(x => x.StartTick)
+            Check.True(plan.Attacks.Count > 11); Check.Equal(plan.Attacks.Count, plan.Calls.Count);
+            Check.True(plan.Calls.Take(11).Select(x => x.Tick).SequenceEqual(new[] { 16, 20, 24, 28, 34, 38, 42, 46, 52, 56, 60 }));
+            Check.True(new RhythmRound(plan).Notes.Take(13).Select(x => x.StartTick)
                 .SequenceEqual(new[] { 20, 24, 28, 32, 34, 38, 42, 46, 50, 52, 56, 60, 64 }));
             Check.True(plan.Attacks.All(x => ReferenceEquals(chain, x.Chain)));
             for (int i = 1; i < plan.Attacks.Count; i++)
                 Check.Equal(plan.Attacks[i - 1].ResponseEndTick, plan.Attacks[i].CallStartTick);
-            Check.Equal(0, plan.Withdrawals.Count); Check.Equal(68, chain.PhraseEndTick);
+            Check.Equal(0, plan.Withdrawals.Count); Check.Equal(0, chain.RestTicks); AssertUnbroken(chain);
             AssertCompatible(plan);
         }
 
@@ -33,8 +33,8 @@ namespace BBSB.Tests
             var round = new RhythmRound(plan);
             foreach (var note in round.Notes)
             { round.Press(note.StartSeconds, 0, 0); round.Release(note.StartSeconds + .001, 0, 0); }
-            Check.Equal(13, round.PerfectCount); Check.Equal(0, round.MissCount);
-            Check.Equal(11, round.Calls.Count);
+            Check.Equal(round.Notes.Count, round.PerfectCount); Check.Equal(0, round.MissCount);
+            Check.Equal(plan.Calls.Count, round.Calls.Count);
             var missed = new RhythmRound(plan); missed.Advance(RhythmTime.Seconds(34, 120) + .13);
             Check.True(missed.MissCount > 0); Check.Equal(34, missed.Calls.Last().Tick);
             Check.Equal(38, missed.Notes.First(x => x.StartSeconds > missed.ElapsedSeconds).StartTick);
@@ -52,7 +52,7 @@ namespace BBSB.Tests
                 Check.Equal(candidates.Count > 0, proposed.Placements.Count > 0);
                 foreach (var chain in proposed.Chains)
                 {
-                    Check.Equal(11, chain.Placements.Count);
+                    Check.True(chain.Placements.Count >= 11); AssertUnbroken(chain);
                     Check.True(chain.Placements.All(x => x.StartTick + 4 <= music.TotalTicks));
                 }
             }
@@ -66,7 +66,7 @@ namespace BBSB.Tests
         [Test]
         public void AConflictWithdrawsTheWholeDependentChainAndKeepsAnUnrelatedChain()
         {
-            var stage = Stage(); var monster = Seesaw(); var first = At(stage, monster, 16); var second = At(stage, monster, 96);
+            var stage = SplitStage(); var monster = Seesaw(); var first = At(stage, monster, 16); var second = At(stage, monster, 128);
             var hold = new RhythmPattern("block", 4, new[] { new PatternStep(GestureKind.Hold, 0, 4) });
             var blocker = new MonsterDefinition("blocker", "Blocker", "", hold, new[] { new CallSignal(0, "Call") }, 4, 0, 1);
             var plan = BattlePlanner.Resolve(stage, new[]
@@ -74,10 +74,10 @@ namespace BBSB.Tests
                 new MonsterProposal(monster.Id, monster, new List<PatternChain> { first, second }),
                 new MonsterProposal(blocker.Id, blocker, stage.FindPlacements(hold).Where(x => x.StartTick == 50))
             }, 1);
-            Check.Equal(11, plan.Withdrawals.Count);
+            Check.Equal(first.Placements.Count, plan.Withdrawals.Count);
             Check.True(plan.Withdrawals.All(x => ReferenceEquals(first, x.Attack.Chain)));
             Check.True(plan.Attacks.Where(x => x.MonsterId == monster.Id).All(x => ReferenceEquals(second, x.Chain)));
-            Check.Equal(11, plan.Attacks.Count(x => x.MonsterId == monster.Id));
+            Check.Equal(second.Placements.Count, plan.Attacks.Count(x => x.MonsterId == monster.Id));
             Check.False(plan.Calls.Any(x => plan.Withdrawals.Any(w => w.Attack.Id == x.AttackId)));
             AssertCompatible(plan);
         }
@@ -85,15 +85,15 @@ namespace BBSB.Tests
         [Test]
         public void GapFillingUsesCompletePhaseChainsAndNeverAnIsolatedTransition()
         {
-            var stage = Stage(); var monster = Seesaw(); var original = Resolve(stage, monster, At(stage, monster, 96));
+            var stage = SplitStage(); var monster = Seesaw(); var original = Resolve(stage, monster, At(stage, monster, 128));
             var filled = BattleGapFiller.Fill(original, 2);
-            Check.True(filled.GapFills.Count > 0); Check.Equal(0, filled.GapFills.Count % 11);
+            Check.True(filled.GapFills.Count > 0);
             Check.True(original.Attacks.All(x => filled.Attacks.Contains(x)));
             foreach (var group in filled.Attacks.GroupBy(x => x.Chain))
             {
-                Check.True(group.Key != null); Check.Equal(11, group.Count());
+                Check.True(group.Key != null); Check.Equal(group.Key.Placements.Count, group.Count()); AssertUnbroken(group.Key);
                 Check.Equal(0, group.Key.CallStartTick % 4);
-                Check.Equal(2, group.Count(x => x.Pattern.Pattern.Steps.Count == 2));
+                Check.True(group.Count(x => x.Pattern.Pattern.Steps.Count == 2) >= 2);
             }
             Check.True(ReferenceEquals(filled, BattleGapFiller.Fill(filled, 7))); AssertCompatible(filled);
         }
@@ -186,6 +186,32 @@ namespace BBSB.Tests
             public MonsterProposal Propose(MusicStage stage, string instanceId, MonsterDefinition monster, int seed)
             { ProposalCalls++; return new MonsterProposal(instanceId, monster, Candidates(stage, monster).ToList()); }
         }
+        [Test]
+        public void NekomataProposalsFillEachAvailableRunWithoutRandomRestartsOrMissingBeats()
+        {
+            var stage = MusicStage.Generate(MusicCatalog.All.Single(m => m.Id == "rapid-drive"));
+            var monster = Seesaw();
+            for (int seed = 0; seed < 12; seed++)
+            {
+                var proposal = BattlePlanner.Propose(stage, monster.Id, monster, seed);
+                Check.Equal(1, proposal.Chains.Count); var chain = proposal.Chains[0];
+                Check.Equal(12, chain.CallStartTick); AssertUnbroken(chain);
+                Check.True(chain.PhraseEndTick >= stage.Music.TotalTicks - 2);
+                var plan = BattlePlanner.Resolve(stage, new[] { proposal }, seed);
+                var filled = BattleGapFiller.Fill(plan, seed);
+                Check.Equal(proposal.Placements.Count, filled.Attacks.Count); Check.Equal(0, filled.Withdrawals.Count);
+                AssertCompatible(filled);
+            }
+        }
+
+        private static void AssertUnbroken(PatternChain chain)
+        {
+            var taps = chain.Placements.SelectMany(p => p.Pattern.Steps.Select(s => p.StartTick + s.OffsetTick)).OrderBy(t => t).ToArray();
+            for (int i = 1; i < taps.Length; i++) Check.True(taps[i] - taps[i - 1] > 0 && taps[i] - taps[i - 1] <= 4);
+        }
+        private static MusicStage SplitStage() => Stage(new[] { new MusicSection("INTRO", 0, 1, 1, false),
+            new MusicSection("A", 1, 6, 1), new MusicSection("BREAK", 7, 1, 1, false), new MusicSection("B", 8, 8, 1) });
+
         private static MonsterDefinition Seesaw() => MonsterCatalog.All.Single(x => x.Id == "seesaw-goblin");
         private static PatternChain At(MusicStage stage, MonsterDefinition monster, int call)
             => monster.PatternPlanner.Candidates(stage, monster).Single(x => x.CallStartTick == call);

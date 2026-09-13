@@ -53,7 +53,8 @@ namespace BBSB.Core
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
-            foreach (var id in new[] { "sword", "shield", "spear", "hammer", "dagger" })
+            // Five distinct weapons cover each of the five gestures exactly twice.
+            foreach (var id in new[] { "greatsword", "bell", "spear", "blade", "dagger" })
                 weapons.Add(new WeaponState(id));
             CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false;
             Map = MapGenerator.Generate(1, mapRandom); Phase = RunPhase.Map;

@@ -4,14 +4,16 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
-    internal enum BattleEffectKind { Call, CallStep, CallStomp, CallSweep, CallRise, CallDip, CallSway, CallFlash, Counter, Guard, ShieldAbsorb, Dive, Flick, Shake, Miss }
+    internal enum BattleEffectKind { Call, CallStep, CallStomp, CallSweep, CallRise, CallDip, CallSway, CallFlash, Counter, Guard, ShieldAbsorb, Dive, Flick, Shake, Miss,
+        HoldSustain, DiveSustain, ShakeCharge, SustainEnd, DiveEnd }
 
     internal struct BattleEffect
     {
         public BattleEffectKind Kind;
         public Vector2 From, To;
         public Color Tint;
-        public float Progress, Strength;
+        public float Progress, Strength, Pulse;
+        public int Beats;
     }
 
     internal struct BattleGroundShadow
@@ -157,6 +159,43 @@ namespace BBSB.Runtime.UI
             Color tint = Alpha(fx.Tint, fade * fx.Strength);
             switch (fx.Kind)
             {
+                case BattleEffectKind.HoldSustain:
+                case BattleEffectKind.DiveSustain:
+                case BattleEffectKind.ShakeCharge:
+                    float radius = Mathf.Max(22 * unit, (heroImpact.y - heroGround.y) * r.height * .36f);
+                    var ring = new Vector2(radius, radius);
+                    Arc(vh, from, ring, 0, 360, 2 * unit, Alpha(fx.Tint, .28f));
+                    bool charging = fx.Kind == BattleEffectKind.ShakeCharge;
+                    Arc(vh, from, ring, 90, 360 * (charging ? p : 1 - p), (3 + fx.Pulse * 2) * unit,
+                        Alpha(fx.Tint, .75f + fx.Pulse * .25f));
+                    for (int i = 0; i < fx.Beats; i++)
+                    {
+                        float a = (90 + i * 360f / fx.Beats) * Mathf.Deg2Rad;
+                        var radial = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                        Line(vh, from + radial * (radius - 4 * unit), from + radial * (radius + 4 * unit),
+                            2 * unit, Alpha(Color.white, .7f));
+                    }
+                    if (charging)
+                    {
+                        float chargeDirection = p < .5f ? 1 : -1;
+                        var tip = from + Vector2.right * chargeDirection * radius * .65f;
+                        Line(vh, from - Vector2.right * chargeDirection * radius * .6f, tip, 3 * unit, fx.Tint);
+                        Line(vh, tip, tip + new Vector2(-chargeDirection, .7f) * radius * .35f, 3 * unit, fx.Tint);
+                        Line(vh, tip, tip + new Vector2(-chargeDirection, -.7f) * radius * .35f, 3 * unit, fx.Tint);
+                    }
+                    break;
+                case BattleEffectKind.SustainEnd:
+                case BattleEffectKind.DiveEnd:
+                    Arc(vh, from, new Vector2(size, size), 0, 360, 4 * unit, tint);
+                    if (fx.Kind == BattleEffectKind.DiveEnd)
+                        for (int i = 0; i < 2; i++)
+                        {
+                            var tip = from + Vector2.up * (14 + i * 14 + p * 35) * unit;
+                            Line(vh, tip - new Vector2(9, 9) * unit, tip, 3 * unit, tint);
+                            Line(vh, tip + new Vector2(9, -9) * unit, tip, 3 * unit, tint);
+                        }
+                    else Spark(vh, from, p, unit * 1.4f, tint);
+                    break;
                 case BattleEffectKind.Call:
                     Arc(vh, from, new Vector2(size * 1.5f, size * .48f), 0, 360, 3 * unit, tint);
                     for (int i = -1; i <= 1; i++)

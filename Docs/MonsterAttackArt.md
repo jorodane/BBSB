@@ -15,7 +15,7 @@
 | 파일명 | 사용되는 시점 |
 |---|---|
 | `spawn.png` | 공격 생성 직후. 젤리 연쇄형은 각 Call에서 다시 사용 |
-| `wait.png` | 생성 후 제자리 대기. 여우불·비늘 조각·실의 급발진 전 |
+| `wait.png` | 생성 후 제자리 대기. 하피·꼬리·여우불·비늘 조각·실의 급발진 전. 하피와 꼬리는 기존 travel 이미지로 대체 가능 |
 | `travel.png` | 이동·도약·걷기·신체 전개 |
 | `contact.png` | Response 위치에 도착. Hold/Dive 유지 구간과 Shake의 짧은 허용 범위에도 사용 |
 | `perfect.png` | 실제 Perfect 후 파괴·흩어짐·되튕김·회수·밀려남 |
@@ -65,7 +65,7 @@
 | 젤리 슬라임 소녀 / `tap-slime` | [tresillo-call-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tap-slime/tresillo-call-tap/README.md) | 젤리 폭발/젤리탄 · Call 간격에 따른 연쇄 도약 | 0 → 3 | 0 |
 | 도자기 골렘 소녀 / `march-slime` | [march-three](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/march-slime/march-three/README.md) | 분리된 장갑 주먹 · 등속 이동 | 0 → 1, 1 → 2, 2 → 3 | 0, 0, 0 |
 | 도자기 골렘 소녀 / `march-slime` | [march-spaced](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/march-slime/march-spaced/README.md) | 분리된 장갑 주먹 · 포물선 | 0 → 1, 2 → 3 | 0, 0 |
-| 깃춤 하피 / `tresillo-bat` | [tresillo-taps](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/README.md) | 깃털 묶음 · 등속 이동 | 0 → 4, 1.5 → 5.5, 3 → 7 | 0, 0, 0 |
+| 깃춤 하피 / `tresillo-bat` | [tresillo-taps](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/README.md) | 깃털 묶음 · 3.5박 대기 후 마지막 반 박에 등속 급발진 | 0 → 4, 1.5 → 5.5, 3 → 7 | 0, 0, 0 |
 | 깃춤 하피 / `tresillo-bat` | [rotated-tresillo](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/rotated-tresillo/README.md) | 깃털 묶음 · 등속 이동 · 짧은 깃춤 | 0 → 1 | 0 |
 | 여우불 여우요괴 / `offbeat-goblin` | [offbeat-single-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/README.md) | 여우불 · 대기 후 급발진 | 0 → 3.5 | 0 |
 | 여우불 여우요괴 / `offbeat-goblin` | [offbeat-pair](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-pair/README.md) | 여우불 · 대기 후 급발진 | 0 → 2.5, 1 → 3.5 | 0, 0 |
@@ -73,20 +73,24 @@
 | 꿈먹는 맥 소녀 / `drowsy-slime` | [drowsy-four-beat-wait](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-four-beat-wait/README.md) | 꿈방울 · Response에 실체화 | 0 → 4 | 0 |
 | 태엽 인형 소녀 / `clock-spirit` | [clock-quick-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/clock-spirit/clock-quick-tap/README.md) | 작은 인형 · 포물선 | 0 → 1 | 0 |
 | 태엽 인형 소녀 / `clock-spirit` | [clock-seven-beat-wait](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/clock-spirit/clock-seven-beat-wait/README.md) | 작은 인형 · 한 박씩 걷기 | 0 → 7 | 0 |
-| 쌍꼬리 네코마타 / `seesaw-goblin` | [seesaw-steady-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/README.md) | 긴 꼬리 · 연속 전개 | 0 → 1 | 0 |
-| 쌍꼬리 네코마타 / `seesaw-goblin` | [seesaw-early-finish](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-early-finish/README.md) | 긴 꼬리 · 연속 전개 | 0 → 1, 0.5 → 1.5 | 0, 0 |
+| 쌍꼬리 네코마타 / `seesaw-goblin` | [seesaw-steady-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/README.md) | 꼬리 · 마지막 1/4박에 짧게 뻗기 | 0 → 1 | 0 |
+| 쌍꼬리 네코마타 / `seesaw-goblin` | [seesaw-early-finish](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-early-finish/README.md) | 꼬리 · 정박 위쪽 / 엇박 아래쪽으로 짧게 뻗기 | 0 → 1, 0.5 → 1.5 | 0, 0 |
 | 뇌수 소녀 / `spark-bat` | [bat-quick-taps](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/spark-bat/bat-quick-taps/README.md) | 전기탄/방전 · 등속 이동 | 0 → 1, 0.5 → 1.5 | 0, 0 |
 | 뇌수 소녀 / `spark-bat` | [bat-hold](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/spark-bat/bat-hold/README.md) | 전기탄/방전 · 연속 전개 | 0 → 1 | 1 |
 | 갑각 용인 소녀 / `iron-turtle` | [turtle-long-hold](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/iron-turtle/turtle-long-hold/README.md) | 비늘 방패/조각 · 포물선 | 0 → 2 | 2 |
 | 갑각 용인 소녀 / `iron-turtle` | [turtle-hold-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/iron-turtle/turtle-hold-tap/README.md) | 비늘 방패/조각 · 포물선 / 비늘 방패/조각 · 대기 후 급발진 | 0 → 2, 1 → 5 | 2, 0 |
 | 장막 라미아 / `diving-ray` | [ray-deep-dive](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/README.md) | 꼬리 장막 · 연속 전개 | 1 → 2 | 4 |
 | 장막 라미아 / `diving-ray` | [ray-short-dive](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/README.md) | 꼬리 장막 · 연속 전개 | 0 → 1 | 2 |
-| 해파리 소녀 / `bubble-spirit` | [one-beat-shake](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/README.md) | 우산막 · 포물선 | 0 → 1 | 1 |
-| 해파리 소녀 / `bubble-spirit` | [two-bubble-shakes](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/bubble-spirit/two-bubble-shakes/README.md) | 우산막 · 포물선 | 0 → 1, 2 → 3 | 1, 1 |
+| 해파리 소녀 / `bubble-spirit` | [one-beat-shake](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/README.md) | 우산막 · 포물선 | 0 → 1 | 0 (목표 전후 한 번 왕복) |
+| 해파리 소녀 / `bubble-spirit` | [two-bubble-shakes](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/bubble-spirit/two-bubble-shakes/README.md) | 우산막 · 포물선 | 0 → 1, 2 → 3 | 0, 0 (각 목표 전후 한 번 왕복) |
 | 실 잣는 아라크네 / `flick-goblin` | [counted-flick](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/flick-goblin/counted-flick/README.md) | 발목 실 · 대기 후 급발진 | 0 → 2 | 0 |
 | 실 잣는 아라크네 / `flick-goblin` | [offbeat-flick](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/flick-goblin/offbeat-flick/README.md) | 발목 실 · 대기 후 급발진 | 0 → 1.5 | 0 |
 
-젤리 연쇄형은 각 Call 위치에서 spawn 이미지를 사용하고 다음 위치로 도약하며 마지막 Response 한 번만 받아친다. 트레실로의 두 번째 Call은 경로 1/3, 네 박 패턴의 세 번째 Call은 1/2 위치다. 마지막 도약에 각각 2/3·1/2 거리를 남기고 수평 속도를 일정하게 유지해 판정 직전의 정체를 없앤다. 하피는 0·1.5·3박의 Call마다 깃털을 하나씩 보내고 모두 같은 출발점에서 4박 동안 같은 속도로 이동한다. 마지막 Call 한 박 뒤부터 같은 리듬을 받아친다. 짧은 깃춤은 한 번의 Call 후 한 박 뒤 Tap이다. `rotated-tresillo` ID는 기존 이미지 경로 호환을 위해 유지하고 step-0만 사용한다. 골렘·해파리의 후속 발사는 첫 Call에서 결정된 일정에 따른다. 여우불과 비늘 조각은 생성 후 기다렸다가 정해진 짧은 구간에 급발진한다.
+젤리 연쇄형은 각 Call 위치에서 spawn 이미지를 사용하고 다음 위치로 도약하며 마지막 Response 한 번만 받아친다. 트레실로의 두 번째 Call은 경로 1/3, 네 박 패턴의 세 번째 Call은 1/2 위치다. 마지막 도약에 각각 2/3·1/2 거리를 남기고 수평 속도를 일정하게 유지해 판정 직전의 정체를 없앤다.
+
+하피는 0·1.5·3박의 Call마다 깃털을 하나씩 띄운다. 각 깃털은 본체 앞의 같은 출발점에서 3.5박 동안 기다렸다가 **도착 직전 반 박** 동안 같은 경로·같은 속도로 빠르게 이동한다. 대기 중에는 부채꼴 회전으로 구분하며 경로 길이는 바꾸지 않는다. 마지막 Call 한 박 뒤부터 같은 리듬을 받아친다. 짧은 깃춤은 기존처럼 한 번의 Call 후 한 박 뒤 Tap이다. `rotated-tresillo` ID는 기존 이미지 경로 호환을 위해 유지하고 step-0만 사용한다. 골렘·해파리의 후속 발사는 첫 Call에서 결정된 일정에 따른다. 여우불과 비늘 조각은 생성 후 기다렸다가 정해진 짧은 구간에 급발진한다.
+
+네코마타는 대기 중 몬스터 앞에 짧고 옅은 꼬리 끝만 보이고 마지막 1/4박에 뻗는다. 정박은 펀치 접점보다 플레이어 높이의 0.16만큼 위, 엇박은 0.16만큼 아래다. 실제 Response 박자로 경로를 고르므로 정박→엇박과 엇박→정박 모두 일관된다. 결과 회수는 `min(0.10초, 0.12박)`으로 짧게 끝나며 늦은 반미스와 펀치 준비 시간을 합쳐도 다음 반 박 타격 전에 사라진다. 전투의 연속 구간은 곡 슬롯이 허용하는 동안 쉬지 않고 이어지며 상세 배치 규칙은 [MonsterPlans.md](MonsterPlans.md)에 있다.
 
 태엽 인형의 던지기는 한 박 뒤 작은 인형의 중앙이 주먹 접점에 도달할 때 판정한다. Perfect·반미스는 기존 Tap 준비 후 주먹 위치에서 반응한다. Miss일 때에는 `max(늦은 입력 마감, 실제 Miss 시각)` 이후 `min(0.18초, 0.3박)` 동안 발 앞으로 내려온 뒤 `miss` 이미지를 재생한다. 너무 이른 Miss도 이 순서를 지키며, 착지 연출은 판정·피해를 추가하지 않는다. 긴 패턴에서는 바로 내려놓고 매 박 한 걸음씩 걷는다. 일곱 번째 걸음의 착지와 공격이 Response이며, 추가로 한 박 더 기다리지 않는다. 발걸음이 카운트를 돕는 것은 이 공격의 특징이다. 현재 발소리 음원은 추가하지 않았고 기존 Call 음향을 유지한다. 꿈먹는 맥의 긴 낮잠은 해당 종족의 선택으로 중간 접근을 감추고 Response에만 실체화한다. 긴 쉼 전체에 카운트 보조 금지를 적용하지 않는다.
 
@@ -109,9 +113,11 @@
 `MonsterAttackCatalog`가 각 단계의 생성 Call, 발사 지연, 경로와 기본 크기를 정한다. `MonsterAttackTimeline`은 라운드의 음악 시각에서 현재 상태·진행률을 계산한다. `MonsterAttackView`가 그 결과를 위치·이미지에 적용하며, `MonsterAttackSprites`와 임포터가 파일을 연결한다.
 
 - Hold/Dive는 하나의 이미지 슬롯이 요구 구간 전체를 맡는다. Shake는 목표 시점 전후의 반미스 범위에서 왕복 완료 Perfect 또는 미완료 Miss로 연결하며 기존 HalfMiss 이미지는 사용하지 않는다. 시작·종료를 별도 투사체나 피해로 복제하지 않는다. Shake는 실제 왕복 진행도에 따라 대상이 밀려난다.
+- Hold/Dive 접점에는 남은 시간을 나타내는 고리와 박자별 맥동이 이어진다. 용인의 비늘 방패는 점차 밀려나고 뇌수의 방전은 가늘어진다. Dive 장막은 뒤쪽 끝이 플레이어에게 이동하며 끝 박에 마지막 가장자리가 머리 위를 통과해 사라진다. 끝 박에는 Hold의 섬광, Dive의 위쪽 신호가 `min(0.22초, 0.45박)` 동안 따로 보인다. 이 신호는 위험 구간의 종료를 뜻하며 성공 판정은 실제 입력 결과로 표시한다. 일찍 놓쳐도 원래 끝 시각을 보존한다.
+- Shake 고리는 시간 대신 실제 바깥 이동·복귀 진행도를 채우고 화살표 방향으로 남은 움직임을 표시한다. 왕복 완료 또는 미완료 판정 시 결과 색의 종료 신호를 낸다. 위 피드백은 기존 PNG 위에 코드로 그리므로 새 이미지 파일 없이 전투·배치 연습·도감에 적용된다.
 - Tap의 성공·반미스 이미지는 기존 짧은 펀치 준비 이후로 연결하며, 그 사이 접촉 이미지를 유지한다. 판정·무기 발동 자체를 지연하지 않는다. 허용된 이른 입력에도 정상 도착 박자까지 접근을 유지한다.
 - 결과 이미지는 실제 `RhythmResult`의 Grade로 선택한다. 너무 이른 Miss로 접근 중인 공격을 미리 지우지 않으며, 유지 입력 실패에도 공격의 원래 유지 시간이 남는다. 공미스는 공격 결과나 무기 효과를 추가하지 않는다.
-- 결과 연출은 0.32초 후 사라진다. Perfect 반응은 재질에 맞춰 확대/흩어짐, 되튕김, 회수, 밀려남 등으로 구분한다. 방어막 흡수는 기존 방어 효과와 함께 표시한다.
+- 일반 결과 연출은 0.32초 후 사라진다. 네코마타는 위의 짧은 회수 시간을 쓰며, Hold/Dive 접촉 그림은 종료 신호가 끝나면 숨긴다. Perfect 반응은 재질에 맞춰 확대/흩어짐, 되튕김, 회수, 밀려남 등으로 구분한다. 방어막 흡수는 기존 방어 효과와 함께 표시한다.
 - 모든 재생은 `round.ElapsedSeconds`를 따른다. 일시정지 중 시각은 고정하고 화면 크기/설정 변경에 따른 배치만 다시 계산한다. 긴 프레임 뒤에는 지난 그림을 다시 생성하지 않는다.
 - 새 적 공격 표시는 기존 승리 규칙과 함께 중지한다. 원본 판정 수·입력 박자·무기 동시 발동·공유 적 HP와 연습의 세션 격리는 기존 로직을 사용한다.
 

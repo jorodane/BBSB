@@ -98,6 +98,8 @@ namespace BBSB.Runtime.UI
                     // Ground art is drawn from its feet. Its raised hand / burst tip meets the punch socket.
                     to.y = heroGround.y * size.y + (calibration?.targetOffset.y ?? 0) * heroHeight;
                 }
+                float lane = (float)definition.LaneHeight(slot.Note) * heroHeight;
+                from.y += lane; to.y += lane;
                 float t = (float)frame.Progress;
                 var point = Vector2.LerpUnclamped(from, to, t) + Vector2.up * (float)frame.Lift * heroHeight;
                 float reaction = (float)frame.ReactionProgress;
@@ -105,6 +107,8 @@ namespace BBSB.Runtime.UI
                 var pivot = definition.Grounded ? new Vector2(.5f, 0) : new Vector2(.5f, .5f);
                 if (pose != null && pose.overridePivot) pivot = pose.pivot;
                 float angle = pose?.rotation ?? 0;
+                if (definition.Shape == MonsterAttackShape.Feather && definition.Motion == MonsterAttackMotion.WaitRush)
+                    angle += (slot.Note.StepIndex - 1) * 22 * (1 - t);
                 if (frame.MissApproach > 0)
                 {
                     var landing = BattleTrajectory.MissLanding(new BattlePathPoint(to.x, to.y),
@@ -126,6 +130,32 @@ namespace BBSB.Runtime.UI
                 }
                 if (slot.Note.Step.Kind == GestureKind.Shake && frame.Phase == MonsterAttackPhase.Contact)
                     point += Vector2.right * heroHeight * (float)frame.ShakeProgress * .18f;
+
+                var contact = MonsterAttackTimeline.ContactFeedback(slot.Note, seconds, round.BeatSeconds, round.HalfMissWindow);
+                if (contact.Active && slot.Note.Step.Kind != GestureKind.Shake)
+                {
+                    float progress = (float)contact.Progress;
+                    if (definition.Shape == MonsterAttackShape.Scale)
+                    {
+                        height *= 1 - progress * .16f;
+                        point += Vector2.right * heroHeight * (progress * .1f + (float)contact.Pulse * .018f);
+                        if (contact.IsEnding) point += Vector2.right * heroHeight * (float)contact.EndProgress * .5f;
+                    }
+                    else if (definition.Shape == MonsterAttackShape.Electric)
+                        height *= (1 - progress * .65f) * (1 + (float)contact.Pulse * .14f);
+                    else if (definition.Shape == MonsterAttackShape.Veil)
+                    {
+                        // The trailing edge passes toward the player's head. Its last edge
+                        // clears the contact point exactly when the player should release.
+                        from = Vector2.Lerp(from, to, progress); point = to;
+                        if (contact.IsEnding) alpha = 0;
+                    }
+                    if (contact.IsEnding) alpha *= 1 - (float)contact.EndProgress;
+                }
+                else if ((slot.Note.Step.Kind == GestureKind.Hold || slot.Note.Step.Kind == GestureKind.Dive) && seconds >= slot.Note.EndSeconds)
+                    alpha = 0;
+                if (definition.Shape == MonsterAttackShape.Tail &&
+                    (frame.Phase == MonsterAttackPhase.Wait || frame.Phase == MonsterAttackPhase.Spawn)) alpha *= .45f;
 
                 float rate = MonsterAttackDisplay.Positive(calibration?.framesPerBeat ?? 2);
                 var sprite = Sprites.Attack(definition, frame, rate, round.BeatSeconds, out bool exactPhase);

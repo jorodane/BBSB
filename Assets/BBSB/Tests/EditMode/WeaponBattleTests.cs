@@ -12,6 +12,41 @@ namespace BBSB.Tests
     public sealed class WeaponBattleTests
     {
         [Test]
+        public void StartingWeaponsCoverEveryGestureTwiceAndAlwaysIncludeADamagingResponse()
+        {
+            var run = new RunSession(73);
+            for (int cycle = 0; cycle < 2; cycle++)
+            {
+                Check.Equal(5, run.Weapons.Select(w => w.DefinitionId).Distinct().Count());
+                Check.False(run.Weapons.Any(w => w.DefinitionId == "shield"));
+                foreach (GestureKind kind in Enum.GetValues(typeof(GestureKind)))
+                {
+                    var supported = run.Weapons.Select(w => WeaponCatalog.Find(w.DefinitionId).ActionFor(kind)).Where(a => a != null).ToArray();
+                    Check.Equal(2, supported.Length); Check.True(supported.Any(a => a.Damage > 0));
+                    var monster = MonsterCatalog.All.First(m => m.Patterns.Any(p => p.Pattern.Steps.Count == 1 && p.Pattern.Steps[0].Kind == kind));
+                    var pattern = monster.Patterns.First(p => p.Pattern.Steps.Count == 1 && p.Pattern.Steps[0].Kind == kind);
+                    var preview = new MonsterPreview(monster, pattern);
+                    var loadout = new WeaponArrangement(preview.Round.Plan, run.Weapons); loadout.AutoArrange();
+                    Check.Equal(2, loadout.Placements.Count);
+                    var round = new RhythmRound(preview.Round.Plan, combat: new WeaponBattle(loadout, new StageHealth(1000), 100, 100, true));
+                    var note = round.Notes[0]; double at = note.StartSeconds;
+                    if (kind == GestureKind.Flick)
+                    { round.Press(at - .08, 0, 0); round.Move(at - .02, .1, 0); round.Release(at, .2, 0); }
+                    else
+                    {
+                        round.Press(at, 0, 0);
+                        if (kind == GestureKind.Shake) { round.Move(at + .03, .1, 0); round.Move(at + .06, 0, 0); }
+                        else if (kind == GestureKind.Dive) round.Release(note.EndSeconds, 0, 0);
+                        else round.Advance(note.EndSeconds);
+                    }
+                    Check.Equal(1, round.PerfectCount); Check.Equal(2, round.Combat.Activations.Count);
+                    Check.True(round.Combat.TotalDamage > 0);
+                }
+                run.Restart(19);
+            }
+        }
+
+        [Test]
         public void InitialWeaponLevelRespectsTheUpgradeLimit()
         {
             Check.Equal(0, new WeaponState("spear").Level);

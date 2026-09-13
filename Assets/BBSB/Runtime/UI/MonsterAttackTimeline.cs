@@ -5,6 +5,17 @@ namespace BBSB.Runtime.UI
 {
     public enum MonsterAttackPhase { Hidden, Spawn, Wait, Travel, Contact, Perfect, HalfMiss, Miss }
 
+    public readonly struct MonsterContactFeedback
+    {
+        public bool Active { get; }
+        public bool IsEnding { get; }
+        public double Progress { get; }
+        public double Pulse { get; }
+        public double EndProgress { get; }
+        internal MonsterContactFeedback(double progress, double pulse, bool ending, double endProgress)
+        { Active = true; Progress = progress; Pulse = pulse; IsEnding = ending; EndProgress = endProgress; }
+    }
+
     public readonly struct MonsterAttackFrame
     {
         public MonsterAttackPhase Phase { get; }
@@ -32,6 +43,22 @@ namespace BBSB.Runtime.UI
         public const double ReactionSeconds = .32;
         public static double MissApproachSeconds(double beatSeconds) => Math.Min(.18, beatSeconds * .3);
 
+        // Duration cues follow the authored hazard even after an early miss. Shake instead
+        // shows actual outward/return progress and ends at its binary judgment.
+        public static MonsterContactFeedback ContactFeedback(ResponseNote note, double seconds, double beatSeconds, double halfMissWindow)
+        {
+            bool shake = note.Step.Kind == GestureKind.Shake;
+            if (!shake && note.Step.Kind != GestureKind.Hold && note.Step.Kind != GestureKind.Dive) return default;
+            double start = shake ? note.StartSeconds - halfMissWindow : note.StartSeconds;
+            double end = shake ? note.Result?.JudgedAtSeconds ?? note.StartSeconds + halfMissWindow : note.EndSeconds;
+            double finish = Math.Min(.22, beatSeconds * .45);
+            if (seconds < start || seconds >= end + finish) return default;
+            double progress = shake ? note.ShakeProgress : Clamp((seconds - start) / Math.Max(.000001, end - start));
+            double beat = Math.Max(0, (seconds - start) / beatSeconds);
+            double pulse = Math.Max(0, 1 - (beat - Math.Floor(beat)) * 4);
+            return new MonsterContactFeedback(progress, pulse, seconds >= end, Clamp((seconds - end) / finish));
+        }
+
         public static MonsterAttackFrame Evaluate(ResponseNote note, MonsterAttackDefinition art,
             double seconds, double beatSeconds, double halfMissWindow)
         {
@@ -58,12 +85,13 @@ namespace BBSB.Runtime.UI
                 if (note.Step.Kind == GestureKind.Tap && note.Result.Grade != RhythmGrade.Miss)
                     reacted = Math.Max(reacted, note.Result.JudgedAtSeconds + PlayerMotionTimeline.TapPreparationDuration(beatSeconds));
                 double age = seconds - reacted;
-                if (age >= ReactionSeconds) return default;
+                double reactionSeconds = art.ReactionDuration(beatSeconds);
+                if (age >= reactionSeconds) return default;
                 if (age >= 0)
                 {
                     var phase = note.Result.Grade == RhythmGrade.Perfect ? MonsterAttackPhase.Perfect :
                         note.Result.Grade == RhythmGrade.HalfMiss ? MonsterAttackPhase.HalfMiss : MonsterAttackPhase.Miss;
-                    return new MonsterAttackFrame(phase, 1, 0, age, animation, age / ReactionSeconds,
+                    return new MonsterAttackFrame(phase, 1, 0, age, animation, age / reactionSeconds,
                         note.ShakeProgress, note.Result.BlockedDamage > 0, lands ? 1 : 0);
                 }
             }

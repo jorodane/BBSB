@@ -25,7 +25,7 @@ namespace BBSB.Core
             }, encounterWeight: 1.4, artId: "tap-slime"),
             new MonsterDefinition("tresillo-bat", "깃춤 하피", "팔에서 날개로 이어지는 넓은 깃과 부채꼴 꼬리를 가진 하피다.", GestureKind.Tap, new[]
             {
-                Pattern("tresillo-taps", "세 갈래 깃춤", "1박·2박 반·4박의 Call을 듣고 마지막 Call 한 박 뒤부터 같은 리듬을 따라 친다. 깃털은 각 Call에 하나씩 출발해 같은 속도로 날아온다.", 16,
+                Pattern("tresillo-taps", "세 갈래 깃춤", "1박·2박 반·4박의 Call에 깃털을 하나씩 띄워 기다린다. 5박·6박 반·8박의 반응 직전 반 박 동안 같은 속도로 빠르게 쏘아 보낸다.", 16,
                     new[] { Tap(0), Tap(6), Tap(12) }, new[] { Call(0, "반", CallSound.Bell, CallMotion.Flash),
                         Call(6, "짝", CallSound.Bell, CallMotion.Flash), Call(12, "짝!", CallSound.Bell, CallMotion.Flash) }, 16, 4, .16),
                 // Retain the resource/save key for the uploaded second feather set.
@@ -57,10 +57,10 @@ namespace BBSB.Core
             }, encounterWeight: 1.2, artId: "bubble-spirit"),
             new MonsterDefinition("seesaw-goblin", "쌍꼬리 네코마타", "긴 두 꼬리가 서로 먼저 움직이려 하는 네코마타다.", GestureKind.Tap, new[]
             {
-                new MonsterPatternDefinition("꼬리 또각", "꼬리 끝을 또각 내려놓고 한 박 뒤 반대 꼬리가 길게 뻗어 타격한다.",
+                new MonsterPatternDefinition("꼬리 또각", "한 박 뒤 꼬리가 짧게 뻗었다 거둬진다. 정박은 위쪽, 엇박은 아래쪽 꼬리가 오며 연속 구간에는 쉬는 박자가 없다.",
                     new RhythmPattern("seesaw-steady-tap", 4, new[] { Tap(0) }),
                     new[] { Call(0, "또각!", CallSound.Wood, CallMotion.Step) }, 4, 0, .24, cueAlignmentTicks: 2),
-                new MonsterPatternDefinition("내가 먼저!", "몸을 비틀며 두 꼬리를 교차해 올리는 Call 뒤, 한 박 뒤 첫 타격과 반 박 뒤 두 번째 타격이 나온다.",
+                new MonsterPatternDefinition("내가 먼저!", "몸을 비트는 Call 한 박 뒤 첫 꼬리, 반 박 뒤 다른 높이의 꼬리가 온다. 다음 박자도 쉬지 않고 이어진다.",
                     new RhythmPattern("seesaw-early-finish", 4, new[] { Tap(0), Tap(2) }),
                     new[] { Call(0, "당겨!", CallSound.RisingChime, CallMotion.Sway) }, 4, 0, .24, cueAlignmentTicks: 2)
             }, encounterWeight: .6, artId: "flick-goblin", patternPlanner: new BeatShiftPlanner()),
