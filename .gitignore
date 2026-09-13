@@ -3,6 +3,12 @@
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
 .utmp/
+
+# Stage images and music are distributed together as ZIPs, outside Git.
+/Assets/BBSB/Resources/BBSB/StageAssets/
+/Assets/BBSB/Resources/BBSB/StageAssets.meta
+/StageAssetSources/
+/BBSB_Stage_Assets*.zip
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
@@ -100,3 +106,7 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Local composition caches; the old standalone preparation background is no longer used.
+/Tools/StageAssets/__pycache__/
+/Assets/BBSB/Resources/BBSB/PreparationArt/preparation-background.png*

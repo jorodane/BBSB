@@ -85,6 +85,8 @@ namespace BBSB.Runtime.UI
             var background = ui.Rect("Arena backdrop", area); RunUI.Stretch(background);
             backdrop = background.gameObject.AddComponent<BattleArenaGraphic>();
             backdrop.SetBackdrop();
+            if (StageScenery.Add(ui, area, round.Plan.Stage.Music, "Stage scenery"))
+            { backdrop.ShowStageFloor = false; background.SetAsLastSibling(); }
             actorLayer = ui.Rect("Actors sorted by ground depth", area); RunUI.Stretch(actorLayer);
             var attacks = ui.Rect("Monster attack image slots", area); RunUI.Stretch(attacks);
             monsterAttacks = attacks.gameObject.AddComponent<MonsterAttackView>();

@@ -20,21 +20,7 @@ namespace BBSB.Core
         /// <summary>Independent of map/reward draws and entry order. Re-entering preparation never rerolls.</summary>
         public static MusicStage ForEncounter(int runSeed, int field, int row, int column)
         {
-            if (field < 1 || row < 0 || column < 0) throw new ArgumentOutOfRangeException(nameof(field));
-            uint seed = unchecked((uint)runSeed ^ 0xd1b54a35u);
-            seed = Mix(seed, field); seed = Mix(seed, row); seed = Mix(seed, column);
-            var random = new SeededRandom(unchecked((int)seed));
-            return MusicStage.Generate(All[random.Next(All.Count)]);
-        }
-
-        private static uint Mix(uint seed, int value)
-        {
-            unchecked
-            {
-                seed = (seed ^ (uint)value) * 0x85ebca6bu;
-                seed ^= seed >> 16;
-                return seed;
-            }
+            return MusicStage.Generate(StageCatalog.ForEncounter(runSeed, field, row, column).Music);
         }
 
         private static MusicDefinition Define(string id, string name, double bpm, double highlightWeight, params SlotTemplate[][] cycle)

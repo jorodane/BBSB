@@ -121,17 +121,20 @@ namespace BBSB.Core
         public int BarCount { get; }
         public double WeightMultiplier { get; }
         public bool AllowsResponse { get; }
+        public bool IsHook { get; }
 
-        public MusicSection(string name, int startBar, int barCount, double weightMultiplier, bool allowsResponse = true)
+        public MusicSection(string name, int startBar, int barCount, double weightMultiplier, bool allowsResponse = true, bool isHook = false)
         {
             if (string.IsNullOrWhiteSpace(name) || startBar < 0 || barCount <= 0 || startBar > int.MaxValue - barCount)
                 throw new ArgumentException("Invalid music section.");
             SlotTemplate.ValidateWeight(weightMultiplier);
+            if (isHook && !allowsResponse) throw new ArgumentException("A hook must allow monster responses.");
+            IsHook = isHook;
             Name = name; StartBar = startBar; BarCount = barCount; WeightMultiplier = weightMultiplier; AllowsResponse = allowsResponse;
         }
     }
 
-    /// <summary>Mock score configuration. Later audio assets can refer to the same stable music ID.</summary>
+    /// <summary>Immutable tempo, meter and response score. Authored recordings use the same stable music ID.</summary>
     public sealed class MusicDefinition
     {
         public string Id { get; }

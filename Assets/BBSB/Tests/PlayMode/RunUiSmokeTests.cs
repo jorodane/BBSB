@@ -131,7 +131,7 @@ namespace BBSB.Tests
             var plan = presenter.Session.BattlePlan;
             Assert.IsNotNull(plan);
             Assert.AreSame(plan, announcedPlan, "Monster plans must exist before the battle event fires.");
-            Click("몬스터 패턴"); yield return null;
+            Click("메뉴"); Click("몬스터 패턴"); yield return null;
             VerifyMonsterCards(plan);
             Click("닫기"); Click("메뉴"); Click("개발 도구");
             Click("슬롯 펼치기");
@@ -189,8 +189,16 @@ namespace BBSB.Tests
                 Click("지도에 돌아가기"); yield return null;
             }
             var plan = presenter.Session.BattlePlan;
-            var arena = root.GetComponentInChildren<BattleArenaView>();
+            var arena = root.GetComponentInChildren<BattlePreparationView>();
             Assert.IsNotNull(arena); Assert.IsNull(presenter.ActiveRound);
+            Assert.IsNull(root.GetComponentInChildren<BattleArenaView>(), "Preparation portraits have their own scale and layout.");
+            Assert.IsNull(root.GetComponentInChildren<RhythmPlayback>());
+            Assert.IsNotNull(arena.HeroPortrait.sprite);
+            Assert.AreEqual(plan.Monsters.Count, arena.MonsterPortraits.Count);
+            Assert.IsTrue(arena.MonsterPortraits.All(x => x.sprite != null));
+            Assert.AreEqual((float)(presenter.Session.Health / presenter.Session.MaxHealth), arena.PlayerHealthBar.Value, .0001f);
+            Assert.AreEqual((float)(presenter.Session.EnemyHealth.Current / presenter.Session.EnemyHealth.Maximum), arena.EnemyHealthBar.Value, .0001f);
+            Assert.IsFalse(root.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Status HUD"));
             Assert.AreEqual(0, root.GetComponentsInChildren<MonsterPatternView>().Length);
             var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
             foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800), new Vector2(1220, 680) })
@@ -199,19 +207,61 @@ namespace BBSB.Tests
                 var rect = (RectTransform)arena.transform;
                 Assert.AreEqual(size.y, rect.rect.height, .1f, "The entire preparation scene must remain behind the HUD.");
                 Assert.AreEqual(size.x, rect.rect.width, .1f);
-                AssertFloatingMenu(rect);
                 AssertContained(rect, (RectTransform)safe.transform);
+                var buttons = arena.GetComponentsInChildren<Button>();
+                foreach (var button in buttons)
+                {
+                    var bounds = (RectTransform)button.transform;
+                    AssertContained(bounds, rect); Assert.GreaterOrEqual(bounds.rect.height, 48);
+                    Assert.IsNotNull(button.targetGraphic.GetComponent<CanvasRenderer>());
+                    foreach (var other in buttons.Where(x => x != button))
+                        AssertNoOverlap(bounds, (RectTransform)other.transform);
+                }
                 var start = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<Text>().text == "연주 시작");
                 AssertContained((RectTransform)start.transform, (RectTransform)safe.transform);
             }
-            Click("몬스터 패턴"); yield return null;
-            VerifyMonsterCards(plan);
-            Click("닫기");
-            Assert.AreSame(arena, root.GetComponentInChildren<BattleArenaView>(), "Closing details must preserve the preparation view.");
+            var loadout = presenter.Session.BattleLoadout; decimal health = presenter.Session.Health, enemyHealth = presenter.Session.EnemyHealth.Current;
+            foreach (var monster in plan.Monsters)
+            {
+                arena.GetComponentsInChildren<Button>().Single(x => x.name == "Preparation codex " + monster.Monster.Id).onClick.Invoke();
+                yield return null;
+                var codex = root.GetComponentInChildren<MonsterCodexView>();
+                Assert.AreSame(monster.Monster, codex.SelectedMonster);
+                Assert.IsFalse(arena.StartButton.IsInteractable());
+                codex.Close(); yield return null;
+                Assert.IsTrue(arena.StartButton.IsInteractable());
+            }
+            Click("몬스터 도감"); yield return null;
+            var overview = root.GetComponentInChildren<MonsterCodexView>(); Assert.IsNull(overview.SelectedMonster);
+            overview.Close(); yield return null;
+            Click("연습 모드"); yield return null;
+            Assert.AreEqual(loadout.Patterns.Count, root.GetComponentsInChildren<Button>().Count(x => x.name.StartsWith("Practice pattern ")));
+            Click("닫기"); yield return null;
+            Assert.AreSame(arena, root.GetComponentInChildren<BattlePreparationView>(), "Closing details must preserve the preparation view.");
+            Assert.AreSame(loadout, presenter.Session.BattleLoadout);
+            Assert.AreEqual(health, presenter.Session.Health); Assert.AreEqual(enemyHealth, presenter.Session.EnemyHealth.Current);
             Assert.AreSame(plan, presenter.Session.BattlePlan); Assert.IsNull(presenter.ActiveRound);
             Click("메뉴");
             Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "개발 도구"));
             Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "슬롯 펼치기"));
+            Click("돌아가기"); Click("무기 배치"); yield return null;
+            Assert.AreSame(loadout, root.GetComponentInChildren<WeaponPreparationView>().Arrangement);
+            Click("준비로"); yield return null;
+            Click("연습 모드"); yield return null;
+            int selected = loadout.Patterns.Count - 1;
+            root.GetComponentsInChildren<Button>().Single(x => x.name == "Practice pattern " + selected).onClick.Invoke();
+            yield return null;
+            var practice = root.GetComponentInChildren<RhythmPlayback>(); practice.SetBeatSound(false);
+            Assert.IsTrue(practice.Round.Combat.IsPractice);
+            Assert.AreEqual(loadout.Patterns[selected].Pattern.Id, practice.Round.Plan.Attacks.Single().Pattern.Id);
+            Assert.AreSame(loadout, presenter.Session.BattleLoadout);
+            Assert.AreEqual(health, presenter.Session.Health); Assert.AreEqual(enemyHealth, presenter.Session.EnemyHealth.Current);
+            Click("메뉴"); Click("배치로 돌아가기"); yield return null;
+            Click("준비로"); yield return null;
+            Assert.IsNotNull(root.GetComponentInChildren<BattlePreparationView>());
+            Click("연주 시작"); yield return null;
+            var battle = root.GetComponentInChildren<RhythmPlayback>(); battle.SetBeatSound(false);
+            Assert.IsFalse(battle.Round.Combat.IsPractice); Assert.AreSame(plan, battle.Round.Plan);
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -291,7 +341,7 @@ namespace BBSB.Tests
             if (target.IsBattle)
             {
                 Assert.AreEqual(target.Kind, announced);
-                Assert.IsNotNull(root.GetComponentInChildren<BattleArenaView>());
+                Assert.IsNotNull(root.GetComponentInChildren<BattlePreparationView>());
                 Assert.IsTrue(presenter.SubmitBattleResult(run.StageTicket, true, run.Health)); yield return null;
                 Click("보상 건너뛰기");
             }
@@ -351,10 +401,16 @@ namespace BBSB.Tests
             }
         }
 
+        private static void AssertNoOverlap(RectTransform left, RectTransform right)
+        {
+            var canvas = (RectTransform)left.GetComponentInParent<Canvas>().transform;
+            Assert.IsFalse(LocalRect(left, canvas).Overlaps(LocalRect(right, canvas)), left.name + " overlaps " + right.name);
+        }
+
         private void VerifyMonsterCards(BattlePlan plan)
         {
             Assert.IsNotNull(plan);
-            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "준비하기"));
+            Assert.IsNotNull(root.GetComponentInChildren<BattlePreparationView>());
             Canvas.ForceUpdateCanvases();
             var cards = root.GetComponentsInChildren<MonsterPatternView>();
             Assert.AreEqual(plan.Monsters.Count, cards.Length);

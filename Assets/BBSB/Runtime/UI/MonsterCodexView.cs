@@ -34,13 +34,16 @@ namespace BBSB.Runtime.UI
         private bool playing = true, sound = true, closing;
         private bool heldAtPause, waitingForContact;
         public RhythmRound PracticeRound => preview?.Round;
+        public MonsterDefinition SelectedMonster => selected;
         public int PracticeRepetitions { get; private set; }
 
-        internal static MonsterCodexView Open(RectTransform parent, RunUI ui, Action closed)
+        internal static MonsterCodexView Open(RectTransform parent, RunUI ui, Action closed, MonsterDefinition monster = null)
         {
             var root = ui.Rect("Monster encyclopedia", parent); RunUI.Stretch(root);
             var view = root.gameObject.AddComponent<MonsterCodexView>();
-            view.ui = ui; view.closed = closed; view.Build(); return view;
+            view.ui = ui; view.closed = closed; view.Build();
+            if (monster != null) view.SelectMonster(monster);
+            return view;
         }
 
         private void Build()

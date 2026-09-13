@@ -19,7 +19,7 @@ namespace BBSB.Core
                 throw new ArgumentException("Only battle stages have monster plans.", nameof(kind));
             var eligible = new List<MonsterDefinition>();
             foreach (var monster in MonsterCatalog.All)
-                if (monster.PatternPlanner.Candidates(stage, monster).Count > 0) eligible.Add(monster);
+                if (HookPatternGuarantee.Eligible(stage, monster.PatternPlanner.Candidates(stage, monster))) eligible.Add(monster);
             var random = new SeededRandom(Hash(seed, "roster"));
             // All encounter kinds introduce one opponent per field, capped at three.
             int count = Math.Min(Math.Min(field, 3), eligible.Count);
@@ -36,7 +36,7 @@ namespace BBSB.Core
                 proposals.Add(Propose(stage, entry.Id, entry, Hash(seed, entry.Id)));
             }
             var resolved = Resolve(stage, proposals, Hash(seed, "ties"));
-            return BattleGapFiller.Fill(resolved, Hash(seed, "gap-fill"));
+            return HookPatternGuarantee.Ensure(BattleGapFiller.Fill(resolved, Hash(seed, "gap-fill")), Hash(seed, "hooks"));
         }
 
         internal static List<PatternPlacement> Candidates(MusicStage stage, MonsterPatternDefinition pattern)

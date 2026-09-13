@@ -16,6 +16,7 @@ namespace BBSB.Runtime
         private RhythmInputSurface surface;
         private RhythmPlaybackView view;
         private BeatMetronome metronome;
+        private StageMusicPlayer music;
         private Action<RhythmRound> onFinished;
         private Action onLeave;
         private Action<RhythmRound> onRepeated;
@@ -31,7 +32,8 @@ namespace BBSB.Runtime
             this.ui = ui; Round = round; onFinished = finished; onLeave = leave; onRepeated = repeated;
             surface = gameObject.AddComponent<RhythmInputSurface>(); surface.Bind(this);
             view = new RhythmPlaybackView((RectTransform)transform, ui, round, session, Pause, Continue, ToggleSound, Leave, OpenCodex);
-            metronome = new BeatMetronome(transform, Round.Plan);
+            music = new StageMusicPlayer(transform, Round.Plan.Stage.Music);
+            metronome = new BeatMetronome(transform, Round.Plan, !music.HasRecording);
             RestartClock(true); view.Refresh(0, false);
         }
 
@@ -119,7 +121,7 @@ namespace BBSB.Runtime
             }
             view.Refresh(Round.ElapsedSeconds, false);
             heldAtPause = Round.Suspend(); IsPaused = true; WaitingForContact = false;
-            surface.Cancel(); metronome.Stop(); view.ShowPause(true);
+            surface.Cancel(); metronome.Stop(); music.Stop(); view.ShowPause(true);
         }
 
         private void Continue()
@@ -140,12 +142,13 @@ namespace BBSB.Runtime
         }
 
         public void SetBeatSound(bool enabled)
-        { if (metronome != null) { metronome.SetMuted(!enabled); view.SetSound(enabled); } }
+        { if (metronome != null) { metronome.SetMuted(!enabled); music.SetMuted(!enabled); view.SetSound(enabled); } }
         private void ToggleSound() { SetBeatSound(metronome.Muted); }
         private void RestartClock(bool firstStart = false)
         {
             offset = Round.ElapsedSeconds; origin = AudioSettings.dspTime + .12;
             metronome.Restart(offset, firstStart);
+            music.Start(origin, offset, Round.Combat != null && Round.Combat.IsPractice);
         }
 
         private void Finish()
@@ -153,7 +156,7 @@ namespace BBSB.Runtime
             if (completed) return;
             if (Round.Combat != null && Round.Combat.IsPractice && !Round.Aborted)
             { RepeatPractice(Now); return; }
-            completed = true; metronome.Stop(); surface.Cancel(); onFinished?.Invoke(Round);
+            completed = true; metronome.Stop(); music.Stop(); surface.Cancel(); onFinished?.Invoke(Round);
         }
 
         private void RepeatPractice(double now)
@@ -173,10 +176,10 @@ namespace BBSB.Runtime
             onRepeated?.Invoke(Round);
         }
         private void Leave()
-        { if (completed) return; completed = true; metronome.Stop(); surface.Cancel(); onLeave?.Invoke(); }
+        { if (completed) return; completed = true; metronome.Stop(); music.Stop(); surface.Cancel(); onLeave?.Invoke(); }
         private void OnApplicationPause(bool paused) { if (paused) Pause(); }
         private void OnApplicationFocus(bool focused) { if (!focused) Pause(); }
-        private void OnDisable() { if (codex != null) codex.Close(); metronome?.Stop(); if (surface != null) surface.Cancel(); }
+        private void OnDisable() { if (codex != null) codex.Close(); metronome?.Stop(); music?.Stop(); if (surface != null) surface.Cancel(); }
         private void OnDestroy() { metronome?.Dispose(); }
     }
 }

@@ -154,7 +154,7 @@ namespace BBSB.Tests
         public void EncounterSelectionIsReproducibleAndCanChooseEveryScore()
         {
             var ids = new HashSet<string>();
-            for (int seed = -100; seed < 100; seed++)
+            for (int seed = -1000; seed < 1000; seed++)
             {
                 var expected = MusicCatalog.ForEncounter(seed, 2, 1, 2);
                 ids.Add(expected.Music.Id);
@@ -162,7 +162,7 @@ namespace BBSB.Tests
                 var actual = MusicCatalog.ForEncounter(seed, 2, 1, 2);
                 Check.Equal(expected.Music.Id, actual.Music.Id); Check.Equal(Fingerprint(expected), Fingerprint(actual));
             }
-            Check.Equal(5, ids.Count);
+            Check.Equal(StageCatalog.All.Count, ids.Count);
         }
 
         [Test]

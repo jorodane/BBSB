@@ -27,6 +27,7 @@ namespace BBSB.Runtime.UI
     public sealed class BattleArenaGraphic : MaskableGraphic
     {
         private bool backdrop;
+        internal bool ShowStageFloor { get; set; } = true;
         internal bool ShowLegacyWeapons { get; set; } = true;
         private readonly List<BattleGroundShadow> groundShadows = new List<BattleGroundShadow>();
         private double beat;
@@ -75,6 +76,8 @@ namespace BBSB.Runtime.UI
 
         private void Stage(VertexHelper vh, Rect r)
         {
+            if (ShowStageFloor)
+            {
             Quad(vh, new Vector2(r.xMin, r.yMin), new Vector2(r.xMax, r.yMin),
                 new Vector2(r.xMax, r.yMax), new Vector2(r.xMin, r.yMax),
                 RunUI.Hex("20283D"), RunUI.Hex("0A101E"));
@@ -92,6 +95,7 @@ namespace BBSB.Runtime.UI
             {
                 float y = horizon * i / 4;
                 Line(vh, Point(r, new Vector2(0, y)), Point(r, new Vector2(1, y)), 1, Alpha(RunUI.Muted, .05f));
+            }
             }
             foreach (var shadow in groundShadows)
             {

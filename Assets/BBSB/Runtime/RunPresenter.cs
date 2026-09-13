@@ -20,11 +20,12 @@ namespace BBSB.Runtime
         private RectTransform screen;
         private RectTransform body;
         private RectTransform menuOverlay, menuBody;
-        private enum MenuPage { None, Home, Inventory, Help, Patterns, Development, Abandon }
+        private enum MenuPage { None, Home, Inventory, Help, Patterns, Practice, Development, Abandon }
         private MenuPage menuPage;
         private int? fixedSeed;
         private bool testControls;
         private bool title = true;
+        private int selectedMap = -1;
         private int pendingOffer = -1;
         private string notice = "";
         private bool rendering;
@@ -61,7 +62,8 @@ namespace BBSB.Runtime
         private void StartRun()
         {
             int seed = fixedSeed ?? Guid.NewGuid().GetHashCode();
-            if (Session == null) Session = new RunSession(seed, rules); else Session.Restart(seed);
+            string mapId = selectedMap < 0 ? null : StageCatalog.Maps[selectedMap].Id;
+            if (Session == null) Session = new RunSession(seed, rules, mapId); else Session.Restart(seed, mapId);
             ActiveRound = completedRound = null;
             weaponEditor = false; practicePattern = 0;
             title = false; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
@@ -116,7 +118,9 @@ namespace BBSB.Runtime
                     }
                 }
             }
-            DrawHud();
+            // The preparation screen owns its header, HP bars and rectangular menu button.
+            if (completedRound != null || pendingOffer >= 0 || Session.Phase != RunPhase.Stage || !Session.CurrentNode.IsBattle)
+                DrawHud();
             if (!string.IsNullOrEmpty(notice))
             {
                 var toast = ui.Label(page ?? screen, notice, 21, RunUI.Teal, 42, TextAnchor.MiddleCenter);
@@ -154,6 +158,12 @@ namespace BBSB.Runtime
             ui.Label(card, "네 곳의 몬스터 지역 중 하나에서 탐험을 시작해.\n여섯 번째 단계의 보스를 넘으면 다음 필드로 향해.", 24, null, 125);
             ui.Label(card, "탐험이 끝나면 획득한 장비와 보상도 초기화돼.", 21, RunUI.Muted, 70);
             ui.Label(content, "무기 5개  ·  분기 선택  ·  보스 도전", 22, RunUI.Muted, 70);
+            var selection = ui.Card(content);
+            ui.Label(selection, "시작 맵", 23, RunUI.Gold, 36);
+            var genres = ui.Row(selection, 64);
+            ui.Button(genres, "이전 맵", () => { selectedMap = (selectedMap + StageCatalog.Maps.Count + 1) % (StageCatalog.Maps.Count + 1) - 1; Render(); }, height: 64);
+            ui.Label(genres, selectedMap < 0 ? "랜덤 맵" : StageCatalog.Maps[selectedMap].Genre + " · " + StageCatalog.Maps[selectedMap].Name, 22, RunUI.Teal, 64, TextAnchor.MiddleCenter);
+            ui.Button(genres, "다음 맵", () => { selectedMap = (selectedMap + 2) % (StageCatalog.Maps.Count + 1) - 1; Render(); }, height: 64);
             var actions = ui.Row(panel, 84);
             ui.Button(actions, "탐험 시작", StartRun, primary: true, height: 84);
             ui.Button(actions, "몬스터 도감", OpenCodex, height: 84);
@@ -162,8 +172,8 @@ namespace BBSB.Runtime
         private void DrawHud()
         {
             var hud = ui.Rect("Status HUD", screen);
-            RunUI.Pin(hud, new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -20), new Vector2(320, 80));
-            var field = ui.Label(hud, "FIELD " + Session.Map.Number.ToString("00"), 27, RunUI.Gold, 40);
+            RunUI.Pin(hud, new Vector2(0, 1), new Vector2(0, 1), new Vector2(24, -20), new Vector2(500, 80));
+            var field = ui.Label(hud, Session.Map.Theme.Name + " · FIELD " + Session.Map.Number.ToString("00"), 27, RunUI.Gold, 40);
             RunUI.Overlay(field.rectTransform, Vector2.zero, Vector2.one, new Vector2(0, 40), Vector2.zero);
             var stats = ui.Label(hud, "HP  " + Session.Health.ToString("0.##") + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G", 22, RunUI.Teal, 36);
             RunUI.Overlay(stats.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0, -44));
@@ -188,6 +198,7 @@ namespace BBSB.Runtime
                 bool available = Session.CanEnter(node.Id);
                 bool visited = HasVisited(node.Id);
                 string label = (node.Row + 1).ToString("00") + "  " + ContentCatalog.StageName(node.MapKind);
+                if (node.IsBattle && node.MapKind != StageKind.Mystery) label += "\n" + StageCatalog.Find(node.SongId).Music.Name;
                 if (visited) label += "\n완료";
                 else if (available) label += "\n진입";
                 var id = node.Id;
@@ -258,27 +269,24 @@ namespace BBSB.Runtime
 
         private void DrawBattle()
         {
-            var kind = Session.CurrentNode.Kind;
-            var plan = Session.BattlePlan;
-            var music = Session.BattleMusic.Music;
             var stage = ui.Rect("Preparation arena", screen); RunUI.Stretch(stage);
-            var arena = stage.gameObject.AddComponent<BattleArenaView>();
-            // A still preview reads the same plan without starting playback or changing the session.
-            arena.Initialize(new RhythmRound(plan, combat: new WeaponBattle(Session.BattleLoadout,
-                new StageHealth(Session.EnemyHealth.Maximum), Session.Health, Session.MaxHealth, true)), ui.Font);
-            var heading = ui.Label(screen, "준비하기", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
-            RunUI.Overlay(heading.rectTransform, new Vector2(.3f, 1), new Vector2(.82f, 1), new Vector2(0, -58), new Vector2(0, -14));
-            var song = ui.Label(screen, ContentCatalog.StageName(kind) + "  ·  " + music.Name + "  /  " + music.Bpm + " BPM", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
-            RunUI.Overlay(song.rectTransform, new Vector2(.3f, 1), new Vector2(.82f, 1), new Vector2(0, -96), new Vector2(0, -60));
-            var enemy = ui.Label(screen, "스테이지 HP " + Session.EnemyHealth.Current.ToString("0.##") + " / " + Session.EnemyHealth.Maximum +
-                "  ·  모든 몬스터가 공유", 22, RunUI.Red, 34, TextAnchor.MiddleCenter);
-            RunUI.Overlay(enemy.rectTransform, new Vector2(.32f, 1), new Vector2(.85f, 1), new Vector2(0, -140), new Vector2(0, -106));
-            var weapons = ui.Button(screen, "무기 배치 · 연습", OpenWeaponPreparation, primary: true, height: 64);
-            RunUI.Pin((RectTransform)weapons.transform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(-40, 26), new Vector2(230, 64));
-            var patterns = ui.Button(screen, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns), height: 76);
-            RunUI.Pin((RectTransform)patterns.transform, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-260, 24), new Vector2(220, 76));
-            var start = ui.Button(screen, "연주 시작", () => StartRhythmRound(), primary: true, height: 76);
-            RunUI.Pin((RectTransform)start.transform, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-24, 24), new Vector2(220, 76));
+            stage.gameObject.AddComponent<BattlePreparationView>().Bind(ui, Session, OpenWeaponPreparation,
+                () => OpenMenu(MenuPage.Practice), OpenCodex, () => OpenMenu(MenuPage.Home),
+                () => StartRhythmRound(), monster => OpenCodex(monster));
+        }
+
+        private void DrawPracticeSelection()
+        {
+            ui.Label(body, "연습할 패턴을 골라줘. 현재 무기 배치로 반복해서 연습할 수 있어.", 23, RunUI.Teal, 65);
+            for (int i = 0; i < Session.BattleLoadout.Patterns.Count; i++)
+            {
+                int index = i; var attack = Session.BattleLoadout.Patterns[i];
+                var card = ui.Card(body, 16);
+                ui.Label(card, attack.Monster.Name, 20, RunUI.Muted, 32);
+                var button = ui.Button(card, attack.Pattern.Name + " · 연습", () => StartWeaponPractice(index), primary: true, height: 65);
+                button.name = "Practice pattern " + i;
+                ui.Label(card, attack.Pattern.Description, 19, RunUI.TextColor, 65);
+            }
         }
 
         private void DrawPatterns()
@@ -466,7 +474,7 @@ namespace BBSB.Runtime
         {
             Heading("FIELD CLEAR", "보스의 무대를 넘었어!", "현재 체력과 획득한 보상을 가지고 다음 필드로 향해.");
             var card = ui.Card(body);
-            ui.Label(card, "FIELD " + Session.Map.Number.ToString("00") + "  COMPLETE", 36, RunUI.Gold, 120);
+            ui.Label(card, Session.Map.Theme.Name + " · FIELD " + Session.Map.Number.ToString("00") + "  COMPLETE", 36, RunUI.Gold, 120);
             ui.Label(card, "새로운 갈림길이 기다리고 있어.", 26, RunUI.Teal, 85);
             ui.Button(card, "다음 필드로", () => { if (Session.AdvanceField()) { notice = ""; Render(); } }, primary: true, height: 82);
         }
@@ -481,7 +489,9 @@ namespace BBSB.Runtime
             ui.Button(card, "처음으로", () => { title = true; Render(); });
         }
 
-        private void OpenCodex()
+        private void OpenCodex() => OpenCodex(null);
+
+        private void OpenCodex(MonsterDefinition monster)
         {
             if (codex != null) return;
             var group = screen.GetComponent<CanvasGroup>(); group.interactable = group.blocksRaycasts = false;
@@ -496,7 +506,7 @@ namespace BBSB.Runtime
                 codex = null;
                 if (group != null) group.interactable = group.blocksRaycasts = menuPage == MenuPage.None;
                 if (menuGroup != null) menuGroup.interactable = menuGroup.blocksRaycasts = true;
-            });
+            }, monster);
         }
 
         private void OpenMenu(MenuPage page)
@@ -519,18 +529,18 @@ namespace BBSB.Runtime
             var group = screen.GetComponent<CanvasGroup>();
             group.interactable = group.blocksRaycasts = menuPage == MenuPage.None;
             if (menuPage == MenuPage.None) return;
-            if ((menuPage == MenuPage.Patterns || menuPage == MenuPage.Development) && Session.BattlePlan == null)
+            if ((menuPage == MenuPage.Patterns || menuPage == MenuPage.Practice || menuPage == MenuPage.Development) && Session.BattlePlan == null)
                 menuPage = MenuPage.Home;
             if (menuPage == MenuPage.Development && !testControls) menuPage = MenuPage.Home;
             string heading = menuPage == MenuPage.Inventory ? "장비 · 가방 · 증강" :
                 menuPage == MenuPage.Help ? "조작 방법" : menuPage == MenuPage.Patterns ? "몬스터 패턴" :
-                menuPage == MenuPage.Development ? "개발 도구" : menuPage == MenuPage.Abandon ? "탐험 종료" : "탐험 메뉴";
+                menuPage == MenuPage.Practice ? "연습 모드" : menuPage == MenuPage.Development ? "개발 도구" : menuPage == MenuPage.Abandon ? "탐험 종료" : "탐험 메뉴";
             menuOverlay = ui.Modal(safeArea, "Run menu", heading, CloseMenu, out menuBody);
             var previousBody = body; body = menuBody;
             switch (menuPage)
             {
                 case MenuPage.Home:
-                    ui.Label(body, "FIELD " + Session.Map.Number.ToString("00") + "  ·  통과한 스테이지 " + Session.ClearedStages, 25, RunUI.Gold, 54);
+                    ui.Label(body, Session.Map.Theme.Name + " · FIELD " + Session.Map.Number.ToString("00") + "  ·  통과한 스테이지 " + Session.ClearedStages, 25, RunUI.Gold, 54);
                     ui.Button(body, "돌아가기", CloseMenu, primary: true);
                     ui.Button(body, "장비 · 가방 · 증강", () => OpenMenu(MenuPage.Inventory));
                     if (Session.BattlePlan != null) { ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns)); ui.Button(body, "무기 배치 · 연습", OpenWeaponPreparation); }
@@ -544,6 +554,7 @@ namespace BBSB.Runtime
                     ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n시작 지점 네 곳은 모두 몬스터, 여섯 번째 무대는 보스야.\n? 지역은 들어가면 정체가 밝혀져.", 24, RunUI.Muted, 125);
                     ui.Controls(body); break;
                 case MenuPage.Patterns: DrawPatterns(); break;
+                case MenuPage.Practice: DrawPracticeSelection(); break;
                 case MenuPage.Development: DrawDevelopment(); break;
                 case MenuPage.Abandon: DrawAbandon(); break;
             }

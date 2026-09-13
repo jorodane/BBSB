@@ -20,6 +20,7 @@ namespace BBSB.Core
         public StageKind MapKind => IsRevealed ? Kind : StageKind.Mystery;
         public IReadOnlyList<string> Next { get; }
         public bool IsBattle => Kind == StageKind.Monster || Kind == StageKind.Elite || Kind == StageKind.Boss;
+        public string SongId { get; internal set; }
 
         internal StageNode(int field, int row, int column, StageKind kind, bool isMystery = false)
         {
@@ -48,6 +49,7 @@ namespace BBSB.Core
         public const int StageCount = 6;
         public const int Width = 4;
         public int Number { get; }
+        public GenreMapDefinition Theme { get; internal set; }
         public IReadOnlyList<StageNode> Nodes { get; }
 
         internal FieldMap(int number, List<StageNode> nodes)

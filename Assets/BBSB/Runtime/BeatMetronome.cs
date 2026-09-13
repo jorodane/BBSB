@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace BBSB.Runtime
 {
-    /// <summary>Sample scores have no recording yet. Schedule the beat guide and distinct monster Call tones on the same DSP clock.</summary>
+    /// <summary>Schedule fallback beat clicks and monster Calls on the recording and judgement DSP clock.</summary>
     internal sealed class BeatMetronome : IDisposable
     {
         private readonly AudioSource[] voices = new AudioSource[4];
@@ -18,11 +18,13 @@ namespace BBSB.Runtime
         private int nextPulse, voice, nextCall, callVoice;
         public bool Muted { get; private set; }
         private bool callsSuppressed;
+        private readonly bool playBeatGuide;
         public void SuppressCalls()
         { if (callsSuppressed) return; callsSuppressed = true; foreach (var source in callVoices) source.Stop(); }
 
-        public BeatMetronome(Transform parent, BattlePlan plan)
+        public BeatMetronome(Transform parent, BattlePlan plan, bool playBeatGuide = true)
         {
+            this.playBeatGuide = playBeatGuide;
             double bpm = plan.Stage.Music.Bpm;
             halfBeat = 30.0 / bpm; beatsPerBar = plan.Stage.Music.BeatsPerBar;
             accent = Click("Downbeat", 1200); beat = Click("Beat", 850); offbeat = Click("Offbeat", 550);
@@ -75,7 +77,7 @@ namespace BBSB.Runtime
                 if (at > dspNow + .15) break;
                 nextPulse++;
                 // Don't burst through clicks missed by a long frame or while muted.
-                if (Muted || at < dspNow + .005) continue;
+                if (Muted || !playBeatGuide || at < dspNow + .005) continue;
                 var source = voices[voice++ % voices.Length];
                 bool strong = pulse % (beatsPerBar * 2) == 0, half = pulse % 2 != 0;
                 source.clip = strong ? accent : half ? offbeat : beat;

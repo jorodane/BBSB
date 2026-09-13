@@ -15,6 +15,7 @@ namespace BBSB.Core
         private readonly List<string> visited = new List<string>();
         private readonly List<Offer> offers = new List<Offer>();
         private bool claimedService;
+        private string startingMapId;
 
         public int Seed { get; private set; }
         public decimal Health { get; private set; }
@@ -37,18 +38,20 @@ namespace BBSB.Core
         public IReadOnlyList<string> Visited { get; }
         public IReadOnlyList<Offer> Offers { get; }
 
-        public RunSession(int seed, RunRules rules = null)
+        public RunSession(int seed, RunRules rules = null, string mapId = null)
         {
             this.rules = rules ?? new RunRules();
             Weapons = weapons.AsReadOnly(); Items = items.AsReadOnly(); Augments = augments.AsReadOnly();
             Visited = visited.AsReadOnly(); Offers = offers.AsReadOnly();
-            Restart(seed);
+            Restart(seed, mapId);
         }
 
-        public void Restart(int seed)
+        public void Restart(int seed, string mapId = null)
         {
+            if (mapId != null) StageCatalog.Map(mapId);
             StopActiveRound();
             Seed = seed;
+            startingMapId = mapId;
             mapRandom = new SeededRandom(seed);
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
@@ -57,7 +60,7 @@ namespace BBSB.Core
             foreach (var id in new[] { "greatsword", "bell", "spear", "blade", "dagger" })
                 weapons.Add(new WeaponState(id));
             CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false;
-            Map = MapGenerator.Generate(1, mapRandom); Phase = RunPhase.Map;
+            Map = MapGenerator.Generate(1, mapRandom); StageCatalog.Assign(Map, Seed, startingMapId); Phase = RunPhase.Map;
         }
 
         public bool CanEnter(string nodeId)
@@ -75,7 +78,7 @@ namespace BBSB.Core
             CurrentNode.Reveal();
             StageTicket = Guid.NewGuid().ToString("N"); claimedService = false; offers.Clear();
             BattleMusic = CurrentNode.IsBattle
-                ? MusicCatalog.ForEncounter(Seed, Map.Number, CurrentNode.Row, CurrentNode.Column) : null;
+                ? MusicStage.Generate(StageCatalog.Find(CurrentNode.SongId).Music) : null;
             BattlePlan = CurrentNode.IsBattle ? BattlePlanner.ForEncounter(BattleMusic, Seed, CurrentNode, Map.Number) : null;
             if (BattlePlan != null)
             {
@@ -194,6 +197,7 @@ namespace BBSB.Core
         {
             if (Phase != RunPhase.FieldCleared) return false;
             Map = MapGenerator.Generate(Map.Number + 1, mapRandom);
+            StageCatalog.Assign(Map, Seed, startingMapId);
             CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; visited.Clear(); claimedService = false;
             Phase = RunPhase.Map;
             return true;

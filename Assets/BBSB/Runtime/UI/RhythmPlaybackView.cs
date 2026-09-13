@@ -118,7 +118,7 @@ namespace BBSB.Runtime.UI
             ui.Button(home, "연주 정보 · 패턴", () => select(details.gameObject));
             ui.Button(home, "몬스터 도감", codex);
             ui.Button(home, "조작 방법", () => select(help.gameObject));
-            soundLabel = ui.Button(home, "박자·Call 소리 끄기", sound).GetComponentInChildren<Text>();
+            soundLabel = ui.Button(home, "음악·Call 소리 끄기", sound).GetComponentInChildren<Text>();
             ui.Button(home, round.Combat != null && round.Combat.IsPractice ? "배치로 돌아가기" : "준비로 돌아가기", leave);
             counters = ui.Label(details, "", 26, RunUI.Gold, 58);
             if (round.Combat != null)
@@ -142,7 +142,7 @@ namespace BBSB.Runtime.UI
         {
             pauseInput.interactable = pauseInput.blocksRaycasts = !value;
         }
-        public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자·Call 소리 끄기" : "박자·Call 소리 켜기"; }
+        public void SetSound(bool enabled) { soundLabel.text = enabled ? "음악·Call 소리 끄기" : "음악·Call 소리 켜기"; }
 
         public void Repeat(RhythmRound value)
         {

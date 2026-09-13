@@ -12,6 +12,7 @@ namespace BBSB.Runtime.UI
         private Vector2 ground, hero;
         private readonly Vector2[] targets = new Vector2[RunRules.WeaponSlots];
         private readonly WeaponActivation[] active = new WeaponActivation[RunRules.WeaponSlots];
+        internal float WeaponSizeMultiplier { get; set; } = 1;
         private static readonly Color Edge = RunUI.Hex("CBA66F"), Metal = RunUI.Hex("251D31"), Glow = RunUI.Hex("FF4C9B");
 
         internal void SetFrame(WeaponBattle value, double time, Vector2 groundPoint, Vector2 heroPoint)
@@ -28,6 +29,7 @@ namespace BBSB.Runtime.UI
         {
             vh.Clear(); if (combat == null) return;
             Rect r = rectTransform.rect;
+            if (r.width <= 0 || r.height <= 0) return;
             float unit = Mathf.Min(r.width, r.height) / 720;
             float heroHeight = (hero.y - ground.y) / .46f;
             for (int slot = 0; slot < combat.Loadout.Equipment.Count; slot++)
@@ -74,7 +76,7 @@ namespace BBSB.Runtime.UI
                         }
                     }
                 }
-                float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale;
+                float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale * WeaponSizeMultiplier;
                 DrawWeapon(vh, weapon.Kind, Point(r, point), size, rotation);
                 if (combat.Loadout.At(slot) == null)
                     Arc(vh, Point(r, point), size * 1.25f, 0, 360, unit, new Color(.6f, .65f, .7f, .25f));
