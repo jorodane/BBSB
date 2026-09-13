@@ -44,9 +44,24 @@ namespace BBSB.Tests
             codex.Back(); yield return null; Assert.IsTrue(grid.gameObject.activeInHierarchy);
             codex.Close(); yield return null; Click("탐험 시작"); yield return null;
             var map = presenter.Session.Map;
-            Click("메뉴"); Click("몬스터 도감"); yield return null;
-            root.GetComponentInChildren<MonsterCodexView>().Close(); yield return null;
-            Assert.AreSame(map, presenter.Session.Map); Click("돌아가기");
+            var screen = root.GetComponentsInChildren<CanvasGroup>().Single(x => x.name == "Run screen");
+            Click("메뉴");
+            var menu = root.GetComponentsInChildren<RectTransform>().Single(x => x.name == "Run menu");
+            var menuInput = menu.GetComponent<CanvasGroup>(); Assert.IsNotNull(menuInput);
+            for (int cycle = 0; cycle < 2; cycle++)
+            {
+                Assert.IsTrue(menuInput.interactable); Assert.IsTrue(menuInput.blocksRaycasts);
+                Click("몬스터 도감"); yield return null;
+                codex = root.GetComponentInChildren<MonsterCodexView>(); Assert.IsNotNull(codex);
+                Assert.IsFalse(menuInput.interactable); Assert.IsFalse(menuInput.blocksRaycasts);
+                Assert.IsFalse(screen.interactable); Assert.IsFalse(screen.blocksRaycasts);
+                Assert.IsTrue(codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex tap-slime").IsInteractable());
+                codex.Close(); yield return null;
+                Assert.IsTrue(menuInput.interactable); Assert.IsTrue(menuInput.blocksRaycasts);
+                Assert.IsFalse(screen.interactable); Assert.AreSame(map, presenter.Session.Map);
+                Assert.AreEqual(1, menu.GetComponents<CanvasGroup>().Length);
+            }
+            Click("돌아가기"); Assert.IsTrue(screen.interactable); Assert.IsTrue(screen.blocksRaycasts);
             LogAssert.NoUnexpectedReceived();
         }
 

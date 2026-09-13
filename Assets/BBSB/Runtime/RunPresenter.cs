@@ -488,7 +488,7 @@ namespace BBSB.Runtime
             CanvasGroup menuGroup = null;
             if (menuOverlay != null)
             {
-                menuGroup = menuOverlay.GetComponent<CanvasGroup>() ?? menuOverlay.gameObject.AddComponent<CanvasGroup>();
+                menuGroup = menuOverlay.GetComponent<CanvasGroup>();
                 menuGroup.interactable = menuGroup.blocksRaycasts = false;
             }
             codex = MonsterCodexView.Open(safeArea, ui, () =>

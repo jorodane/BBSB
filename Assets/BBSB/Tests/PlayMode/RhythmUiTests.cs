@@ -455,6 +455,9 @@ namespace BBSB.Tests
         {
             yield return Prepare(new RunRules(startingHealth: 10000));
             var player = Begin(); yield return null;
+            var overlay = player.GetComponentsInChildren<RectTransform>(true).Single(x => x.name == "Pause overlay");
+            var pauseInput = overlay.GetComponent<CanvasGroup>(); Assert.IsNotNull(pauseInput);
+            Assert.IsFalse(overlay.gameObject.activeSelf);
             var surface = root.GetComponentInChildren<RhythmInputSurface>();
             var contact = Pointer(11, new Vector2(100, 200)); surface.OnPointerDown(contact);
             Click("메뉴");
@@ -462,6 +465,8 @@ namespace BBSB.Tests
             decimal health = presenter.Session.Health;
             Click("몬스터 도감"); yield return null;
             var codex = root.GetComponentInChildren<MonsterCodexView>(); Assert.IsNotNull(codex);
+            Assert.IsFalse(pauseInput.interactable); Assert.IsFalse(pauseInput.blocksRaycasts);
+            Assert.IsTrue(codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex clock-spirit").IsInteractable());
             codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex clock-spirit").onClick.Invoke();
             Click("소리 켜짐"); Click(MonsterCatalog.All.Single(x => x.Id == "clock-spirit").Patterns[1].Name);
             surface.OnPointerDown(contact);
@@ -474,10 +479,41 @@ namespace BBSB.Tests
             codex.Close(); yield return null;
             Assert.IsTrue(player.IsPaused); Assert.IsFalse(player.WaitingForContact);
             Assert.IsNull(root.GetComponentInChildren<MonsterCodexView>());
+            Assert.IsTrue(pauseInput.interactable); Assert.IsTrue(pauseInput.blocksRaycasts);
+            Click("몬스터 도감"); yield return null;
+            Assert.IsFalse(pauseInput.interactable);
+            root.GetComponentInChildren<MonsterCodexView>().Close(); yield return null;
+            Assert.IsTrue(pauseInput.interactable); Assert.IsTrue(pauseInput.blocksRaycasts);
+            Assert.AreEqual(1, overlay.GetComponents<CanvasGroup>().Length);
+            Assert.AreEqual(frozen, player.Round.ElapsedSeconds);
             Click("이어하기"); Assert.IsTrue(player.WaitingForContact);
             surface.OnPointerDown(contact); Assert.IsFalse(player.IsPaused); Assert.IsTrue(player.Round.IsDown);
             Assert.AreEqual(results, player.Round.Results.Count);
             surface.OnPointerUp(contact);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator WeaponPracticePauseMenuOpensCodexAndRestoresItsControls()
+        {
+            yield return Prepare(); presenter.OpenWeaponPreparation(); yield return null;
+            Assert.IsTrue(presenter.StartWeaponPractice(0)); yield return null;
+            var player = root.GetComponentInChildren<RhythmPlayback>(); player.SetBeatSound(false);
+            var round = player.Round;
+            var overlay = player.GetComponentsInChildren<RectTransform>(true).Single(x => x.name == "Pause overlay");
+            var pauseInput = overlay.GetComponent<CanvasGroup>(); Assert.IsNotNull(pauseInput);
+            Click("메뉴"); double frozen = round.ElapsedSeconds;
+            Click("몬스터 도감"); yield return null;
+            var codex = root.GetComponentInChildren<MonsterCodexView>(); Assert.IsNotNull(codex);
+            Assert.IsFalse(pauseInput.interactable); Assert.IsFalse(pauseInput.blocksRaycasts);
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex tap-slime").onClick.Invoke();
+            yield return null; Assert.IsTrue(player.IsPaused); Assert.AreEqual(frozen, round.ElapsedSeconds);
+            codex.Close(); yield return null;
+            Assert.IsTrue(pauseInput.interactable); Assert.IsTrue(pauseInput.blocksRaycasts);
+            Assert.AreSame(round, player.Round); Assert.AreSame(round, presenter.ActiveRound);
+            Click("이어하기"); Assert.IsFalse(player.IsPaused);
+            Click("메뉴"); Click("배치로 돌아가기"); yield return null;
+            Assert.IsNotNull(root.GetComponentInChildren<WeaponPreparationView>());
             LogAssert.NoUnexpectedReceived();
         }
 

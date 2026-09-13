@@ -22,6 +22,7 @@ namespace BBSB.Runtime.UI
         private readonly Image[] pulses;
         private readonly RectTransform songProgress;
         private readonly GameObject pauseOverlay;
+        private readonly CanvasGroup pauseInput;
         private readonly Text soundLabel;
         private readonly BattleArenaView arena;
         private readonly List<MonsterCard> monsters = new List<MonsterCard>();
@@ -97,6 +98,7 @@ namespace BBSB.Runtime.UI
             ui.FloatingMenu(root, pause);
 
             var overlay = ui.Modal(root, "Pause overlay", "일시정지", resume, out var panel);
+            pauseInput = overlay.GetComponent<CanvasGroup>();
             // Cache while building: the overlay is inactive when ShowPause opens it again.
             var pauseScroll = panel.GetComponentInParent<ScrollRect>(true);
             var home = ui.Stack(panel, "Pause menu");
@@ -138,8 +140,7 @@ namespace BBSB.Runtime.UI
         { pauseOverlay.SetActive(value); if (value) resetMenu(); arena.SetPaused(value); }
         public void SetCodexOpen(bool value)
         {
-            var group = pauseOverlay.GetComponent<CanvasGroup>() ?? pauseOverlay.AddComponent<CanvasGroup>();
-            group.interactable = group.blocksRaycasts = !value;
+            pauseInput.interactable = pauseInput.blocksRaycasts = !value;
         }
         public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자·Call 소리 끄기" : "박자·Call 소리 켜기"; }
 

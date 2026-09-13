@@ -151,6 +151,8 @@ namespace BBSB.Runtime.UI
         public RectTransform Modal(Transform parent, string name, string title, Action close, out RectTransform content)
         {
             var overlay = Rect(name, parent); Stretch(overlay);
+            // Nested screens disable this modal's input. Create the group before hiding or opening it.
+            overlay.gameObject.AddComponent<CanvasGroup>();
             overlay.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
             Background(overlay, new Color(.04f, .05f, .09f, .97f), true);
             var panel = Stack(overlay, "Menu panel", 16, 12); Stretch(panel);
