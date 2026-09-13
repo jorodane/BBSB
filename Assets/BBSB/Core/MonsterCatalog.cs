@@ -90,9 +90,9 @@ namespace BBSB.Core
             new MonsterDefinition("bubble-spirit", "해파리 소녀", "머리 위의 투명한 우산막과 떠 있는 몸, 가느다란 촉수를 가진 해파리 소녀다.", GestureKind.Shake, new[]
             {
                 Pattern("one-beat-shake", "우산막 하나", "맑게 뽕 울리며 떠오른 뒤 큰 젤 막 하나를 보낸다.", 4,
-                    new[] { Held(GestureKind.Shake, 0, 4) }, new[] { Call(0, "뽕!", CallSound.Bell, CallMotion.Hop) }, 4, 4, .18),
+                    new[] { new PatternStep(GestureKind.Shake, 0) }, new[] { Call(0, "뽕!", CallSound.Bell, CallMotion.Hop) }, 4, 4, .18),
                 Pattern("two-bubble-shakes", "우산막 둘", "촉수를 비벼 또르르 울리는 Call 뒤 젤 막을 두 번 보낸다.", 4,
-                    new[] { Held(GestureKind.Shake, 0, 4), Held(GestureKind.Shake, 8, 4) }, new[] { Call(0, "또르르!", CallSound.Rattle, CallMotion.Sway) }, 12, 4, .14)
+                    new[] { new PatternStep(GestureKind.Shake, 0), new PatternStep(GestureKind.Shake, 8) }, new[] { Call(0, "또르르!", CallSound.Rattle, CallMotion.Sway) }, 12, 4, .14)
             }),
             new MonsterDefinition("flick-goblin", "실 잣는 아라크네", "인간형 상체 아래로 여러 거미 다리가 펼쳐지고, 앞다리와 손으로 실을 잡는 아라크네다.", GestureKind.Flick, new[]
             {

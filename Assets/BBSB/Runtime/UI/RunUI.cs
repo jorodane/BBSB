@@ -171,7 +171,7 @@ namespace BBSB.Runtime.UI
             Label(card, "Hold  ·  누르고 끝까지 유지하기", 25, null, 54);
             Label(card, "Dive  ·  누르고 마지막 박자에 떼기", 25, null, 54);
             Label(card, "Flick  ·  미리 누른 뒤 튕기며 떼기", 25, null, 54);
-            Label(card, "Shake  ·  누른 상태로 한 번 왕복\n돌아오면 성공 / 나가기만 하면 반미스", 24, Teal, 90);
+            Label(card, "Shake  ·  목표 박자 전후의 반미스 범위 안에서 한 번 왕복\n왕복 완료면 성공 / 미완료면 미스", 24, Teal, 90);
             Label(parent, "메뉴 버튼 외에는 화면 어디서든 연주할 수 있어.\n마우스 왼쪽 버튼이나 한 손가락을 사용해.", 23, Muted, 86);
             Label(parent, "메뉴를 열면 박자와 판정이 멈춰.\n유지 중에 멈췄다면 이어하기 후 화면을 다시 눌러줘.", 23, Muted, 86);
             Label(parent, "받는 피해: 미스 100% · 반미스 50% · 퍼펙트 0%\nHP가 0이 되면 탐험이 끝나. 준비로 돌아가도 HP는 유지돼.", 23, Muted, 86);

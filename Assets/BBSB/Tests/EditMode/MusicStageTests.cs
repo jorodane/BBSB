@@ -100,7 +100,7 @@ namespace BBSB.Tests
             var compound = new RhythmPattern("dive-shake-flick", 4, new[]
             {
                 new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Tap, 0),
-                new PatternStep(GestureKind.Shake, 4, 4), new PatternStep(GestureKind.Flick, 8)
+                new PatternStep(GestureKind.Shake, 4), new PatternStep(GestureKind.Flick, 8)
             });
             var candidate = stage.FindPlacements(compound).First();
             Check.Equal(16, candidate.StartTick); Check.Equal(24, candidate.EndTick);

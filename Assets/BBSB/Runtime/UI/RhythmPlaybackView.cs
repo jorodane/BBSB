@@ -84,6 +84,8 @@ namespace BBSB.Runtime.UI
                     var card = ui.Rect("Live weapon " + i, strip); ui.Background(card, RunUI.Panel);
                     RunUI.Overlay(card, new Vector2((float)i / weaponLabels.Length, 0), new Vector2((float)(i + 1) / weaponLabels.Length, 1), new Vector2(3, 0), new Vector2(-3, 0));
                     weaponLabels[i] = ui.Label(card, "", 17, RunUI.Muted, 56, TextAnchor.MiddleCenter); RunUI.Stretch(weaponLabels[i].rectTransform, 3);
+                    weaponLabels[i].resizeTextForBestFit = true;
+                    weaponLabels[i].resizeTextMinSize = 13; weaponLabels[i].resizeTextMaxSize = 17;
                 }
             }
             feedback = ui.Label(root, "Call을 보고 박자를 준비해", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
@@ -121,7 +123,7 @@ namespace BBSB.Runtime.UI
                 foreach (var state in round.Combat.Loadout.Equipment)
                 {
                     var weapon = WeaponCatalog.Find(state.DefinitionId);
-                    ui.Label(details, weapon.Name + " +" + state.Level + " · " + weapon.PatternLabel + "\n" + weapon.EffectLabel, 22, RunUI.Teal, 94);
+                    ui.Label(details, weapon.Name + " +" + state.Level + " · " + weapon.ActionLabel + "\n" + weapon.EffectLabel, 22, RunUI.Teal, 94);
                 }
             foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(details, ui, round, monster));
             ui.Button(details, "메뉴로 돌아가기", resetMenu);
@@ -226,7 +228,8 @@ namespace BBSB.Runtime.UI
             for (int slot = 0; slot < weaponLabels.Length; slot++)
             {
                 var definition = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
-                string state = combat.Loadout.At(slot) == null ? "미배치" : "대기";
+                var placement = combat.Loadout.At(slot);
+                string state = placement == null ? "미배치" : definition.ActionFor(placement.Kind).Name + " 대기";
                 Color tint = RunUI.Muted;
                 ResponseNote next = null;
                 foreach (var binding in combat.Bindings)
@@ -237,18 +240,20 @@ namespace BBSB.Runtime.UI
                 }
                 if (next != null && seconds >= RhythmTime.Seconds(next.Attack.ResponseStartTick, round.Plan.Stage.Music.Bpm))
                 {
-                    state = next.Step.Kind + (next.State == ResponseState.Holding ? " 유지" : " · " + WeaponPreparationView.BeatLabel(next.StartTick - next.Attack.ResponseStartTick));
+                    state = next.Step.Kind + (next.State == ResponseState.Holding ?
+                        (next.Step.Kind == GestureKind.Shake ? " 한 번 왕복" : " 유지") : " · " + WeaponPreparationView.BeatLabel(next.StartTick - next.Attack.ResponseStartTick));
                     tint = RunUI.Gold;
                 }
                 for (int i = combat.Activations.Count - 1; i >= 0; i--)
                 {
                     var activation = combat.Activations[i];
                     if (activation.Slot != slot || seconds - activation.AtSeconds >= .45) continue;
-                    state = activation.Guard > 0 ? "방어막 +" + activation.Guard.ToString("0.##") : "피해 " + activation.Damage.ToString("0.##");
+                    var effects = new List<string>();
+                    if (activation.Damage > 0) effects.Add("피해 " + activation.Damage.ToString("0.##"));
+                    if (activation.Guard > 0) effects.Add("방어막 +" + activation.Guard.ToString("0.##"));
+                    state = activation.Action.Name + " · " + string.Join(" / ", effects);
                     tint = RunUI.Teal; break;
                 }
-                if (definition.Kind == WeaponKind.Shield && combat.GuardAt(seconds) > 0)
-                    state = "방어막 " + combat.GuardAt(seconds).ToString("0.##");
                 weaponLabels[slot].text = (slot + 1) + " " + definition.Name + "\n" + state;
                 weaponLabels[slot].color = tint;
             }

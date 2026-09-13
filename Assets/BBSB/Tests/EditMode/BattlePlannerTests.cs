@@ -109,15 +109,15 @@ namespace BBSB.Tests
             foreach (GestureKind left in Enum.GetValues(typeof(GestureKind)))
             foreach (GestureKind right in Enum.GetValues(typeof(GestureKind)))
             {
-                int leftDuration = left == GestureKind.Tap || left == GestureKind.Flick ? 0 : 8;
-                int rightDuration = right == GestureKind.Tap || right == GestureKind.Flick ? 0 : 8;
+                int leftDuration = left == GestureKind.Hold || left == GestureKind.Dive ? 8 : 0;
+                int rightDuration = right == GestureKind.Hold || right == GestureKind.Dive ? 8 : 0;
                 var a = At(stage, Monster("a", new[] { new PatternStep(left, 0, leftDuration) }, 8), 16);
                 var b = At(stage, Monster("b", new[] { new PatternStep(right, 0, rightDuration) }, 8), 16);
                 Check.Equal(left != right, InputCompatibility.Conflict(a, b, out int tick));
                 Check.Equal(left != right ? 16 : -1, tick);
             }
             var hold = At(stage, Monster("hold", new[] { new PatternStep(GestureKind.Hold, 0, 8) }, 8), 16);
-            var shake = At(stage, Monster("shake", new[] { new PatternStep(GestureKind.Shake, 0, 4) }, 4), 20);
+            var shake = At(stage, Monster("shake", new[] { new PatternStep(GestureKind.Shake, 0) }, 4), 20);
             Check.True(InputCompatibility.Conflict(hold, shake, out int overlap)); Check.Equal(20, overlap);
             var flick = Monster("flick", new[] { new PatternStep(GestureKind.Flick, 0) }, 4);
             Check.True(InputCompatibility.Conflict(hold, At(stage, flick, 24), out int ending)); Check.Equal(24, ending);
@@ -138,7 +138,7 @@ namespace BBSB.Tests
                 var shorter = Monster("short", new[] { new PatternStep(kind, 0, 4) }, 4);
                 Check.Equal(kind == GestureKind.Dive, InputCompatibility.Conflict(held, At(stage, shorter, 16), out _));
             }
-            var shake = Monster("shake", new[] { new PatternStep(GestureKind.Shake, 0, 8) }, 8);
+            var shake = Monster("shake", new[] { new PatternStep(GestureKind.Shake, 0) }, 8);
             Check.False(InputCompatibility.Conflict(At(stage, shake, 16), At(stage, shake, 20), out _));
         }
 
@@ -173,7 +173,7 @@ namespace BBSB.Tests
             var compound = Monster("compound", new[]
             {
                 new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Tap, 0),
-                new PatternStep(GestureKind.Shake, 4, 4), new PatternStep(GestureKind.Flick, 8)
+                new PatternStep(GestureKind.Shake, 4), new PatternStep(GestureKind.Flick, 8)
             }, 8);
             Check.True(InputCompatibility.IsPlayable(compound.Patterns[0].Pattern));
             foreach (var monster in MonsterCatalog.All) foreach (var pattern in monster.Patterns) Check.True(InputCompatibility.IsPlayable(pattern.Pattern));
@@ -249,7 +249,7 @@ namespace BBSB.Tests
             var tap = new RhythmPattern("tap", 4, new[] { new PatternStep(GestureKind.Tap, 0) });
             Throws(() => new MonsterDefinition("bad", "Bad", "", tap, new[] { new CallSignal(4, "late") }, 4, 4, .3));
             Throws(() => Monster("bad", new[] { new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Tap, 4) }, 8));
-            Throws(() => Monster("bad", new[] { new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Shake, 4, 8) }, 12));
+            Check.True(InputCompatibility.IsPlayable(new RhythmPattern("shake-in-dive", 4, new[] { new PatternStep(GestureKind.Dive, 0, 8), new PatternStep(GestureKind.Shake, 4) })));
             var stage = Fixture(); var monster = Monster("tap", tap.Steps, 4);
             Throws(() => BattlePlanner.Generate(stage, StageKind.Monster, 1, 0));
             Throws(() => BattlePlanner.Generate(stage, StageKind.Monster, 1, -1));
@@ -333,7 +333,8 @@ namespace BBSB.Tests
             for (int tick = 0; tick < 16; tick += stepTicks)
             {
                 slots.Add(new SlotTemplate(GestureKind.Tap, tick)); slots.Add(new SlotTemplate(GestureKind.Flick, tick));
-                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive, GestureKind.Shake })
+                slots.Add(new SlotTemplate(GestureKind.Shake, tick));
+                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
                     foreach (int duration in new[] { 4, 8, 16 }) slots.Add(new SlotTemplate(kind, tick, duration));
             }
             return MusicStage.Generate(new MusicDefinition("fixture", "Fixture", 120, 4, new[]

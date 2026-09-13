@@ -8,13 +8,13 @@ namespace BBSB.Core
         // These are mock scores, not recordings or audio-analysis results. All offsets are ticks.
         public static IReadOnlyList<MusicDefinition> All { get; } = Array.AsReadOnly(new[]
         {
-            Define("steady-pulse", "Steady Pulse", 96, 3, Bar(new[] { 0, 4, 8, 12 }, 8, new[] { 0, 8 }, new[] { 4, 12 }, 4, new[] { 0, 8 })),
-            Define("offbeat-spark", "Offbeat Spark", 124, 3.5, Bar(new[] { 0, 2, 6, 8, 10, 14 }, 4, new[] { 0, 8 }, new[] { 0, 8 }, 4, new[] { 6, 14 })),
-            Define("deep-current", "Deep Current", 80, 2.5, Bar(new[] { 0, 8 }, 16, new[] { 0 }, new[] { 4, 12 }, 4, new[] { 0, 8 })),
-            Define("rapid-drive", "Rapid Drive", 168, 4, Bar(new[] { 0, 2, 4, 6, 8, 10, 12, 14 }, 4, new[] { 0, 8 }, new[] { 4, 12 }, 2, new[] { 6, 14 })),
+            Define("steady-pulse", "Steady Pulse", 96, 3, Bar(new[] { 0, 4, 8, 12 }, 8, new[] { 0, 8 }, new[] { 4, 12 }, new[] { 0, 8 })),
+            Define("offbeat-spark", "Offbeat Spark", 124, 3.5, Bar(new[] { 0, 2, 6, 8, 10, 14 }, 4, new[] { 0, 8 }, new[] { 0, 8 }, new[] { 6, 14 })),
+            Define("deep-current", "Deep Current", 80, 2.5, Bar(new[] { 0, 8 }, 16, new[] { 0 }, new[] { 4, 12 }, new[] { 0, 8 })),
+            Define("rapid-drive", "Rapid Drive", 168, 4, Bar(new[] { 0, 2, 4, 6, 8, 10, 12, 14 }, 4, new[] { 0, 8 }, new[] { 4, 12 }, new[] { 6, 14 })),
             Define("switchback", "Switchback", 112, 3,
-                Bar(new[] { 0, 4, 8, 12 }, 8, new[] { 0, 8 }, new[] { 4, 12 }, 4, new[] { 0, 8 }),
-                Bar(new[] { 2, 6, 10, 14 }, 4, new[] { 2, 10 }, new[] { 2, 10 }, 4, new[] { 6, 14 }))
+                Bar(new[] { 0, 4, 8, 12 }, 8, new[] { 0, 8 }, new[] { 4, 12 }, new[] { 0, 8 }),
+                Bar(new[] { 2, 6, 10, 14 }, 4, new[] { 2, 10 }, new[] { 2, 10 }, new[] { 6, 14 }))
         });
 
         /// <summary>Independent of map/reward draws and entry order. Re-entering preparation never rerolls.</summary>
@@ -48,7 +48,7 @@ namespace BBSB.Core
             }, cycle);
         }
 
-        private static SlotTemplate[] Bar(int[] taps, int holdTicks, int[] holds, int[] shakes, int shakeTicks, int[] flicks)
+        private static SlotTemplate[] Bar(int[] taps, int holdTicks, int[] holds, int[] shakes, int[] flicks)
         {
             var slots = new List<SlotTemplate>();
             foreach (int tick in taps) slots.Add(new SlotTemplate(GestureKind.Tap, tick));
@@ -57,7 +57,7 @@ namespace BBSB.Core
                 slots.Add(new SlotTemplate(GestureKind.Hold, tick, holdTicks));
                 slots.Add(new SlotTemplate(GestureKind.Dive, tick, holdTicks));
             }
-            foreach (int tick in shakes) slots.Add(new SlotTemplate(GestureKind.Shake, tick, shakeTicks));
+            foreach (int tick in shakes) slots.Add(new SlotTemplate(GestureKind.Shake, tick));
             foreach (int tick in flicks) slots.Add(new SlotTemplate(GestureKind.Flick, tick));
             return slots.ToArray();
         }

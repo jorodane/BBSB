@@ -9,8 +9,9 @@ namespace BBSB.Core
         public string MonsterId { get; }
         public string PatternId { get; }
         public int OffsetTick { get; }
-        public WeaponPlacement(int slot, string monsterId, string patternId, int offsetTick)
-        { Slot = slot; MonsterId = monsterId; PatternId = patternId; OffsetTick = offsetTick; }
+        public GestureKind Kind { get; }
+        public WeaponPlacement(int slot, string monsterId, string patternId, int offsetTick, GestureKind kind)
+        { Slot = slot; MonsterId = monsterId; PatternId = patternId; OffsetTick = offsetTick; Kind = kind; }
         public bool Matches(PlannedAttack attack) => attack.MonsterId == MonsterId && attack.Pattern.Id == PatternId;
     }
 
@@ -40,47 +41,48 @@ namespace BBSB.Core
 
         public WeaponPlacement At(int slot) => placements.Find(p => p.Slot == slot);
         public void Remove(int slot) => placements.RemoveAll(p => p.Slot == slot);
-        public bool TryPlace(int slot, string monsterId, string patternId, int offset, out string reason)
+        public bool TryPlace(int slot, string monsterId, string patternId, int offset, out string reason, GestureKind? kind = null)
         {
-            if (!CanPlace(slot, monsterId, patternId, offset, out reason)) return false;
-            Remove(slot); placements.Add(new WeaponPlacement(slot, monsterId, patternId, offset));
+            if (!CanPlace(slot, monsterId, patternId, offset, out reason, kind)) return false;
+            var source = patterns.Find(p => p.MonsterId == monsterId && p.Pattern.Id == patternId);
+            int index = MatchingStep(source.Placement.Pattern, WeaponCatalog.Find(equipment[slot].DefinitionId), offset, kind);
+            Remove(slot); placements.Add(new WeaponPlacement(slot, monsterId, patternId, offset, source.Placement.Pattern.Steps[index].Kind));
             placements.Sort((a, b) => a.Slot.CompareTo(b.Slot)); return true;
         }
 
-        public bool CanPlace(int slot, string monsterId, string patternId, int offset, out string reason)
+        public bool CanPlace(int slot, string monsterId, string patternId, int offset, out string reason, GestureKind? kind = null)
         {
             reason = "";
             if (slot < 0 || slot >= equipment.Count || offset < 0) { reason = "무기를 선택해"; return false; }
             var source = patterns.Find(p => p.MonsterId == monsterId && p.Pattern.Id == patternId);
             if (source == null) { reason = "이 스테이지에 없는 패턴이야"; return false; }
-            var pattern = WeaponCatalog.Find(equipment[slot].DefinitionId).Pattern;
-            if (offset >= source.Pattern.ResponseTicks || offset + pattern.EndOffsetTick > source.Pattern.ResponseTicks)
-            { reason = "무기 패턴이 Response 구간을 벗어나"; return false; }
-            // Weapons subscribe to existing Response judgments. Other equipped weapons never
-            // occupy or consume these positions, and placement cannot add a new player input.
-            foreach (var step in pattern.Steps)
-                if (MatchingStep(source.Placement.Pattern, step, offset) < 0)
-                { reason = "이 위치에는 무기 패턴에 맞는 몬스터 박자가 없어"; return false; }
-
+            var weapon = WeaponCatalog.Find(equipment[slot].DefinitionId);
+            int index = MatchingStep(source.Placement.Pattern, weapon, offset, kind);
+            if (index < 0)
+            { reason = index == -2 ? "같은 박자에 행동이 여러 개야. 배치할 행동을 골라줘" : "이 무기가 지원하는 행동 칸에 배치해"; return false; }
             return true;
         }
 
-        internal static int MatchingStep(RhythmPattern source, PatternStep required, int offset)
+        // One existing action, regardless of its duration or the spacing of neighboring notes.
+        internal static int MatchingStep(RhythmPattern source, WeaponDefinition weapon, int offset, GestureKind? kind = null)
         {
+            int found = -1;
             for (int i = 0; i < source.Steps.Count; i++)
             {
                 var step = source.Steps[i];
-                if (step.OffsetTick == (long)offset + required.OffsetTick && step.Kind == required.Kind &&
-                    step.DurationTicks == required.DurationTicks) return i;
+                if (step.OffsetTick != offset || weapon.ActionFor(step.Kind) == null || (kind.HasValue && kind.Value != step.Kind)) continue;
+                if (found >= 0) return -2;
+                found = i;
             }
-            return -1;
+            return found;
         }
 
         public IReadOnlyList<int> ValidOffsets(int slot, PlannedAttack pattern)
         {
             var result = new List<int>();
-            for (int tick = 0; tick < pattern.Pattern.ResponseTicks; tick++)
-                if (CanPlace(slot, pattern.MonsterId, pattern.Pattern.Id, tick, out _)) result.Add(tick);
+            foreach (var step in pattern.Placement.Pattern.Steps)
+                if (!result.Contains(step.OffsetTick) &&
+                    CanPlace(slot, pattern.MonsterId, pattern.Pattern.Id, step.OffsetTick, out _, step.Kind)) result.Add(step.OffsetTick);
             return result.AsReadOnly();
         }
 
@@ -94,7 +96,7 @@ namespace BBSB.Core
                 foreach (var pattern in patterns)
                 {
                     foreach (var step in pattern.Pattern.Pattern.Steps)
-                        if (TryPlace(slot, pattern.MonsterId, pattern.Pattern.Id, step.OffsetTick, out _)) { done = true; break; }
+                        if (TryPlace(slot, pattern.MonsterId, pattern.Pattern.Id, step.OffsetTick, out _, step.Kind)) { done = true; break; }
                     if (done) break;
                 }
             }
@@ -103,7 +105,7 @@ namespace BBSB.Core
         internal WeaponArrangement Snapshot(BattlePlan target)
         {
             var copy = new WeaponArrangement(target, Equipment);
-            foreach (var p in placements) copy.TryPlace(p.Slot, p.MonsterId, p.PatternId, p.OffsetTick, out _);
+            foreach (var p in placements) copy.TryPlace(p.Slot, p.MonsterId, p.PatternId, p.OffsetTick, out _, p.Kind);
             return copy;
         }
 

@@ -56,9 +56,9 @@ namespace BBSB.Core
         {
             if (!Enum.IsDefined(typeof(GestureKind), kind) || tick < 0 || duration < 0 || tick > int.MaxValue - duration)
                 throw new ArgumentOutOfRangeException(nameof(tick), "Invalid gesture or timing.");
-            bool sustained = kind == GestureKind.Hold || kind == GestureKind.Dive || kind == GestureKind.Shake;
+            bool sustained = kind == GestureKind.Hold || kind == GestureKind.Dive;
             if (sustained ? duration == 0 : duration != 0)
-                throw new ArgumentException("Hold, Dive and Shake need a duration; Tap and Flick are instantaneous.");
+                throw new ArgumentException("Hold and Dive need a duration; Tap, Flick and Shake target one instant.");
         }
     }
 

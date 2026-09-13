@@ -71,7 +71,7 @@ namespace BBSB.Tests
         [Test]
         public void ShakeAndFlickUseTheSameIncomingDamageRules()
         {
-            var shake = Round(3, new PatternStep(GestureKind.Shake, 0, 4));
+            var shake = Round(3, new PatternStep(GestureKind.Shake, 0));
             shake.Press(2, 0, 0);
             for (int i = 1; i <= 10; i++) shake.Move(2 + i * .05, i % 2 == 0 ? 0 : .1, 0);
             Check.Equal(RhythmGrade.Perfect, shake.Results.Single().Grade);
@@ -79,10 +79,10 @@ namespace BBSB.Tests
             shake.Release(2.6, 0, 0); shake.Advance(8.2);
             Check.Equal(0m, shake.TotalDamageTaken);
 
-            var halfShake = Round(3, new PatternStep(GestureKind.Shake, 0, 4));
+            var halfShake = Round(3, new PatternStep(GestureKind.Shake, 0));
             halfShake.Press(2, 0, 0); halfShake.Move(2.05, .1, 0); halfShake.Advance(2.5);
-            Check.Equal(RhythmGrade.HalfMiss, halfShake.Results.Single().Grade);
-            Check.Equal(1.5m, halfShake.TotalDamageTaken);
+            Check.Equal(RhythmGrade.Miss, halfShake.Results.Single().Grade);
+            Check.Equal(3m, halfShake.TotalDamageTaken);
 
             var flick = Round(3, new PatternStep(GestureKind.Flick, 0));
             flick.Press(1.9, 0, 0); flick.Move(1.96, .08, 0);
@@ -285,7 +285,8 @@ namespace BBSB.Tests
             for (int tick = 0; tick < 16; tick += 2)
             {
                 slots.Add(new SlotTemplate(GestureKind.Tap, tick)); slots.Add(new SlotTemplate(GestureKind.Flick, tick));
-                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive, GestureKind.Shake })
+                slots.Add(new SlotTemplate(GestureKind.Shake, tick));
+                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
                     foreach (int duration in new[] { 4, 8 }) slots.Add(new SlotTemplate(kind, tick, duration));
             }
             return MusicStage.Generate(new MusicDefinition("damage-fixture", "Damage fixture", 120, 4, new[]

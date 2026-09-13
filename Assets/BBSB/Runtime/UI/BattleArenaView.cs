@@ -301,7 +301,7 @@ namespace BBSB.Runtime.UI
             if (round.Combat != null)
                 foreach (var activation in round.Combat.Activations)
                     if (activation.Damage > 0 && activation.Target.MonsterId == actor.Plan.InstanceId)
-                        counter += Pulse(seconds - activation.AtSeconds - WeaponMotion.Duration(activation.Weapon.Kind) * .6, .22);
+                        counter += Pulse(seconds - activation.AtSeconds - WeaponMotion.Duration(activation.Action.Motion) * .6, .22);
             call = Mathf.Clamp01(call); counter = Mathf.Clamp01(counter);
             float direction = Mathf.Sign(HeroImpactPosition.x - actor.Impact.x);
             x -= direction * counter * 9;
@@ -410,7 +410,7 @@ namespace BBSB.Runtime.UI
                 foreach (var activation in round.Combat.Activations)
                 {
                     double age = seconds - activation.AtSeconds;
-                    if (age < 0 || age >= WeaponMotion.Duration(activation.Weapon.Kind)) continue;
+                    if (age < 0 || age >= WeaponMotion.Duration(activation.Action.Motion)) continue;
                     var target = FindMonster(activation.Target.MonsterId);
                     if (target != null) { weaponGraphic.SetActivation(activation, target.Impact); ActiveResponseEffects++; }
                 }

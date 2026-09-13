@@ -17,6 +17,7 @@ namespace BBSB.Tests
             foreach (GestureKind kind in Enum.GetValues(typeof(GestureKind)))
             foreach (RhythmGrade grade in Enum.GetValues(typeof(RhythmGrade)))
             {
+                if (kind == GestureKind.Shake && grade == RhythmGrade.HalfMiss) continue;
                 var round = Single(kind); var timeline = new PlayerMotionTimeline(1);
                 Judge(round, kind, grade);
                 var result = round.Results.Single(); var frame = timeline.Evaluate(round);
@@ -122,19 +123,20 @@ namespace BBSB.Tests
             round.Press(2, 0, 0); Check.Equal(PlayerMotionPhase.Idle, timeline.Evaluate(round).Phase);
             round.Move(2.04, .1, 0); var shove = timeline.Evaluate(round);
             Check.Equal(PlayerMotionPhase.Sustain, shove.Phase); Check.Equal(GestureKind.Shake, shove.Kind.Value);
-            round.Advance(2.25); Check.Equal(PlayerMotionPhase.Idle, timeline.Evaluate(round).Phase);
+            round.Advance(2.25); Check.Equal(RhythmGrade.Miss, timeline.Evaluate(round).Grade.Value);
             var tap = Single(GestureKind.Tap); tap.Advance(1.99);
             Check.Equal(PlayerMotionPhase.Idle, new PlayerMotionTimeline().Evaluate(tap).Phase);
         }
 
         [Test]
-        public void SameTimeMixedResultsShowTheFailureAndKeepAllUnderlyingResults()
+        public void ShakeFailureAppearsAtItsDeadlineAndLaterHoldKeepsItsOwnResult()
         {
-            var round = Round(1, new PatternStep(GestureKind.Hold, 0, 4), new PatternStep(GestureKind.Shake, 0, 4));
+            var round = Round(1, new PatternStep(GestureKind.Hold, 0, 4), new PatternStep(GestureKind.Shake, 0));
             var timeline = new PlayerMotionTimeline(); round.Press(2, 0, 0); timeline.Evaluate(round);
-            round.Advance(2.5); var frame = timeline.Evaluate(round);
-            Check.Equal(2, round.Results.Count); Check.Equal(RhythmGrade.Miss, frame.Grade.Value);
+            round.Advance(2.121); var frame = timeline.Evaluate(round);
+            Check.Equal(1, round.Results.Count); Check.Equal(RhythmGrade.Miss, frame.Grade.Value);
             Check.Equal(GestureKind.Shake, frame.Kind.Value); Check.Equal(4, frame.Index);
+            round.Advance(2.5); Check.Equal(2, round.Results.Count); Check.Equal(1, round.PerfectCount);
         }
 
         [Test]
@@ -342,6 +344,7 @@ namespace BBSB.Tests
             foreach (GestureKind kind in Enum.GetValues(typeof(GestureKind)))
             foreach (RhythmGrade grade in Enum.GetValues(typeof(RhythmGrade)))
             {
+                if (kind == GestureKind.Shake && grade == RhythmGrade.HalfMiss) continue;
                 var round = Single(kind); var timeline = new PlayerMotionTimeline(3);
                 Judge(round, kind, grade); timeline.Evaluate(round);
                 var result = round.Results.Single(); double at = result.JudgedAtSeconds;
@@ -394,11 +397,11 @@ namespace BBSB.Tests
         }
 
         private static RhythmRound Single(GestureKind kind) => Round(1, new PatternStep(kind, 0,
-            kind == GestureKind.Hold || kind == GestureKind.Dive || kind == GestureKind.Shake ? 4 : 0));
+            kind == GestureKind.Hold || kind == GestureKind.Dive ? 4 : 0));
 
         private static void Judge(RhythmRound round, GestureKind kind, RhythmGrade grade)
         {
-            if (grade == RhythmGrade.Miss) { round.Advance(kind == GestureKind.Shake ? 2.5 : 2.121); return; }
+            if (grade == RhythmGrade.Miss) { round.Advance(2.121); return; }
             double offset = grade == RhythmGrade.HalfMiss ? .1 : 0;
             switch (kind)
             {
@@ -409,7 +412,7 @@ namespace BBSB.Tests
                 case GestureKind.Shake:
                     round.Press(2, 0, 0); round.Move(2.04, .1, 0);
                     if (grade == RhythmGrade.Perfect) round.Move(2.08, 0, 0);
-                    round.Advance(2.5); break;
+                    break;
             }
         }
 
@@ -421,7 +424,8 @@ namespace BBSB.Tests
             for (int tick = 0; tick < 16; tick += 2)
             {
                 slots.Add(new SlotTemplate(GestureKind.Tap, tick)); slots.Add(new SlotTemplate(GestureKind.Flick, tick));
-                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive, GestureKind.Shake })
+                slots.Add(new SlotTemplate(GestureKind.Shake, tick));
+                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
                     slots.Add(new SlotTemplate(kind, tick, 4));
             }
             var stage = MusicStage.Generate(new MusicDefinition("motion", "Motion", bpm, 4, new[]

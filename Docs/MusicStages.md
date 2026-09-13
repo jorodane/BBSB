@@ -30,7 +30,7 @@
 | Hold | Press | 지정 구간 누름 | 강제 Release 없음 |
 | Dive | Press | 지정 구간 누름 | Release |
 | Flick | 새 Press 없음 | 순간 슬롯 | 해당 시점에 튕기며 Release |
-| Shake | 새 Press 없음 | 지정 구간 누름 | 흔들기, 강제 Release 없음 |
+| Shake | 새 Press 없음 | 목표 전후의 반미스 범위 안에서 한 접촉 | 한 번 왕복 완료, 강제 Release 없음 |
 
 `TouchRequirement`는 `InputCompatibility`가 몬스터 계획을 중재할 때 사용하는 메타데이터다. Shake는 이미 누른 상태에서 시작할 수 있고 Flick의 Release는 Dive의 끝과 공유할 수 있다. 계획의 입력 중첩 중재와 실제 손가락 상태/움직임 판정을 구현했다. 실행 시에는 `RhythmRound`가 이 입력들을 독립적으로 판정한다.
 

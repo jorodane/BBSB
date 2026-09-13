@@ -16,14 +16,15 @@ namespace BBSB.Core
         internal void Damage(decimal amount) { Current = Math.Max(0, Current - Math.Max(0, amount)); }
     }
 
-    /// <summary>A weapon step subscribes to a monster's existing note; it owns no input state.</summary>
+    /// <summary>A weapon action subscribes to a monster's existing note; it owns no input state.</summary>
     public sealed class WeaponBinding
     {
         public int Slot { get; }
-        public int StepIndex { get; }
+        public int StepIndex => Note.StepIndex;
+        public WeaponActionDefinition Action { get; }
         public ResponseNote Note { get; }
-        internal WeaponBinding(int slot, int stepIndex, ResponseNote note)
-        { Slot = slot; StepIndex = stepIndex; Note = note; }
+        internal WeaponBinding(int slot, WeaponActionDefinition action, ResponseNote note)
+        { Slot = slot; Action = action; Note = note; }
     }
 
     public sealed class WeaponJudgment
@@ -44,21 +45,19 @@ namespace BBSB.Core
         public double AtSeconds { get; }
         public decimal Damage { get; }
         public decimal Guard { get; }
-        public bool CompletedPattern { get; }
+        public WeaponActionDefinition Action { get; }
         public RhythmGrade Grade { get; }
-        internal WeaponActivation(WeaponDefinition weapon, WeaponJudgment result, decimal damage, decimal guard, bool completed)
+        internal WeaponActivation(WeaponDefinition weapon, WeaponJudgment result, decimal damage, decimal guard)
         {
             Weapon = weapon; Slot = result.Binding.Slot; Target = result.Source.Note.Attack; StepIndex = result.Binding.StepIndex;
-            AtSeconds = result.Source.JudgedAtSeconds; Damage = damage; Guard = guard; CompletedPattern = completed; Grade = result.Grade;
+            AtSeconds = result.Source.JudgedAtSeconds; Damage = damage; Guard = guard; Action = result.Binding.Action; Grade = result.Grade;
         }
     }
 
     /// <summary>Combat is driven only by judgments. Song time also owns buffs, Overkill and practice.</summary>
     public sealed class WeaponBattle
     {
-        private sealed class Chain { public int Count; public RhythmGrade Grade = RhythmGrade.Perfect; }
         private sealed class GuardCharge { public double Start, End; public decimal Amount; }
-        private readonly Dictionary<(int, string), Chain> chains = new Dictionary<(int, string), Chain>();
         private readonly List<GuardCharge> guards = new List<GuardCharge>();
         private readonly List<WeaponBinding> bindings = new List<WeaponBinding>();
         private readonly Dictionary<ResponseNote, List<WeaponBinding>> subscribers = new Dictionary<ResponseNote, List<WeaponBinding>>();
@@ -108,34 +107,27 @@ namespace BBSB.Core
                 foreach (var attack in plan.Attacks)
                 {
                     if (!placement.Matches(attack)) continue;
-                    for (int i = 0; i < weapon.Pattern.Steps.Count; i++)
+                    int sourceIndex = WeaponArrangement.MatchingStep(attack.Placement.Pattern, weapon, placement.OffsetTick, placement.Kind);
+                    foreach (var note in notes)
                     {
-                        int sourceIndex = WeaponArrangement.MatchingStep(attack.Placement.Pattern, weapon.Pattern.Steps[i], placement.OffsetTick);
-                        foreach (var note in notes)
-                        {
-                            if (note.Attack != attack || note.StepIndex != sourceIndex) continue;
-                            var binding = new WeaponBinding(placement.Slot, i, note); bindings.Add(binding);
-                            if (!subscribers.TryGetValue(note, out var list)) subscribers[note] = list = new List<WeaponBinding>();
-                            list.Add(binding); break;
-                        }
+                        if (note.Attack != attack || note.StepIndex != sourceIndex) continue;
+                        var binding = new WeaponBinding(placement.Slot, weapon.ActionFor(note.Step.Kind), note); bindings.Add(binding);
+                        if (!subscribers.TryGetValue(note, out var list)) subscribers[note] = list = new List<WeaponBinding>();
+                        list.Add(binding); break;
                     }
                 }
             }
             foreach (var list in subscribers.Values)
-                list.Sort((a, b) => EffectOrder(a.Slot) != EffectOrder(b.Slot) ? EffectOrder(a.Slot).CompareTo(EffectOrder(b.Slot)) : a.Slot.CompareTo(b.Slot));
+                list.Sort((a, b) => EffectOrder(a) != EffectOrder(b) ? EffectOrder(a).CompareTo(EffectOrder(b)) : a.Slot.CompareTo(b.Slot));
             if (EnemyHealth.Defeated && !IsPractice) ConfirmVictory(0);
         }
 
         public bool Allows(PlannedAttack attack) => !Victory || overkillAttacks.Contains(attack.Id);
         public bool AllowsEnemyEffect(double seconds) => !Victory || seconds < DefeatedAtSeconds;
 
-        private int EffectOrder(int slot)
-        {
-            var kind = WeaponCatalog.Find(Loadout.Equipment[slot].DefinitionId).Kind;
-            return kind == WeaponKind.Shield ? 0 : kind == WeaponKind.Bell ? 1 : 2;
-        }
+        private static int EffectOrder(WeaponBinding binding) => binding.Action.Guard > 0 ? 0 : binding.Action.GrantsResonance ? 1 : 2;
 
-        internal int JudgmentOrder(ResponseNote note) => subscribers.TryGetValue(note, out var list) ? EffectOrder(list[0].Slot) : 3;
+        internal int JudgmentOrder(ResponseNote note) => subscribers.TryGetValue(note, out var list) ? EffectOrder(list[0]) : 3;
 
         internal void JudgeWeapons(RhythmResult source)
         {
@@ -150,29 +142,25 @@ namespace BBSB.Core
 
         private void JudgeWeapon(WeaponJudgment result)
         {
-            var source = result.Source; var note = source.Note; var binding = result.Binding;
+            var source = result.Source; var binding = result.Binding;
             var state = Loadout.Equipment[binding.Slot]; var weapon = WeaponCatalog.Find(state.DefinitionId);
-            var key = (binding.Slot, note.Attack.Id);
-            if (!chains.TryGetValue(key, out var chain)) chains[key] = chain = new Chain();
-            chain.Count++; chain.Grade = (RhythmGrade)Math.Min((int)chain.Grade, (int)result.Grade);
-            bool complete = chain.Count == weapon.Pattern.Steps.Count && chain.Grade != RhythmGrade.Miss;
+            var action = binding.Action;
             decimal efficiency = (decimal)source.Efficiency;
-            if (weapon.PerfectOnly && result.Grade != RhythmGrade.Perfect) efficiency = 0;
+            if (action.PerfectOnly && result.Grade != RhythmGrade.Perfect) efficiency = 0;
             if (efficiency == 0) { daggerChains[binding.Slot] = 0; return; }
-            decimal damage = weapon.Damage[binding.StepIndex] * efficiency;
-            if (weapon.Kind == WeaponKind.Dagger)
+            decimal damage = action.Damage * efficiency;
+            if (action.BuildsCombo)
             { damage += 2 * Math.Min(3, daggerChains[binding.Slot]) * efficiency; daggerChains[binding.Slot]++; }
-            if (complete && (weapon.Kind != WeaponKind.Greatsword || chain.Grade == RhythmGrade.Perfect))
-                damage += weapon.CompletionBonus * (chain.Grade == RhythmGrade.Perfect ? 1m : .5m);
+            if (result.Grade == RhythmGrade.Perfect) damage += action.PerfectBonus;
             damage *= weapon.LevelMultiplier(state.Level);
-            decimal guard = weapon.Shield * efficiency * weapon.LevelMultiplier(state.Level);
+            decimal guard = action.Guard * efficiency * weapon.LevelMultiplier(state.Level);
             double at = source.JudgedAtSeconds;
             if (damage > 0 && at <= resonanceEnd)
             { damage *= 1 + resonance; resonance = 0; resonanceEnd = double.NegativeInfinity; }
-            if (weapon.Kind == WeaponKind.Bell) { resonance = .5m * efficiency; resonanceEnd = at + 2 * beat; }
+            if (action.GrantsResonance) { resonance = .5m * efficiency; resonanceEnd = at + 2 * beat; }
             if (guard > 0) guards.Add(new GuardCharge { Start = at, End = at + 4 * beat, Amount = guard });
             TotalDamage += damage; EnemyHealth.Damage(damage);
-            activations.Add(new WeaponActivation(weapon, result, damage, guard, complete));
+            activations.Add(new WeaponActivation(weapon, result, damage, guard));
             if (!Victory && EnemyHealth.Defeated && !IsPractice) ConfirmVictory(at);
         }
 

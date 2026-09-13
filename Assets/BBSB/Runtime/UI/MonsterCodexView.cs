@@ -323,9 +323,11 @@ namespace BBSB.Runtime.UI
             {
                 if (text.Length > 0) text.Append('\n');
                 text.Append(Format(demo.DisplayBeat(note.StartSeconds))).Append("박 · ").Append(ActionText(note.Step.Kind));
+                if (note.Step.Kind == GestureKind.Shake)
+                    text.Append(" (전후 ").Append(Format(demo.Round.HalfMissWindow * 1000)).Append("ms 안에 왕복 완료)");
                 if (note.Step.DurationTicks > 0)
                     text.Append(" → ").Append(Format(demo.DisplayBeat(note.EndSeconds))).Append("박 ")
-                        .Append(note.Step.Kind == GestureKind.Dive ? "떼기" : note.Step.Kind == GestureKind.Shake ? "전까지 왕복" : "까지 유지");
+                        .Append(note.Step.Kind == GestureKind.Dive ? "떼기" : "까지 유지");
             }
             if (demo.Attack.Pattern.SilentWaitTicks > 0) text.Append("\nCall 뒤 ").Append(Format(demo.Attack.Pattern.SilentWaitTicks / 4.0)).Append("박 기다리기");
             return text.ToString();
@@ -339,8 +341,7 @@ namespace BBSB.Runtime.UI
                 case PreviewCueKind.Call: return "CALL · " + cue.Call.Label;
                 case PreviewCueKind.Wait: return Format(cue.BeatsUntilResponse) + "박 뒤 · " + ActionText(cue.Note.Step.Kind);
                 case PreviewCueKind.Respond: return "지금! " + ActionText(cue.Note.Step.Kind);
-                case PreviewCueKind.Sustain: return cue.Note.Step.Kind == GestureKind.Shake ? "누른 채 한 번 왕복" :
-                    cue.Note.Step.Kind == GestureKind.Dive ? "숙인 채 유지 → 끝 박에 떼기" : "누른 채 유지";
+                case PreviewCueKind.Sustain: return cue.Note.Step.Kind == GestureKind.Dive ? "숙인 채 유지 → 끝 박에 떼기" : "누른 채 유지";
                 case PreviewCueKind.Release: return "지금 손 떼기!";
                 default: return "회복 · 잠시 뒤 반복";
             }

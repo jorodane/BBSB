@@ -176,15 +176,10 @@ namespace BBSB.Tests
         [Test]
         public void SustainedHazardsUseOneSlotThroughContactAndOneFinalResult()
         {
-            foreach (var id in new[] { "turtle-long-hold", "ray-short-dive", "one-beat-shake" })
+            foreach (var id in new[] { "turtle-long-hold", "ray-short-dive" })
             {
                 var round = Round(id); var note = round.Notes.Single();
                 round.Press(note.StartSeconds, 0, 0);
-                if (note.Step.Kind == GestureKind.Shake)
-                {
-                    round.Move(note.StartSeconds + .04, .1, 0); round.Move(note.StartSeconds + .08, 0, 0);
-                    Near(1, Sample(round, note, round.ElapsedSeconds).ShakeProgress);
-                }
                 double middle = (note.StartSeconds + note.EndSeconds) * .5;
                 round.Advance(middle); Check.Equal(MonsterAttackPhase.Contact, Sample(round, note, middle).Phase);
                 round.Release(note.EndSeconds, 0, 0);
@@ -224,7 +219,8 @@ namespace BBSB.Tests
             for (int tick = 0; tick < 16; tick += 2)
             {
                 slots.Add(new SlotTemplate(GestureKind.Tap, tick)); slots.Add(new SlotTemplate(GestureKind.Flick, tick));
-                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive, GestureKind.Shake })
+                slots.Add(new SlotTemplate(GestureKind.Shake, tick));
+                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
                     foreach (int duration in new[] { 4, 8, 16 }) slots.Add(new SlotTemplate(kind, tick, duration));
             }
             var stage = MusicStage.Generate(new MusicDefinition("attack-tests", "Attack tests", bpm, 8,

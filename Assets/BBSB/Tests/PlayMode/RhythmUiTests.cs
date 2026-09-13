@@ -241,10 +241,13 @@ namespace BBSB.Tests
             var source = root.GetComponentsInChildren<WeaponCardDrag>().Single(x => x.name == "Weapon card 2");
             var pattern = editor.Arrangement.Patterns[editor.SelectedPattern];
             int offset = editor.Arrangement.ValidOffsets(2, pattern).First();
-            var drop = root.GetComponentsInChildren<WeaponPlacementDrop>().First(x => x.Offset == offset);
+            var drop = root.GetComponentsInChildren<WeaponPlacementDrop>().First(x => x.Offset == offset &&
+                WeaponCatalog.Find(run.Weapons[2].DefinitionId).ActionFor(x.Kind) != null);
+            var assignedKind = drop.Kind;
             var data = new PointerEventData(EventSystem.current) { pointerDrag = source.gameObject, position = Vector2.zero };
             source.OnBeginDrag(data); drop.OnDrop(data); source.OnEndDrag(data); yield return null;
             Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
+            Assert.AreEqual(assignedKind, run.BattleLoadout.At(2).Kind);
             Assert.IsFalse(editor.PlaceAt(int.MaxValue)); yield return null;
             Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
             Assert.IsTrue(presenter.StartWeaponPractice(editor.SelectedPattern)); yield return null;
@@ -263,6 +266,8 @@ namespace BBSB.Tests
                 previous.Advance(previous.Plan.Stage.Music.DurationSeconds + 1); yield return null;
                 Assert.AreNotSame(previous, playback.Round); Assert.IsFalse(playback.Round.Finished);
                 Assert.AreSame(playback.Round, presenter.ActiveRound);
+                Assert.AreEqual(assignedKind, playback.Round.Combat.Loadout.At(2).Kind);
+                Assert.IsTrue(playback.Round.Combat.Bindings.Where(x => x.Slot == 2).All(x => x.Action.Kind == assignedKind));
                 Assert.AreSame(arena, root.GetComponentInChildren<BattleArenaView>());
                 CollectionAssert.AreEqual(audioObjects, playback.GetComponentsInChildren<AudioSource>());
                 Assert.IsFalse(root.GetComponentsInChildren<Text>().Any(x => x.text == "연습 결과" || x.text == "연주 결과"));
@@ -282,7 +287,7 @@ namespace BBSB.Tests
             var run = presenter.Session; string ticket = run.StageTicket; int gold = run.Gold;
             RhythmRound round = null;
             // The fixture has two matching spear beats per song; retry until shared HP is depleted.
-            int maxAttempts = (int)System.Math.Ceiling(run.EnemyHealth.Maximum / WeaponCatalog.Find("spear").Damage[0]);
+            int maxAttempts = (int)System.Math.Ceiling(run.EnemyHealth.Maximum / WeaponCatalog.Find("spear").ActionFor(GestureKind.Tap).Damage);
             for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
                 var playback = Begin(); round = playback.Round;

@@ -11,22 +11,23 @@ namespace BBSB.Runtime.UI
         private MonsterPatternDefinition pattern;
         private readonly List<GestureKind> lanes = new List<GestureKind>();
         private PlannedAttack liveAttack;
+        private RhythmRound liveRound;
         private ResponseNote[] liveNotes;
         private float cursorTick = -1;
 
         public void Bind(MonsterPatternDefinition value)
         {
-            pattern = value; lanes.Clear(); liveAttack = null; liveNotes = null; cursorTick = -1;
+            pattern = value; lanes.Clear(); liveAttack = null; liveRound = null; liveNotes = null; cursorTick = -1;
             foreach (var step in pattern.Pattern.Steps) if (!lanes.Contains(step.Kind)) lanes.Add(step.Kind);
             lanes.Sort(); raycastTarget = false; SetVerticesDirty();
         }
 
         public void SetPlayback(RhythmRound round, PlannedAttack attack, double seconds)
         {
-            if (liveAttack != attack)
+            if (liveAttack != attack || liveRound != round)
             {
                 if (attack != null && pattern != attack.Pattern) Bind(attack.Pattern);
-                liveAttack = attack; liveNotes = attack == null ? null : new ResponseNote[pattern.Pattern.Steps.Count];
+                liveAttack = attack; liveRound = round; liveNotes = attack == null ? null : new ResponseNote[pattern.Pattern.Steps.Count];
                 if (attack != null) foreach (var note in round.Notes)
                     if (note.Attack == attack) liveNotes[note.StepIndex] = note;
             }
@@ -68,6 +69,12 @@ namespace BBSB.Runtime.UI
                 var note = liveNotes == null ? null : liveNotes[i];
                 if (note != null && note.State == ResponseState.Resolved) tint = RhythmPlaybackView.GradeColor(note.Result.Grade);
                 else if (note != null && note.State == ResponseState.Holding) tint = RunUI.Gold;
+                if (step.Kind == GestureKind.Shake && liveRound != null)
+                {
+                    float radius = width * (float)(liveRound.HalfMissWindow / liveRound.BeatSeconds * RhythmTime.TicksPerBeat) / total;
+                    var window = tint; window.a = .22f;
+                    Quad(vh, x - radius, y - marker * .7f, radius * 2, marker * 1.4f, window);
+                }
                 if (step.DurationTicks > 0) Quad(vh, x, y - bar * .5f, Mathf.Max(1, end - x), bar, tint);
                 Quad(vh, x - 3, y - marker * .5f, 6, marker, tint);
                 if (step.DurationTicks > 0) Quad(vh, end - 2, y - marker * .4f, 4, marker * .8f,

@@ -558,7 +558,7 @@ namespace BBSB.Runtime
             {
                 var card = ui.Card(body, 16); card.name = "Weapon " + i;
                 ui.Label(card, (i + 1) + "  " + WeaponName(i), 27, RunUI.TextColor, 44);
-                ui.Label(card, WeaponCatalog.Find(Session.Weapons[i].DefinitionId).PatternLabel + "\n" + WeaponCatalog.Find(Session.Weapons[i].DefinitionId).EffectLabel, 22, RunUI.Muted, 100);
+                ui.Label(card, WeaponCatalog.Find(Session.Weapons[i].DefinitionId).ActionLabel + "\n" + WeaponCatalog.Find(Session.Weapons[i].DefinitionId).EffectLabel, 22, RunUI.Muted, 100);
             }
         }
 

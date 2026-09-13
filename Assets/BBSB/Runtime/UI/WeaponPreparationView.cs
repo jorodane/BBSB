@@ -37,7 +37,7 @@ namespace BBSB.Runtime.UI
             var header = ui.Row(page, 48);
             ui.Label(header, "무기 배치 · 연습", 29, RunUI.Gold, 48);
             SmallButton(header, "준비로", close, 130);
-            status = ui.Label(page, "무기를 몬스터 박자에 배치해. 같은 박자에 여러 무기를 놓으면 함께 발동해.", 20, RunUI.Teal, 48);
+            status = ui.Label(page, "무기를 지원하는 행동 칸에 배치해. 같은 박자에 여러 무기를 놓으면 함께 발동해.", 20, RunUI.Teal, 48);
             var selector = ui.Row(page, 48);
             SmallButton(selector, "이전", () => ChangePattern(-1), 90);
             patternName = ui.Label(selector, "", 24, RunUI.TextColor, 48, TextAnchor.MiddleCenter);
@@ -48,7 +48,7 @@ namespace BBSB.Runtime.UI
             RunUI.Overlay(cards, Vector2.zero, new Vector2(.27f, 1), Vector2.zero, new Vector2(-12, 0));
             var right = ui.Stack(main, "Pattern placement", 0, 7);
             RunUI.Overlay(right, new Vector2(.27f, 0), Vector2.one, Vector2.zero, Vector2.zero);
-            detail = ui.Stack(right, "Selected weapon details", 0, 4); RunUI.Size(detail, 96);
+            detail = ui.Stack(right, "Selected weapon details", 0, 4); RunUI.Size(detail, 132);
             grid = ui.Scroll(right);
             var footer = ui.Row(page, 52);
             ui.Button(footer, "자동 배치", () => { loadout.AutoArrange(); status.text = "몬스터 박자에 맞춰 자동 배치했어. 무기별 위치를 확인해줘."; RefreshPanels(); }, height: 52);
@@ -71,17 +71,17 @@ namespace BBSB.Runtime.UI
             selectedSlot = slot; dirty = true;
             if (Current != null) foreach (var drop in grid.GetComponentsInChildren<WeaponPlacementDrop>())
             {
-                bool valid = loadout.CanPlace(slot, Current.MonsterId, Current.Pattern.Id, drop.Offset, out _);
+                bool valid = loadout.CanPlace(slot, Current.MonsterId, Current.Pattern.Id, drop.Offset, out _, drop.Kind);
                 var button = drop.GetComponent<Button>(); button.interactable = valid;
                 button.GetComponent<Image>().color = valid ? RunUI.Hex("365B59") : RunUI.Panel;
-                button.GetComponentInChildren<Text>().text = BeatLabel(drop.Offset) + (valid ? "\n배치" : "\n—");
+                button.GetComponentInChildren<Text>().text = drop.Kind + " " + BeatLabel(drop.Offset) + (valid ? "\n배치" : "\n—");
             }
         }
 
-        public bool PlaceAt(int offset)
+        public bool PlaceAt(int offset, GestureKind? kind = null)
         {
             if (Current == null) return false;
-            bool accepted = loadout.TryPlace(selectedSlot, Current.MonsterId, Current.Pattern.Id, offset, out string reason);
+            bool accepted = loadout.TryPlace(selectedSlot, Current.MonsterId, Current.Pattern.Id, offset, out string reason, kind);
             status.text = accepted ? "배치 완료 · 이 박자의 Response 판정을 배치된 모든 무기가 함께 받아." : reason;
             status.color = accepted ? RunUI.Teal : RunUI.Red; dirty = true; return accepted;
         }
@@ -99,8 +99,8 @@ namespace BBSB.Runtime.UI
                 string where = "미배치";
                 if (placed != null)
                     foreach (var pattern in loadout.Patterns) if (placed.Matches(pattern))
-                    { where = pattern.Monster.Name + " · " + BeatLabel(placed.OffsetTick); break; }
-                var button = ui.Button(cards, (i + 1) + "  " + weapon.Name + " +" + state.Level + "\n" + where,
+                    { where = pattern.Monster.Name + " · " + placed.Kind + " " + BeatLabel(placed.OffsetTick); break; }
+                var button = ui.Button(cards, (i + 1) + "  " + weapon.Name + " +" + state.Level + " · " + weapon.ActionLabel + "\n" + where,
                     () => SelectWeapon(slot), primary: i == selectedSlot, height: 64);
                 button.name = "Weapon card " + slot;
                 var label = button.GetComponentInChildren<Text>(); label.fontSize = 18;
@@ -108,36 +108,41 @@ namespace BBSB.Runtime.UI
                 button.gameObject.AddComponent<WeaponCardDrag>().Bind(this, slot);
             }
             var selected = WeaponCatalog.Find(loadout.Equipment[selectedSlot].DefinitionId);
-            ui.Label(detail, selected.Name + "  ·  " + selected.PatternLabel, 23, RunUI.Gold, 34);
-            ui.Label(detail, selected.EffectLabel + "  강화 배율 ×" + selected.LevelMultiplier(loadout.Equipment[selectedSlot].Level).ToString("0.##"), 20, RunUI.Muted, 56);
+            ui.Label(detail, selected.Name + "  ·  " + selected.ActionLabel, 23, RunUI.Gold, 34);
+            ui.Label(detail, selected.EffectLabel + "  강화 배율 ×" + selected.LevelMultiplier(loadout.Equipment[selectedSlot].Level).ToString("0.##"), 19, RunUI.Muted, 90);
             if (Current == null)
             { patternName.text = "배치할 몬스터 패턴이 없어"; return; }
             patternName.text = (SelectedPattern + 1) + " / " + loadout.Patterns.Count + "   " + Current.Monster.Name + " · " + Current.Pattern.Name;
             ui.Label(grid, "몬스터: " + StepsLabel(Current.Placement.Pattern) + "\n몬스터의 Response만 수행하면 돼. 숫자는 Response 시작부터의 박자야.", 19, RunUI.Muted, 65);
-            // Eight quarter-beat cells per page keep every drop target >= 70 px at 1280x720.
-            int total = Current.Pattern.ResponseTicks + 1, pages = (total + 7) / 8;
+            // Show actual actions instead of empty quarter-beat cells. A coincident Hold and
+            // Shake have separate targets so a two-action weapon can choose which one to answer.
+            var steps = Current.Placement.Pattern.Steps;
+            int total = steps.Count, pages = (total + 5) / 6;
             tickPage = Mathf.Clamp(tickPage, 0, pages - 1);
             var nav = ui.Row(grid, 36);
             SmallButton(nav, "<", () => { tickPage = Math.Max(0, tickPage - 1); RefreshPanels(); }, 60);
-            ui.Label(nav, "배치 위치  " + (tickPage + 1) + " / " + pages, 19, RunUI.Muted, 36, TextAnchor.MiddleCenter);
+            ui.Label(nav, "행동 선택  " + (tickPage + 1) + " / " + pages, 19, RunUI.Muted, 36, TextAnchor.MiddleCenter);
             SmallButton(nav, ">", () => { tickPage = Math.Min(pages - 1, tickPage + 1); RefreshPanels(); }, 60);
-            var row = ui.Row(grid, 66, 5);
-            for (int i = 0; i < 8; i++)
+            var row = ui.Row(grid, 78, 5);
+            for (int i = tickPage * 6; i < Math.Min(total, (tickPage + 1) * 6); i++)
             {
-                int offset = tickPage * 8 + i; if (offset >= total) break;
-                bool valid = loadout.CanPlace(selectedSlot, Current.MonsterId, Current.Pattern.Id, offset, out _);
+                var step = steps[i]; int offset = step.OffsetTick;
+                bool valid = loadout.CanPlace(selectedSlot, Current.MonsterId, Current.Pattern.Id, offset, out _, step.Kind);
                 var placed = loadout.At(selectedSlot);
-                bool active = placed != null && placed.Matches(Current) && placed.OffsetTick == offset;
-                var button = ui.Button(row, BeatLabel(offset) + (active ? "\n배치됨" : valid ? "\n배치" : "\n—"), () => PlaceAt(offset), valid, active, 66);
+                bool active = placed != null && placed.Matches(Current) && placed.OffsetTick == offset && placed.Kind == step.Kind;
+                string label = step.Kind + " " + BeatLabel(offset);
+                if (step.DurationTicks > 0) label += "~" + BeatLabel(offset + step.DurationTicks);
+                var button = ui.Button(row, label + (active ? "\n배치됨" : valid ? "\n배치" : "\n지원 안 함"),
+                    () => PlaceAt(offset, step.Kind), valid, active, 78);
                 button.name = "Weapon drop tick " + offset; var text = button.GetComponentInChildren<Text>();
                 text.fontSize = 18; text.resizeTextForBestFit = true; text.resizeTextMinSize = 14; text.resizeTextMaxSize = 18;
-                button.gameObject.AddComponent<WeaponPlacementDrop>().Bind(this, offset);
+                button.gameObject.AddComponent<WeaponPlacementDrop>().Bind(this, offset, step.Kind);
             }
             foreach (var placed in loadout.Placements)
             {
                 if (!placed.Matches(Current)) continue;
                 var weapon = WeaponCatalog.Find(loadout.Equipment[placed.Slot].DefinitionId);
-                ui.Label(grid, (placed.Slot + 1) + "  " + weapon.Name + "   " + StepsLabel(weapon.Pattern, placed.OffsetTick), 19, RunUI.Teal, 36);
+                ui.Label(grid, (placed.Slot + 1) + "  " + weapon.Name + "   " + placed.Kind + " " + BeatLabel(placed.OffsetTick) + " · " + weapon.ActionFor(placed.Kind).Name, 19, RunUI.Teal, 36);
             }
             Canvas.ForceUpdateCanvases();
         }
@@ -198,8 +203,10 @@ namespace BBSB.Runtime.UI
     {
         private WeaponPreparationView owner; private int offset;
         public int Offset => offset;
-        internal void Bind(WeaponPreparationView owner, int offset) { this.owner = owner; this.offset = offset; }
+        public GestureKind Kind { get; private set; }
+        internal void Bind(WeaponPreparationView owner, int offset, GestureKind kind)
+        { this.owner = owner; this.offset = offset; Kind = kind; }
         public void OnDrop(PointerEventData data)
-        { if (data.pointerDrag != null && data.pointerDrag.GetComponent<WeaponCardDrag>() != null) owner.PlaceAt(offset); }
+        { if (data.pointerDrag != null && data.pointerDrag.GetComponent<WeaponCardDrag>() != null) owner.PlaceAt(offset, Kind); }
     }
 }

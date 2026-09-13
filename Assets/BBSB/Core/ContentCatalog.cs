@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    // Item/economy data; functional weapon patterns and effects live in WeaponCatalog.
+    // Item/economy data; weapon actions and effects live in WeaponCatalog.
     public static class ContentCatalog
     {
         private static readonly ContentDefinition[] definitions = {
@@ -24,7 +24,7 @@ namespace BBSB.Core
         private static ContentDefinition Weapon(string id, string name, int price)
         {
             var weapon = WeaponCatalog.Find(id);
-            return new ContentDefinition(id, name, weapon.PatternLabel + "\n" + weapon.EffectLabel, RewardKind.Weapon, price);
+            return new ContentDefinition(id, name, weapon.ActionLabel + "\n" + weapon.EffectLabel, RewardKind.Weapon, price);
         }
 
         public static ContentDefinition Find(string id)

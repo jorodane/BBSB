@@ -54,10 +54,13 @@ namespace BBSB.Core
             double pulse = Math.Min(.16, BeatSeconds * .32);
             foreach (var note in Round.Notes)
             {
+                if (note.Step.Kind == GestureKind.Shake && seconds >= note.StartSeconds - Round.HalfMissWindow &&
+                    seconds <= note.StartSeconds + Round.HalfMissWindow)
+                    return new PreviewCue(PreviewCueKind.Respond, note);
                 if (note.Step.Touch.End == TouchTransition.Release && note.Step.DurationTicks > 0 &&
                     seconds >= note.EndSeconds && seconds < note.EndSeconds + pulse)
                     return new PreviewCue(PreviewCueKind.Release, note);
-                if (seconds >= note.StartSeconds && seconds < note.StartSeconds + pulse)
+                if (note.Step.Kind != GestureKind.Shake && seconds >= note.StartSeconds && seconds < note.StartSeconds + pulse)
                     return new PreviewCue(PreviewCueKind.Respond, note);
                 if (note.Step.DurationTicks > 0 && seconds >= note.StartSeconds && seconds < note.EndSeconds)
                     return new PreviewCue(PreviewCueKind.Sustain, note, remaining: (note.EndSeconds - seconds) / BeatSeconds);

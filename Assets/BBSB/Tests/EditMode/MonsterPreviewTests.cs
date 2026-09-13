@@ -52,14 +52,43 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void DiveHasAnEndReleaseCueWhileHoldAndShakeKeepTheirOwnInstructions()
+        public void DiveHasAnEndReleaseCueWhileHoldKeepsItsOwnInstructions()
         {
-            foreach (var id in new[] { "ray-deep-dive", "ray-short-dive", "turtle-long-hold", "one-beat-shake" })
+            foreach (var id in new[] { "ray-deep-dive", "ray-short-dive", "turtle-long-hold" })
             {
                 var demo = Demo(id); var note = demo.Round.Notes[0];
                 Check.Equal(PreviewCueKind.Sustain, demo.CueAt((note.StartSeconds + note.EndSeconds) * .5).Kind);
                 var end = demo.CueAt(note.EndSeconds);
                 Check.Equal(note.Step.Kind == GestureKind.Dive ? PreviewCueKind.Release : PreviewCueKind.Rest, end.Kind);
+            }
+        }
+
+        [Test]
+        public void ShakeCueAndJudgmentUseTheSameBinaryTimingWindowAtEveryTempo()
+        {
+            var monster = MonsterCatalog.All.Single(m => m.Id == "bubble-spirit");
+            var pattern = monster.Patterns.Single(p => p.Id == "one-beat-shake");
+            foreach (double bpm in new[] { 60.0, 120.0, 200.0, 240.0 })
+            {
+                var preview = new MonsterPreview(monster, pattern, bpm);
+                var round = preview.Round; var note = round.Notes[0];
+                double at = note.StartSeconds, window = round.HalfMissWindow;
+                Check.Equal(note.StartSeconds, note.EndSeconds);
+                Check.True(preview.CueAt(at - window - .001).Kind != PreviewCueKind.Respond);
+                Check.Equal(PreviewCueKind.Respond, preview.CueAt(at - window + .001).Kind);
+                Check.Equal(PreviewCueKind.Respond, preview.CueAt(at + window - .001).Kind);
+                Check.True(preview.CueAt(at + window + .001).Kind != PreviewCueKind.Respond);
+                round.Press(at - window, 0, 0);
+                round.Move(at - window * .75, .1, 0); round.Move(at - window * .5, 0, 0);
+                Check.Equal(1, round.PerfectCount); Check.Equal(0, round.HalfMissCount);
+                Check.True(note.Result.JudgedAtSeconds >= at - window && note.Result.JudgedAtSeconds <= at + window);
+                var arrival = MonsterAttackTimeline.Evaluate(note, MonsterAttackCatalog.For(note), at,
+                    preview.BeatSeconds, window);
+                Check.Equal(MonsterAttackPhase.Perfect, arrival.Phase);
+                preview.Restart(); round = preview.Round;
+                round.Press(at, 0, 0); round.Move(at + window * .5, .1, 0);
+                round.Advance(at + window + .001);
+                Check.Equal(1, round.MissCount); Check.Equal(0, round.HalfMissCount);
             }
         }
 
@@ -94,7 +123,7 @@ namespace BBSB.Tests
                         if (note.Step.Kind == GestureKind.Shake)
                         { round.Move(at + .04, .08, 0); round.Move(at + .08, 0, 0); }
                         if (note.Step.Kind == GestureKind.Dive) round.Release(note.EndSeconds, 0, 0);
-                        else { round.Advance(note.EndSeconds); round.Release(note.EndSeconds + .001, 0, 0); }
+                        else { round.Advance(Math.Max(round.ElapsedSeconds, note.EndSeconds)); round.Release(round.ElapsedSeconds + .001, 0, 0); }
                     }
                     Check.Equal(1, round.PerfectCount); Check.True(round.Combat == null);
                     demo.Restart(); Check.True(ReferenceEquals(plan, demo.Round.Plan));

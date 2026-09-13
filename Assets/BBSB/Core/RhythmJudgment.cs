@@ -50,6 +50,7 @@ namespace BBSB.Core
         public double ShakeProgress { get; internal set; }
         public bool ShakeCompleted => ShakeProgress >= 1;
         public double ShakeTravelDistance { get; internal set; }
+        internal double ShakeCompletedAt;
         internal RhythmGrade StartGrade;
         internal double StartError;
         internal double OriginX, OriginY;

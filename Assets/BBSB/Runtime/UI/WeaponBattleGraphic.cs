@@ -40,23 +40,23 @@ namespace BBSB.Runtime.UI
                 var point = origin; float rotation = -20 + slot * 10, scale = 1;
                 if (activation != null)
                 {
-                    float p = (float)((seconds - activation.AtSeconds) / WeaponMotion.Duration(weapon.Kind));
-                    var frame = WeaponMotion.Sample(weapon.Kind, new BattlePathPoint(origin.x, origin.y),
+                    float p = (float)((seconds - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion));
+                    var frame = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
                         new BattlePathPoint(targets[slot].x, targets[slot].y), p);
                     point = new Vector2((float)frame.Position.X, (float)frame.Position.Y);
                     rotation = (float)frame.Rotation; scale = (float)frame.Scale;
                     var target = Point(r, targets[slot]);
                     Color glow = Glow; glow.a = 1 - p;
-                    if (weapon.Kind == WeaponKind.Bell)
+                    if (activation.Action.Motion == WeaponAttackStyle.Resonance)
                     {
                         var wave = Vector2.Lerp(Point(r, origin), target, Mathf.Min(1, p / .6f));
                         for (int ring = 0; ring < 3; ring++) Arc(vh, wave, (14 + p * 45 + ring * 9) * unit, 0, 360, 2 * unit, glow);
                     }
-                    else if (weapon.Kind == WeaponKind.Shield)
+                    else if (activation.Action.Motion == WeaponAttackStyle.Guard || activation.Action.Motion == WeaponAttackStyle.Ward)
                         Arc(vh, Point(r, hero), 66 * unit, -70, 140, 5 * unit, RunUI.Teal);
                     else
                     {
-                        var previous = WeaponMotion.Sample(weapon.Kind, new BattlePathPoint(origin.x, origin.y),
+                        var previous = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
                             new BattlePathPoint(targets[slot].x, targets[slot].y), Mathf.Max(0, p - .07f));
                         Line(vh, Point(r, new Vector2((float)previous.Position.X, (float)previous.Position.Y)), Point(r, point), 5 * unit, glow);
                         if (p > .55f && p < .85f)

@@ -532,7 +532,7 @@ namespace BBSB.Tests
         public IEnumerator SustainedPosesRequireInputAndAllCombinedEndingsRespond()
         {
             var round = Round(1, new PatternStep(GestureKind.Hold, 0, 8), new PatternStep(GestureKind.Dive, 0, 8),
-                new PatternStep(GestureKind.Shake, 0, 8), new PatternStep(GestureKind.Flick, 8));
+                new PatternStep(GestureKind.Shake, 0), new PatternStep(GestureKind.Flick, 8));
             var arena = Arena(round); yield return null;
             round.Advance(2); arena.Refresh();
             Assert.AreEqual(1, arena.HeroPortrait.rectTransform.localScale.y, "An automatic Shake window isn't a player action.");
@@ -556,7 +556,8 @@ namespace BBSB.Tests
             Assert.AreEqual(scale, arena.HeroPortrait.rectTransform.localScale, "Pause cannot drop a held pose.");
             round.Resume(true, .1, 0); arena.SetPaused(false); arena.Refresh();
             round.Move(2.94, .1, 0); round.Release(3, .2, 0); arena.Refresh();
-            Assert.AreEqual(4, round.PerfectCount); Assert.AreEqual(4, arena.ActiveResponseEffects);
+            Assert.AreEqual(4, round.PerfectCount); Assert.AreEqual(3, arena.ActiveResponseEffects,
+                "The early Shake response has expired; only the coincident Hold, Dive and Flick endings react now.");
             round.Advance(4); arena.Refresh();
             Assert.AreEqual(1, arena.HeroPortrait.rectTransform.localScale.y);
             Assert.AreEqual(0, arena.ActiveResponseEffects);
@@ -606,7 +607,8 @@ namespace BBSB.Tests
             for (int tick = 0; tick < 16; tick += 2)
             {
                 slots.Add(new SlotTemplate(GestureKind.Tap, tick)); slots.Add(new SlotTemplate(GestureKind.Flick, tick));
-                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive, GestureKind.Shake })
+                slots.Add(new SlotTemplate(GestureKind.Shake, tick));
+                foreach (var kind in new[] { GestureKind.Hold, GestureKind.Dive })
                     foreach (int duration in new[] { 4, 8, 16 }) slots.Add(new SlotTemplate(kind, tick, duration));
             }
             var stage = MusicStage.Generate(new MusicDefinition("arena", "Arena", 120, 4, new[]

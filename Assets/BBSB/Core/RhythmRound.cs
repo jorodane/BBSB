@@ -78,13 +78,11 @@ namespace BBSB.Core
                 if (!CanJudge(note)) continue;
                 if (note.Step.Kind == GestureKind.Shake)
                 {
-                    if (seconds >= note.StartSeconds) note.State = ResponseState.Holding;
-                    if (seconds >= note.EndSeconds)
-                    {
-                        var grade = note.ShakeCompleted ? RhythmGrade.Perfect :
-                            note.ShakeProgress >= .5 ? RhythmGrade.HalfMiss : RhythmGrade.Miss;
-                        due.Add((note, grade, grade == RhythmGrade.Miss ? MissReason.MissingShake : MissReason.None, note.EndSeconds, 0));
-                    }
+                    if (seconds >= note.StartSeconds - HalfMissWindow) note.State = ResponseState.Holding;
+                    if (note.ShakeCompleted)
+                        due.Add((note, RhythmGrade.Perfect, MissReason.None, note.ShakeCompletedAt, note.ShakeCompletedAt - note.StartSeconds));
+                    else if (seconds > note.StartSeconds + HalfMissWindow + 1e-9)
+                        due.Add((note, RhythmGrade.Miss, MissReason.MissingShake, note.StartSeconds + HalfMissWindow, HalfMissWindow));
                 }
                 else if (note.State == ResponseState.Pending && seconds > note.StartSeconds + HalfMissWindow + 1e-9)
                     due.Add((note, RhythmGrade.Miss, MissReason.NoInput, note.StartSeconds + HalfMissWindow, 0));
@@ -172,7 +170,8 @@ namespace BBSB.Core
                 if (note.Step.Kind != GestureKind.Shake || !CanJudge(note) || note.ShakeCompleted) continue;
                 if (!touch.Down || dt > rules.ShakeMaxSampleGapSeconds + 1e-9)
                 { EndShakeContact(note); continue; }
-                double from = Math.Max(touch.SampleSeconds, note.StartSeconds), to = Math.Min(seconds, note.EndSeconds);
+                double from = Math.Max(touch.SampleSeconds, note.StartSeconds - HalfMissWindow);
+                double to = Math.Min(seconds, note.StartSeconds + HalfMissWindow);
                 if (dt <= 0 || to <= from) continue;
                 double a = (from - touch.SampleSeconds) / dt, b = (to - touch.SampleSeconds) / dt;
                 double ax = touch.X + (x - touch.X) * a, ay = touch.Y + (y - touch.Y) * a;
@@ -184,6 +183,7 @@ namespace BBSB.Core
                 if (note.ShakeWentOut && SegmentDistance(note.OriginX, note.OriginY, ax, ay, bx, by) <= rules.ShakeReturnDistance + 1e-9)
                 {
                     note.ShakeProgress = 1;
+                    note.ShakeCompletedAt = from + (to - from) * ReturnFraction(note.OriginX, note.OriginY, ax, ay, bx, by);
                 }
                 else
                 {
@@ -201,6 +201,16 @@ namespace BBSB.Core
             double dx = bx - ax, dy = by - ay, length = dx * dx + dy * dy;
             double t = length <= 0 ? 0 : Math.Max(0, Math.Min(1, ((x - ax) * dx + (y - ay) * dy) / length));
             return RhythmTouch.Distance(x, y, ax + t * dx, ay + t * dy);
+        }
+
+        private double ReturnFraction(double x, double y, double ax, double ay, double bx, double by)
+        {
+            // First entry into the return radius, including a sample which crosses past the origin.
+            double dx = bx - ax, dy = by - ay, ox = ax - x, oy = ay - y;
+            double a = dx * dx + dy * dy, b = 2 * (ox * dx + oy * dy);
+            double c = ox * ox + oy * oy - rules.ShakeReturnDistance * rules.ShakeReturnDistance;
+            if (c <= 0 || a <= 0) return 0;
+            return Math.Max(0, Math.Min(1, (-b - Math.Sqrt(Math.Max(0, b * b - 4 * a * c))) / (2 * a)));
         }
 
         private static void EndShakeContact(ResponseNote note)
@@ -275,7 +285,7 @@ namespace BBSB.Core
             {
                 if (!CanJudge(note)) continue;
                 if (note.State == ResponseState.Holding && note.Step.Kind != GestureKind.Shake) return true;
-                if (note.Step.Kind == GestureKind.Shake && seconds >= note.StartSeconds - HalfMissWindow && seconds < note.EndSeconds)
+                if (note.Step.Kind == GestureKind.Shake && seconds >= note.StartSeconds - HalfMissWindow && seconds <= note.StartSeconds + HalfMissWindow)
                     return true;
                 if (note.Step.Kind == GestureKind.Flick && seconds >= note.StartSeconds - Math.Max(HalfMissWindow, rules.FlickLookbackSeconds) &&
                     seconds <= note.StartSeconds + HalfMissWindow) return true;
