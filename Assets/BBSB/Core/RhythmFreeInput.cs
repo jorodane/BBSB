@@ -56,6 +56,18 @@ namespace BBSB.Core
 
         internal void Consume() { tracking = false; Kind = null; }
 
+        internal void ContinueFrom(RhythmFreeInput previous, double timeOffset)
+        {
+            if (!previous.tracking) return;
+            tracking = true; shook = previous.shook; IsOutward = previous.IsOutward;
+            originX = previous.originX; originY = previous.originY;
+            previousX = previous.previousX; previousY = previous.previousY; travel = previous.travel;
+            Sequence = previous.Sequence; Kind = previous.Kind;
+            PressedAtSeconds = previous.PressedAtSeconds - timeOffset;
+            StartedAtSeconds = previous.StartedAtSeconds - timeOffset;
+            LastMovementSeconds = previous.LastMovementSeconds - timeOffset;
+        }
+
         internal void Resume(bool regrab, double x, double y)
         {
             if (!tracking) return;

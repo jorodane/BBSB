@@ -123,6 +123,14 @@ namespace BBSB.Core
                 new StageHealth(Combat.EnemyHealth.Maximum), Combat.PlayerMaximum, Combat.PlayerMaximum, true));
         }
 
+        // A fresh preview inherits physical contact, never a judged Press or the previous notes.
+        internal void ContinueContactFrom(RhythmRound previous, double timeOffset)
+        {
+            if (!previous.IsDown) return;
+            touch.ContinueFrom(previous.touch, timeOffset);
+            FreeInput.ContinueFrom(previous.FreeInput, timeOffset);
+        }
+
         public void Press(double seconds, double x, double y)
         {
             ValidatePoint(x, y); Advance(seconds);

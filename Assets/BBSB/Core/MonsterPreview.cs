@@ -46,6 +46,13 @@ namespace BBSB.Core
 
         public double LoopSeconds(double elapsed) => Math.Max(0, elapsed) % DurationSeconds;
         public void Restart() { Round = new RhythmRound(Round.Plan); }
+        public void Repeat(double loops = 1)
+        {
+            if (double.IsNaN(loops) || double.IsInfinity(loops) || loops < 1 || loops != Math.Floor(loops))
+                throw new ArgumentOutOfRangeException(nameof(loops));
+            var previous = Round;
+            Restart(); Round.ContinueContactFrom(previous, loops * DurationSeconds);
+        }
         // The first Call is beat 1, including offbeats and silent waits.
         public double DisplayBeat(double seconds) => (seconds - CallSeconds) / BeatSeconds + 1;
 

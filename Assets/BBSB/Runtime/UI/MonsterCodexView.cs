@@ -197,18 +197,19 @@ namespace BBSB.Runtime.UI
             Refresh();
         }
 
-        private bool SampleClock()
+        private void SampleClock()
         {
             double dspNow = AudioSettings.dspTime;
             double clockTime = frozen + Math.Max(0, dspNow - origin);
             elapsed = Math.Max(preview?.Round.ElapsedSeconds ?? 0, clockTime);
-            if (preview == null || elapsed < preview.DurationSeconds) return false;
+            if (preview == null || elapsed < preview.DurationSeconds) return;
             double loops = Math.Floor(elapsed / preview.DurationSeconds);
             double duration = preview.DurationSeconds;
             origin = elapsed <= clockTime ? origin - frozen + loops * duration : dspNow - (elapsed - loops * duration);
             elapsed -= loops * duration; frozen = 0;
-            surface.Cancel(); preview.Restart(); heldAtPause = waitingForContact = false;
-            PracticeRepetitions++; audio?.RepeatLoop(duration, loops); return true;
+            // Keep pointer ownership and rebase the existing contact into the next loop.
+            preview.Repeat(loops); heldAtPause = waitingForContact = false;
+            PracticeRepetitions++; audio?.RepeatLoop(duration, loops);
         }
 
         private void AdvanceInput()
@@ -227,7 +228,7 @@ namespace BBSB.Runtime.UI
             }
             else
             {
-                if (SampleClock()) return;
+                SampleClock();
                 preview.Round.Press(elapsed, point.x, point.y);
             }
             Refresh();
@@ -236,7 +237,7 @@ namespace BBSB.Runtime.UI
         private void PointerUp(Vector2 point)
         {
             if (preview == null || !playing) return;
-            if (SampleClock()) return;
+            SampleClock();
             preview.Round.Release(elapsed, point.x, point.y); Refresh();
         }
 

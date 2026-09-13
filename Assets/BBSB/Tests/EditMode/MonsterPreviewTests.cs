@@ -134,6 +134,81 @@ namespace BBSB.Tests
             }
         }
 
+        [Test]
+        public void AutomaticRepeatKeepsHeldContactAndItsAgeWithoutAnotherPunch()
+        {
+            foreach (double loops in new[] { 1.0, 3.0 })
+            {
+                var demo = Demo("clock-quick-tap"); var previous = demo.Round;
+                double pressed = demo.DurationSeconds - .3;
+                previous.Press(pressed, .4, .6); previous.Move(demo.DurationSeconds - .01, .4, .6);
+                Check.Equal(GestureKind.Hold, previous.FreeInput.Kind.Value);
+                int sequence = previous.FreeInput.Sequence;
+                demo.Repeat(loops); var next = demo.Round;
+                Check.True(next.IsDown); Check.True(next.FreeInput.IsHeld);
+                Check.False(ReferenceEquals(previous.Notes[0], next.Notes[0]));
+                Check.Equal(0, next.Results.Count); Check.Equal(0, next.Calls.Count); Check.Equal(0m, next.TotalDamageTaken);
+                Check.True(next.Notes.All(n => n.State == ResponseState.Pending));
+                Check.Equal(sequence, next.FreeInput.Sequence);
+                next.Move(.01, .4, .6);
+                var motion = new PlayerMotionTimeline(); var frame = motion.Evaluate(next);
+                Check.Equal(PlayerMotionPhase.Sustain, frame.Phase); Check.Equal(GestureKind.Hold, frame.Kind.Value);
+                Check.True(Math.Abs(frame.Age - (loops * demo.DurationSeconds + .01 - pressed)) < 1e-8);
+                Check.Equal(0, motion.PunchSelections);
+                next.Release(.02, .4, .6);
+                Check.False(next.IsDown); Check.False(next.FreeInput.IsHeld);
+                Check.Equal(PlayerMotionPhase.Recover, motion.Evaluate(next).Phase);
+                Check.True(previous.IsDown); Check.Equal(sequence, previous.FreeInput.Sequence);
+                next.Press(.03, .4, .6); Check.True(next.IsDown);
+                demo.Restart(); Check.False(demo.Round.IsDown); Check.True(demo.Round.FreeInput.Kind == null);
+                demo.Repeat(); Check.False(demo.Round.IsDown);
+            }
+        }
+
+        [Test]
+        public void RepeatedHeldContactDoesNotStartTheNextTapHoldOrDive()
+        {
+            foreach (var id in new[] { "clock-quick-tap", "turtle-long-hold", "ray-short-dive" })
+            {
+                var demo = Demo(id); var previous = demo.Round; var oldNote = previous.Notes[0];
+                previous.Press(oldNote.StartSeconds, 0, 0);
+                previous.Advance(oldNote.EndSeconds + previous.HalfMissWindow + .001);
+                Check.True(previous.Results.Count > 0); Check.True(previous.IsDown);
+                demo.Repeat(); var next = demo.Round; var note = next.Notes[0];
+                next.Advance(note.StartSeconds);
+                Check.True(next.IsDown); Check.Equal(ResponseState.Pending, note.State); Check.Equal(0, next.Results.Count);
+                next.Advance(note.StartSeconds + next.HalfMissWindow + .001);
+                Check.Equal(1, next.MissCount); Check.Equal(MissReason.NoInput, note.Result.Reason);
+            }
+        }
+
+        [Test]
+        public void RepeatPreservesMovementForBoundaryReleaseAndTheNextFlickOrShake()
+        {
+            var boundary = Demo("clock-quick-tap"); double end = boundary.DurationSeconds;
+            boundary.Round.Press(end - .08, 0, 0); boundary.Round.Move(end - .02, .1, 0);
+            boundary.Repeat(); boundary.Round.Release(.01, .1, 0);
+            Check.False(boundary.Round.IsDown); Check.Equal(0, boundary.Round.Results.Count);
+            Check.Equal(GestureKind.Flick, boundary.Round.FreeInput.Kind.Value);
+
+            foreach (var id in new[] { "counted-flick", "one-beat-shake" })
+            {
+                var demo = Demo(id);
+                demo.Round.Press(demo.DurationSeconds - .1, .4, .6);
+                demo.Repeat(); var next = demo.Round; double at = next.Notes[0].StartSeconds;
+                Check.True(next.IsDown); Check.Equal(0, next.Results.Count);
+                if (id == "counted-flick")
+                { next.Move(at - .08, .4, .6); next.Move(at - .02, .52, .6); next.Release(at, .6, .6); }
+                else
+                {
+                    double window = next.HalfMissWindow;
+                    next.Move(at - window, .4, .6); next.Move(at - window * .75, .5, .6);
+                    next.Move(at - window * .5, .4, .6);
+                }
+                Check.Equal(1, next.PerfectCount); Check.Equal(0, next.MissCount);
+            }
+        }
+
         private static MonsterPreview Demo(string patternId)
         {
             var monster = MonsterCatalog.All.First(m => m.Patterns.Any(p => p.Id == patternId));

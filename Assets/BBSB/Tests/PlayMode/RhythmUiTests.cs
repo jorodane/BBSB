@@ -351,6 +351,70 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator CodexAutomaticLoopsKeepTheCapturedPointerAndGuardPose()
+        {
+            yield return Prepare(); Click("메뉴"); Click("몬스터 도감"); yield return null;
+            var codex = root.GetComponentInChildren<MonsterCodexView>();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex clock-spirit").onClick.Invoke();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex pattern clock-quick-tap").onClick.Invoke();
+            Click("소리 켜짐"); yield return null;
+            var stage = codex.GetComponentInChildren<MonsterCodexStage>(); var arena = stage.Arena;
+            var surface = stage.GetComponent<RhythmInputSurface>();
+            var monster = MonsterCatalog.All.Single(x => x.Id == "clock-spirit");
+            double duration = new MonsterPreview(monster, monster.Patterns[0]).DurationSeconds;
+            var point = Pointer(19, new Vector2(140, 210));
+            codex.PracticeRound.Advance(duration - .3); surface.OnPointerDown(point);
+            codex.PracticeRound.Move(duration - .01, surface.Position.x, surface.Position.y);
+            int sequence = codex.PracticeRound.FreeInput.Sequence;
+            for (int cycle = 0; cycle < 3; cycle++)
+            {
+                var previous = codex.PracticeRound; previous.Advance(duration); yield return null;
+                Assert.AreNotSame(previous, codex.PracticeRound); Assert.AreSame(arena, stage.Arena);
+                Assert.IsTrue(surface.Captured); Assert.IsTrue(codex.PracticeRound.IsDown);
+                Assert.AreEqual(sequence, codex.PracticeRound.FreeInput.Sequence);
+                Assert.AreEqual(GestureKind.Hold, arena.CurrentHeroMotion.Kind);
+                Assert.AreEqual(PlayerMotionPhase.Sustain, arena.CurrentHeroMotion.Phase);
+                Assert.AreEqual(0, codex.PracticeRound.Results.Count);
+                surface.OnPointerUp(Pointer(20, point.position));
+                Assert.IsTrue(surface.Captured); Assert.IsTrue(codex.PracticeRound.IsDown);
+            }
+            Assert.AreEqual(3, codex.PracticeRepetitions);
+            surface.OnPointerUp(point); Assert.IsFalse(codex.PracticeRound.IsDown);
+            surface.OnPointerDown(point); Assert.IsTrue(codex.PracticeRound.IsDown);
+            Click("다시 보기"); Assert.IsFalse(surface.Captured); Assert.IsFalse(codex.PracticeRound.IsDown);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator CodexProcessesPressAndReleaseOnTheRepeatBoundary()
+        {
+            yield return Prepare(); Click("메뉴"); Click("몬스터 도감"); yield return null;
+            var codex = root.GetComponentInChildren<MonsterCodexView>();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex clock-spirit").onClick.Invoke();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex pattern clock-quick-tap").onClick.Invoke();
+            Click("소리 켜짐"); yield return null;
+            var surface = codex.GetComponentInChildren<MonsterCodexStage>().GetComponent<RhythmInputSurface>();
+            var monster = MonsterCatalog.All.Single(x => x.Id == "clock-spirit");
+            double duration = new MonsterPreview(monster, monster.Patterns[0]).DurationSeconds;
+            var point = Pointer(19, new Vector2(140, 210)); var previous = codex.PracticeRound;
+            previous.Advance(duration); surface.OnPointerDown(point);
+            Assert.AreNotSame(previous, codex.PracticeRound);
+            Assert.IsTrue(surface.Captured); Assert.IsTrue(codex.PracticeRound.IsDown);
+            Assert.AreEqual(1, codex.PracticeRound.FreeInput.Sequence);
+            Assert.AreEqual(GestureKind.Tap, codex.PracticeRound.FreeInput.Kind);
+            Assert.AreEqual(0, codex.PracticeRound.Results.Count);
+            previous = codex.PracticeRound; previous.Advance(duration); surface.OnPointerUp(point);
+            Assert.AreNotSame(previous, codex.PracticeRound);
+            Assert.IsFalse(surface.Captured); Assert.IsFalse(codex.PracticeRound.IsDown);
+            Assert.IsFalse(codex.PracticeRound.FreeInput.IsHeld);
+            Assert.AreEqual(GestureKind.Hold, codex.PracticeRound.FreeInput.Kind);
+            Assert.AreEqual(PlayerMotionPhase.Recover, codex.GetComponentInChildren<MonsterCodexStage>().Arena.CurrentHeroMotion.Phase);
+            Assert.AreEqual(0, codex.PracticeRound.Results.Count);
+            surface.OnPointerDown(point); Assert.IsTrue(codex.PracticeRound.IsDown); surface.OnPointerUp(point);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator CodexPreviewKeepsTheBattlePausedAndPreservesHeldContact()
         {
             yield return Prepare(new RunRules(startingHealth: 10000));

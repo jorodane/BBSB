@@ -16,6 +16,15 @@ namespace BBSB.Core
         public void Press(double time, double x, double y)
         { samples.Clear(); Down = true; Move(time, x, y); }
 
+        internal void ContinueFrom(RhythmTouch previous, double timeOffset)
+        {
+            Down = previous.Down; X = previous.X; Y = previous.Y;
+            SampleSeconds = previous.SampleSeconds - timeOffset;
+            samples.Clear();
+            foreach (var sample in previous.samples)
+                samples.Add((sample.time - timeOffset, sample.x, sample.y));
+        }
+
         public void Move(double time, double x, double y)
         {
             X = x; Y = y; SampleSeconds = time;
