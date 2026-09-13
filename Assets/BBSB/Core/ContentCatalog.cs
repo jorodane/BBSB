@@ -24,7 +24,7 @@ namespace BBSB.Core
         private static ContentDefinition Weapon(string id, string name, int price)
         {
             var weapon = WeaponCatalog.Find(id);
-            return new ContentDefinition(id, name, weapon.ActionLabel + "\n" + weapon.EffectLabel, RewardKind.Weapon, price);
+            return new ContentDefinition(id, name, weapon.ActionLabelAt(0) + "\n" + weapon.EffectLabelAt(0) + "\n" + weapon.ProgressionLabel, RewardKind.Weapon, price);
         }
 
         public static ContentDefinition Find(string id)

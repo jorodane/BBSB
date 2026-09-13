@@ -29,7 +29,7 @@ namespace BBSB.Core
         public MusicStage BattleMusic { get; private set; }
         public BattlePlan BattlePlan { get; private set; }
         public StageHealth EnemyHealth { get; private set; }
-        public WeaponArrangement BattleLoadout { get; private set; }
+        public WeaponLoadout BattleLoadout { get; private set; }
         public RhythmRound ActiveRhythmRound { get; private set; }
         public bool ServiceClaimed => claimedService;
         public IReadOnlyList<WeaponState> Weapons { get; }
@@ -56,7 +56,7 @@ namespace BBSB.Core
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
-            // Five distinct weapons cover each of the five gestures exactly twice.
+            // The five basic actions cover every gesture once, including a damaging Hold response.
             foreach (var id in new[] { "greatsword", "bell", "spear", "blade", "dagger" })
                 weapons.Add(new WeaponState(id));
             CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false;
@@ -84,7 +84,7 @@ namespace BBSB.Core
             {
                 decimal maximum = (160 + (Map.Number - 1) * 50 + CurrentNode.Row * 20) *
                     (CurrentNode.Kind == StageKind.Boss ? 2.5m : CurrentNode.Kind == StageKind.Elite ? 1.5m : 1m);
-                EnemyHealth = new StageHealth(maximum); BattleLoadout = new WeaponArrangement(BattlePlan, Weapons);
+                EnemyHealth = new StageHealth(maximum); BattleLoadout = new WeaponLoadout(BattlePlan, Weapons);
             }
             if (CurrentNode.Kind == StageKind.Shop) GenerateOffers(true);
             return true;

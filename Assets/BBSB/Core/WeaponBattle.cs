@@ -72,7 +72,7 @@ namespace BBSB.Core
         private double beat;
         private int finaleTick = -1;
         private RhythmGrade? finaleGrade;
-        public WeaponArrangement Loadout { get; private set; }
+        public WeaponLoadout Loadout { get; private set; }
         public StageHealth EnemyHealth { get; }
         public bool IsPractice { get; }
         public decimal PlayerHealth { get; private set; }
@@ -88,7 +88,7 @@ namespace BBSB.Core
         public double FinaleAtSeconds { get; private set; } = double.PositiveInfinity;
         public bool FinaleSuccess => finaleGrade.HasValue && finaleGrade.Value != RhythmGrade.Miss;
 
-        public WeaponBattle(WeaponArrangement loadout, StageHealth enemyHealth, decimal playerHealth, decimal playerMaximum, bool practice = false)
+        public WeaponBattle(WeaponLoadout loadout, StageHealth enemyHealth, decimal playerHealth, decimal playerMaximum, bool practice = false)
         {
             Loadout = loadout ?? throw new ArgumentNullException(nameof(loadout));
             EnemyHealth = enemyHealth ?? throw new ArgumentNullException(nameof(enemyHealth));
@@ -101,20 +101,15 @@ namespace BBSB.Core
         {
             if (plan != null) throw new InvalidOperationException("Combat belongs to one performance.");
             plan = battlePlan; beat = 60 / plan.Stage.Music.Bpm; Loadout = Loadout.Snapshot(plan);
-            foreach (var placement in Loadout.Placements)
+            foreach (var note in notes)
             {
-                var weapon = WeaponCatalog.Find(Loadout.Equipment[placement.Slot].DefinitionId);
-                foreach (var attack in plan.Attacks)
+                for (int slot = 0; slot < Loadout.Equipment.Count; slot++)
                 {
-                    if (!placement.Matches(attack)) continue;
-                    int sourceIndex = WeaponArrangement.MatchingStep(attack.Placement.Pattern, weapon, placement.OffsetTick, placement.Kind);
-                    foreach (var note in notes)
-                    {
-                        if (note.Attack != attack || note.StepIndex != sourceIndex) continue;
-                        var binding = new WeaponBinding(placement.Slot, weapon.ActionFor(note.Step.Kind), note); bindings.Add(binding);
-                        if (!subscribers.TryGetValue(note, out var list)) subscribers[note] = list = new List<WeaponBinding>();
-                        list.Add(binding); break;
-                    }
+                    var action = Loadout.ActionFor(slot, note.Step.Kind);
+                    if (action == null) continue;
+                    var binding = new WeaponBinding(slot, action, note); bindings.Add(binding);
+                    if (!subscribers.TryGetValue(note, out var list)) subscribers[note] = list = new List<WeaponBinding>();
+                    list.Add(binding);
                 }
             }
             foreach (var list in subscribers.Values)
@@ -220,7 +215,7 @@ namespace BBSB.Core
     public static class WeaponPractice
     {
         // Keep the authored Call (including silent wait), but rehearse only the selected pattern.
-        public static RhythmRound Create(BattlePlan source, WeaponArrangement loadout, PlannedAttack selected, decimal enemyMaximum, decimal playerMaximum)
+        public static RhythmRound Create(BattlePlan source, WeaponLoadout loadout, PlannedAttack selected, decimal enemyMaximum, decimal playerMaximum)
         {
             if (source == null || loadout == null || selected == null) throw new ArgumentNullException(nameof(source));
             int start = selected.Placement.Pattern.CueLeadTicks + 4;
@@ -230,7 +225,7 @@ namespace BBSB.Core
                 source.Stage.Music.BeatsPerBar, new[] { new MusicSection("PRACTICE", 0, bars, 1) },
                 new[] { new[] { new SlotTemplate(GestureKind.Tap, 0) } });
             var attack = new PlannedAttack(selected.MonsterId, selected.Monster,
-                WeaponArrangement.PlacePattern(selected.Placement.Pattern, start));
+                new PatternPlacement(selected.Placement.Pattern, start, new List<MusicSlot>()));
             var plan = new BattlePlan(MusicStage.Generate(music), new List<MonsterPlan> {
                 new MonsterPlan(selected.MonsterId, selected.Monster, 1, new List<PlannedAttack> { attack }, 0)
             }, new List<PlanWithdrawal>());

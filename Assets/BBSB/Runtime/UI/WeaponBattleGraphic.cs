@@ -78,8 +78,6 @@ namespace BBSB.Runtime.UI
                 }
                 float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale * WeaponSizeMultiplier;
                 DrawWeapon(vh, weapon.Kind, Point(r, point), size, rotation);
-                if (combat.Loadout.At(slot) == null)
-                    Arc(vh, Point(r, point), size * 1.25f, 0, 360, unit, new Color(.6f, .65f, .7f, .25f));
             }
             if (combat.GuardAt(seconds) > 0)
                 Arc(vh, Point(r, hero), 65 * unit, -70, 140, 3 * unit, RunUI.Teal);
@@ -96,7 +94,7 @@ namespace BBSB.Runtime.UI
         }
 
         // Repo-native silhouettes share the concept's black metal, gold rim and pink cores.
-        private static void DrawWeapon(VertexHelper vh, WeaponKind kind, Vector2 p, float size, float rotation)
+        internal static void DrawWeapon(VertexHelper vh, WeaponKind kind, Vector2 p, float size, float rotation)
         {
             float a = rotation * Mathf.Deg2Rad;
             Vector2 up = new Vector2(-Mathf.Sin(a), Mathf.Cos(a)), right = new Vector2(up.y, -up.x);

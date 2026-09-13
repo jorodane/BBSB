@@ -229,28 +229,18 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator WeaponPracticeRepeatsWithoutAReportAndReturnsWithRunStateUnchanged()
+        public IEnumerator PatternPracticeRepeatsWithoutAReportAndReturnsWithRunStateUnchanged()
         {
             yield return Prepare(new RunRules(startingHealth: 10000));
             var run = presenter.Session;
             decimal health = run.Health, enemy = run.EnemyHealth.Current; int gold = run.Gold;
-            presenter.OpenWeaponPreparation(); yield return null; Canvas.ForceUpdateCanvases();
-            var editor = root.GetComponentInChildren<WeaponPreparationView>(); Assert.IsNotNull(editor);
-            Assert.AreEqual(5, root.GetComponentsInChildren<WeaponCardDrag>().Length);
-            editor.SelectWeapon(2); yield return null;
-            var source = root.GetComponentsInChildren<WeaponCardDrag>().Single(x => x.name == "Weapon card 2");
-            var pattern = editor.Arrangement.Patterns[editor.SelectedPattern];
-            int offset = editor.Arrangement.ValidOffsets(2, pattern).First();
-            var drop = root.GetComponentsInChildren<WeaponPlacementDrop>().First(x => x.Offset == offset &&
-                WeaponCatalog.Find(run.Weapons[2].DefinitionId).ActionFor(x.Kind) != null);
-            var assignedKind = drop.Kind;
-            var data = new PointerEventData(EventSystem.current) { pointerDrag = source.gameObject, position = Vector2.zero };
-            source.OnBeginDrag(data); drop.OnDrop(data); source.OnEndDrag(data); yield return null;
-            Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
-            Assert.AreEqual(assignedKind, run.BattleLoadout.At(2).Kind);
-            Assert.IsFalse(editor.PlaceAt(int.MaxValue)); yield return null;
-            Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
-            Assert.IsTrue(presenter.StartWeaponPractice(editor.SelectedPattern)); yield return null;
+            var plan = run.BattlePlan; var loadout = run.BattleLoadout;
+            var equipment = run.Weapons.Select(w => (w.DefinitionId, w.Level)).ToArray();
+            var overview = root.GetComponentInChildren<BattlePreparationView>();
+            int selected = loadout.Patterns.Count - 1; var pattern = loadout.Patterns[selected];
+            overview.RequestPractice(selected); yield return null;
+            Assert.IsNull(presenter.ActiveRound); Assert.IsTrue(overview.HasPracticeConfirmation);
+            overview.ConfirmPractice(); yield return null;
             var playback = root.GetComponentInChildren<RhythmPlayback>(); playback.SetBeatSound(false);
             Assert.IsTrue(playback.Round.Combat.IsPractice); Assert.AreEqual(1, playback.Round.Plan.Attacks.Count);
             Assert.AreEqual(pattern.Placement.Pattern.Steps.Count, playback.Round.Notes.Count);
@@ -266,8 +256,11 @@ namespace BBSB.Tests
                 previous.Advance(previous.Plan.Stage.Music.DurationSeconds + 1); yield return null;
                 Assert.AreNotSame(previous, playback.Round); Assert.IsFalse(playback.Round.Finished);
                 Assert.AreSame(playback.Round, presenter.ActiveRound);
-                Assert.AreEqual(assignedKind, playback.Round.Combat.Loadout.At(2).Kind);
-                Assert.IsTrue(playback.Round.Combat.Bindings.Where(x => x.Slot == 2).All(x => x.Action.Kind == assignedKind));
+                foreach (var note in playback.Round.Notes)
+                {
+                    var expected = Enumerable.Range(0, loadout.Equipment.Count).Where(slot => loadout.ActionFor(slot, note.Step.Kind) != null);
+                    CollectionAssert.AreEqual(expected, playback.Round.Combat.Bindings.Where(x => x.Note == note).Select(x => x.Slot));
+                }
                 Assert.AreSame(arena, root.GetComponentInChildren<BattleArenaView>());
                 CollectionAssert.AreEqual(audioObjects, playback.GetComponentsInChildren<AudioSource>());
                 Assert.IsFalse(root.GetComponentsInChildren<Text>().Any(x => x.text == "연습 결과" || x.text == "연주 결과"));
@@ -275,16 +268,17 @@ namespace BBSB.Tests
             Assert.AreEqual(3, playback.PracticeRepetitions);
             Assert.AreEqual(health, run.Health); Assert.AreEqual(enemy, run.EnemyHealth.Current); Assert.AreEqual(gold, run.Gold);
             Assert.AreEqual(RunPhase.Stage, run.Phase); Assert.AreEqual(0, run.Offers.Count);
-            Click("메뉴"); Click("배치로 돌아가기"); yield return null;
-            Assert.IsNotNull(root.GetComponentInChildren<WeaponPreparationView>());
-            Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
+            Click("메뉴"); Click("패턴 목록으로"); yield return null;
+            Assert.IsNotNull(root.GetComponentInChildren<BattlePreparationView>());
+            Assert.AreSame(plan, run.BattlePlan); Assert.AreSame(loadout, run.BattleLoadout);
+            CollectionAssert.AreEqual(equipment, run.Weapons.Select(w => (w.DefinitionId, w.Level)).ToArray());
         }
 
         [UnityTest]
-        public IEnumerator WeaponPracticeLoopsKeepContactAndProcessBoundaryInputBeforePausing()
+        public IEnumerator PatternPracticeLoopsKeepContactAndProcessBoundaryInputBeforePausing()
         {
-            yield return Prepare(); presenter.OpenWeaponPreparation(); yield return null;
-            Assert.IsTrue(presenter.StartWeaponPractice(0)); yield return null;
+            yield return Prepare(); presenter.OpenPatternPractice(); yield return null;
+            Assert.IsTrue(presenter.StartPatternPractice(0)); yield return null;
             var playback = root.GetComponentInChildren<RhythmPlayback>(); playback.SetBeatSound(false);
             var surface = playback.GetComponent<RhythmInputSurface>();
             var point = Pointer(19, new Vector2(140, 210));
@@ -494,10 +488,10 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator WeaponPracticePauseMenuOpensCodexAndRestoresItsControls()
+        public IEnumerator PatternPracticePauseMenuOpensCodexAndRestoresItsControls()
         {
-            yield return Prepare(); presenter.OpenWeaponPreparation(); yield return null;
-            Assert.IsTrue(presenter.StartWeaponPractice(0)); yield return null;
+            yield return Prepare(); presenter.OpenPatternPractice(); yield return null;
+            Assert.IsTrue(presenter.StartPatternPractice(0)); yield return null;
             var player = root.GetComponentInChildren<RhythmPlayback>(); player.SetBeatSound(false);
             var round = player.Round;
             var overlay = player.GetComponentsInChildren<RectTransform>(true).Single(x => x.name == "Pause overlay");
@@ -512,8 +506,8 @@ namespace BBSB.Tests
             Assert.IsTrue(pauseInput.interactable); Assert.IsTrue(pauseInput.blocksRaycasts);
             Assert.AreSame(round, player.Round); Assert.AreSame(round, presenter.ActiveRound);
             Click("이어하기"); Assert.IsFalse(player.IsPaused);
-            Click("메뉴"); Click("배치로 돌아가기"); yield return null;
-            Assert.IsNotNull(root.GetComponentInChildren<WeaponPreparationView>());
+            Click("메뉴"); Click("패턴 목록으로"); yield return null;
+            Assert.IsNotNull(root.GetComponentInChildren<BattlePreparationView>());
             LogAssert.NoUnexpectedReceived();
         }
 

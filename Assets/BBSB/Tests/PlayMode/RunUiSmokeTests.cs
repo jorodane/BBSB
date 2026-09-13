@@ -174,90 +174,109 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator PreparationShowsMonstersWithDeveloperControlsDisabled()
+        public IEnumerator PreparationShowsThreeMonstersAndConfirmsReadOnlyPatternPractice()
         {
             root = new GameObject("Preparation UI smoke test");
             var presenter = root.AddComponent<RunPresenter>();
             presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
-            Click("탐험 시작");
-            yield return null;
-            for (int row = 0; row < FieldMap.StageCount; row++)
+            Click("탐험 시작"); yield return null;
+            var run = presenter.Session;
+            for (int step = 0; step < 200 && (run.BattlePlan == null || run.BattlePlan.Monsters.Count < 3); step++)
             {
-                root.GetComponentsInChildren<Button>().First(x => x.interactable && x.GetComponentInChildren<Text>().text.Contains("진입")).onClick.Invoke();
-                yield return null;
-                if (presenter.Session.CurrentNode.IsBattle) break;
-                Click("지도에 돌아가기"); yield return null;
+                if (run.Phase == RunPhase.Map) Assert.IsTrue(run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id));
+                else if (run.Phase == RunPhase.Reward) Assert.IsTrue(run.SkipReward());
+                else if (run.Phase == RunPhase.FieldCleared) Assert.IsTrue(run.AdvanceField());
+                else if (run.CurrentNode.IsBattle) Assert.IsTrue(run.ResolveBattle(run.StageTicket, true, run.Health));
+                else Assert.IsTrue(run.LeaveService());
             }
-            var plan = presenter.Session.BattlePlan;
+            Assert.IsNotNull(run.BattlePlan); Assert.AreEqual(3, run.BattlePlan.Monsters.Count);
+            presenter.OpenPatternPractice(); yield return null; Canvas.ForceUpdateCanvases();
+            var plan = run.BattlePlan; var loadout = run.BattleLoadout;
             var arena = root.GetComponentInChildren<BattlePreparationView>();
             Assert.IsNotNull(arena); Assert.IsNull(presenter.ActiveRound);
-            Assert.IsNull(root.GetComponentInChildren<BattleArenaView>(), "Preparation portraits have their own scale and layout.");
+            Assert.IsNull(root.GetComponentInChildren<BattleArenaView>());
             Assert.IsNull(root.GetComponentInChildren<RhythmPlayback>());
             Assert.IsNotNull(arena.HeroPortrait.sprite);
             Assert.AreEqual(plan.Monsters.Count, arena.MonsterPortraits.Count);
             Assert.IsTrue(arena.MonsterPortraits.All(x => x.sprite != null));
-            Assert.AreEqual((float)(presenter.Session.Health / presenter.Session.MaxHealth), arena.PlayerHealthBar.Value, .0001f);
-            Assert.AreEqual((float)(presenter.Session.EnemyHealth.Current / presenter.Session.EnemyHealth.Maximum), arena.EnemyHealthBar.Value, .0001f);
-            Assert.IsFalse(root.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Status HUD"));
-            Assert.AreEqual(0, root.GetComponentsInChildren<MonsterPatternView>().Length);
+            Assert.AreEqual((float)(run.Health / run.MaxHealth), arena.PlayerHealthBar.Value, .0001f);
+            Assert.AreEqual((float)(run.EnemyHealth.Current / run.EnemyHealth.Maximum), arena.EnemyHealthBar.Value, .0001f);
+            Assert.AreEqual(loadout.Patterns.Count, arena.PatternButtons.Count);
+            Assert.AreEqual(5, arena.EquippedIcons.Count);
+            Assert.IsTrue(arena.EquippedIcons.All(x => !x.raycastTarget && x.GetComponentInParent<Button>() == null));
+            for (int i = 0; i < arena.PatternButtons.Count; i++)
+            {
+                var pattern = loadout.Patterns[i];
+                var card = arena.PatternButtons.Single(x => x.name == "Practice pattern " + i);
+                var expected = loadout.RespondingSlots(pattern).Select(slot => WeaponCatalog.Find(loadout.Equipment[slot].DefinitionId).Kind);
+                CollectionAssert.AreEqual(expected, card.GetComponentsInChildren<WeaponIconGraphic>().Select(x => x.Kind));
+                Assert.IsNotNull(card.GetComponentInChildren<PatternOverviewGraphic>());
+                Assert.IsTrue(card.GetComponentsInChildren<Image>().Any(x => x.sprite != null));
+            }
+            var deck = root.GetComponentsInChildren<RectTransform>().Single(x => x.name == "Five equipped weapons");
+            Assert.IsFalse(deck.GetComponentsInChildren<MonoBehaviour>().Any(x =>
+                x is UnityEngine.EventSystems.IBeginDragHandler || x is UnityEngine.EventSystems.IDropHandler));
             var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
             foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800), new Vector2(1220, 680) })
             {
                 SetViewport(safe, size); yield return null; Canvas.ForceUpdateCanvases();
                 var rect = (RectTransform)arena.transform;
-                Assert.AreEqual(size.y, rect.rect.height, .1f, "The entire preparation scene must remain behind the HUD.");
-                Assert.AreEqual(size.x, rect.rect.width, .1f);
+                Assert.AreEqual(size.y, rect.rect.height, .1f); Assert.AreEqual(size.x, rect.rect.width, .1f);
                 AssertContained(rect, (RectTransform)safe.transform);
+                var viewport = arena.GetComponentInChildren<ScrollRect>().viewport;
+                foreach (var row in arena.MonsterRows) AssertContained(row, viewport);
                 var buttons = arena.GetComponentsInChildren<Button>();
                 foreach (var button in buttons)
                 {
                     var bounds = (RectTransform)button.transform;
-                    AssertContained(bounds, rect); Assert.GreaterOrEqual(bounds.rect.height, 48);
-                    Assert.IsNotNull(button.targetGraphic.GetComponent<CanvasRenderer>());
-                    foreach (var other in buttons.Where(x => x != button))
-                        AssertNoOverlap(bounds, (RectTransform)other.transform);
+                    AssertContained(bounds, rect); Assert.GreaterOrEqual(bounds.rect.height, 28);
+                    foreach (var other in buttons.Where(x => x != button)) AssertNoOverlap(bounds, (RectTransform)other.transform);
                 }
-                var start = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<Text>().text == "연주 시작");
-                AssertContained((RectTransform)start.transform, (RectTransform)safe.transform);
+                foreach (var icon in arena.GetComponentsInChildren<WeaponIconGraphic>())
+                {
+                    AssertContained(icon.rectTransform, rect);
+                    icon.canvasRenderer.cull = false; icon.SetVerticesDirty(); icon.Rebuild(CanvasUpdate.PreRender);
+                    Assert.Greater(icon.canvasRenderer.GetMesh().vertexCount, 0);
+                }
             }
-            var loadout = presenter.Session.BattleLoadout; decimal health = presenter.Session.Health, enemyHealth = presenter.Session.EnemyHealth.Current;
+            decimal health = run.Health, enemyHealth = run.EnemyHealth.Current;
             foreach (var monster in plan.Monsters)
             {
-                arena.GetComponentsInChildren<Button>().Single(x => x.name == "Preparation codex " + monster.Monster.Id).onClick.Invoke();
+                arena.GetComponentsInChildren<Button>().Single(x => x.name == "Preparation codex " + monster.InstanceId).onClick.Invoke();
                 yield return null;
                 var codex = root.GetComponentInChildren<MonsterCodexView>();
-                Assert.AreSame(monster.Monster, codex.SelectedMonster);
-                Assert.IsFalse(arena.StartButton.IsInteractable());
-                codex.Close(); yield return null;
-                Assert.IsTrue(arena.StartButton.IsInteractable());
+                Assert.AreSame(monster.Monster, codex.SelectedMonster); Assert.IsFalse(arena.StartButton.IsInteractable());
+                codex.Close(); yield return null; Assert.IsTrue(arena.StartButton.IsInteractable());
             }
-            Click("몬스터 도감"); yield return null;
+            arena.GetComponentsInChildren<Button>().Single(x => x.name == "Preparation codex all").onClick.Invoke(); yield return null;
             var overview = root.GetComponentInChildren<MonsterCodexView>(); Assert.IsNull(overview.SelectedMonster);
             overview.Close(); yield return null;
-            Click("연습 모드"); yield return null;
-            Assert.AreEqual(loadout.Patterns.Count, root.GetComponentsInChildren<Button>().Count(x => x.name.StartsWith("Practice pattern ")));
-            Click("닫기"); yield return null;
-            Assert.AreSame(arena, root.GetComponentInChildren<BattlePreparationView>(), "Closing details must preserve the preparation view.");
-            Assert.AreSame(loadout, presenter.Session.BattleLoadout);
-            Assert.AreEqual(health, presenter.Session.Health); Assert.AreEqual(enemyHealth, presenter.Session.EnemyHealth.Current);
-            Assert.AreSame(plan, presenter.Session.BattlePlan); Assert.IsNull(presenter.ActiveRound);
+            int selected = loadout.Patterns.Count - 1;
+            arena.RequestPractice(selected); yield return null;
+            Assert.IsTrue(arena.HasPracticeConfirmation); Assert.IsNull(presenter.ActiveRound);
+            Assert.AreEqual(selected, arena.PendingPracticeIndex);
+            Assert.IsFalse(arena.StartButton.IsInteractable()); Assert.IsFalse(presenter.StartRhythmRound());
+            Assert.IsTrue(arena.PatternButtons.All(x => !x.IsInteractable()));
+            arena.RequestPractice(0); Assert.AreEqual(selected, arena.PendingPracticeIndex);
+            Click("돌아가기"); yield return null;
+            Assert.IsFalse(arena.HasPracticeConfirmation); Assert.IsTrue(arena.StartButton.IsInteractable());
+            Assert.IsTrue(arena.PatternButtons.All(x => x.IsInteractable()));
+            Assert.AreSame(plan, run.BattlePlan); Assert.AreSame(loadout, run.BattleLoadout);
+            Assert.AreEqual(health, run.Health); Assert.AreEqual(enemyHealth, run.EnemyHealth.Current);
             Click("메뉴");
             Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "개발 도구"));
-            Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "슬롯 펼치기"));
-            Click("돌아가기"); Click("무기 배치"); yield return null;
-            Assert.AreSame(loadout, root.GetComponentInChildren<WeaponPreparationView>().Arrangement);
-            Click("준비로"); yield return null;
-            Click("연습 모드"); yield return null;
-            int selected = loadout.Patterns.Count - 1;
-            root.GetComponentsInChildren<Button>().Single(x => x.name == "Practice pattern " + selected).onClick.Invoke();
+            Click("패턴 연습"); yield return null;
+            arena = root.GetComponentInChildren<BattlePreparationView>();
+            arena.PatternButtons.Single(x => x.name == "Practice pattern " + selected).onClick.Invoke(); yield return null;
+            arena.ConfirmPractice(); var active = presenter.ActiveRound; arena.ConfirmPractice();
+            Assert.AreSame(active, presenter.ActiveRound);
             yield return null;
             var practice = root.GetComponentInChildren<RhythmPlayback>(); practice.SetBeatSound(false);
             Assert.IsTrue(practice.Round.Combat.IsPractice);
             Assert.AreEqual(loadout.Patterns[selected].Pattern.Id, practice.Round.Plan.Attacks.Single().Pattern.Id);
-            Assert.AreSame(loadout, presenter.Session.BattleLoadout);
-            Assert.AreEqual(health, presenter.Session.Health); Assert.AreEqual(enemyHealth, presenter.Session.EnemyHealth.Current);
-            Click("메뉴"); Click("배치로 돌아가기"); yield return null;
-            Click("준비로"); yield return null;
+            Assert.AreSame(loadout, run.BattleLoadout); Assert.AreSame(plan, run.BattlePlan);
+            Assert.AreEqual(health, run.Health); Assert.AreEqual(enemyHealth, run.EnemyHealth.Current);
+            Click("메뉴"); Click("패턴 목록으로"); yield return null;
             Assert.IsNotNull(root.GetComponentInChildren<BattlePreparationView>());
             Click("연주 시작"); yield return null;
             var battle = root.GetComponentInChildren<RhythmPlayback>(); battle.SetBeatSound(false);

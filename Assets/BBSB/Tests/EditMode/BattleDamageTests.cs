@@ -176,10 +176,17 @@ namespace BBSB.Tests
             {
                 if (performance > 0) round = run.StartRhythmRound();
                 Check.True(ReferenceEquals(plan, round.Plan));
-                foreach (double time in round.Notes.Select(x => x.StartSeconds).Distinct())
+                // Rehearse one perfect input, then complete the retry. Automatic weapons may win before song end.
+                var times = round.Notes.Select(x => x.StartSeconds).Distinct();
+                if (performance == 0) times = times.Take(1);
+                foreach (double time in times)
                 { round.Press(time, 0, 0); round.Release(time + .001, 0, 0); }
-                round.Advance(plan.Stage.Music.DurationSeconds + 1);
-                Check.Equal(round.Notes.Count, round.PerfectCount);
+                if (performance > 0)
+                {
+                    round.Advance(plan.Stage.Music.DurationSeconds + 1);
+                    Check.True(round.Combat.Victory); Check.True(round.Finished);
+                }
+                Check.True(round.PerfectCount > 0); Check.Equal(round.Results.Count, round.PerfectCount);
                 Check.Equal(0m, round.TotalDamageTaken); Check.Equal(1m, run.Health);
                 Check.Equal(RunPhase.Stage, run.Phase); Check.False(round.Aborted);
                 Check.True(run.CloseRhythmRound(round)); Check.Equal(1m, run.Health);

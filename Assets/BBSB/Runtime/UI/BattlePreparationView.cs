@@ -6,192 +6,245 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
-    /// <summary>A still versus composition. Opening it never advances the battle clock or changes the loadout.</summary>
+    /// <summary>Read-only monster rhythms and automatic weapon responses, with confirmed pattern practice.</summary>
     public sealed class BattlePreparationView : MonoBehaviour
     {
         public const string ArtRoot = "BBSB/PreparationArt/";
         private RunUI ui;
-        private RectTransform root;
+        private RunSession session;
+        private Action<int> practice;
+        private RectTransform page, viewport, confirmation;
+        private CanvasGroup pageGroup;
+        private readonly MonsterAttackSprites sprites = new MonsterAttackSprites();
         private readonly List<Image> portraits = new List<Image>();
+        private readonly List<RectTransform> monsterRows = new List<RectTransform>();
+        private readonly List<Button> patternButtons = new List<Button>();
+        private readonly List<WeaponIconGraphic> equippedIcons = new List<WeaponIconGraphic>();
+        private float lastHeight = -1;
         public Image HeroPortrait { get; private set; }
         public IReadOnlyList<Image> MonsterPortraits => portraits;
+        public IReadOnlyList<RectTransform> MonsterRows => monsterRows;
+        public IReadOnlyList<Button> PatternButtons => patternButtons;
+        public IReadOnlyList<WeaponIconGraphic> EquippedIcons => equippedIcons;
         public Button StartButton { get; private set; }
         public PreparationGraphic PlayerHealthBar { get; private set; }
         public PreparationGraphic EnemyHealthBar { get; private set; }
-        private static readonly Color Pink = RunUI.Hex("FF397F"), Blue = RunUI.Hex("6C98FF"), Ice = RunUI.Hex("A0D9ED");
+        public int PendingPracticeIndex { get; private set; } = -1;
+        public bool HasPracticeConfirmation => confirmation != null;
 
-        internal void Bind(RunUI ui, RunSession session, Action weapons, Action practice, Action codex, Action menu,
+        internal void Bind(RunUI ui, RunSession session, Action<int> practice, Action codex, Action menu,
             Action start, Action<MonsterDefinition> monsterCodex)
         {
-            this.ui = ui; root = (RectTransform)transform;
-            root.gameObject.AddComponent<RectMask2D>();
-            ui.Background(root, RunUI.Ink);
-            StageScenery.Add(ui, root, session.BattleMusic.Music, "Preparation scenery");
-
-            HeroPortrait = Portrait("Preparation player", Resources.Load<Sprite>(ArtRoot + "player") ?? PlayerIdle(),
-                new Vector2(-.035f, -.18f), new Vector2(.475f, .835f));
-            var weaponsRoot = ui.Rect("Preparation equipped weapons", root); RunUI.Stretch(weaponsRoot);
-            var weaponsArt = weaponsRoot.gameObject.AddComponent<WeaponBattleGraphic>();
-            weaponsArt.WeaponSizeMultiplier = 2.25f;
-            weaponsArt.SetFrame(new WeaponBattle(session.BattleLoadout, new StageHealth(session.EnemyHealth.Maximum),
-                session.Health, session.MaxHealth, true), 0, new Vector2(.23f, -.08f), new Vector2(.23f, .35f));
-            weaponsArt.Refresh();
-
-            int count = session.BattlePlan.Monsters.Count;
-            for (int i = 0; i < count; i++)
-            {
-                var monster = session.BattlePlan.Monsters[i].Monster;
-                var sprite = Resources.Load<Sprite>(ArtRoot + "Monsters/" + monster.Id) ??
-                    Resources.Load<Sprite>(MonsterAttackDefinition.ResourceRoot + monster.Id + "/idle") ??
-                    Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
-                float step = count == 1 ? 0 : .41f / count;
-                var min = count == 1 ? new Vector2(.55f, -.20f) : new Vector2(.57f + i * step, -.08f);
-                var max = count == 1 ? new Vector2(1.055f, .83f) : new Vector2(.57f + i * step + step * 1.40f, .77f - (i % 2) * .055f);
-                portraits.Add(Portrait("Preparation monster " + session.BattlePlan.Monsters[i].InstanceId, sprite, min, max));
-            }
-            var shade = Graphic("Preparation lighting", root, PreparationGraphicKind.Atmosphere, Pink); RunUI.Stretch(shade.rectTransform);
-
-            DrawHeader(session, weapons, practice, codex, menu);
-            var versus = Graphic("Versus brush", root, PreparationGraphicKind.Versus, Pink);
-            RunUI.Pin(versus.rectTransform, new Vector2(.5f, .49f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(290, 236));
-            var v = Label(versus.transform, "V", 114, Pink, new Vector2(.09f, .10f), new Vector2(.58f, .93f));
-            var s = Label(versus.transform, "S", 114, Color.white, new Vector2(.42f, .10f), new Vector2(.91f, .93f));
-            v.fontStyle = s.fontStyle = FontStyle.BoldAndItalic;
-            Shadow(v, RunUI.Hex("621835"), new Vector2(4, -5)); Shadow(s, RunUI.Hex("713AD2"), new Vector2(4, -5));
-
-            StartButton = Button(root, "연주 시작", "START BATTLE", PreparationIcon.Play, RunUI.Gold, start, true);
-            RunUI.Pin((RectTransform)StartButton.transform, new Vector2(.5f, .23f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(352, 100));
-            DrawNames(session, monsterCodex);
+            this.ui = ui; this.session = session; this.practice = practice;
+            var root = (RectTransform)transform;
+            ui.Background(root, RunUI.Ink); StageScenery.Add(ui, root, session.BattleMusic.Music, "Preparation scenery");
+            var shade = ui.Rect("Preparation shade", root); RunUI.Stretch(shade);
+            ui.Background(shade, new Color(.04f, .055f, .09f, .79f));
+            page = ui.Rect("Pattern overview", root); RunUI.Stretch(page, 18);
+            pageGroup = page.gameObject.AddComponent<CanvasGroup>();
+            DrawHeader(codex, menu);
+            var content = ui.Scroll(page);
+            var scroll = content.GetComponentInParent<ScrollRect>(); viewport = scroll.viewport;
+            RunUI.Overlay((RectTransform)scroll.transform, Vector2.zero, Vector2.one, new Vector2(0, 136), new Vector2(0, -98));
+            scroll.GetComponent<Image>().color = Color.clear;
+            content.GetComponent<VerticalLayoutGroup>().spacing = 8;
+            foreach (var monster in session.BattlePlan.Monsters)
+                DrawMonster(content, monster.InstanceId, monster.Monster, monsterCodex);
+            DrawEquipment(start);
+            Canvas.ForceUpdateCanvases(); ReflowRows(); Canvas.ForceUpdateCanvases();
         }
 
-        private void DrawHeader(RunSession session, Action weapons, Action practice, Action codex, Action menu)
+        private void DrawHeader(Action codex, Action menu)
         {
-            var setup = Button(root, "무기 배치", "WEAPON SETUP", PreparationIcon.Weapons, RunUI.Gold, weapons);
-            var rehearse = Button(root, "연습 모드", "PRACTICE", PreparationIcon.Practice, Blue, practice);
-            var book = Button(root, "몬스터 도감", "BESTIARY", PreparationIcon.Book, Ice, codex);
-            var options = Button(root, "메뉴", "MENU", PreparationIcon.Menu, Ice, menu);
-            Top((RectTransform)setup.transform, .012f, .171f, 14, 54);
-            Top((RectTransform)rehearse.transform, .188f, .321f, 14, 54);
-            Top((RectTransform)book.transform, .699f, .874f, 14, 54);
-            Top((RectTransform)options.transform, .892f, .988f, 14, 54);
-
+            var header = ui.Rect("Preparation header", page);
+            RunUI.Overlay(header, new Vector2(0, 1), Vector2.one, new Vector2(0, -92), Vector2.zero);
+            HeroPortrait = Portrait(header, "Weapon master portrait", Resources.Load<Sprite>(ArtRoot + "player") ?? PlayerIdle(), "W");
+            RunUI.Pin((RectTransform)HeroPortrait.transform.parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -2), new Vector2(44, 44));
+            var name = Text(header, "WEAPON MASTER", 20, RunUI.TextColor);
+            Top(name.rectTransform, 0, .26f, 0, 26, 52);
+            var epithet = Text(header, "다섯 현의 조종자", 15, RunUI.Muted);
+            Top(epithet.rectTransform, 0, .26f, 28, 24, 52);
             var music = session.BattleMusic.Music;
-            var stage = Label(root, "STAGE " + (session.CurrentNode.Row + 1).ToString("00"), 23, Pink, Vector2.zero, Vector2.one);
-            Top(stage.rectTransform, .345f, .655f, 18, 28); stage.fontStyle = FontStyle.BoldAndItalic;
-            var song = Label(root, music.Name, 54, Color.white, Vector2.zero, Vector2.one);
-            Top(song.rectTransform, .325f, .675f, 43, 63); Fit(song, 30); song.fontStyle = FontStyle.BoldAndItalic; Shadow(song, RunUI.Ink, new Vector2(2, -3));
-            var bpm = Label(root, music.Bpm.ToString("0.##") + " BPM · " + (StageCatalog.Find(music.Id)?.Meter ?? "4/4"), 31, Color.white, Vector2.zero, Vector2.one);
-            Top(bpm.rectTransform, .37f, .63f, 106, 37); bpm.fontStyle = FontStyle.BoldAndItalic;
-            var caption = Label(root, session.Map.Theme.Genre + "  ·  " + music.DurationSeconds.ToString("0") + "초", 10, RunUI.Muted, Vector2.zero, Vector2.one);
-            Top(caption.rectTransform, .34f, .66f, 151, 18);
-            PlayerHealthBar = Health("Preparation player HP", session.Health, session.MaxHealth, RunUI.Hex("00D9A5"), .012f, .310f, false);
-            EnemyHealthBar = Health("Preparation shared enemy HP", session.EnemyHealth.Current, session.EnemyHealth.Maximum, Pink, .698f, .988f, true);
+            var song = Text(header, music.Name, 29, RunUI.Gold, TextAnchor.MiddleCenter);
+            Top(song.rectTransform, .27f, .75f, 0, 36);
+            var subtitle = Text(header, session.Map.Theme.Genre + "  ·  " + music.Bpm.ToString("0.##") + " BPM  ·  STAGE " +
+                (session.CurrentNode.Row + 1).ToString("00"), 16, RunUI.Muted, TextAnchor.MiddleCenter);
+            Top(subtitle.rectTransform, .27f, .75f, 38, 22);
+            var book = ui.Button(header, "도감", codex, height: 48);
+            book.name = "Preparation codex all";
+            Top((RectTransform)book.transform, .78f, .88f, 2, 46);
+            var options = ui.Button(header, "메뉴", menu, height: 48);
+            Top((RectTransform)options.transform, .90f, 1, 2, 46);
+            PlayerHealthBar = Health(header, "Player", session.Health, session.MaxHealth, 0, .48f, RunUI.Teal);
+            EnemyHealthBar = Health(header, "Enemy", session.EnemyHealth.Current, session.EnemyHealth.Maximum, .52f, 1, RunUI.Red);
         }
 
-        private PreparationGraphic Health(string name, decimal current, decimal maximum, Color tint, float left, float right, bool alignRight)
+        private PreparationGraphic Health(Transform parent, string name, decimal current, decimal maximum, float left, float right, Color tint)
         {
-            var label = Label(root, "HP  " + current.ToString("0.##") + " / " + maximum.ToString("0.##"), 20, Color.white, Vector2.zero, Vector2.one);
-            label.name = name + " text"; label.alignment = alignRight ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft;
-            Top(label.rectTransform, left + .005f, right - .005f, 82, 24);
-            var bar = Graphic(name, root, PreparationGraphicKind.Health, tint, value: maximum > 0 ? (float)(current / maximum) : 0);
-            Top(bar.rectTransform, left, right, 108, 27); return bar;
+            var label = Text(parent, (name == "Player" ? "HP  " : "MONSTER HP  ") + current.ToString("0.##") + " / " + maximum.ToString("0.##"),
+                15, tint, name == "Player" ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
+            Top(label.rectTransform, left, right, 63, 20);
+            var rect = ui.Rect("Preparation " + name + " HP", parent); Top(rect, left, right, 85, 7);
+            var bar = rect.gameObject.AddComponent<PreparationGraphic>();
+            bar.Configure(PreparationGraphicKind.Health, tint, value: maximum > 0 ? (float)(current / maximum) : 0);
+            return bar;
         }
 
-        private void DrawNames(RunSession session, Action<MonsterDefinition> open)
+        private void DrawMonster(RectTransform content, string instanceId, MonsterDefinition monster, Action<MonsterDefinition> codex)
         {
-            var crest = Graphic("Weapon master crest", root, PreparationGraphicKind.Icon, Color.white, PreparationIcon.Crest);
-            RunUI.Pin(crest.rectTransform, new Vector2(.025f, .07f), Vector2.zero, Vector2.zero, new Vector2(42, 55));
-            var name = Label(root, "WEAPON MASTER", 26, Color.white, new Vector2(.078f, .107f), new Vector2(.38f, .153f));
-            name.alignment = TextAnchor.MiddleLeft; name.fontStyle = FontStyle.BoldAndItalic; Fit(name, 20);
-            var title = Label(root, "다섯 현의 조종자", 17, RunUI.TextColor, new Vector2(.078f, .071f), new Vector2(.38f, .106f));
-            title.alignment = TextAnchor.MiddleLeft;
-            int count = session.BattlePlan.Monsters.Count;
-            for (int i = 0; i < count; i++)
+            var row = ui.Rect("Preparation monster " + instanceId, content);
+            RunUI.Size(row, 140); ui.Background(row, new Color(.11f, .14f, .22f, .96f)); monsterRows.Add(row);
+            var portrait = Portrait(row, "Monster icon " + instanceId, MonsterPortrait(monster), monster.Name);
+            RunUI.Pin((RectTransform)portrait.transform.parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(8, -4), new Vector2(28, 28));
+            portraits.Add(portrait);
+            var label = Text(row, monster.Name, 19, RunUI.TextColor); Top(label.rectTransform, 0, .85f, 3, 30, 44);
+            var book = ui.Button(row, "도감", () => codex(monster), height: 28);
+            book.name = "Preparation codex " + instanceId;
+            RunUI.Pin((RectTransform)book.transform, Vector2.one, Vector2.one, new Vector2(-8, -4), new Vector2(56, 28));
+            book.GetComponentInChildren<Text>().fontSize = 14;
+            RunUI.Stretch(book.GetComponentInChildren<Text>().rectTransform, 2);
+            var cards = ui.Rect("Patterns " + instanceId, row);
+            RunUI.Overlay(cards, Vector2.zero, Vector2.one, new Vector2(8, 6), new Vector2(-8, -38));
+            var layout = cards.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 8; layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = true;
+            int count = 0;
+            for (int i = 0; i < session.BattleLoadout.Patterns.Count; i++)
             {
-                var monster = session.BattlePlan.Monsters[i].Monster;
-                float left = .59f + i * .398f / count, right = .59f + (i + 1) * .398f / count;
-                var names = ui.Rect("Preparation name " + monster.Id, root);
-                RunUI.Overlay(names, new Vector2(left, .069f), new Vector2(right, .153f), new Vector2(4, 0), new Vector2(-4, 0));
-                var lookup = Button(names, "도감", "", PreparationIcon.Search, Blue, () => open(monster));
-                lookup.name = "Preparation codex " + monster.Id;
-                RunUI.Pin((RectTransform)lookup.transform, new Vector2(1, .5f), new Vector2(1, .5f), Vector2.zero, new Vector2(44, 52));
-                var text = Label(names, monster.Name, count == 1 ? 25 : 20, Color.white, Vector2.zero, Vector2.one);
-                RunUI.Overlay(text.rectTransform, new Vector2(0, .40f), Vector2.one, Vector2.zero, new Vector2(-52, 0));
-                text.alignment = TextAnchor.MiddleRight; text.fontStyle = FontStyle.Bold; Fit(text, count == 3 ? 13 : 15);
-                var epithet = Label(names, Epithet(monster.Id), count == 1 ? 16 : 13, RunUI.TextColor, Vector2.zero, Vector2.one);
-                RunUI.Overlay(epithet.rectTransform, Vector2.zero, new Vector2(1, .40f), Vector2.zero, new Vector2(-52, 0));
-                epithet.alignment = TextAnchor.MiddleRight; Fit(epithet, 10);
+                var pattern = session.BattleLoadout.Patterns[i];
+                if (pattern.MonsterId != instanceId) continue;
+                DrawPattern(cards, pattern, i); count++;
+            }
+            if (count == 0) Text(cards, "이번 연주에는 공격이 없어.", 17, RunUI.Muted);
+        }
+
+        private void DrawPattern(RectTransform parent, PlannedAttack pattern, int index)
+        {
+            var button = ui.Button(parent, "", () => RequestPractice(index), height: 0);
+            button.name = "Practice pattern " + index; patternButtons.Add(button);
+            var element = button.GetComponent<LayoutElement>(); element.minHeight = element.preferredHeight = 0; element.flexibleHeight = 1;
+            Destroy(button.GetComponentInChildren<Text>().gameObject);
+            var rect = (RectTransform)button.transform;
+            var icon = Portrait(rect, "Pattern icon " + pattern.Pattern.Id,
+                sprites.Get(MonsterCodexView.IconRoot + "Patterns", pattern.Pattern.Id) ?? MonsterPortrait(pattern.Monster), pattern.Pattern.Name);
+            RunUI.Pin((RectTransform)icon.transform.parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(7, -5), new Vector2(27, 27));
+            var title = Text(rect, pattern.Pattern.Name, 17, RunUI.TextColor);
+            Top(title.rectTransform, 0, 1, 3, 20, 41, 7);
+            var graph = ui.Rect("Response rhythm", rect); Top(graph, 0, 1, 25, 12, 41, 7);
+            graph.gameObject.AddComponent<PatternOverviewGraphic>().Bind(pattern.Placement.Pattern);
+            var icons = ui.Rect("Responding weapons", rect);
+            RunUI.Overlay(icons, Vector2.zero, new Vector2(1, .32f), new Vector2(7, 2), new Vector2(-7, -1));
+            var active = session.BattleLoadout.RespondingSlots(pattern);
+            if (active.Count == 0)
+            {
+                var none = Text(icons, "발동 무기 없음", 13, RunUI.Muted); RunUI.Stretch(none.rectTransform); return;
+            }
+            float span = 1f / RunRules.WeaponSlots;
+            for (int i = 0; i < active.Count; i++)
+            {
+                int slot = active[i]; var state = session.BattleLoadout.Equipment[slot];
+                var cell = ui.Rect("Automatic weapon " + slot, icons);
+                RunUI.Overlay(cell, new Vector2(i * span, 0), new Vector2((i + 1) * span, 1), Vector2.zero, Vector2.zero);
+                var weapon = cell.gameObject.AddComponent<WeaponIconGraphic>(); weapon.Bind(WeaponCatalog.Find(state.DefinitionId).Kind);
             }
         }
 
-        private Button Button(Transform parent, string label, string english, PreparationIcon icon, Color tint, Action click, bool start = false)
+        private void DrawEquipment(Action start)
         {
-            var graphic = Graphic("Button " + label, parent, start ? PreparationGraphicKind.Start : PreparationGraphicKind.Glass, tint);
-            graphic.raycastTarget = true;
-            var button = graphic.gameObject.AddComponent<Button>(); button.targetGraphic = graphic;
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            var colors = button.colors; colors.highlightedColor = new Color(1.14f, 1.14f, 1.14f, 1);
-            colors.pressedColor = new Color(.72f, .72f, .72f, 1); colors.fadeDuration = .08f; button.colors = colors;
-            button.onClick.AddListener(() => click());
-            bool compact = icon == PreparationIcon.Search;
-            var text = Label(graphic.transform, label, start ? 32 : compact ? 10 : 22, start ? RunUI.Ink : Color.white,
-                compact ? new Vector2(.05f, .05f) : new Vector2(.28f, .34f), compact ? new Vector2(.95f, .32f) : new Vector2(.95f, .88f));
-            text.fontStyle = FontStyle.Bold; Fit(text, start ? 25 : compact ? 10 : 16);
-            var symbol = Graphic("Button icon", graphic.transform, PreparationGraphicKind.Icon, start ? RunUI.Hex("563410") : Color.white, icon);
-            RunUI.Overlay(symbol.rectTransform, compact ? new Vector2(.16f, .30f) : new Vector2(.065f, .21f),
-                compact ? new Vector2(.84f, .91f) : new Vector2(.245f, .81f), Vector2.zero, Vector2.zero);
-            if (!string.IsNullOrEmpty(english)) Label(graphic.transform, english, start ? 11 : 8, start ? RunUI.Hex("614226") : Color.Lerp(tint, Color.white, .35f),
-                new Vector2(.28f, .13f), new Vector2(.94f, .34f));
-            return button;
+            var footer = ui.Rect("Equipped weapons", page);
+            RunUI.Overlay(footer, Vector2.zero, new Vector2(1, 0), Vector2.zero, new Vector2(0, 126));
+            var hint = Text(footer, "패턴을 누르면 연습할 수 있어.", 16, RunUI.Muted);
+            Top(hint.rectTransform, 0, .78f, 0, 24);
+            var deck = ui.Rect("Five equipped weapons", footer);
+            RunUI.Overlay(deck, Vector2.zero, new Vector2(.79f, 1), Vector2.zero, new Vector2(0, -30));
+            for (int slot = 0; slot < session.Weapons.Count; slot++)
+            {
+                var state = session.Weapons[slot]; var weapon = WeaponCatalog.Find(state.DefinitionId);
+                var cell = ui.Rect("Equipped weapon " + slot, deck);
+                RunUI.Overlay(cell, new Vector2(slot / 5f, 0), new Vector2((slot + 1) / 5f, 1), Vector2.zero, new Vector2(-7, 0));
+                ui.Background(cell, new Color(.11f, .14f, .22f, .96f));
+                var icon = ui.Rect("Weapon icon " + slot, cell);
+                RunUI.Overlay(icon, new Vector2(0, .14f), new Vector2(.29f, .9f), new Vector2(3, 0), Vector2.zero);
+                var graphic = icon.gameObject.AddComponent<WeaponIconGraphic>(); graphic.Bind(weapon.Kind); equippedIcons.Add(graphic);
+                var name = Text(cell, weapon.Name + " +" + state.Level, 17, RunUI.TextColor);
+                RunUI.Overlay(name.rectTransform, new Vector2(.31f, .51f), new Vector2(1, .91f), Vector2.zero, new Vector2(-5, 0));
+                var actions = Text(cell, weapon.ActionLabelAt(state.Level), 14, RunUI.Teal);
+                RunUI.Overlay(actions.rectTransform, new Vector2(.31f, .12f), new Vector2(1, .51f), Vector2.zero, new Vector2(-5, 0));
+            }
+            StartButton = ui.Button(footer, "연주 시작", start, primary: true, height: 84);
+            RunUI.Overlay((RectTransform)StartButton.transform, new Vector2(.81f, 0), new Vector2(1, 1), new Vector2(0, 4), new Vector2(0, -30));
         }
 
-        private PreparationGraphic Graphic(string name, Transform parent, PreparationGraphicKind kind, Color tint,
-            PreparationIcon icon = PreparationIcon.None, float value = 1)
+        public void RequestPractice(int patternIndex)
         {
-            var rect = ui.Rect(name, parent); var graphic = rect.gameObject.AddComponent<PreparationGraphic>();
-            graphic.Configure(kind, tint, icon, value); return graphic;
+            if (HasPracticeConfirmation || patternIndex < 0 || patternIndex >= session.BattleLoadout.Patterns.Count) return;
+            PendingPracticeIndex = patternIndex; pageGroup.interactable = pageGroup.blocksRaycasts = false;
+            confirmation = ui.Rect("Practice confirmation", transform); RunUI.Stretch(confirmation);
+            ui.Background(confirmation, new Color(0, 0, 0, .72f), true);
+            var panel = ui.Rect("Practice confirmation panel", confirmation);
+            RunUI.Overlay(panel, new Vector2(.24f, .30f), new Vector2(.76f, .70f), Vector2.zero, Vector2.zero);
+            ui.Background(panel, RunUI.Panel, true);
+            var pattern = session.BattleLoadout.Patterns[patternIndex];
+            var title = Text(panel, "이 패턴을 연습할까?", 26, RunUI.Gold, TextAnchor.MiddleCenter);
+            RunUI.Overlay(title.rectTransform, new Vector2(.04f, .68f), new Vector2(.96f, .94f), Vector2.zero, Vector2.zero);
+            var name = Text(panel, pattern.Monster.Name + " · " + pattern.Pattern.Name, 20, RunUI.TextColor, TextAnchor.MiddleCenter);
+            RunUI.Overlay(name.rectTransform, new Vector2(.04f, .40f), new Vector2(.96f, .68f), Vector2.zero, Vector2.zero);
+            var cancel = ui.Button(panel, "돌아가기", CancelPractice, height: 52); cancel.name = "Cancel pattern practice";
+            RunUI.Overlay((RectTransform)cancel.transform, new Vector2(.05f, .08f), new Vector2(.47f, .33f), Vector2.zero, Vector2.zero);
+            var accept = ui.Button(panel, "연습 시작", ConfirmPractice, primary: true, height: 52); accept.name = "Confirm pattern practice";
+            RunUI.Overlay((RectTransform)accept.transform, new Vector2(.53f, .08f), new Vector2(.95f, .33f), Vector2.zero, Vector2.zero);
         }
-        private Image Portrait(string name, Sprite sprite, Vector2 min, Vector2 max)
+
+        public void ConfirmPractice()
         {
-            var rect = ui.Rect(name, root); RunUI.Overlay(rect, min, max, Vector2.zero, Vector2.zero);
+            int index = PendingPracticeIndex; if (index < 0) return;
+            CancelPractice(); practice(index);
+        }
+        public void CancelPractice()
+        {
+            PendingPracticeIndex = -1;
+            if (confirmation != null) { confirmation.gameObject.SetActive(false); Destroy(confirmation.gameObject); }
+            confirmation = null;
+            if (pageGroup != null) pageGroup.interactable = pageGroup.blocksRaycasts = true;
+        }
+        private void LateUpdate() { ReflowRows(); }
+        private void ReflowRows()
+        {
+            if (viewport == null || monsterRows.Count == 0 || Mathf.Abs(viewport.rect.height - lastHeight) < .1f) return;
+            lastHeight = viewport.rect.height; int visible = Math.Min(4, monsterRows.Count);
+            float height = Mathf.Clamp((lastHeight - 8 * (visible - 1)) / visible, 104, 148);
+            foreach (var row in monsterRows) RunUI.Size(row, height);
+        }
+        private Text Text(Transform parent, string value, int size, Color tint, TextAnchor align = TextAnchor.MiddleLeft)
+        {
+            var label = ui.Label(parent, value, size, tint, 24, align);
+            label.resizeTextForBestFit = true; label.resizeTextMinSize = Math.Max(11, size - 4); label.resizeTextMaxSize = size;
+            return label;
+        }
+        private static void Top(RectTransform rect, float left, float right, float top, float height, float insetLeft = 0, float insetRight = 0) =>
+            RunUI.Overlay(rect, new Vector2(left, 1), new Vector2(right, 1), new Vector2(insetLeft, -top - height), new Vector2(-insetRight, -top));
+        private Sprite MonsterPortrait(MonsterDefinition monster) => sprites.Get(MonsterCodexView.IconRoot + "Monsters", monster.Id) ??
+            Resources.Load<Sprite>(ArtRoot + "Monsters/" + monster.Id) ??
+            sprites.Get(MonsterAttackDefinition.ResourceRoot + monster.Id, "idle") ?? Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
+        private Image Portrait(Transform parent, string name, Sprite sprite, string fallback)
+        {
+            var frame = ui.Rect(name, parent);
+            var stencil = frame.gameObject.AddComponent<PreparationPortraitMask>(); stencil.raycastTarget = false;
+            frame.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            var rect = ui.Rect("Image", frame); RunUI.Stretch(rect);
             var image = rect.gameObject.AddComponent<Image>(); image.sprite = sprite; image.preserveAspect = true;
-            image.raycastTarget = false; image.enabled = sprite != null; return image;
+            image.raycastTarget = false; image.enabled = sprite != null;
+            if (sprite == null)
+            {
+                var text = Text(frame, fallback, 13, RunUI.Gold, TextAnchor.MiddleCenter); RunUI.Stretch(text.rectTransform);
+            }
+            return image;
         }
-        private Text Label(Transform parent, string text, int size, Color tint, Vector2 min, Vector2 max)
-        {
-            var label = ui.Label(parent, text, size, tint, 40, TextAnchor.MiddleCenter);
-            RunUI.Overlay(label.rectTransform, min, max, Vector2.zero, Vector2.zero); return label;
-        }
-        private static void Top(RectTransform rect, float left, float right, float top, float height) =>
-            RunUI.Overlay(rect, new Vector2(left, 1), new Vector2(right, 1), new Vector2(0, -top - height), new Vector2(0, -top));
-        private static void Fit(Text label, int min)
-        { label.resizeTextForBestFit = true; label.resizeTextMinSize = min; label.resizeTextMaxSize = label.fontSize; }
-        private static void Shadow(Text label, Color tint, Vector2 offset)
-        { var shadow = label.gameObject.AddComponent<Shadow>(); shadow.effectColor = tint; shadow.effectDistance = offset; }
         private static Sprite PlayerIdle()
         {
             foreach (var sprite in Resources.LoadAll<Sprite>(PlayerMotionSprites.ResourcePath + "idle"))
                 if (sprite.name == "idle_0") return sprite;
             return Resources.Load<Sprite>("BBSB/BattleArt/weapon-master");
-        }
-        private static string Epithet(string id)
-        {
-            switch (id)
-            {
-                case "tap-slime": return "젤리 박자의 주인";
-                case "march-slime": return "행진하는 도자기 기사";
-                case "tresillo-bat": return "세 갈래 선율의 무희";
-                case "offbeat-goblin": return "뒷박의 불꽃술사";
-                case "drowsy-slime": return "쉼표를 삼키는 꿈";
-                case "clock-spirit": return "일곱 걸음의 지휘자";
-                case "seesaw-goblin": return "엇박을 당기는 두 꼬리";
-                case "spark-bat": return "번개의 연주자";
-                case "iron-turtle": return "흔들리지 않는 갑각";
-                case "diving-ray": return "박자를 덮는 장막";
-                case "bubble-spirit": return "공명의 우산";
-                case "flick-goblin": return "거미줄의 지배자";
-                default: return "";
-            }
         }
     }
 }

@@ -119,13 +119,13 @@ namespace BBSB.Runtime.UI
             ui.Button(home, "몬스터 도감", codex);
             ui.Button(home, "조작 방법", () => select(help.gameObject));
             soundLabel = ui.Button(home, "음악·Call 소리 끄기", sound).GetComponentInChildren<Text>();
-            ui.Button(home, round.Combat != null && round.Combat.IsPractice ? "배치로 돌아가기" : "준비로 돌아가기", leave);
+            ui.Button(home, round.Combat != null && round.Combat.IsPractice ? "패턴 목록으로" : "준비로 돌아가기", leave);
             counters = ui.Label(details, "", 26, RunUI.Gold, 58);
             if (round.Combat != null)
                 foreach (var state in round.Combat.Loadout.Equipment)
                 {
                     var weapon = WeaponCatalog.Find(state.DefinitionId);
-                    ui.Label(details, weapon.Name + " +" + state.Level + " · " + weapon.ActionLabel + "\n" + weapon.EffectLabel, 22, RunUI.Teal, 94);
+                    ui.Label(details, weapon.Name + " +" + state.Level + " · " + weapon.ActionLabelAt(state.Level) + "\n" + weapon.EffectLabelAt(state.Level), 22, RunUI.Teal, 120);
                 }
             foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(details, ui, round, monster));
             ui.Button(details, "메뉴로 돌아가기", resetMenu);
@@ -229,8 +229,7 @@ namespace BBSB.Runtime.UI
             for (int slot = 0; slot < weaponLabels.Length; slot++)
             {
                 var definition = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
-                var placement = combat.Loadout.At(slot);
-                string state = placement == null ? "미배치" : definition.ActionFor(placement.Kind).Name + " 대기";
+                string state = definition.ActionLabelAt(combat.Loadout.Equipment[slot].Level) + " 대기";
                 Color tint = RunUI.Muted;
                 ResponseNote next = null;
                 foreach (var binding in combat.Bindings)
@@ -242,7 +241,7 @@ namespace BBSB.Runtime.UI
                 if (next != null && seconds >= RhythmTime.Seconds(next.Attack.ResponseStartTick, round.Plan.Stage.Music.Bpm))
                 {
                     state = next.Step.Kind + (next.State == ResponseState.Holding ?
-                        (next.Step.Kind == GestureKind.Shake ? " 한 번 왕복" : " 유지") : " · " + WeaponPreparationView.BeatLabel(next.StartTick - next.Attack.ResponseStartTick));
+                        (next.Step.Kind == GestureKind.Shake ? " 한 번 왕복" : " 유지") : " · " + (1 + (next.StartTick - next.Attack.ResponseStartTick) / 4.0).ToString("0.##") + "박");
                     tint = RunUI.Gold;
                 }
                 for (int i = combat.Activations.Count - 1; i >= 0; i--)

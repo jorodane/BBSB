@@ -36,7 +36,7 @@ namespace BBSB.Core
             var music = new MusicDefinition("codex", pattern.Name, bpm, 4,
                 new[] { new MusicSection("PREVIEW", 0, (total + 15) / 16, 1) },
                 new[] { new[] { new SlotTemplate(GestureKind.Tap, 0) } });
-            var attack = new PlannedAttack("codex/" + monster.Id, monster, WeaponArrangement.PlacePattern(pattern.Pattern, start));
+            var attack = new PlannedAttack("codex/" + monster.Id, monster, new PatternPlacement(pattern.Pattern, start, new List<MusicSlot>()));
             var plan = new BattlePlan(MusicStage.Generate(music), new List<MonsterPlan> {
                 new MonsterPlan(attack.MonsterId, monster, 1, new List<PlannedAttack> { attack }, 0)
             }, new List<PlanWithdrawal>());
