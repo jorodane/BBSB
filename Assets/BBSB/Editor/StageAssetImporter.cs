@@ -20,8 +20,9 @@ namespace BBSB.Editor
         {
             if (!assetPath.StartsWith(Root, StringComparison.Ordinal) || !assetImporter.importSettingsMissing) return;
             var importer = (AudioImporter)assetImporter;
-            importer.forceToMono = false; importer.loadInBackground = false; importer.preloadAudioData = true;
+            importer.forceToMono = false; importer.loadInBackground = false;
             var settings = importer.defaultSampleSettings;
+            settings.preloadAudioData = true;
             settings.loadType = AudioClipLoadType.CompressedInMemory;
             settings.compressionFormat = AudioCompressionFormat.Vorbis; settings.quality = .85f;
             settings.sampleRateSetting = AudioSampleRateSetting.PreserveSampleRate;
