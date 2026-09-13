@@ -5,6 +5,7 @@ using UnityEngine.UI;
 namespace BBSB.Runtime.UI
 {
     /// <summary>Displays supplied art, or a species-specific untextured placeholder in exactly the same slot.</summary>
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class MonsterAttackGraphic : MaskableGraphic
     {
         private MonsterAttackDefinition definition;
