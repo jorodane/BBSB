@@ -67,8 +67,9 @@ namespace BBSB.Tests
             var damageTable = new Dictionary<string, decimal[]> {
                 { "sword", new[] { 12m, 18m, 24m } }, { "shield", new[] { 0m, 8m } }, { "spear", new[] { 20m, 16m, 24m } },
                 { "hammer", new[] { 26m, 36m, 20m } }, { "dagger", new[] { 14m, 5m, 12m } }, { "greatsword", new[] { 26m, 36m, 18m } },
-                { "bell", new[] { 8m, 0m, 8m } }, { "blade", new[] { 16m, 12m, 20m } } };
-            Check.Equal(8, WeaponCatalog.All.Count);
+                { "bell", new[] { 8m, 0m, 8m } }, { "blade", new[] { 16m, 12m, 20m } },
+                { "bow", new[] { 10m, 30m, 18m } }, { "crossbow", new[] { 22m, 12m, 26m } }, { "wand", new[] { 18m, 28m, 12m } } };
+            Check.Equal(11, WeaponCatalog.All.Count);
             foreach (var weapon in WeaponCatalog.All)
             {
                 bool shield = weapon.Kind == WeaponKind.Shield;
@@ -259,6 +260,8 @@ namespace BBSB.Tests
             var plan = Plan(new PatternStep(GestureKind.Hold, 0, 4), new PatternStep(GestureKind.Tap, 8));
             var loadout = Loadout(plan, "shield"); var round = Round(plan, loadout); round.Press(2, 0, 0); round.Release(2.5, 0, 0); round.Advance(3.2);
             Check.Equal(0m, round.TotalDamageTaken); Check.Equal(4m, round.Combat.TotalBlocked); Check.Equal(8m, round.Combat.GuardAt(3.2));
+            // A fully absorbed hit uses a shield effect, never a damage stop or shake.
+            Check.True(!BattleHitFeedback.Player(round, round.Results.Last().JudgedAtSeconds).Active);
             Check.Equal(0m, round.Combat.GuardAt(4.51));
             round.Suspend(); round.Advance(100); Check.Equal(3.2, round.ElapsedSeconds); Check.Equal(8m, round.Combat.GuardAt(round.ElapsedSeconds));
         }

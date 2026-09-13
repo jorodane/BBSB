@@ -57,6 +57,11 @@ namespace BBSB.Runtime.UI
         public static string ResourcePath(string id, WeaponRarity rarity)
         { WeaponCatalog.Find(id); return Root + id + "/" + WeaponRarities.Key(rarity); }
         public static IReadOnlyList<WeaponArtSocket> Sockets(string id, WeaponRarity rarity)
-        { WeaponCatalog.Find(id); return layouts[id + "/" + WeaponRarities.Key(rarity)]; }
+            => Sockets(id, rarity, RangedWeaponPose.Idle);
+        public static IReadOnlyList<WeaponArtSocket> Sockets(string id, WeaponRarity rarity, RangedWeaponPose pose)
+        {
+            if (WeaponCatalog.Find(id).IsRanged) return RangedWeaponArtLayout.Sockets(id, rarity, pose);
+            return layouts[id + "/" + WeaponRarities.Key(rarity)];
+        }
     }
 }

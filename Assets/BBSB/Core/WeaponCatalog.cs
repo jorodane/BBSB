@@ -3,9 +3,10 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    public enum WeaponKind { Sword, Shield, Spear, Hammer, Dagger, Greatsword, Bell, Blade }
+    public enum WeaponKind { Sword, Shield, Spear, Hammer, Dagger, Greatsword, Bell, Blade, Bow, Crossbow, Wand }
     public enum WeaponAttackStyle { Slash, Sweep, Guard, ShieldBash, Thrust, Slam, ChargedSlam,
-        QuickStab, CounterStab, ChargedSlash, RisingSlash, Resonance, Ward, Returning, Spin }
+        QuickStab, CounterStab, ChargedSlash, RisingSlash, Resonance, Ward, Returning, Spin,
+        ArrowShot, ChargedArrow, ArrowVolley, BoltShot, QuickBolt, DodgeBolt, OrbShot, ChargedOrb, MagicPulse }
 
     public sealed class WeaponActionDefinition
     {
@@ -32,6 +33,7 @@ namespace BBSB.Core
         public string Id { get; }
         public string Name => ContentCatalog.Find(Id).Name;
         public WeaponKind Kind { get; }
+        public bool IsRanged => Kind == WeaponKind.Bow || Kind == WeaponKind.Crossbow || Kind == WeaponKind.Wand;
         public IReadOnlyList<WeaponActionDefinition> Actions { get; }
         private readonly IReadOnlyList<WeaponActionDefinition>[] unlocked;
         public string ActionLabel => ActionLabelAt(WeaponRarity.Legendary);
@@ -120,7 +122,19 @@ namespace BBSB.Core
             new WeaponDefinition("blade", WeaponKind.Blade,
                 new WeaponActionDefinition(GestureKind.Flick, "왕복 베기", "왕복 10 + 6 피해를 함께 적용", WeaponAttackStyle.Returning, 16),
                 new WeaponActionDefinition(GestureKind.Shake, "회전 난무", "회전 공격 12 피해", WeaponAttackStyle.Spin, 12),
-                new WeaponActionDefinition(GestureKind.Dive, "회피 베기", "끝 박에 떼면 20 피해", WeaponAttackStyle.Spin, 20))
+                new WeaponActionDefinition(GestureKind.Dive, "회피 베기", "끝 박에 떼면 20 피해", WeaponAttackStyle.Spin, 20)),
+            new WeaponDefinition("bow", WeaponKind.Bow,
+                new WeaponActionDefinition(GestureKind.Tap, "속사", "10 피해", WeaponAttackStyle.ArrowShot, 10),
+                new WeaponActionDefinition(GestureKind.Hold, "당겨 쏘기", "유지 완료 시 30 피해", WeaponAttackStyle.ChargedArrow, 30),
+                new WeaponActionDefinition(GestureKind.Flick, "부채꼴 사격", "세 화살 합계 18 피해", WeaponAttackStyle.ArrowVolley, 18)),
+            new WeaponDefinition("crossbow", WeaponKind.Crossbow,
+                new WeaponActionDefinition(GestureKind.Flick, "강철 볼트", "22 피해", WeaponAttackStyle.BoltShot, 22),
+                new WeaponActionDefinition(GestureKind.Tap, "속사 볼트", "12 피해", WeaponAttackStyle.QuickBolt, 12),
+                new WeaponActionDefinition(GestureKind.Dive, "회피 사격", "끝 박에 떼면 26 피해", WeaponAttackStyle.DodgeBolt, 26)),
+            new WeaponDefinition("wand", WeaponKind.Wand,
+                new WeaponActionDefinition(GestureKind.Shake, "마력탄", "18 피해", WeaponAttackStyle.OrbShot, 18),
+                new WeaponActionDefinition(GestureKind.Hold, "집중 마력탄", "유지 완료 시 28 피해", WeaponAttackStyle.ChargedOrb, 28),
+                new WeaponActionDefinition(GestureKind.Tap, "마력 파동", "12 피해", WeaponAttackStyle.MagicPulse, 12))
         };
         public static IReadOnlyList<WeaponDefinition> All { get; } = Array.AsReadOnly(weapons);
         public static WeaponDefinition Find(string id)

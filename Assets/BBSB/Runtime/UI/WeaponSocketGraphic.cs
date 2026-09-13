@@ -23,6 +23,8 @@ namespace BBSB.Runtime.UI
             for (int i = 0; i < pulses.Length; i++) pulses[i] = 0;
             raycastTarget = false; SetVerticesDirty();
         }
+        internal void SetPose(RangedWeaponPose pose)
+        { layout = WeaponArtLayout.Sockets(definition.Id, rarity, pose); SetVerticesDirty(); }
         internal void SetActivity(WeaponBattle combat, int slot, double seconds)
         {
             for (int i = 0; i < pulses.Length; i++) pulses[i] = 0;

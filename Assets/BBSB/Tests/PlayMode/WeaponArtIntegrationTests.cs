@@ -26,9 +26,15 @@ namespace BBSB.Tests
                 foreach (var rarity in WeaponRarities.All)
                 {
                     var state = new WeaponState(weapon.Id, rarity, 3);
-                    var sprite = Resources.Load<Sprite>(WeaponArtLayout.ResourcePath(weapon.Id, rarity));
+                    var sprite = WeaponSpriteCache.Get(weapon.Id, rarity);
                     Assert.IsNotNull(sprite, weapon.Id + "/" + rarity);
-                    Assert.AreEqual(sprite.texture.width, sprite.rect.width);
+                    if (weapon.IsRanged)
+                    {
+                        var slice = RangedWeaponArtLayout.Slice(weapon.Id, rarity, RangedWeaponPose.Idle);
+                        float expected = (float)(sprite.texture.width * (slice.Right - slice.Left));
+                        Assert.That(sprite.rect.width, Is.InRange(expected - 1, expected + 1));
+                    }
+                    else Assert.AreEqual(sprite.texture.width, sprite.rect.width);
                     Assert.AreEqual(sprite.texture.height, sprite.rect.height);
                     graphic.Bind(state); yield return null; Canvas.ForceUpdateCanvases();
                     Assert.IsTrue(graphic.HasArtwork); Assert.AreEqual(rarity, graphic.Rarity);
@@ -43,6 +49,29 @@ namespace BBSB.Tests
                 }
             }
             finally { Object.DestroyImmediate(canvas); }
+        }
+
+        [UnityTest]
+        public IEnumerator RangedAtlasFramesAndAllTenEffectsImportWithRealAlpha()
+        {
+            foreach (var weapon in WeaponCatalog.All.Where(x => x.IsRanged))
+            foreach (var rarity in WeaponRarities.All)
+            {
+                var idle = WeaponSpriteCache.Get(weapon.Id, rarity, RangedWeaponPose.Idle);
+                var prepare = WeaponSpriteCache.Get(weapon.Id, rarity, RangedWeaponPose.Prepare);
+                var release = WeaponSpriteCache.Get(weapon.Id, rarity, RangedWeaponPose.Release);
+                Assert.IsNotNull(idle); Assert.IsNotNull(prepare); Assert.IsNotNull(release);
+                Assert.AreSame(idle.texture, prepare.texture); Assert.AreSame(idle.texture, release.texture);
+                Assert.AreEqual(idle.rect.xMax, prepare.rect.xMin); Assert.AreEqual(prepare.rect.xMax, release.rect.xMin);
+                Assert.AreEqual(idle.texture.width, release.rect.xMax);
+                AssertTransparent(idle.texture);
+            }
+            foreach (string key in BattleVfxCatalog.Keys)
+            {
+                var sprite = Resources.Load<Sprite>(BattleVfxCatalog.Root + key);
+                Assert.IsNotNull(sprite, key); AssertTransparent(sprite.texture);
+            }
+            yield return null;
         }
 
         private static void AssertTransparent(Texture2D texture)

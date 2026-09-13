@@ -15,11 +15,14 @@ namespace BBSB.Editor
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
             importer.alphaSource = TextureImporterAlphaSource.FromInput; importer.alphaIsTransparency = true;
-            importer.mipmapEnabled = false; importer.maxTextureSize = 512;
+            bool atlas = assetPath.Contains("/bow/") || assetPath.Contains("/crossbow/") || assetPath.Contains("/wand/");
+            int limit = atlas ? 1024 : 512;
+            if (atlas) importer.npotScale = TextureImporterNPOTScale.None;
+            importer.mipmapEnabled = false; importer.maxTextureSize = limit;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             // Preserve the source alpha through platform import.
             var platform = importer.GetDefaultPlatformTextureSettings();
-            platform.format = TextureImporterFormat.RGBA32; platform.maxTextureSize = 512; importer.SetPlatformTextureSettings(platform);
+            platform.format = TextureImporterFormat.RGBA32; platform.maxTextureSize = limit; importer.SetPlatformTextureSettings(platform);
             importer.wrapMode = TextureWrapMode.Clamp; importer.filterMode = FilterMode.Bilinear;
             var settings = new TextureImporterSettings(); importer.ReadTextureSettings(settings);
             settings.spriteMeshType = SpriteMeshType.FullRect; settings.spriteAlignment = (int)SpriteAlignment.Center;
@@ -33,6 +36,6 @@ namespace BBSB.Editor
                 if (pixel.a == 0) { transparent = true; break; }
             if (!transparent) Debug.LogError("Weapon artwork must be a PNG with real alpha transparency: " + assetPath);
         }
-        public override uint GetVersion() => 1;
+        public override uint GetVersion() => 2;
     }
 }

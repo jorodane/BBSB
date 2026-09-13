@@ -34,7 +34,7 @@ namespace BBSB.Tests
                     }
                 }
             }
-            Check.Equal(32, paths.Count);
+            Check.Equal(44, paths.Count);
         }
 
         [Test]

@@ -15,8 +15,13 @@ namespace BBSB.Runtime.UI
     /// <summary>The selected action owns the attack motion; all playback uses song time.</summary>
     public static class WeaponMotion
     {
+        public static bool IsRanged(WeaponAttackStyle style) => (int)style >= (int)WeaponAttackStyle.ArrowShot && (int)style <= (int)WeaponAttackStyle.MagicPulse;
+        public static double ImpactSeconds(WeaponAttackStyle style) => IsRanged(style) ?
+            (style == WeaponAttackStyle.BoltShot || style == WeaponAttackStyle.QuickBolt || style == WeaponAttackStyle.DodgeBolt ? .16 :
+             style == WeaponAttackStyle.OrbShot || style == WeaponAttackStyle.ChargedOrb || style == WeaponAttackStyle.MagicPulse ? .26 : .22) : Duration(style) * .6;
         public static double Duration(WeaponAttackStyle style)
         {
+            if (IsRanged(style)) return ImpactSeconds(style) + .24;
             switch (style)
             {
                 case WeaponAttackStyle.QuickStab: return .34;
@@ -36,6 +41,25 @@ namespace BBSB.Runtime.UI
         public static WeaponMotionFrame Sample(WeaponAttackStyle style, BattlePathPoint from, BattlePathPoint to, double progress)
         {
             double p = Math.Max(0, Math.Min(1, progress));
+            if (IsRanged(style))
+            {
+                double distance, tilt;
+                switch (style)
+                {
+                    case WeaponAttackStyle.ChargedArrow: distance = .024; tilt = 9; break;
+                    case WeaponAttackStyle.ArrowVolley: distance = .016; tilt = -5; break;
+                    case WeaponAttackStyle.BoltShot: distance = .018; tilt = 3; break;
+                    case WeaponAttackStyle.QuickBolt: distance = .009; tilt = 1; break;
+                    case WeaponAttackStyle.DodgeBolt: distance = .015; tilt = -8; break;
+                    case WeaponAttackStyle.OrbShot: distance = .006; tilt = 14; break;
+                    case WeaponAttackStyle.ChargedOrb: distance = .010; tilt = 22; break;
+                    case WeaponAttackStyle.MagicPulse: distance = .004; tilt = -12; break;
+                    default: distance = .012; tilt = 6; break;
+                }
+                double kick = Math.Sin(Math.PI * p) * (1 - p);
+                return new WeaponMotionFrame(new BattlePathPoint(from.X - distance * kick,
+                    from.Y + (style == WeaponAttackStyle.DodgeBolt ? -.018 : .004) * kick), tilt * kick, 1 + distance * kick * 3);
+            }
             if (style == WeaponAttackStyle.Guard)
                 return new WeaponMotionFrame(new BattlePathPoint(from.X + .07 * Math.Sin(Math.PI * p), from.Y), 0, 1 + .6 * Math.Sin(Math.PI * p));
             if (style == WeaponAttackStyle.Ward)

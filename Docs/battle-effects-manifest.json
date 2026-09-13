@@ -1,0 +1,1075 @@
+{
+  "version": 1,
+  "style": "American cartoon; black metal, gold rims, magenta accents",
+  "coordinateOrigin": "bottom-left of each atlas slice",
+  "assets": [
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bow/common.png",
+      "kind": "ranged",
+      "weapon": "bow",
+      "rarity": "common",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.752762,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.714779,
+              "y": 0.53453,
+              "radiusX": 0.037983,
+              "radiusY": 0.042818
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.770718,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.732735,
+              "y": 0.537293,
+              "radiusX": 0.037983,
+              "radiusY": 0.042818
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.747238,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.709945,
+              "y": 0.53384,
+              "radiusX": 0.037293,
+              "radiusY": 0.043508
+            }
+          ]
+        }
+      ],
+      "sha256": "5117315f13d88ae5494e2d0c09573c9ab43018affe9c395ea1ed33669a69496f"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bow/epic.png",
+      "kind": "ranged",
+      "weapon": "bow",
+      "rarity": "epic",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.743094,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.662983,
+              "y": 0.654696,
+              "radiusX": 0.038674,
+              "radiusY": 0.038674
+            },
+            {
+              "x": 0.70442,
+              "y": 0.532459,
+              "radiusX": 0.038674,
+              "radiusY": 0.037983
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.773481,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.688536,
+              "y": 0.654696,
+              "radiusX": 0.037983,
+              "radiusY": 0.038674
+            },
+            {
+              "x": 0.734807,
+              "y": 0.532459,
+              "radiusX": 0.038674,
+              "radiusY": 0.037983
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.698895,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.616713,
+              "y": 0.654696,
+              "radiusX": 0.037983,
+              "radiusY": 0.038674
+            },
+            {
+              "x": 0.660221,
+              "y": 0.532459,
+              "radiusX": 0.038674,
+              "radiusY": 0.037983
+            }
+          ]
+        }
+      ],
+      "sha256": "3db99ca9caa339848a7677816fc2168e341ea7c48b303829387031e06748eb94"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bow/legendary.png",
+      "kind": "ranged",
+      "weapon": "bow",
+      "rarity": "legendary",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.689227,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.622928,
+              "y": 0.685083,
+              "radiusX": 0.030387,
+              "radiusY": 0.03453
+            },
+            {
+              "x": 0.65884,
+              "y": 0.537983,
+              "radiusX": 0.030387,
+              "radiusY": 0.03384
+            },
+            {
+              "x": 0.622928,
+              "y": 0.389503,
+              "radiusX": 0.030387,
+              "radiusY": 0.03453
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.700277,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.629834,
+              "y": 0.685083,
+              "radiusX": 0.030387,
+              "radiusY": 0.03453
+            },
+            {
+              "x": 0.66989,
+              "y": 0.538674,
+              "radiusX": 0.030387,
+              "radiusY": 0.03453
+            },
+            {
+              "x": 0.630525,
+              "y": 0.390193,
+              "radiusX": 0.031077,
+              "radiusY": 0.03384
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.697513,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.630525,
+              "y": 0.685083,
+              "radiusX": 0.031077,
+              "radiusY": 0.03453
+            },
+            {
+              "x": 0.666436,
+              "y": 0.538674,
+              "radiusX": 0.031077,
+              "radiusY": 0.03453
+            },
+            {
+              "x": 0.630525,
+              "y": 0.389503,
+              "radiusX": 0.031077,
+              "radiusY": 0.03453
+            }
+          ]
+        }
+      ],
+      "sha256": "46af4fcd72098189d171545e5c6f250ace3ae1cda09586ae8e3ff98f0c84274f"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/bow/rare.png",
+      "kind": "ranged",
+      "weapon": "bow",
+      "rarity": "rare",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.736188,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.698895,
+              "y": 0.588398,
+              "radiusX": 0.037293,
+              "radiusY": 0.037293
+            },
+            {
+              "x": 0.699586,
+              "y": 0.470304,
+              "radiusX": 0.037983,
+              "radiusY": 0.037983
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.761049,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.723066,
+              "y": 0.588398,
+              "radiusX": 0.037983,
+              "radiusY": 0.037293
+            },
+            {
+              "x": 0.723066,
+              "y": 0.470994,
+              "radiusX": 0.037983,
+              "radiusY": 0.037293
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.733425,
+            0.535
+          ],
+          "sockets": [
+            {
+              "x": 0.694751,
+              "y": 0.588398,
+              "radiusX": 0.038674,
+              "radiusY": 0.037293
+            },
+            {
+              "x": 0.694751,
+              "y": 0.470994,
+              "radiusX": 0.038674,
+              "radiusY": 0.037293
+            }
+          ]
+        }
+      ],
+      "sha256": "0aadf6eb42cf84725742f1cc839e83c38fac6b857d5cf36a59f5f99d242719c3"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/crossbow/common.png",
+      "kind": "ranged",
+      "weapon": "crossbow",
+      "rarity": "common",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.9,
+            0.555
+          ],
+          "sockets": [
+            {
+              "x": 0.424033,
+              "y": 0.53384,
+              "radiusX": 0.051105,
+              "radiusY": 0.050414
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.91,
+            0.579
+          ],
+          "sockets": [
+            {
+              "x": 0.421961,
+              "y": 0.532459,
+              "radiusX": 0.050414,
+              "radiusY": 0.050414
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.895,
+            0.555
+          ],
+          "sockets": [
+            {
+              "x": 0.423343,
+              "y": 0.533149,
+              "radiusX": 0.051796,
+              "radiusY": 0.051105
+            }
+          ]
+        }
+      ],
+      "sha256": "a57cc47182c71b6762f9be7134669eb853b30682c8309a552100d0546d93ecb3"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/crossbow/epic.png",
+      "kind": "ranged",
+      "weapon": "crossbow",
+      "rarity": "epic",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.834,
+            0.551
+          ],
+          "sockets": [
+            {
+              "x": 0.38605,
+              "y": 0.532459,
+              "radiusX": 0.047652,
+              "radiusY": 0.049033
+            },
+            {
+              "x": 0.519337,
+              "y": 0.529696,
+              "radiusX": 0.046961,
+              "radiusY": 0.046271
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.872,
+            0.581
+          ],
+          "sockets": [
+            {
+              "x": 0.417127,
+              "y": 0.531768,
+              "radiusX": 0.048343,
+              "radiusY": 0.049724
+            },
+            {
+              "x": 0.553867,
+              "y": 0.529696,
+              "radiusX": 0.046961,
+              "radiusY": 0.046271
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.828,
+            0.551
+          ],
+          "sockets": [
+            {
+              "x": 0.380525,
+              "y": 0.531077,
+              "radiusX": 0.047652,
+              "radiusY": 0.049033
+            },
+            {
+              "x": 0.514503,
+              "y": 0.530387,
+              "radiusX": 0.046271,
+              "radiusY": 0.046961
+            }
+          ]
+        }
+      ],
+      "sha256": "3d3b836806f41b797cbcd9351913a72f44429f611523018f5cf93826fc7b7cc5"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/crossbow/legendary.png",
+      "kind": "ranged",
+      "weapon": "crossbow",
+      "rarity": "legendary",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3314917127071823
+          ],
+          "muzzle": [
+            0.897,
+            0.55
+          ],
+          "sockets": [
+            {
+              "x": 0.365278,
+              "y": 0.536602,
+              "radiusX": 0.045833,
+              "radiusY": 0.04489
+            },
+            {
+              "x": 0.491667,
+              "y": 0.536602,
+              "radiusX": 0.045833,
+              "radiusY": 0.04489
+            },
+            {
+              "x": 0.618056,
+              "y": 0.536602,
+              "radiusX": 0.045833,
+              "radiusY": 0.04489
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3314917127071823,
+            0.666206261510129
+          ],
+          "muzzle": [
+            0.904,
+            0.568
+          ],
+          "sockets": [
+            {
+              "x": 0.363824,
+              "y": 0.536602,
+              "radiusX": 0.044704,
+              "radiusY": 0.04489
+            },
+            {
+              "x": 0.489684,
+              "y": 0.536602,
+              "radiusX": 0.045392,
+              "radiusY": 0.04489
+            },
+            {
+              "x": 0.614856,
+              "y": 0.536602,
+              "radiusX": 0.045392,
+              "radiusY": 0.04489
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.666206261510129,
+            1
+          ],
+          "muzzle": [
+            0.893,
+            0.551
+          ],
+          "sockets": [
+            {
+              "x": 0.366897,
+              "y": 0.536602,
+              "radiusX": 0.045517,
+              "radiusY": 0.04489
+            },
+            {
+              "x": 0.492414,
+              "y": 0.536602,
+              "radiusX": 0.045517,
+              "radiusY": 0.04489
+            },
+            {
+              "x": 0.618621,
+              "y": 0.536602,
+              "radiusX": 0.044828,
+              "radiusY": 0.04489
+            }
+          ]
+        }
+      ],
+      "sha256": "5ec7b79408f44932e7386c25ace87997f9f0efe42a504e730d6e1dc05465b41b"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/crossbow/rare.png",
+      "kind": "ranged",
+      "weapon": "crossbow",
+      "rarity": "rare",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.895,
+            0.554
+          ],
+          "sockets": [
+            {
+              "x": 0.428177,
+              "y": 0.529696,
+              "radiusX": 0.049724,
+              "radiusY": 0.049033
+            },
+            {
+              "x": 0.614641,
+              "y": 0.529696,
+              "radiusX": 0.049724,
+              "radiusY": 0.049033
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.91,
+            0.577
+          ],
+          "sockets": [
+            {
+              "x": 0.425414,
+              "y": 0.530387,
+              "radiusX": 0.049724,
+              "radiusY": 0.049724
+            },
+            {
+              "x": 0.610497,
+              "y": 0.529696,
+              "radiusX": 0.049724,
+              "radiusY": 0.049033
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.891,
+            0.554
+          ],
+          "sockets": [
+            {
+              "x": 0.425414,
+              "y": 0.529696,
+              "radiusX": 0.049724,
+              "radiusY": 0.049033
+            },
+            {
+              "x": 0.610497,
+              "y": 0.529696,
+              "radiusX": 0.049724,
+              "radiusY": 0.049033
+            }
+          ]
+        }
+      ],
+      "sha256": "4f37397ae7c394db0fb79ea0c66f104ec3561c92e80d5a8ddb82a49f9c457244"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/wand/common.png",
+      "kind": "ranged",
+      "weapon": "wand",
+      "rarity": "common",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.706,
+            0.745
+          ],
+          "sockets": [
+            {
+              "x": 0.330801,
+              "y": 0.40884,
+              "radiusX": 0.047652,
+              "radiusY": 0.048343
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.668,
+            0.74
+          ],
+          "sockets": [
+            {
+              "x": 0.316298,
+              "y": 0.40884,
+              "radiusX": 0.046961,
+              "radiusY": 0.048343
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.772,
+            0.753
+          ],
+          "sockets": [
+            {
+              "x": 0.30663,
+              "y": 0.40884,
+              "radiusX": 0.046961,
+              "radiusY": 0.048343
+            }
+          ]
+        }
+      ],
+      "sha256": "bf0c54f5d11d03cc9b23fea51466028ff329486c25e56b4caf6c16a73844887e"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/wand/epic.png",
+      "kind": "ranged",
+      "weapon": "wand",
+      "rarity": "epic",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.643,
+            0.71
+          ],
+          "sockets": [
+            {
+              "x": 0.495166,
+              "y": 0.561464,
+              "radiusX": 0.032459,
+              "radiusY": 0.032459
+            },
+            {
+              "x": 0.344613,
+              "y": 0.407459,
+              "radiusX": 0.035221,
+              "radiusY": 0.035912
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.62,
+            0.695
+          ],
+          "sockets": [
+            {
+              "x": 0.462707,
+              "y": 0.553867,
+              "radiusX": 0.031768,
+              "radiusY": 0.031768
+            },
+            {
+              "x": 0.31768,
+              "y": 0.402624,
+              "radiusX": 0.03453,
+              "radiusY": 0.035221
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.59,
+            0.7
+          ],
+          "sockets": [
+            {
+              "x": 0.372928,
+              "y": 0.553177,
+              "radiusX": 0.031768,
+              "radiusY": 0.032459
+            },
+            {
+              "x": 0.232735,
+              "y": 0.403315,
+              "radiusX": 0.03384,
+              "radiusY": 0.03453
+            }
+          ]
+        }
+      ],
+      "sha256": "8a02dcf536197205d3694964c8704af52755558d69d9ad218433af2607b3f19a"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/wand/legendary.png",
+      "kind": "ranged",
+      "weapon": "wand",
+      "rarity": "legendary",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.3333333333333333
+          ],
+          "muzzle": [
+            0.683,
+            0.745
+          ],
+          "sockets": [
+            {
+              "x": 0.464088,
+              "y": 0.538674,
+              "radiusX": 0.037293,
+              "radiusY": 0.03453
+            },
+            {
+              "x": 0.361188,
+              "y": 0.441989,
+              "radiusX": 0.037983,
+              "radiusY": 0.037293
+            },
+            {
+              "x": 0.257597,
+              "y": 0.334254,
+              "radiusX": 0.039365,
+              "radiusY": 0.038674
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.3333333333333333,
+            0.6666666666666666
+          ],
+          "muzzle": [
+            0.663,
+            0.735
+          ],
+          "sockets": [
+            {
+              "x": 0.462707,
+              "y": 0.539365,
+              "radiusX": 0.037293,
+              "radiusY": 0.035221
+            },
+            {
+              "x": 0.359807,
+              "y": 0.441989,
+              "radiusX": 0.037983,
+              "radiusY": 0.037293
+            },
+            {
+              "x": 0.254834,
+              "y": 0.334254,
+              "radiusX": 0.039365,
+              "radiusY": 0.038674
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.6666666666666666,
+            1
+          ],
+          "muzzle": [
+            0.704,
+            0.736
+          ],
+          "sockets": [
+            {
+              "x": 0.457182,
+              "y": 0.539365,
+              "radiusX": 0.037293,
+              "radiusY": 0.035221
+            },
+            {
+              "x": 0.352901,
+              "y": 0.441989,
+              "radiusX": 0.037983,
+              "radiusY": 0.037293
+            },
+            {
+              "x": 0.247928,
+              "y": 0.334254,
+              "radiusX": 0.039365,
+              "radiusY": 0.038674
+            }
+          ]
+        }
+      ],
+      "sha256": "0fa46301f8e369ecc56dbdc661e2855970c8a993ddecd0a0bb3c56ea2a320350"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/WeaponArt/wand/rare.png",
+      "kind": "ranged",
+      "weapon": "wand",
+      "rarity": "rare",
+      "frames": [
+        {
+          "pose": "Idle",
+          "slice": [
+            0,
+            0.30478821362799263
+          ],
+          "muzzle": [
+            0.816,
+            0.792
+          ],
+          "sockets": [
+            {
+              "x": 0.536254,
+              "y": 0.538674,
+              "radiusX": 0.05287,
+              "radiusY": 0.046961
+            },
+            {
+              "x": 0.369335,
+              "y": 0.398481,
+              "radiusX": 0.053625,
+              "radiusY": 0.049033
+            }
+          ]
+        },
+        {
+          "pose": "Prepare",
+          "slice": [
+            0.30478821362799263,
+            0.639963167587477
+          ],
+          "muzzle": [
+            0.683,
+            0.766
+          ],
+          "sockets": [
+            {
+              "x": 0.467033,
+              "y": 0.539365,
+              "radiusX": 0.046703,
+              "radiusY": 0.046271
+            },
+            {
+              "x": 0.317308,
+              "y": 0.399171,
+              "radiusX": 0.048077,
+              "radiusY": 0.046961
+            }
+          ]
+        },
+        {
+          "pose": "Release",
+          "slice": [
+            0.639963167587477,
+            1
+          ],
+          "muzzle": [
+            0.759,
+            0.783
+          ],
+          "sockets": [
+            {
+              "x": 0.455882,
+              "y": 0.538674,
+              "radiusX": 0.045396,
+              "radiusY": 0.046961
+            },
+            {
+              "x": 0.316496,
+              "y": 0.399862,
+              "radiusX": 0.045396,
+              "radiusY": 0.047652
+            }
+          ]
+        }
+      ],
+      "sha256": "859bcbdfef20dd65b6485ea5e4bd38e092a5747bad5c8c414aca787f98066734"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/arrow.png",
+      "kind": "vfx",
+      "key": "arrow",
+      "sha256": "ecb5983ddcd1d0291d5c8ba997cd8e5c08cd885005513a77108e4c1c2f62558f"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/bolt.png",
+      "kind": "vfx",
+      "key": "bolt",
+      "sha256": "75ec5e287838372e74ba1e5b3e9b07a2f2865f77fe835a3549a9bb932bd44483"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/dodge.png",
+      "kind": "vfx",
+      "key": "dodge",
+      "sha256": "8ca8f07a903fcbccac3b005d16b0c88d2f1c724b2d53da986d887dcaa68f4bca"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/impact.png",
+      "kind": "vfx",
+      "key": "impact",
+      "sha256": "466d3746a2d5e003a6707a9391acaf3924c7d41b14ae30afd1a1ab87bc3ba2a1"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/muzzle.png",
+      "kind": "vfx",
+      "key": "muzzle",
+      "sha256": "276915b28b46a427e509e3c56e1d30a2682df25aeae5d9a7d192665b9af7a313"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/orb.png",
+      "kind": "vfx",
+      "key": "orb",
+      "sha256": "9e64cbd30a9ee9ad51b4ae919fafa05d399afd671c28c2518998b32080d44d9e"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/parry.png",
+      "kind": "vfx",
+      "key": "parry",
+      "sha256": "21704f6c244c8184dacd378b4db45d122de35de4f1c008b7e991228fe4b71951"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/pierce.png",
+      "kind": "vfx",
+      "key": "pierce",
+      "sha256": "0b52fffdc39f6a017ad8afd1a5f4532c0840cac7f9858fca918ce7761593d2b9"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/ring.png",
+      "kind": "vfx",
+      "key": "ring",
+      "sha256": "1d2a9a40344f736c65d83a64c5270d8f251e5c1a4a6e3daf78a94927b84f2142"
+    },
+    {
+      "file": "Assets/BBSB/Resources/BBSB/BattleVfx/slash.png",
+      "kind": "vfx",
+      "key": "slash",
+      "sha256": "bf2cf5d28aa5d84c5949390ab8a93c8da293b85a82c2c4414449a457c9d857c2"
+    }
+  ]
+}

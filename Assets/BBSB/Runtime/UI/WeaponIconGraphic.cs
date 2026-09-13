@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using BBSB.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,11 +7,12 @@ namespace BBSB.Runtime.UI
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class WeaponIconGraphic : MaskableGraphic
     {
-        private static readonly Dictionary<string, Sprite> sprites = new Dictionary<string, Sprite>();
+        private string definitionId;
         private Sprite artwork;
         private WeaponSocketGraphic sockets;
         public WeaponKind Kind { get; private set; }
         public WeaponRarity Rarity { get; private set; }
+        public RangedWeaponPose Pose { get; private set; }
         public bool HasArtwork => artwork != null;
         public override Texture mainTexture => artwork != null ? artwork.texture : base.mainTexture;
 
@@ -24,10 +24,9 @@ namespace BBSB.Runtime.UI
         public void Bind(WeaponState state)
         {
             var definition = WeaponCatalog.Find(state.DefinitionId);
-            string path = WeaponArtLayout.ResourcePath(state.DefinitionId, state.Rarity);
-            if (!sprites.TryGetValue(path, out var sprite) || sprite == null)
-            { sprite = Resources.Load<Sprite>(path); if (sprite != null) sprites[path] = sprite; }
-            Kind = definition.Kind; Rarity = state.Rarity; artwork = sprite; raycastTarget = false;
+            definitionId = state.DefinitionId; Pose = RangedWeaponPose.Idle;
+            Kind = definition.Kind; Rarity = state.Rarity;
+            artwork = WeaponSpriteCache.Get(definitionId, Rarity); raycastTarget = false;
             if (sockets == null)
             {
                 var child = new GameObject("Action sockets", typeof(RectTransform), typeof(CanvasRenderer));
@@ -39,6 +38,12 @@ namespace BBSB.Runtime.UI
             }
             sockets.Bind(this, definition, state.Rarity);
             SetAllDirty();
+        }
+        internal void SetPose(RangedWeaponPose pose)
+        {
+            if (Pose == pose) return;
+            Pose = pose; artwork = WeaponSpriteCache.Get(definitionId, Rarity, pose);
+            sockets.SetPose(pose); SetAllDirty();
         }
         internal void SetActivity(WeaponBattle combat, int slot, double seconds)
         { if (sockets != null) sockets.SetActivity(combat, slot, seconds); }

@@ -1,4 +1,5 @@
 using BBSB.Core;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,22 +10,53 @@ namespace BBSB.Runtime.UI
     {
         private WeaponBattle combat;
         private double seconds;
+        private double beatSeconds = .5;
+        private IReadOnlyDictionary<string, Vector2> targetPositions;
         private Vector2 ground, hero;
         private readonly Vector2[] targets = new Vector2[RunRules.WeaponSlots];
         private readonly WeaponActivation[] active = new WeaponActivation[RunRules.WeaponSlots];
         private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[RunRules.WeaponSlots];
         private readonly string[] boundIds = new string[RunRules.WeaponSlots];
         internal float WeaponSizeMultiplier { get; set; } = 1;
+        internal bool ShowLegacyAttackEffects { get; set; } = true;
         private static readonly Color Edge = RunUI.Hex("CBA66F"), Metal = RunUI.Hex("251D31"), Glow = RunUI.Hex("FF4C9B");
 
-        internal void SetFrame(WeaponBattle value, double time, Vector2 groundPoint, Vector2 heroPoint)
+        internal void SetFrame(WeaponBattle value, double time, Vector2 groundPoint, Vector2 heroPoint, double beat = .5)
         {
-            combat = value; seconds = time; ground = groundPoint; hero = heroPoint;
+            combat = value; seconds = time; ground = groundPoint; hero = heroPoint; beatSeconds = beat;
             for (int i = 0; i < active.Length; i++) active[i] = null;
             raycastTarget = false;
         }
         internal void SetActivation(WeaponActivation value, Vector2 target)
         { active[value.Slot] = value; targets[value.Slot] = target; }
+        internal void SetTargets(IReadOnlyDictionary<string, Vector2> positions) { targetPositions = positions; }
+        internal Vector2 WeaponOrigin(int slot) => Origin(rectTransform.rect, slot);
+        internal Vector2 ProjectileOrigin(int slot, WeaponKind kind, Vector2 target)
+        {
+            // Launch from the resting grip, so a later recoil or reload cannot drag a shot already in flight.
+            var r = rectTransform.rect; var origin = WeaponOrigin(slot);
+            float size = 22 * Mathf.Min(r.width, r.height) / 720 * 3.4f * WeaponSizeMultiplier;
+            var state = combat.Loadout.Equipment[slot];
+            var emission = RangedWeaponArtLayout.Muzzle(state.DefinitionId, state.Rarity, RangedWeaponPose.Release);
+            Vector2 socket = new Vector2((float)emission.X - .5f, (float)emission.Y - .5f);
+            Vector2 delta = Vector2.Scale(target - origin, r.size);
+            float angle = Mathf.Atan2(delta.y, delta.x) - (kind == WeaponKind.Wand ? Mathf.PI * .25f : 0);
+            Vector2 offset = new Vector2(socket.x * Mathf.Cos(angle) - socket.y * Mathf.Sin(angle),
+                socket.x * Mathf.Sin(angle) + socket.y * Mathf.Cos(angle)) * size;
+            return origin + new Vector2(offset.x / r.width, offset.y / r.height);
+        }
+        internal Vector2 MuzzlePosition(int slot)
+        {
+            var icon = icons[slot]; if (icon == null) return WeaponOrigin(slot);
+            var rect = icon.ArtworkRect;
+            var state = combat.Loadout.Equipment[slot];
+            var emission = RangedWeaponArtLayout.Muzzle(state.DefinitionId, state.Rarity, icon.Pose);
+            Vector2 normalized = new Vector2((float)emission.X, (float)emission.Y);
+            var local = new Vector2(rect.xMin + rect.width * normalized.x, rect.yMin + rect.height * normalized.y);
+            var point = rectTransform.InverseTransformPoint(icon.transform.TransformPoint(local));
+            var area = rectTransform.rect;
+            return new Vector2((point.x - area.xMin) / area.width, (point.y - area.yMin) / area.height);
+        }
         internal void Refresh()
         {
             Rect r = rectTransform.rect;
@@ -54,7 +86,19 @@ namespace BBSB.Runtime.UI
                     point = new Vector2((float)frame.Position.X, (float)frame.Position.Y);
                     rotation = (float)frame.Rotation; scale = (float)frame.Scale;
                 }
-                float length = weapon.Kind == WeaponKind.Spear ? 3.3f : weapon.Kind == WeaponKind.Greatsword ? 2.95f : 2.6f;
+                if (weapon.IsRanged)
+                {
+                    var ranged = RangedWeaponTimeline.Evaluate(combat, slot, seconds, beatSeconds);
+                    icon.SetPose(ranged.Pose);
+                    Vector2 aim = hero + Vector2.right * .5f;
+                    var target = ranged.Target ?? activation?.Target;
+                    if (target != null && targetPositions != null && targetPositions.TryGetValue(target.MonsterId, out var position)) aim = position;
+                    var delta = Vector2.Scale(aim - origin, r.size);
+                    rotation = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg - (weapon.Kind == WeaponKind.Wand ? 45 : 0) +
+                        (activation != null ? rotation : 0);
+                    scale *= 1 + (float)ranged.Tension * .035f;
+                }
+                float length = weapon.IsRanged ? 3.4f : weapon.Kind == WeaponKind.Spear ? 3.3f : weapon.Kind == WeaponKind.Greatsword ? 2.95f : 2.6f;
                 float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale * length * WeaponSizeMultiplier;
                 icon.rectTransform.anchoredPosition = new Vector2(point.x * r.width, point.y * r.height);
                 icon.rectTransform.sizeDelta = new Vector2(size, size);
@@ -78,12 +122,15 @@ namespace BBSB.Runtime.UI
             float unit = Mathf.Min(r.width, r.height) / 720;
             for (int slot = 0; slot < combat.Loadout.Equipment.Count; slot++)
             {
+                if (!ShowLegacyAttackEffects) break;
                 var weapon = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
                 var origin = Origin(r, slot);
                 var activation = active[slot];
                 var point = origin;
                 if (activation != null)
                 {
+                    // Textured effect actors own ranged projectiles, muzzle flashes and impact timing.
+                    if (weapon.IsRanged) continue;
                     float p = (float)((seconds - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion));
                     var frame = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
                         new BattlePathPoint(targets[slot].x, targets[slot].y), p);
@@ -148,6 +195,33 @@ namespace BBSB.Runtime.UI
                 Arc(vh, p, size * .72f, 0, 360, size * .18f, Edge);
                 Diamond(vh, p, right * size * .45f, up * size * .7f, Metal);
                 Line(vh, p - up * size, p - up * size * .35f, size * .18f, Glow); return;
+            }
+            if (kind == WeaponKind.Bow || kind == WeaponKind.Crossbow)
+            {
+                Vector2 center = p + (kind == WeaponKind.Crossbow ? right * size * .45f : Vector2.zero);
+                for (int i = 0; i < 16; i++)
+                {
+                    float first = i * Mathf.PI / 16, next = (i + 1) * Mathf.PI / 16;
+                    var a0 = center + (up * Mathf.Cos(first) + right * Mathf.Sin(first) * .45f) * size;
+                    var b0 = center + (up * Mathf.Cos(next) + right * Mathf.Sin(next) * .45f) * size;
+                    Line(vh, a0, b0, size * .13f, Edge); Line(vh, a0, b0, size * .075f, Metal);
+                }
+                Line(vh, center - up * size, center + up * size, size * .025f, Glow);
+                if (kind == WeaponKind.Crossbow)
+                {
+                    Line(vh, p - right * size, p + right * size * 1.1f, size * .23f, Edge);
+                    Line(vh, p - right * size, p + right * size * 1.1f, size * .15f, Metal);
+                    Line(vh, p - right * size * .3f, p - right * size * .55f - up * size * .6f, size * .2f, Edge);
+                }
+                return;
+            }
+            if (kind == WeaponKind.Wand)
+            {
+                Vector2 diagonal = (right + up).normalized;
+                Line(vh, p - diagonal * size, p + diagonal * size * .5f, size * .19f, Edge);
+                Line(vh, p - diagonal * size, p + diagonal * size * .5f, size * .11f, Metal);
+                Diamond(vh, p + diagonal * size * .65f, right * size * .36f, up * size * .48f, Edge);
+                Diamond(vh, p + diagonal * size * .65f, right * size * .27f, up * size * .37f, Glow); return;
             }
             Line(vh, p - up * size, p + up * size * .35f, size * .18f, Edge);
             if (kind == WeaponKind.Hammer)

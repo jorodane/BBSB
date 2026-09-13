@@ -235,7 +235,7 @@ namespace BBSB.Tests
         {
             var round = Round(1, new PatternStep(GestureKind.Tap, 0));
             var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
-            var graphic = arena.transform.Find("Battle effects and five weapons").GetComponent<BattleArenaGraphic>();
+            var graphic = arena.GetComponentsInChildren<BattleArenaGraphic>().Single(x => x.name == "Battle effects and five weapons");
             var renderer = graphic.GetComponent<CanvasRenderer>(); renderer.cull = false;
             round.Advance(1.9); arena.Refresh(); graphic.Rebuild(CanvasUpdate.PreRender);
             float height = graphic.rectTransform.rect.height, bottom = graphic.rectTransform.rect.yMin;
@@ -274,7 +274,7 @@ namespace BBSB.Tests
                 var labelRoot = (RectTransform)arena.transform.Find("Actor labels/Labels slime-" + i);
                 Assert.AreEqual(forward[i], labelRoot.anchorMin);
             }
-            var backdrop = arena.transform.Find("Arena backdrop").GetComponent<BattleArenaGraphic>();
+            var backdrop = arena.GetComponentsInChildren<BattleArenaGraphic>().Single(x => x.name == "Arena backdrop");
             var renderer = backdrop.GetComponent<CanvasRenderer>(); renderer.cull = false;
             backdrop.SetVerticesDirty(); backdrop.Rebuild(CanvasUpdate.PreRender);
             var bounds = backdrop.rectTransform.rect;
@@ -722,6 +722,56 @@ namespace BBSB.Tests
             early.Press(1.8, 0, 0); d.Refresh();
             Assert.IsTrue(d.GetComponentsInChildren<Text>().Any(x => x.text == "너무 이른 동작"));
             Assert.AreEqual(MissReason.TooEarly, early.Results.Single().Reason);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator RangedPosesAndPooledEffectsFollowTheRoundAndFreezeOnPause()
+        {
+            var plan = Round(1, new PatternStep(GestureKind.Tap, 0)).Plan;
+            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("bow", WeaponRarity.Legendary) });
+            var round = new RhythmRound(plan, combat: new WeaponBattle(loadout, new StageHealth(1000), 100, 100, true));
+            var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+            double at = round.Notes.Single().StartSeconds;
+            round.Advance(at - .1); arena.Refresh();
+            var icon = arena.GetComponentsInChildren<WeaponIconGraphic>().Single();
+            Assert.AreEqual(RangedWeaponPose.Prepare, icon.Pose);
+            round.Press(at, 0, 0); arena.Refresh();
+            Assert.AreEqual(RangedWeaponPose.Release, icon.Pose);
+            Assert.Greater(arena.VisualEffects.ActiveCount, 0);
+            Assert.IsTrue(arena.VisualEffects.GetComponentsInChildren<BattleVfxGraphic>().All(x => !x.raycastTarget));
+            round.Advance(at + .02); arena.Refresh();
+            round.Suspend(); arena.SetPaused(true);
+            int pool = arena.VisualEffects.PoolCount, visible = arena.VisualEffects.ActiveCount;
+            var transforms = arena.VisualEffects.GetComponentsInChildren<BattleVfxGraphic>().Select(x => x.rectTransform.anchoredPosition).ToArray();
+            decimal enemyHealth = round.Combat.EnemyHealth.Current;
+            for (int i = 0; i < 40; i++) { round.Advance(100); arena.Refresh(); }
+            Assert.AreEqual(at + .02, round.ElapsedSeconds); Assert.AreEqual(enemyHealth, round.Combat.EnemyHealth.Current);
+            Assert.AreEqual(pool, arena.VisualEffects.PoolCount); Assert.AreEqual(visible, arena.VisualEffects.ActiveCount);
+            CollectionAssert.AreEqual(transforms, arena.VisualEffects.GetComponentsInChildren<BattleVfxGraphic>().Select(x => x.rectTransform.anchoredPosition).ToArray());
+            round.Resume(false); arena.SetPaused(false); round.Advance(at + .8); arena.Refresh();
+            Assert.AreEqual(0, arena.VisualEffects.ActiveCount); Assert.AreEqual(RangedWeaponPose.Idle, icon.Pose);
+            var replay = round.RepeatPractice(); arena.Repeat(replay);
+            Assert.AreEqual(0, arena.VisualEffects.ActiveCount); Assert.AreEqual(RangedWeaponPose.Idle, icon.Pose);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerHitStopAndShakeKeepTheClockAndLabelsIndependent()
+        {
+            var round = Round(1, new PatternStep(GestureKind.Tap, 0)); var arena = Arena(round);
+            yield return null; Canvas.ForceUpdateCanvases();
+            double deadline = round.Notes.Single().StartSeconds + round.HalfMissWindow;
+            round.Advance(deadline + .001); arena.Refresh();
+            Assert.IsTrue(arena.HeroHitStopped);
+            var world = (RectTransform)arena.transform.Find("Battle scenery and actors");
+            var labels = (RectTransform)arena.transform.Find("Actor labels");
+            Vector2 labelPosition = labels.anchoredPosition;
+            double at = round.Results.Single().JudgedAtSeconds;
+            round.Advance(at + .08); arena.Refresh();
+            Assert.IsFalse(arena.HeroHitStopped); Assert.Greater(world.anchoredPosition.sqrMagnitude, 0);
+            Assert.AreEqual(labelPosition, labels.anchoredPosition); Assert.AreEqual(at + .08, round.ElapsedSeconds);
+            round.Advance(at + .4); arena.Refresh(); Assert.AreEqual(Vector2.zero, world.anchoredPosition);
             LogAssert.NoUnexpectedReceived();
         }
 
