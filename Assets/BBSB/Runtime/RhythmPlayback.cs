@@ -18,14 +18,17 @@ namespace BBSB.Runtime
         private BeatMetronome metronome;
         private Action<RhythmRound> onFinished;
         private Action onLeave;
+        private Action<RhythmRound> onRepeated;
         private double origin, offset;
         private bool heldAtPause, completed;
         private MonsterCodexView codex;
         private RunUI ui;
+        public int PracticeRepetitions { get; private set; }
 
-        internal void Bind(RhythmRound round, RunSession session, RunUI ui, Action<RhythmRound> finished, Action leave)
+        internal void Bind(RhythmRound round, RunSession session, RunUI ui, Action<RhythmRound> finished, Action leave,
+            Action<RhythmRound> repeated = null)
         {
-            this.ui = ui; Round = round; onFinished = finished; onLeave = leave;
+            this.ui = ui; Round = round; onFinished = finished; onLeave = leave; onRepeated = repeated;
             surface = gameObject.AddComponent<RhythmInputSurface>(); surface.Bind(this);
             view = new RhythmPlaybackView((RectTransform)transform, ui, round, session, Pause, Continue, ToggleSound, Leave, OpenCodex);
             metronome = new BeatMetronome(transform, Round.Plan);
@@ -47,6 +50,11 @@ namespace BBSB.Runtime
             if (!IsPaused)
             {
                 double now = Now;
+                if (Round.Combat != null && Round.Combat.IsPractice && now >= Round.Plan.Stage.Music.DurationSeconds)
+                {
+                    RepeatPractice(now);
+                    now = Now;
+                }
                 // Sample after UI events, once per frame. Sampling the stale position in Update
                 // would incorrectly count movement as stationary time depending on script order.
                 if (surface.Captured) Round.Move(now, surface.Position.x, surface.Position.y);
@@ -54,7 +62,8 @@ namespace BBSB.Runtime
                 if (Round.Finished) { Finish(); return; }
                 if (Round.Combat != null && Round.Combat.Victory) metronome.SuppressCalls();
                 metronome.Schedule(AudioSettings.dspTime, origin, offset,
-                    Round.Combat != null && Round.Combat.Victory ? Round.Combat.OverkillEndSeconds : Round.Plan.Stage.Music.DurationSeconds);
+                    Round.Combat != null && Round.Combat.Victory ? Round.Combat.OverkillEndSeconds : Round.Plan.Stage.Music.DurationSeconds,
+                    Round.Combat != null && Round.Combat.IsPractice);
             }
             view.Refresh(Round.ElapsedSeconds, WaitingForContact);
             if (Round.Finished) Finish();
@@ -94,7 +103,11 @@ namespace BBSB.Runtime
             }
             if (surface.Captured) Round.Move(Now, surface.Position.x, surface.Position.y);
             else Round.Advance(Now);
-            if (Round.Finished) { Finish(); return; }
+            if (Round.Finished)
+            {
+                if (Round.Combat != null && Round.Combat.IsPractice && !Round.Aborted) RepeatPractice(Now);
+                else { Finish(); return; }
+            }
             view.Refresh(Round.ElapsedSeconds, false);
             heldAtPause = Round.Suspend(); IsPaused = true; WaitingForContact = false;
             surface.Cancel(); metronome.Stop(); view.ShowPause(true);
@@ -127,7 +140,27 @@ namespace BBSB.Runtime
         }
 
         private void Finish()
-        { if (completed) return; completed = true; metronome.Stop(); surface.Cancel(); onFinished?.Invoke(Round); }
+        {
+            if (completed) return;
+            if (Round.Combat != null && Round.Combat.IsPractice && !Round.Aborted)
+            { RepeatPractice(Now); return; }
+            completed = true; metronome.Stop(); surface.Cancel(); onFinished?.Invoke(Round);
+        }
+
+        private void RepeatPractice(double now)
+        {
+            double duration = Round.Plan.Stage.Music.DurationSeconds;
+            double loops = Math.Max(1, Math.Floor(now / duration));
+            if (!Round.Finished) Round.Advance(Math.Max(Round.ElapsedSeconds, duration + Round.HalfMissWindow + .001));
+            surface.Cancel(); heldAtPause = WaitingForContact = false;
+            Round = Round.RepeatPractice(); PracticeRepetitions++;
+            // Keep the DSP grid through repeats; a slow frame skips past loops instead of accumulating drift.
+            double dspNow = AudioSettings.dspTime;
+            origin = now <= offset + Math.Max(0, dspNow - origin) ? origin - offset + loops * duration :
+                dspNow - (now - loops * duration);
+            offset = 0; metronome.RepeatLoop(duration, loops); view.Repeat(Round);
+            onRepeated?.Invoke(Round);
+        }
         private void Leave()
         { if (completed) return; completed = true; metronome.Stop(); surface.Cancel(); onLeave?.Invoke(); }
         private void OnApplicationPause(bool paused) { if (paused) Pause(); }

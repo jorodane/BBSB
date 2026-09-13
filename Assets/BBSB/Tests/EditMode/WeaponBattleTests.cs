@@ -289,6 +289,32 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void RepeatedPracticeClearsInputDamageAndWeaponStateWithoutChangingItsArrangement()
+        {
+            var plan = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4));
+            var loadout = Loadout(plan, "sword"); Place(loadout, 0, plan.Attacks[0], 0);
+            var round = new RhythmRound(plan, combat: new WeaponBattle(loadout, new StageHealth(1), 1, 1, true));
+            for (int cycle = 0; cycle < 100; cycle++)
+            {
+                Check.Equal(0, round.Results.Count); Check.Equal(0, round.Combat.Activations.Count);
+                Check.Equal(0, round.Calls.Count); Check.Equal(0.0, round.ElapsedSeconds);
+                Check.Equal(1m, round.Combat.EnemyHealth.Current); Check.Equal(1m, round.Combat.PlayerHealth);
+                Check.False(round.IsDown); Check.False(round.Finished);
+                round.Press(round.Notes[0].StartSeconds, 0, 0);
+                Check.Equal(1, round.PerfectCount); Check.Equal(0m, round.Combat.EnemyHealth.Current);
+                Check.False(round.Combat.Victory); Check.False(round.Finished);
+                var old = round; old.Suspend(); round = old.RepeatPractice();
+                Check.True(ReferenceEquals(plan, round.Plan));
+                Check.False(ReferenceEquals(old.Notes[0], round.Notes[0]));
+                Check.Equal(old.Combat.Loadout.At(0).OffsetTick, round.Combat.Loadout.At(0).OffsetTick);
+                Check.True(round.Combat.Bindings.All(x => round.Notes.Contains(x.Note)));
+                round.Advance(plan.Stage.Music.DurationSeconds + 1);
+                Check.Equal(0m, round.Combat.PlayerHealth); Check.True(round.Finished);
+                round = round.RepeatPractice();
+            }
+        }
+
+        [Test]
         public void RealEnemyHealthPersistsWhenReturningToPreparationAndResetsForNewStage()
         {
             var run = Session();

@@ -15,10 +15,10 @@ namespace BBSB.Core
         { Kind = kind; Note = note; Call = call; BeatsUntilResponse = remaining; }
     }
 
-    /// <summary>A read-only demonstration, independent of the run, judgment clock, input and health.</summary>
+    /// <summary>An isolated, repeatable rehearsal using the battle's real input judgments.</summary>
     public sealed class MonsterPreview
     {
-        public RhythmRound Round { get; }
+        public RhythmRound Round { get; private set; }
         public PlannedAttack Attack => Round.Plan.Attacks[0];
         public double BeatSeconds => Round.BeatSeconds;
         public double CallSeconds => RhythmTime.Seconds(Attack.CallStartTick, Round.Plan.Stage.Music.Bpm);
@@ -45,6 +45,7 @@ namespace BBSB.Core
         }
 
         public double LoopSeconds(double elapsed) => Math.Max(0, elapsed) % DurationSeconds;
+        public void Restart() { Round = new RhythmRound(Round.Plan); }
         // The first Call is beat 1, including offbeats and silent waits.
         public double DisplayBeat(double seconds) => (seconds - CallSeconds) / BeatSeconds + 1;
 

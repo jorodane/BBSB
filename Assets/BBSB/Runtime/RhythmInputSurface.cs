@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -7,18 +8,21 @@ namespace BBSB.Runtime
     public sealed class RhythmInputSurface : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
         IDragHandler, IInitializePotentialDragHandler
     {
-        private RhythmPlayback playback;
+        private Func<bool> canReceiveInput;
+        private Action<Vector2> down, up;
         private int pointer;
         public bool Captured { get; private set; }
         public Vector2 Position { get; private set; }
-        internal void Bind(RhythmPlayback value) { playback = value; }
+        internal void Bind(RhythmPlayback value) { Bind(() => value != null && value.CanReceiveInput, value.PointerDown, value.PointerUp); }
+        internal void Bind(Func<bool> canReceiveInput, Action<Vector2> down, Action<Vector2> up)
+        { this.canReceiveInput = canReceiveInput; this.down = down; this.up = up; }
 
         public void OnInitializePotentialDrag(PointerEventData data) { data.useDragThreshold = false; }
         public void OnPointerDown(PointerEventData data)
         {
-            if (Captured || playback == null || !playback.CanReceiveInput || data.button != PointerEventData.InputButton.Left) return;
+            if (Captured || canReceiveInput == null || !canReceiveInput() || data.button != PointerEventData.InputButton.Left) return;
             pointer = data.pointerId; Captured = true; Position = Normalize(data.position);
-            playback.PointerDown(Position);
+            down(Position);
         }
 
         public void OnDrag(PointerEventData data)
@@ -31,7 +35,7 @@ namespace BBSB.Runtime
         public void OnPointerUp(PointerEventData data)
         {
             if (!Captured || data.pointerId != pointer) return;
-            Captured = false; Position = Normalize(data.position); playback.PointerUp(Position);
+            Captured = false; Position = Normalize(data.position); up(Position);
         }
 
         internal void Cancel() { Captured = false; }

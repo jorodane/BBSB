@@ -82,8 +82,8 @@ namespace BBSB.Runtime.UI
                     case "tresillo-call-tap": values.Add(D(MonsterAttackMotion.Relay, MonsterAttackShape.Jelly, MonsterAttackReaction.Burst, height: .34, arc: .30)); break;
                     case "march-three": values.Add(D(MonsterAttackMotion.Linear, MonsterAttackShape.Gauntlet, MonsterAttackReaction.Recoil, delay: offset, height: .30)); break;
                     case "march-spaced": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Gauntlet, MonsterAttackReaction.Recoil, delay: offset, height: .34, arc: .36)); break;
-                    case "tresillo-taps": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter, height: .30, arc: .18 + i * .13)); break;
-                    case "rotated-tresillo": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter, height: .30, arc: .42 - i * .10)); break;
+                    case "tresillo-taps": values.Add(D(MonsterAttackMotion.Linear, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter, call: i, height: .30)); break;
+                    case "rotated-tresillo": values.Add(D(MonsterAttackMotion.Linear, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter, height: .30)); break;
                     case "offbeat-single-tap": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Foxfire, MonsterAttackReaction.Fade)); break;
                     case "offbeat-pair": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Foxfire, MonsterAttackReaction.Fade, call: i)); break;
                     case "drowsy-quick-tap": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Dream, MonsterAttackReaction.Fade, height: .32)); break;

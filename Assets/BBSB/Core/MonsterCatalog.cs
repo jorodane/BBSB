@@ -25,10 +25,12 @@ namespace BBSB.Core
             }, encounterWeight: 1.4, artId: "tap-slime"),
             new MonsterDefinition("tresillo-bat", "깃춤 하피", "팔에서 날개로 이어지는 넓은 깃과 부채꼴 꼬리를 가진 하피다.", GestureKind.Tap, new[]
             {
-                Pattern("tresillo-taps", "세 갈래 깃춤", "깃털을 한 번 번쩍 펼치는 맑은 Call 뒤, 깃털 세 묶음이 Response 1박·2박 반·4박에 도착한다.", 4,
-                    new[] { Tap(0), Tap(6), Tap(12) }, new[] { Call(0, "반짝!", CallSound.Bell, CallMotion.Flash) }, 16, 4, .16),
-                Pattern("rotated-tresillo", "돌아서는 깃춤", "날개를 비비며 자르르 울리고 몸을 틀어, Response 1박·2박 반·3박 반에 깃털을 보낸다.", 4,
-                    new[] { Tap(0), Tap(6), Tap(10) }, new[] { Call(0, "빙글!", CallSound.Rattle, CallMotion.Sway) }, 16, 4, .14)
+                Pattern("tresillo-taps", "세 갈래 깃춤", "1박·2박 반·4박의 Call을 듣고 마지막 Call 한 박 뒤부터 같은 리듬을 따라 친다. 깃털은 각 Call에 하나씩 출발해 같은 속도로 날아온다.", 16,
+                    new[] { Tap(0), Tap(6), Tap(12) }, new[] { Call(0, "반", CallSound.Bell, CallMotion.Flash),
+                        Call(6, "짝", CallSound.Bell, CallMotion.Flash), Call(12, "짝!", CallSound.Bell, CallMotion.Flash) }, 16, 4, .16),
+                // Retain the resource/save key for the uploaded second feather set.
+                Pattern("rotated-tresillo", "짧은 깃춤", "짧은 Call 한 박 뒤 깃털 한 발을 받아 친다.", 4,
+                    new[] { Tap(0) }, new[] { Call(0, "휙!", CallSound.Sweep, CallMotion.Sway) }, 4, 4, .14)
             }, encounterWeight: 1.4, artId: "spark-bat"),
             new MonsterDefinition("offbeat-goblin", "여우불 여우요괴", "풍성한 꼬리 끝에서 여우불을 피우는 장난스러운 여우요괴다.", GestureKind.Tap, new[]
             {

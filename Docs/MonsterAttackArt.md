@@ -65,8 +65,8 @@
 | 젤리 슬라임 소녀 / `tap-slime` | [tresillo-call-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tap-slime/tresillo-call-tap/README.md) | 젤리 폭발/젤리탄 · Call 간격에 따른 연쇄 도약 | 0 → 3 | 0 |
 | 도자기 골렘 소녀 / `march-slime` | [march-three](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/march-slime/march-three/README.md) | 분리된 장갑 주먹 · 등속 이동 | 0 → 1, 1 → 2, 2 → 3 | 0, 0, 0 |
 | 도자기 골렘 소녀 / `march-slime` | [march-spaced](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/march-slime/march-spaced/README.md) | 분리된 장갑 주먹 · 포물선 | 0 → 1, 2 → 3 | 0, 0 |
-| 깃춤 하피 / `tresillo-bat` | [tresillo-taps](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/README.md) | 깃털 묶음 · 포물선 | 0 → 1, 0 → 2.5, 0 → 4 | 0, 0, 0 |
-| 깃춤 하피 / `tresillo-bat` | [rotated-tresillo](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/rotated-tresillo/README.md) | 깃털 묶음 · 포물선 | 0 → 1, 0 → 2.5, 0 → 3.5 | 0, 0, 0 |
+| 깃춤 하피 / `tresillo-bat` | [tresillo-taps](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/README.md) | 깃털 묶음 · 등속 이동 | 0 → 4, 1.5 → 5.5, 3 → 7 | 0, 0, 0 |
+| 깃춤 하피 / `tresillo-bat` | [rotated-tresillo](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/rotated-tresillo/README.md) | 깃털 묶음 · 등속 이동 · 짧은 깃춤 | 0 → 1 | 0 |
 | 여우불 여우요괴 / `offbeat-goblin` | [offbeat-single-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/README.md) | 여우불 · 대기 후 급발진 | 0 → 0.5 | 0 |
 | 여우불 여우요괴 / `offbeat-goblin` | [offbeat-pair](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-pair/README.md) | 여우불 · 대기 후 급발진 | 0 → 1.5, 1 → 2.5 | 0, 0 |
 | 꿈먹는 맥 소녀 / `drowsy-slime` | [drowsy-quick-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-quick-tap/README.md) | 꿈방울 · 포물선 | 0 → 1 | 0 |
@@ -86,7 +86,7 @@
 | 실 잣는 아라크네 / `flick-goblin` | [counted-flick](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/flick-goblin/counted-flick/README.md) | 발목 실 · 대기 후 급발진 | 0 → 2 | 0 |
 | 실 잣는 아라크네 / `flick-goblin` | [offbeat-flick](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/flick-goblin/offbeat-flick/README.md) | 발목 실 · 대기 후 급발진 | 0 → 1.5 | 0 |
 
-젤리 연쇄형은 각 Call 위치에서 spawn 이미지를 사용하고 다음 위치로 도약하며, 마지막 Response 한 번만 받아친다. 하피는 첫 Call에 서로 다른 경로/소요 시간의 깃털 묶음을 함께 발사한다. 골렘·해파리의 후속 발사는 첫 Call에서 결정된 일정에 따른다. 여우불과 비늘 조각은 생성 후 기다렸다가 정해진 짧은 구간에 급발진한다.
+젤리 연쇄형은 각 Call 위치에서 spawn 이미지를 사용하고 다음 위치로 도약하며, 마지막 Response 한 번만 받아친다. 하피는 0·1.5·3박의 Call마다 깃털을 하나씩 보내고 모두 같은 출발점에서 4박 동안 같은 속도로 이동한다. 마지막 Call 한 박 뒤부터 같은 리듬을 받아친다. 짧은 깃춤은 한 번의 Call 후 한 박 뒤 Tap이다. `rotated-tresillo` ID는 기존 이미지 경로 호환을 위해 유지하고 step-0만 사용한다. 골렘·해파리의 후속 발사는 첫 Call에서 결정된 일정에 따른다. 여우불과 비늘 조각은 생성 후 기다렸다가 정해진 짧은 구간에 급발진한다.
 
 태엽 인형은 일반 패턴에서 작은 인형을 던져 한 박 뒤 플레이어 앞에 착지·공격한다. 긴 패턴에서는 바로 내려놓고 매 박 한 걸음씩 걷는다. 일곱 번째 걸음의 착지와 공격이 Response이며, 추가로 한 박 더 기다리지 않는다. 발걸음이 카운트를 돕는 것은 이 공격의 특징이다. 현재 발소리 음원은 추가하지 않았고 기존 Call 음향을 유지한다. 꿈먹는 맥의 긴 낮잠은 해당 종족의 선택으로 중간 접근을 감추고 Response에만 실체화한다. 긴 쉼 전체에 카운트 보조 금지를 적용하지 않는다.
 
@@ -96,9 +96,11 @@
 |---|---|
 | `<몬스터 ID>/idle.png` | 새 종족의 기본 모습. 없으면 기존 BattleArt 초상화 |
 | `<몬스터 ID>/<패턴 ID>/body/call-0.png` | 첫 Call 자세 |
-| 같은 body 폴더의 `call-1.png`, `call-2.png` | 실제로 존재하는 두 번째·세 번째 Call 자세 |
-| 같은 body 폴더의 `attack.png` | 각 원본 Response의 공격/유지 자세 |
-| 같은 body 폴더의 `recover.png` | 공격 후 복귀 자세 |
+| 같은 body 폴더의 `call-1.png`, `call-2.png` | 두 번째·세 번째 Call 자세. 파일이 없으면 call-0 재사용 |
+| 같은 body 폴더의 `attack.png` | 각 Call 안에서 발동하는 공격 자세 |
+| 같은 body 폴더의 `recover.png` | 같은 Call 안에서 공격 후 복귀하는 자세 |
+
+`MonsterBodyTimeline`은 각 Call 안에서 평상시 → Call → 공격 → 회복 → 평상시를 부드럽게 전환한다. 기본 0.8박이며 다음 Call 또는 첫 Response 이전에 마치도록 짧게 조정한다. Response는 본체 공격을 다시 시작하지 않는다. 실제 무기 피해가 있으면 기존 피격 반응을, 도감에서는 성공 판정의 반격 반응을 보여준다. 미스에는 평상시를 유지한다.
 
 본체도 번호 클립을 사용할 수 있다. 예를 들어 첫 Call의 클립은 `call-0-0.png`, `call-0-1.png`다. 본체 단일 포즈를 우선 제작해도 된다. 본체 캔버스의 하단 중앙에 발을 맞추고, 여백이 있으면 Sprite Editor에서 실제 발 피벗으로 조정한다. 새 본체에는 기존 변종 색조를 덧씌우지 않는다. Call/공격 포즈가 제공되면 합성 동작을 중복 적용하지 않고, idle만 먼저 넣었을 때는 기존 합성 Call 동작으로 보완한다. 현재 몬스터 이름과 패턴 ID는 기존 값을 유지한다.
 

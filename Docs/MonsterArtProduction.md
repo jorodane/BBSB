@@ -7,7 +7,7 @@
 | 구분 | 새로 제작할 서로 다른 그림 | 최종 PNG 배치 수 | 범위 |
 |---|---:|---:|---|
 | A. 공격 이미지 | 84장 | 223개 | 16개 그림 세트를 36개 공격 단계에 연결. 인형 걷기 4프레임 포함 |
-| B. 몬스터걸 본체 | 54장 | 93개 | 12종 대기 + 33개 Call 자리 + 24개 Response 자리 + 24개 복귀 자리 |
+| B. 몬스터걸 본체 | 54장 | 93개 | 12종 대기 + 33개 Call 자리 + 24개 공격 자세 자리 + 24개 복귀 자리 |
 | 전체 | **138장** | **316개** | 동일 그림 복사 178개 포함 |
 
 위 수량은 **이 문서의 1차 완성 세트**다. 엔진 실행에 전부 필수인 것은 아니다. 공격부터 적용하려면 A를 진행하고, 본체는 기존 그림으로 계속 동작한다. 새 몬스터걸 외형까지 교체하려면 B도 제작한다. 각 원본은 한 번만 만들고 지정된 곳에 그대로 복사한다. 각 폴더마다 새 그림을 생성할 필요가 없다.
@@ -380,12 +380,12 @@ Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/
 | `march-slime/march-three/step-2/` | A03 | 2→3 / 0 | — |
 | `march-slime/march-spaced/step-0/` | A03 | 0→1 / 0 | — |
 | `march-slime/march-spaced/step-1/` | A03 | 2→3 / 0 | — |
-| `tresillo-bat/tresillo-taps/step-0/` | A04 | 0→1 / 0 | — |
-| `tresillo-bat/tresillo-taps/step-1/` | A04 | 0→2.5 / 0 | — |
-| `tresillo-bat/tresillo-taps/step-2/` | A04 | 0→4 / 0 | — |
+| `tresillo-bat/tresillo-taps/step-0/` | A04 | 0→4 / 0 | — |
+| `tresillo-bat/tresillo-taps/step-1/` | A04 | 1.5→5.5 / 0 | — |
+| `tresillo-bat/tresillo-taps/step-2/` | A04 | 3→7 / 0 | — |
 | `tresillo-bat/rotated-tresillo/step-0/` | A04 | 0→1 / 0 | — |
-| `tresillo-bat/rotated-tresillo/step-1/` | A04 | 0→2.5 / 0 | — |
-| `tresillo-bat/rotated-tresillo/step-2/` | A04 | 0→3.5 / 0 | — |
+| `tresillo-bat/rotated-tresillo/step-1/` | A04 | 0→2.5 / 0 | 현재 미사용 · 기존 PNG 보관 |
+| `tresillo-bat/rotated-tresillo/step-2/` | A04 | 0→3.5 / 0 | 현재 미사용 · 기존 PNG 보관 |
 | `offbeat-goblin/offbeat-single-tap/step-0/` | A05 | 0→0.5 / 0 | — |
 | `offbeat-goblin/offbeat-pair/step-0/` | A05 | 0→1.5 / 0 | — |
 | `offbeat-goblin/offbeat-pair/step-1/` | A05 | 1→2.5 / 0 | — |
@@ -410,7 +410,7 @@ Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/
 | `flick-goblin/counted-flick/step-0/` | A16 | 0→2 / 0 | — |
 | `flick-goblin/offbeat-flick/step-0/` | A16 | 0→1.5 / 0 | — |
 
-하피는 한 번의 Call에 세 묶음이 함께 나오고 각각 다른 경로로 도착한다. 골렘·해파리의 뒤쪽 step은 첫 Call에서 예약된 후속 발사다. 후속 step용 그림마다 새 Call이나 숫자 표시는 넣지 않는다.
+하피는 0·1.5·3박 Call마다 한 묶음씩 출발하고 각각 4·5.5·7박에 도착한다. 모두 같은 경로·속도이며 마지막 Call 한 박 뒤부터 같은 리듬을 받아친다. 짧은 깃춤(`rotated-tresillo`)은 step-0만 사용한다. 골렘·해파리의 뒤쪽 step은 첫 Call에서 예약된 후속 발사다. 후속 step용 그림마다 새 Call이나 숫자 표시는 넣지 않는다.
 
 ## 6. B — 몬스터걸 본체 파일
 
@@ -421,12 +421,12 @@ Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/
 | `<몬스터 ID>/idle.png` | 해당 몬스터걸의 기본 전신. 12종 각각 1장 |
 | `<몬스터 ID>/<패턴 ID>/body/call-0.png` | 첫 Call. 발사/발구르기/던지기/내려놓기 등 |
 | 같은 폴더의 `call-1.png`, `call-2.png` | 그 패턴에 실제 두 번째·세 번째 Call이 있을 때만 |
-| 같은 폴더의 `attack.png` | **플레이어의 Response 시점**에 보여줄 유지/마무리 자세. 발사 포즈라는 의미가 아니다 |
+| 같은 폴더의 `attack.png` | **Call 안에서** 보여줄 공격/마무리 자세. Response에서 재생하지 않는다 |
 | 같은 폴더의 `recover.png` | 1차에는 해당 종족의 idle.png를 그대로 복사해 복귀 |
 
-Call 포즈는 기본 0.65박, Tap/Flick의 attack은 0.3박, recover는 0.35박이다. Hold/Dive/Shake의 attack은 유지 시간만큼 표시된다. 한 패턴의 모든 Response가 같은 `body/attack.png`를 사용한다. 예를 들어 용인의 복합 패턴에서는 Hold와 뒤의 Tap에 같은 본체 포즈를 쓴다. 서로 다른 모습이 필요한 발사 단계는 Call 그림에 담는다.
+평상시 → call-N → attack → recover → 평상시를 각 Call 안에서 부드럽게 전환한다. 전체 길이는 기본 0.8박이며 다음 Call 또는 첫 Response 전에 복귀하도록 제한한다. Hold/Dive/Shake의 긴 유지 연출은 공격 이미지가 맡고 본체 attack을 유지하거나 Response에 재시작하지 않는다. 서로 다른 모습이 필요한 Call은 call-N 그림으로 구분한다.
 
-긴 쉼에 별도의 `sleep.png`, `wait.png` 본체 슬롯은 없다. 맥의 Call 포즈도 0.65박 뒤에는 idle로 돌아가므로 **맥 idle 자체를 졸고 있는 중립 자세**로 만든다. 인형의 7박 걷기는 작은 인형의 공격 이미지에서 진행한다. 이번 파일만으로 본체가 7박 동안 새로운 전용 연속 연기를 한다고 가정하지 않는다.
+긴 쉼에 별도의 `sleep.png`, `wait.png` 본체 슬롯은 없다. 맥의 본체 동작도 각 Call 안에서 마친 뒤에는 idle로 돌아가므로 **맥 idle 자체를 졸고 있는 중립 자세**로 만든다. 인형의 7박 걷기는 작은 인형의 공격 이미지에서 진행한다. 이번 파일만으로 본체가 7박 동안 새로운 전용 연속 연기를 한다고 가정하지 않는다.
 
 본체 번호 클립을 나중에 추가하려면 첫 Call의 두 프레임은 `call-0-0.png`, `call-0-1.png`다. `call-1.png`는 첫 Call의 다음 프레임이 아니라 **두 번째 Call**이다. 현재 1차 명세는 본체 단일 PNG만 사용한다.
 
@@ -487,6 +487,8 @@ Call 포즈는 기본 0.65박, Tap/Flick의 attack은 0.3박, recover는 0.35박
 | `recover.png` | 복사: `march-slime/idle.png` |
 
 #### `tresillo-bat/tresillo-taps/body/`
+
+세 번의 Call은 업로드된 `call-0.png`를 재사용한다. `call-1.png`, `call-2.png`를 추가하면 해당 Call에 자동 적용된다.
 
 | 파일 | 제작 / 포즈 |
 |---|---|
@@ -691,3 +693,7 @@ Call 포즈는 기본 0.65박, Tap/Flick의 attack은 0.3박, recover는 0.35박
 명세의 12종·24패턴·36개 step 및 33개 Call을 현재 카탈로그/원본 패턴과 대조하고, 모든 목적지 폴더·파일명·원본 참조·해상도·복사 수를 검사했다. 선택 애니메이션은 기본 납품 수량에서 제외했다. 이 작업은 문서와 파일 목록만 추가하며 런타임을 변경하지 않는다.
 
 새 PNG 316개와 도감 아이콘 36개가 업로드되었으며 배치 경로와 원본 일치를 확인했다. Unity Editor는 이 환경에 없어 실제 임포트·축소 가독성·전투 화면은 Unity에서 확인해야 한다. `MonsterArtIntegrationTests`로 전체 이미지 경로와 패턴 상태 연결을 검사할 수 있다.
+
+## 현재 코드의 본체 재생 시점
+
+제작된 call-N·attack·recover는 각 Call 안에서 부드럽게 전환하며 Response 이전에 평상시로 복귀한다. Response에서 attack을 추가 재생하지 않는다. 이 문서의 파일 목록 총 316개는 기존 배포 묶음 기준이며, 짧은 깃춤의 step-1·step-2 12장은 보관만 한다. 새 이미지 제작 없이 적용할 수 있다.

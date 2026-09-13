@@ -17,6 +17,8 @@ namespace BBSB.Runtime.UI
             public RectTransform Root;
             public RectTransform Labels;
             public Image Portrait;
+            public Image BlendPortrait;
+            public float PoseBlend;
             public Sprite FallbackPortrait;
             public bool UsesNewArt;
             public bool UsesAuthoredPose;
@@ -34,8 +36,7 @@ namespace BBSB.Runtime.UI
         private readonly List<BattleGroundShadow> shadows = new List<BattleGroundShadow>();
         private readonly List<Image> portraits = new List<Image>();
         private readonly List<BattleEffect> effects = new List<BattleEffect>();
-        private readonly HashSet<int> attackTicks = new HashSet<int>();
-        private readonly PlayerMotionTimeline playerMotion = new PlayerMotionTimeline();
+        private PlayerMotionTimeline playerMotion = new PlayerMotionTimeline();
         private PlayerMotionSprites playerSprites;
         [SerializeField] private PlayerMotionDisplay playerDisplay;
         [SerializeField] private MonsterAttackDisplay monsterAttackDisplay;
@@ -61,6 +62,16 @@ namespace BBSB.Runtime.UI
         public PlayerMotionFrame CurrentHeroMotion { get; private set; }
 
         public void SetPaused(bool value) { paused = value; }
+
+        public void Repeat(RhythmRound value)
+        {
+            if (round == null || !ReferenceEquals(round.Plan, value.Plan))
+                throw new InvalidOperationException("An arena can only repeat its current plan.");
+            round = value; playerMotion = new PlayerMotionTimeline(); paused = false;
+            monsterAttacks.Repeat(value); Refresh();
+        }
+
+        internal void HideLabels() { labelLayer.gameObject.SetActive(false); heroLabel.gameObject.SetActive(false); }
 
         public void Initialize(RhythmRound value, Font font, PlayerMotionDisplay display = null)
         {
@@ -114,7 +125,10 @@ namespace BBSB.Runtime.UI
                 actor.Advance = round.Combat != null && round.Combat.Victory ?
                     (float)actor.StageMotion.Evaluate(round.Combat.DefeatedAtSeconds) * Mathf.Clamp01(1 - (float)((round.ElapsedSeconds - round.Combat.DefeatedAtSeconds) / .3)) :
                     (float)actor.StageMotion.Evaluate(round.ElapsedSeconds);
-                actor.Portrait.sprite = monsterAttacks.Body(actor.Plan, round.ElapsedSeconds, actor.FallbackPortrait, out actor.UsesAuthoredPose);
+                actor.Portrait.sprite = monsterAttacks.Sprites.BodyBlend(actor.Plan, round.ElapsedSeconds, round.BeatSeconds,
+                    actor.FallbackPortrait, round.Combat != null && round.Combat.Victory,
+                    out var next, out actor.PoseBlend, out actor.UsesAuthoredPose);
+                actor.BlendPortrait.sprite = next; actor.BlendPortrait.enabled = actor.PoseBlend > 0;
                 actor.UsesNewArt = actor.Portrait.sprite != actor.FallbackPortrait;
             }
             LayoutActors();
@@ -162,6 +176,9 @@ namespace BBSB.Runtime.UI
             var actor = new Actor { Root = root, Portrait = image, FallbackPortrait = image.sprite };
             if (label != null)
             {
+                var blend = ui.Rect("Next body pose", root);
+                actor.BlendPortrait = ui.Background(blend, Color.clear);
+                actor.BlendPortrait.preserveAspect = false; actor.BlendPortrait.enabled = false;
                 actor.Labels = ui.Rect("Labels " + instance, labelLayer);
                 var nameLabel = ui.Label(actor.Labels, label, 20, RunUI.TextColor, 30, TextAnchor.MiddleCenter);
                 Anchor(nameLabel.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, -29), new Vector2(210, 30), new Vector2(.5f, 0));
@@ -203,6 +220,11 @@ namespace BBSB.Runtime.UI
                 var portraitSize = new Vector2(side * sprite.rect.width / sprite.rect.height, side);
                 Anchor(rect, Vector2.zero, Vector2.zero, rect.anchoredPosition, portraitSize, foot);
                 actor.Portrait.preserveAspect = false;
+                var next = actor.BlendPortrait.sprite ?? sprite;
+                var nextRect = actor.BlendPortrait.rectTransform;
+                Anchor(nextRect, Vector2.zero, Vector2.zero, nextRect.anchoredPosition,
+                    new Vector2(side * next.rect.width / next.rect.height, side),
+                    new Vector2(next.pivot.x / next.rect.width, next.pivot.y / next.rect.height));
                 float bodyHeight = side * (1 - foot.y);
                 Anchor(actor.Labels, actor.Ground, actor.Ground, Vector2.zero, new Vector2(side, bodyHeight), new Vector2(.5f, 0));
                 actor.Impact = actor.Ground + new Vector2(0, bodyHeight / size.y * .48f);
@@ -242,7 +264,7 @@ namespace BBSB.Runtime.UI
         {
             var size = area.rect.size;
             double beat = seconds / round.BeatSeconds;
-            float call = 0, attackPulse = 0, counter = 0;
+            float call = 0, counter = 0;
             float bounce = Mathf.Sin((float)beat * Mathf.PI * 2 + actor.Impact.x * 4);
             float x = 0, y = 0, tilt = 0, sx = 1, sy = 1, flash = 0;
             // Species provide the idle pose; each individual Call chooses its own readable action.
@@ -258,10 +280,11 @@ namespace BBSB.Runtime.UI
                 if (round.Combat != null && round.Combat.Victory) continue;
                 if (seconds >= Time(attack.CallStartTick) && seconds <= Time(attack.PhraseEndTick + attack.Pattern.RestTicks))
                     current = attack;
-                foreach (var signal in attack.Call)
+                for (int i = 0; i < attack.Call.Count; i++)
                 {
+                    var signal = attack.Call[i];
                     double age = seconds - Time(signal.Tick);
-                    float amount = Pulse(age, round.BeatSeconds * .8);
+                    float amount = Pulse(age, MonsterBodyTimeline.CallDuration(attack, i, round.BeatSeconds));
                     call += amount;
                     if (!actor.UsesAuthoredPose) ApplyCallPose(signal.Motion, amount, size, ref x, ref y, ref tilt, ref sx, ref sy);
                     if (signal.Motion == CallMotion.Flash) flash = Mathf.Max(flash, amount);
@@ -272,10 +295,6 @@ namespace BBSB.Runtime.UI
             {
                 if (note.Attack.MonsterId != actor.Plan.InstanceId ||
                     (round.Combat != null && !round.Combat.AllowsEnemyEffect(seconds))) continue;
-                // The monster always performs its scheduled attack, including a missed player's note.
-                if (attackTicks.Add(note.StartTick)) AttackBeat(note.StartSeconds, seconds, ref attackPulse);
-                if (note.EndSeconds > note.StartSeconds && attackTicks.Add(note.EndTick))
-                    AttackBeat(note.EndSeconds, seconds, ref attackPulse);
                 if (round.Combat == null && note.Result != null && note.Result.Grade != RhythmGrade.Miss)
                     counter += Pulse(seconds - note.Result.JudgedAtSeconds - .08, .28) * (float)note.Result.Efficiency;
             }
@@ -283,24 +302,17 @@ namespace BBSB.Runtime.UI
                 foreach (var activation in round.Combat.Activations)
                     if (activation.Damage > 0 && activation.Target.MonsterId == actor.Plan.InstanceId)
                         counter += Pulse(seconds - activation.AtSeconds - WeaponMotion.Duration(activation.Weapon.Kind) * .6, .22);
-            attackTicks.Clear();
-            call = Mathf.Clamp01(call); attackPulse = actor.UsesAuthoredPose ? 0 : Mathf.Clamp01(attackPulse); counter = Mathf.Clamp01(counter);
+            call = Mathf.Clamp01(call); counter = Mathf.Clamp01(counter);
             float direction = Mathf.Sign(HeroImpactPosition.x - actor.Impact.x);
-            x += direction * attackPulse * size.x * .012f - direction * counter * 9;
+            x -= direction * counter * 9;
             y += counter * 7;
-            tilt += direction * (attackPulse * 9 - counter * 8);
+            tilt -= direction * counter * 8;
             Color baseTint = actor.UsesNewArt || actor.Plan.Monster.ArtId == actor.Plan.Monster.Id ? Color.white : Color.Lerp(Color.white, actor.Tint, .35f);
-            SetPose(actor, x, y, tilt, sx + attackPulse * .07f, sy - attackPulse * .035f,
+            SetPose(actor, x, y, tilt, sx, sy,
                 Color.Lerp(Color.Lerp(baseTint, CueColor(CallMotion.Flash), flash * .45f), RunUI.Teal, counter * .3f));
             RefreshSignal(actor, current, seconds, call);
             if (round.Combat != null && round.Combat.Victory)
             { actor.Signal.text = "격파"; actor.Signal.color = RunUI.Teal; }
-        }
-
-        private void AttackBeat(double target, double seconds, ref float pulse)
-        {
-            double age = seconds - target;
-            pulse += Pulse(age, Math.Min(.3, round.BeatSeconds * .65));
         }
 
         private void RefreshSignal(Actor actor, PlannedAttack current, double seconds, float pulse)
@@ -422,7 +434,15 @@ namespace BBSB.Runtime.UI
         {
             var rect = actor.Portrait.rectTransform;
             rect.anchoredPosition = new Vector2(x, y); rect.localScale = new Vector3(sx, sy, 1);
-            rect.localRotation = Quaternion.Euler(0, 0, tilt); actor.Portrait.color = tint;
+            rect.localRotation = Quaternion.Euler(0, 0, tilt);
+            if (actor.BlendPortrait != null)
+            {
+                var next = actor.BlendPortrait.rectTransform;
+                next.anchoredPosition = rect.anchoredPosition; next.localScale = rect.localScale; next.localRotation = rect.localRotation;
+                var paint = tint; paint.a *= actor.PoseBlend; actor.BlendPortrait.color = paint;
+                tint.a *= 1 - actor.PoseBlend;
+            }
+            actor.Portrait.color = tint;
         }
         private static void ApplyCallPose(CallMotion motion, float p, Vector2 size,
             ref float x, ref float y, ref float tilt, ref float sx, ref float sy)

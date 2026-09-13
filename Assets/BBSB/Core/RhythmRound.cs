@@ -117,6 +117,14 @@ namespace BBSB.Core
 
         private void Finish() { Finished = true; touch.Release(); FreeInput.Consume(); }
 
+        /// <summary>Repeat the same practice plan with fresh judgments and isolated health/weapon state.</summary>
+        public RhythmRound RepeatPractice()
+        {
+            if (Combat == null || !Combat.IsPractice) throw new InvalidOperationException("Only practice rounds can repeat.");
+            return new RhythmRound(Plan, rules, new WeaponBattle(Combat.Loadout,
+                new StageHealth(Combat.EnemyHealth.Maximum), Combat.PlayerMaximum, Combat.PlayerMaximum, true));
+        }
+
         public void Press(double seconds, double x, double y)
         {
             ValidatePoint(x, y); Advance(seconds);

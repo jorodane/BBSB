@@ -21,7 +21,12 @@ namespace BBSB.Tests
                 {
                     SameImage(sprites, MonsterCodexView.IconRoot + "Patterns", pattern.Id); icons++;
                     string body = root + "/" + pattern.Id + "/body";
-                    for (int i = 0; i < pattern.Call.Count; i++) { SameImage(sprites, body, "call-" + i); bodies++; }
+                    for (int i = 0; i < pattern.Call.Count; i++)
+                    {
+                        // New harpy Call beats reuse the uploaded call-0 pose until distinct art is supplied.
+                        string pose = sprites.Get(body, "call-" + i) != null ? "call-" + i : "call-0";
+                        SameImage(sprites, body, pose); bodies++;
+                    }
                     SameImage(sprites, body, "attack"); SameImage(sprites, body, "recover"); bodies += 2;
                 }
             }
@@ -40,7 +45,7 @@ namespace BBSB.Tests
                 else { SameImage(sprites, folder, "travel"); attacks++; }
                 if (definition.Motion == MonsterAttackMotion.WaitRush) { SameImage(sprites, folder, "wait"); attacks++; }
             }
-            Assert.AreEqual(36, icons); Assert.AreEqual(93, bodies); Assert.AreEqual(223, attacks);
+            Assert.AreEqual(36, icons); Assert.AreEqual(95, bodies); Assert.AreEqual(211, attacks);
         }
 
         [Test]

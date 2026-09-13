@@ -104,19 +104,47 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void MultipleResponsesUseAuthoredEmissionsWithoutAddingCalls()
+        public void MultipleResponsesUseTheirAuthoredCallAndEmissionSchedules()
         {
             var march = Round("march-three");
             var spawns = march.Notes.Select(n => MonsterAttackCatalog.For(n).SpawnSeconds(n, march.BeatSeconds)).ToArray();
             Near(march.BeatSeconds, spawns[1] - spawns[0]); Near(march.BeatSeconds, spawns[2] - spawns[1]);
             var feathers = Round("tresillo-taps");
-            Check.Equal(1, feathers.Notes.Select(n => MonsterAttackCatalog.For(n).SpawnSeconds(n, feathers.BeatSeconds)).Distinct().Count());
+            Check.Equal(3, feathers.Notes.Select(n => MonsterAttackCatalog.For(n).SpawnSeconds(n, feathers.BeatSeconds)).Distinct().Count());
             foreach (var round in new[] { march, feathers })
             {
                 foreach (var note in round.Notes)
                 { round.Press(note.StartSeconds, 0, 0); round.Release(note.StartSeconds + .001, 0, 0); }
-                Check.Equal(1, round.Calls.Count); Check.Equal(3, round.PerfectCount);
+                Check.Equal(round == march ? 1 : 3, round.Calls.Count); Check.Equal(3, round.PerfectCount);
                 Check.Equal(3, round.Results.Count);
+            }
+        }
+
+        [Test]
+        public void HarpyEchoesTheCallOneBeatLaterWithEqualConstantFlightSpeed()
+        {
+            foreach (double bpm in new[] { 60.0, 120.0, 200.0 })
+            {
+                var round = Round("tresillo-taps", bpm); var attack = round.Plan.Attacks.Single();
+                var calls = attack.Call.Select(c => c.Tick * round.BeatSeconds / 4).ToArray();
+                Near(1.5 * round.BeatSeconds, calls[1] - calls[0]);
+                Near(1.5 * round.BeatSeconds, calls[2] - calls[1]);
+                Near(round.BeatSeconds, round.Notes[0].StartSeconds - calls[2]);
+                for (int i = 0; i < round.Notes.Count; i++)
+                {
+                    var note = round.Notes[i]; var art = MonsterAttackCatalog.For(note);
+                    Near(calls[i], art.SpawnSeconds(note, round.BeatSeconds));
+                    Near(4 * round.BeatSeconds, note.StartSeconds - calls[i]);
+                    for (int tick = 0; tick < 16; tick++)
+                    {
+                        var frame = Sample(round, note, calls[i] + tick * round.BeatSeconds / 4);
+                        Near(tick / 16.0, frame.Progress); Near(0, frame.Lift);
+                    }
+                }
+                var quick = Round("rotated-tresillo", bpm);
+                Check.Equal(1, quick.Notes.Count); Check.Equal(1, quick.Plan.Calls.Count);
+                Near(quick.BeatSeconds, quick.Notes[0].StartSeconds -
+                    MonsterAttackCatalog.For(quick.Notes[0]).SpawnSeconds(quick.Notes[0], quick.BeatSeconds));
             }
         }
 

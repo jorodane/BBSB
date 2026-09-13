@@ -57,13 +57,23 @@ namespace BBSB.Runtime
             if (!firstStart) while (nextCall < calls.Count && calls[nextCall].seconds <= elapsed) nextCall++;
         }
 
-        public void Schedule(double dspNow, double origin, double offset, double duration)
+        public void RepeatLoop(double duration, double loops)
         {
-            while (nextPulse * halfBeat < duration)
+            // Keep the downbeat already queued in the previous loop's lookahead.
+            nextPulse = (int)Math.Max(0, nextPulse - Math.Ceiling(duration / halfBeat) * loops);
+            nextCall = (int)Math.Max(0, nextCall - calls.Count * loops);
+        }
+
+        public void Schedule(double dspNow, double origin, double offset, double duration, bool repeat = false)
+        {
+            int pulsesPerLoop = Math.Max(1, (int)Math.Ceiling(duration / halfBeat));
+            while (repeat || nextPulse * halfBeat < duration)
             {
-                double at = origin + nextPulse * halfBeat - offset;
+                int pulse = repeat ? nextPulse % pulsesPerLoop : nextPulse;
+                double cycle = repeat ? nextPulse / pulsesPerLoop * duration : 0;
+                double at = origin + cycle + pulse * halfBeat - offset;
                 if (at > dspNow + .15) break;
-                int pulse = nextPulse++;
+                nextPulse++;
                 // Don't burst through clicks missed by a long frame or while muted.
                 if (Muted || at < dspNow + .005) continue;
                 var source = voices[voice++ % voices.Length];
@@ -72,9 +82,11 @@ namespace BBSB.Runtime
                 source.volume = strong ? .36f : half ? .12f : .24f;
                 source.PlayScheduled(at);
             }
-            while (!callsSuppressed && nextCall < calls.Count)
+            while (!callsSuppressed && calls.Count > 0 && (repeat || nextCall < calls.Count))
             {
-                var call = calls[nextCall]; double at = origin + call.seconds - offset;
+                var call = calls[nextCall % calls.Count];
+                double cycle = repeat ? nextCall / calls.Count * duration : 0;
+                double at = origin + cycle + call.seconds - offset;
                 if (at > dspNow + .15) break;
                 nextCall++;
                 if (Muted || at < dspNow + .005) continue;

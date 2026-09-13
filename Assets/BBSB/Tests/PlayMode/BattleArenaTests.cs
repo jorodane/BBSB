@@ -344,7 +344,7 @@ namespace BBSB.Tests
                 stage.FindPlacements(pattern.Pattern).Where(x => x.StartTick == 32)));
             var plan = BattlePlanner.Resolve(stage, proposals, 1); Assert.AreEqual(2, plan.Monsters.Count);
             var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
-            round.Advance(RhythmTime.Seconds(24, stage.Music.Bpm)); arena.Refresh();
+            round.Advance(RhythmTime.Seconds(24, stage.Music.Bpm) + round.BeatSeconds * .21); arena.Refresh();
             for (int i = 0; i < plan.Monsters.Count; i++)
             {
                 string pattern = plan.Monsters[i].Attacks.Single().Pattern.Id;
@@ -354,7 +354,7 @@ namespace BBSB.Tests
                     "An authored Call pose must not also receive the old procedural squash.");
             }
             Assert.AreEqual(2, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 쿵"));
-            round.Advance(RhythmTime.Seconds(28, stage.Music.Bpm)); arena.Refresh();
+            round.Advance(RhythmTime.Seconds(28, stage.Music.Bpm) + round.BeatSeconds * .21); arena.Refresh();
             for (int i = 0; i < plan.Monsters.Count; i++)
             {
                 string pattern = plan.Monsters[i].Attacks.Single().Pattern.Id;

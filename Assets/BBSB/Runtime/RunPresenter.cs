@@ -82,7 +82,7 @@ namespace BBSB.Runtime
             {
                 string ticket = Session.StageTicket;
                 screen.gameObject.AddComponent<RhythmPlayback>().Bind(ActiveRound, Session, ui,
-                    round => FinishRhythmRound(ticket, round), () => LeaveRhythmRound(ticket));
+                    round => FinishRhythmRound(ticket, round), () => LeaveRhythmRound(ticket), round => ActiveRound = round);
                 rendering = false; return;
             }
             if (weaponEditor && Session.BattleLoadout != null && completedRound == null)
@@ -336,7 +336,7 @@ namespace BBSB.Runtime
         {
             if (ActiveRound != round) return;
             if (round.Combat != null && round.Combat.IsPractice)
-            { completedRound = round; ActiveRound = null; Render(); return; }
+            { ActiveRound = round.RepeatPractice(); completedRound = null; Render(); return; }
             // Lethal incoming damage has already ended the run and invalidated its stage ticket.
             if (Session.Phase == RunPhase.GameOver)
             {
@@ -362,16 +362,14 @@ namespace BBSB.Runtime
 
         private void DrawRoundReport()
         {
-            bool practice = completedRound.Combat != null && completedRound.Combat.IsPractice;
-            Heading(practice ? "PRACTICE" : "ROUND COMPLETE", practice ? "연습 결과" : "연주 결과",
-                practice ? "연습이 끝났어. 배치를 조정하거나 같은 패턴을 다시 연습해." : "플레이어와 스테이지의 남은 HP를 유지한 채 다시 준비할 수 있어.");
+            Heading("ROUND COMPLETE", "연주 결과", "플레이어와 스테이지의 남은 HP를 유지한 채 다시 준비할 수 있어.");
             var card = ui.Card(body);
             ui.Label(card, completedRound.ScorePercent.ToString("0.0") + "%", 60, RunUI.Teal, 100, TextAnchor.MiddleCenter);
             ui.Label(card, "정확 " + completedRound.PerfectCount + "  ·  반미스 " + completedRound.HalfMissCount + "  ·  미스 " + completedRound.MissCount,
                 25, RunUI.TextColor, 60, TextAnchor.MiddleCenter);
             ui.Label(card, "정확 100% · 반미스 50% · 미스 0%로 집계했어.", 20, RunUI.Muted, 48);
             ui.Label(card, "받은 피해 " + completedRound.TotalDamageTaken.ToString("0.##") + "  ·  남은 HP " +
-                (practice ? completedRound.Combat.PlayerHealth : Session.Health).ToString("0.##") + " / " + Session.MaxHealth, 25, RunUI.Red, 54);
+                Session.Health.ToString("0.##") + " / " + Session.MaxHealth, 25, RunUI.Red, 54);
             if (completedRound.Combat != null)
             {
                 ui.Label(card, "무기 피해 " + completedRound.Combat.TotalDamage.ToString("0.##") + "  ·  흡수한 피해 " + completedRound.Combat.TotalBlocked.ToString("0.##"), 24, RunUI.Teal, 46);
@@ -397,12 +395,7 @@ namespace BBSB.Runtime
                 ui.Label(line, monster.Monster.Name, 27, RunUI.Gold, 42);
                 ui.Label(line, "정확 " + perfect + "  ·  반미스 " + half + "  ·  미스 " + miss, 23, null, 42);
             }
-            if (practice)
-            {
-                ui.Button(body, "다시 연습", () => StartWeaponPractice(practicePattern), primary: true, height: 72);
-                ui.Button(body, "배치로 돌아가기", OpenWeaponPreparation, height: 72);
-            }
-            else ui.Button(body, "다시 준비", () => { completedRound = null; Render(); }, primary: true, height: 82);
+            ui.Button(body, "다시 준비", () => { completedRound = null; Render(); }, primary: true, height: 82);
         }
 
         private void RenderMusicPreview()

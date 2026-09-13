@@ -9,7 +9,7 @@ namespace BBSB.Runtime.UI
     /// <summary>Build once, update text/meshes in place. No informational element consumes rhythm input.</summary>
     internal sealed class RhythmPlaybackView
     {
-        private readonly RhythmRound round;
+        private RhythmRound round;
         private readonly RunSession session;
         private readonly Text beatLabel, feedback, counters, contact;
         private readonly Text healthLabel, damageLabel;
@@ -141,6 +141,15 @@ namespace BBSB.Runtime.UI
         }
         public void SetSound(bool enabled) { soundLabel.text = enabled ? "박자·Call 소리 끄기" : "박자·Call 소리 켜기"; }
 
+        public void Repeat(RhythmRound value)
+        {
+            if (!ReferenceEquals(round.Plan, value.Plan)) throw new InvalidOperationException("Practice must keep the same plan.");
+            round = value; callCursor = resultCursor = 0; damageShownAt = double.NegativeInfinity;
+            feedback.text = "Call을 보고 박자를 준비해"; feedback.color = RunUI.TextColor;
+            foreach (var monster in monsters) monster.Repeat(value);
+            arena.Repeat(value);
+        }
+
         public void Refresh(double seconds, bool waitingForContact)
         {
             bool practice = round.Combat != null && round.Combat.IsPractice;
@@ -261,7 +270,7 @@ namespace BBSB.Runtime.UI
         private sealed class MonsterCard
         {
             public MonsterPlan Plan { get; }
-            private readonly RhythmRound round;
+            private RhythmRound round;
             private readonly Text phase, signal, result;
             private readonly MonsterPatternGraphic graphic;
             private ScheduledCall lastCall;
@@ -281,6 +290,8 @@ namespace BBSB.Runtime.UI
             }
 
             public void Call(ScheduledCall value) { lastCall = value; }
+            public void Repeat(RhythmRound value)
+            { round = value; lastCall = null; result.text = "대응 결과"; result.color = RunUI.Muted; }
             public void Result(RhythmResult value)
             {
                 result.text = value.Note.Step.Kind + "  ·  " + GradeLabel(value.Grade);

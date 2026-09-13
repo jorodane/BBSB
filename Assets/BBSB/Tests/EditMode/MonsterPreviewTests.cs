@@ -77,6 +77,34 @@ namespace BBSB.Tests
             Check.Equal(0.0, second.Round.ElapsedSeconds);
         }
 
+        [Test]
+        public void PreviewJudgesRealInputAndStartsFreshOnEveryRepeat()
+        {
+            foreach (var id in new[] { "clock-quick-tap", "turtle-long-hold", "ray-short-dive", "one-beat-shake", "counted-flick" })
+            {
+                var demo = Demo(id); var plan = demo.Round.Plan;
+                for (int cycle = 0; cycle < 3; cycle++)
+                {
+                    var round = demo.Round; var note = round.Notes[0]; double at = note.StartSeconds;
+                    if (note.Step.Kind == GestureKind.Flick)
+                    { round.Press(at - .08, 0, 0); round.Move(at - .02, .12, 0); round.Release(at, .2, 0); }
+                    else
+                    {
+                        round.Press(at, 0, 0);
+                        if (note.Step.Kind == GestureKind.Shake)
+                        { round.Move(at + .04, .08, 0); round.Move(at + .08, 0, 0); }
+                        if (note.Step.Kind == GestureKind.Dive) round.Release(note.EndSeconds, 0, 0);
+                        else { round.Advance(note.EndSeconds); round.Release(note.EndSeconds + .001, 0, 0); }
+                    }
+                    Check.Equal(1, round.PerfectCount); Check.True(round.Combat == null);
+                    demo.Restart(); Check.True(ReferenceEquals(plan, demo.Round.Plan));
+                    Check.False(ReferenceEquals(round, demo.Round)); Check.False(demo.Round.IsDown);
+                    Check.Equal(0, demo.Round.Results.Count); Check.Equal(0, demo.Round.Calls.Count);
+                    Check.Equal(0.0, demo.Round.ElapsedSeconds);
+                }
+            }
+        }
+
         private static MonsterPreview Demo(string patternId)
         {
             var monster = MonsterCatalog.All.First(m => m.Patterns.Any(p => p.Id == patternId));

@@ -115,6 +115,7 @@ namespace BBSB.Tests
             round = new RhythmRound(BattlePlanner.Resolve(stage,
                 new[] { new MonsterProposal("bat", bat, new[] { At(stage, pattern, 32) }) }, 1));
             Check.True(round.Notes.Select(x => x.StartTick).SequenceEqual(new[] { 32, 38, 44 }));
+            Check.True(round.Plan.Calls.Select(x => x.Tick).SequenceEqual(new[] { 16, 22, 28 }));
             foreach (double time in new[] { 4.0, 4.75, 5.5 }) { round.Press(time, 0, 0); round.Release(time + .01, 0, 0); }
             Check.Equal(3, round.PerfectCount); Check.Equal(16, stage.Music.TicksPerBar);
         }

@@ -23,6 +23,7 @@ namespace BBSB.Runtime.UI
         private MonsterPatternDefinition pattern;
         private MonsterPreview preview;
         private MonsterCodexStage stage;
+        private RhythmInputSurface surface;
         private MonsterPatternGraphic timeline;
         private readonly MonsterAttackSprites sprites = new MonsterAttackSprites();
         private readonly List<(Image Image, MonsterPatternDefinition Pattern)> choices = new List<(Image, MonsterPatternDefinition)>();
@@ -31,6 +32,9 @@ namespace BBSB.Runtime.UI
         private double origin, elapsed, frozen;
         private int bpm = 120;
         private bool playing = true, sound = true, closing;
+        private bool heldAtPause, waitingForContact;
+        public RhythmRound PracticeRound => preview?.Round;
+        public int PracticeRepetitions { get; private set; }
 
         internal static MonsterCodexView Open(RectTransform parent, RunUI ui, Action closed)
         {
@@ -83,7 +87,7 @@ namespace BBSB.Runtime.UI
 
         private void ShowGrid()
         {
-            StopAudio(); preview = null; selected = null; pattern = null;
+            surface?.Cancel(); StopAudio(); preview = null; selected = null; pattern = null;
             if (detail != null) { detail.gameObject.SetActive(false); Destroy(detail.gameObject); }
             detail = null; stage = null; timeline = null; choices.Clear();
             gridPage.gameObject.SetActive(true); back.gameObject.SetActive(false);
@@ -102,6 +106,8 @@ namespace BBSB.Runtime.UI
             var grow = RunUI.Size(visual, 160, 1); grow.flexibleHeight = 1;
             visual.gameObject.AddComponent<RectMask2D>();
             stage = visual.gameObject.AddComponent<MonsterCodexStage>(); stage.Bind(ui, monster, sprites);
+            surface = visual.gameObject.AddComponent<RhythmInputSurface>();
+            surface.Bind(() => preview != null && !closing && (playing || waitingForContact), PointerDown, PointerUp);
             state = ui.Label(left, "", 25, RunUI.Teal, 36, TextAnchor.MiddleCenter); Fit(state, 19);
             beat = ui.Label(left, "", 18, RunUI.Muted, 26, TextAnchor.MiddleCenter);
             var plot = ui.Row(left, 82, 8);
@@ -148,7 +154,8 @@ namespace BBSB.Runtime.UI
 
         private void SelectPattern(MonsterPatternDefinition value)
         {
-            pattern = value; StopAudio();
+            surface.Cancel(); pattern = value; StopAudio();
+            heldAtPause = waitingForContact = false; PracticeRepetitions = 0;
             preview = value == null ? null : new MonsterPreview(selected, value, bpm);
             stage.Select(preview); elapsed = frozen = 0; playing = true;
             foreach (var choice in choices) choice.Image.color = choice.Pattern == value ? RunUI.Hex("40546A") : RunUI.Hex("2B3850");
@@ -160,13 +167,14 @@ namespace BBSB.Runtime.UI
                 foreach (var step in value.Pattern.Steps) if (!kinds.Contains(step.Kind)) kinds.Add(step.Kind);
                 kinds.Sort(); laneNames.text = "CALL\n" + string.Join("\n", kinds) + "\n휴식";
             }
-            instructions.text = value == null ? "패턴을 고르면 공격 모습과 반응할 박자를 반복해서 볼 수 있어." : Describe(preview);
+            instructions.text = value == null ? "패턴을 고르면 왼쪽 화면에서 직접 반응하며 연습할 수 있어." : Describe(preview);
             tempoLabel.text = bpm + " BPM";
             Restart();
         }
 
         private void Restart()
         {
+            surface?.Cancel(); preview?.Restart(); heldAtPause = waitingForContact = false;
             elapsed = frozen = 0; playing = true; origin = AudioSettings.dspTime + .12;
             if (preview != null && audio == null)
             {
@@ -178,27 +186,85 @@ namespace BBSB.Runtime.UI
 
         private void TogglePlayback()
         {
-            if (playing) { frozen = elapsed; audio?.Stop(); playing = false; }
-            else { playing = true; origin = AudioSettings.dspTime + .12; audio?.Restart(frozen); }
+            if (playing) PausePreview();
+            else if (waitingForContact) waitingForContact = false;
+            else if (heldAtPause && preview != null) waitingForContact = true;
+            else
+            {
+                preview?.Round.Resume(false); playing = true;
+                origin = AudioSettings.dspTime + .12; audio?.Restart(frozen);
+            }
             Refresh();
+        }
+
+        private bool SampleClock()
+        {
+            double dspNow = AudioSettings.dspTime;
+            double clockTime = frozen + Math.Max(0, dspNow - origin);
+            elapsed = Math.Max(preview?.Round.ElapsedSeconds ?? 0, clockTime);
+            if (preview == null || elapsed < preview.DurationSeconds) return false;
+            double loops = Math.Floor(elapsed / preview.DurationSeconds);
+            double duration = preview.DurationSeconds;
+            origin = elapsed <= clockTime ? origin - frozen + loops * duration : dspNow - (elapsed - loops * duration);
+            elapsed -= loops * duration; frozen = 0;
+            surface.Cancel(); preview.Restart(); heldAtPause = waitingForContact = false;
+            PracticeRepetitions++; audio?.RepeatLoop(duration, loops); return true;
+        }
+
+        private void AdvanceInput()
+        {
+            if (preview == null) return;
+            if (surface.Captured) preview.Round.Move(elapsed, surface.Position.x, surface.Position.y);
+            else preview.Round.Advance(elapsed);
+        }
+
+        private void PointerDown(Vector2 point)
+        {
+            if (waitingForContact)
+            {
+                preview.Round.Resume(true, point.x, point.y); heldAtPause = waitingForContact = false; playing = true;
+                origin = AudioSettings.dspTime + .12; audio?.Restart(frozen);
+            }
+            else
+            {
+                if (SampleClock()) return;
+                preview.Round.Press(elapsed, point.x, point.y);
+            }
+            Refresh();
+        }
+
+        private void PointerUp(Vector2 point)
+        {
+            if (preview == null || !playing) return;
+            if (SampleClock()) return;
+            preview.Round.Release(elapsed, point.x, point.y); Refresh();
+        }
+
+        private void PausePreview()
+        {
+            if (!playing) return;
+            SampleClock(); AdvanceInput(); frozen = elapsed;
+            stage?.Refresh(elapsed, false);
+            heldAtPause = preview != null && preview.Round.Suspend(); waitingForContact = false;
+            surface?.Cancel(); audio?.Stop(); playing = false;
         }
         private void ToggleSound() { sound = !sound; audio?.SetMuted(!sound); Refresh(); }
         private void SetTempo(int delta) { bpm = Mathf.Clamp(bpm + delta, 60, 200); SelectPattern(pattern); }
 
-        private void Update()
+        private void UpdatePreview()
         {
             if (selected == null) return;
             if (playing)
             {
-                elapsed = frozen + Math.Max(0, AudioSettings.dspTime - origin);
-                if (preview != null && elapsed >= preview.DurationSeconds) Restart();
-                audio?.Schedule(AudioSettings.dspTime, origin, frozen, preview.DurationSeconds);
+                SampleClock(); AdvanceInput();
+                if (preview != null) audio?.Schedule(AudioSettings.dspTime, origin, frozen, preview.DurationSeconds, true);
             }
             Refresh();
         }
 
         private void LateUpdate()
         {
+            UpdatePreview();
             if (!gridPage.gameObject.activeSelf) return;
             float width = ((RectTransform)grid.transform).rect.width;
             int columns = Mathf.Max(1, Mathf.FloorToInt((width + 14) / 204));
@@ -214,13 +280,28 @@ namespace BBSB.Runtime.UI
             if (stage == null) return;
             var cue = preview == null ? default : preview.CueAt(elapsed);
             bool response = cue.Kind == PreviewCueKind.Respond || cue.Kind == PreviewCueKind.Sustain || cue.Kind == PreviewCueKind.Release;
+            stage.Arena?.SetPaused(!playing);
             stage.Refresh(elapsed, response);
             state.text = preview == null ? "평상시" : CueText(cue);
             state.color = response ? RunUI.Teal : cue.Kind == PreviewCueKind.Call ? RunUI.Gold : RunUI.Muted;
+            if (preview != null && preview.Round.Results.Count > 0)
+            {
+                var result = preview.Round.Results[preview.Round.Results.Count - 1];
+                if (elapsed - result.JudgedAtSeconds < .7)
+                {
+                    state.text = RhythmPlaybackView.GradeLabel(result.Grade) + " · " + ActionText(result.Note.Step.Kind);
+                    state.color = RhythmPlaybackView.GradeColor(result.Grade);
+                }
+            }
+            if (waitingForContact) { state.text = "화면을 눌러 연주를 이어가"; state.color = RunUI.Gold; }
+            else if (stage.Arena != null && stage.Arena.CurrentHeroMotion.IsFreeInput)
+            {
+                state.text = "공미스 · " + ActionText(stage.Arena.CurrentHeroMotion.Kind.Value); state.color = RunUI.Red;
+            }
             beat.text = preview == null ? "" : (elapsed < preview.CallSeconds ? "한 박 준비" :
                 "첫 Call부터 " + Format(preview.DisplayBeat(elapsed)) + "박") + "  ·  " + bpm + " BPM";
             if (preview != null) timeline.SetPlayback(preview.Round, preview.Attack, elapsed);
-            playLabel.text = playing ? "멈춤" : "재생"; soundLabel.text = sound ? "소리 켜짐" : "소리 꺼짐";
+            playLabel.text = playing || waitingForContact ? "멈춤" : "재생"; soundLabel.text = sound ? "소리 켜짐" : "소리 꺼짐";
         }
 
         private Sprite Portrait(MonsterDefinition monster) => sprites.Get(IconRoot + "Monsters", monster.Id) ??
@@ -274,9 +355,9 @@ namespace BBSB.Runtime.UI
 
         private void StopAudio()
         { audio?.Dispose(); audio = null; if (audioRoot != null) { audioRoot.SetActive(false); Destroy(audioRoot); } audioRoot = null; }
-        private void OnApplicationFocus(bool focused) { if (!focused && playing && selected != null) TogglePlayback(); }
-        private void OnApplicationPause(bool paused) { if (paused && playing && selected != null) TogglePlayback(); }
-        private void OnDisable() { audio?.Stop(); }
+        private void OnApplicationPause(bool paused) { if (paused) PausePreview(); }
+        private void OnApplicationFocus(bool focused) { if (!focused) PausePreview(); }
+        private void OnDisable() { surface?.Cancel(); audio?.Stop(); }
         private void OnDestroy() { StopAudio(); }
     }
 }

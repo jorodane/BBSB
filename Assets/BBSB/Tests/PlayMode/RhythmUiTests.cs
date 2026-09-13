@@ -229,7 +229,7 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator WeaponEditorAcceptsDragDropAndPracticeReturnsWithRunStateUnchanged()
+        public IEnumerator WeaponPracticeRepeatsWithoutAReportAndReturnsWithRunStateUnchanged()
         {
             yield return Prepare(new RunRules(startingHealth: 10000));
             var run = presenter.Session;
@@ -255,11 +255,22 @@ namespace BBSB.Tests
             Assert.IsNotNull(root.GetComponentsInChildren<Text>().Single(x => x.name == "Shared stage health"));
             Click("메뉴"); yield return null;
             Assert.IsTrue(playback.IsPaused); Click("이어하기");
-            playback.Round.Advance(100); yield return null; yield return null;
-            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "연습 결과"));
+            var arena = root.GetComponentInChildren<BattleArenaView>();
+            var audioObjects = playback.GetComponentsInChildren<AudioSource>();
+            for (int cycle = 0; cycle < 3; cycle++)
+            {
+                var previous = playback.Round;
+                previous.Advance(previous.Plan.Stage.Music.DurationSeconds + 1); yield return null;
+                Assert.AreNotSame(previous, playback.Round); Assert.IsFalse(playback.Round.Finished);
+                Assert.AreSame(playback.Round, presenter.ActiveRound);
+                Assert.AreSame(arena, root.GetComponentInChildren<BattleArenaView>());
+                CollectionAssert.AreEqual(audioObjects, playback.GetComponentsInChildren<AudioSource>());
+                Assert.IsFalse(root.GetComponentsInChildren<Text>().Any(x => x.text == "연습 결과" || x.text == "연주 결과"));
+            }
+            Assert.AreEqual(3, playback.PracticeRepetitions);
             Assert.AreEqual(health, run.Health); Assert.AreEqual(enemy, run.EnemyHealth.Current); Assert.AreEqual(gold, run.Gold);
             Assert.AreEqual(RunPhase.Stage, run.Phase); Assert.AreEqual(0, run.Offers.Count);
-            Click("배치로 돌아가기"); yield return null;
+            Click("메뉴"); Click("배치로 돌아가기"); yield return null;
             Assert.IsNotNull(root.GetComponentInChildren<WeaponPreparationView>());
             Assert.AreEqual(offset, run.BattleLoadout.At(2).OffsetTick);
         }
@@ -291,6 +302,47 @@ namespace BBSB.Tests
             Assert.AreEqual(gold + 25, run.Gold); Assert.AreEqual(1, run.ClearedStages);
             Assert.IsFalse(run.ResolveBattle(ticket, true, run.Health));
             Assert.AreEqual(gold + 25, run.Gold);
+        }
+
+        [UnityTest]
+        public IEnumerator CodexInputShowsCounterAndJudgmentAndRepeatsTheSamePreviewObjects()
+        {
+            yield return Prepare();
+            Click("메뉴"); Click("몬스터 도감"); yield return null;
+            var codex = root.GetComponentInChildren<MonsterCodexView>();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex clock-spirit").onClick.Invoke();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex pattern clock-quick-tap").onClick.Invoke();
+            Click("소리 켜짐"); yield return null;
+            var stage = codex.GetComponentInChildren<MonsterCodexStage>(); var arena = stage.Arena;
+            var surface = stage.GetComponent<RhythmInputSurface>(); var round = codex.PracticeRound;
+            var voices = codex.GetComponentsInChildren<AudioSource>();
+            var point = Pointer(19, new Vector2(140, 210));
+            round.Advance(round.Notes[0].StartSeconds);
+            surface.OnPointerDown(point); surface.OnPointerUp(point);
+            Assert.AreEqual(1, round.PerfectCount); Assert.IsFalse(arena.CurrentHeroMotion.IsFreeInput);
+            Assert.AreEqual(GestureKind.Tap, arena.CurrentHeroMotion.Kind);
+            Assert.IsTrue(codex.GetComponentsInChildren<Text>().Any(x => x.text.StartsWith("PERFECT ·")));
+            round.Advance(round.ElapsedSeconds + PlayerMotionTimeline.TapPreparationDuration(round.BeatSeconds));
+            yield return null; Assert.AreEqual(1, arena.ActiveResponseEffects);
+            round.Advance(round.Plan.Stage.Music.DurationSeconds + 1); yield return null;
+            Assert.AreNotSame(round, codex.PracticeRound); Assert.AreEqual(1, codex.PracticeRepetitions);
+            Assert.AreSame(arena, stage.Arena); CollectionAssert.AreEqual(voices, codex.GetComponentsInChildren<AudioSource>());
+            Assert.IsFalse(surface.Captured); Assert.IsFalse(codex.PracticeRound.IsDown);
+            Assert.IsNull(presenter.Session.ActiveRhythmRound);
+            codex.Back();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex iron-turtle").onClick.Invoke();
+            codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex pattern turtle-long-hold").onClick.Invoke();
+            stage = codex.GetComponentInChildren<MonsterCodexStage>(); surface = stage.GetComponent<RhythmInputSurface>();
+            round = codex.PracticeRound; round.Advance(round.Notes[0].StartSeconds);
+            surface.OnPointerDown(point); var heldSprite = stage.Arena.HeroPortrait.sprite;
+            Click("멈춤"); double frozen = round.ElapsedSeconds; yield return null;
+            Assert.IsFalse(surface.Captured); Assert.AreSame(heldSprite, stage.Arena.HeroPortrait.sprite);
+            Click("재생"); yield return null;
+            Assert.AreEqual(frozen, round.ElapsedSeconds); Assert.IsFalse(round.IsDown);
+            surface.OnPointerDown(point); Assert.IsTrue(round.IsDown);
+            round.Advance(round.Notes[0].EndSeconds); yield return null;
+            Assert.AreEqual(1, round.PerfectCount); surface.OnPointerUp(point);
+            LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]

@@ -52,6 +52,14 @@ namespace BBSB.Runtime.UI
                 round.Combat != null && round.Combat.Victory, out authoredPose);
         }
 
+        internal void Repeat(RhythmRound value)
+        {
+            if (!ReferenceEquals(round.Plan, value.Plan) || slots.Count != value.Notes.Count)
+                throw new InvalidOperationException("Attack slots must keep the same practice plan.");
+            round = value;
+            for (int i = 0; i < slots.Count; i++) slots[i].Note = value.Notes[i];
+        }
+
         internal void Refresh(double seconds, Vector2 heroGround, float heroHeight)
         {
             ActiveCount = 0;
@@ -72,6 +80,10 @@ namespace BBSB.Runtime.UI
                 var socket = display != null ? display.Socket(slot.Note.Step.Kind) : MonsterAttackDisplay.DefaultSocket(slot.Note.Step.Kind);
                 var to = Vector2.Scale(heroGround, size) + (socket + (calibration?.targetOffset ?? Vector2.zero)) * heroHeight;
                 double spawn = definition.SpawnSeconds(slot.Note, round.BeatSeconds);
+                // A feather volley shares one origin as well as one travel duration; stepping forward
+                // between Calls must not shorten later feathers' paths or change their speed.
+                if (definition.Shape == MonsterAttackShape.Feather)
+                    spawn = slot.Note.Attack.Call[0].Tick * round.BeatSeconds / RhythmTime.TicksPerBeat;
                 // Detached shots retain the firing origin. Attached limbs continue to follow their owner.
                 var stage = BattleStageLayout.Monster(slot.Order, round.Plan.Monsters.Count, heroGround.x, heroGround.y,
                     slot.Stage.Evaluate(definition.Stretch ? seconds : spawn));
