@@ -50,9 +50,17 @@ namespace BBSB.Tests
                 {
                     double time = RhythmTime.Seconds(note.Attack.Call[i].Tick, round.Plan.Stage.Music.Bpm);
                     round.Advance(time); var frame = Sample(round, note, time);
-                    Near(i / (double)note.Attack.Call.Count, frame.Progress);
+                    Near(i / (double)(note.Attack.Call.Count + 1), frame.Progress);
                     Check.Equal(MonsterAttackPhase.Spawn, frame.Phase);
                 }
+                double last = RhythmTime.Seconds(note.Attack.Call.Last().Tick, round.Plan.Stage.Music.Bpm);
+                double lastPosition = Sample(round, note, last).Progress;
+                Check.True(lastPosition <= .5, "The final bounce needs at least half the whole flight distance.");
+                double middle = (last + note.StartSeconds) * .5;
+                Near((lastPosition + 1) * .5, Sample(round, note, middle).Progress);
+                double before = note.StartSeconds - round.HalfMissWindow;
+                Near((1 - lastPosition) * round.HalfMissWindow / (note.StartSeconds - last),
+                    1 - Sample(round, note, before).Progress);
                 Check.Equal(0, round.Results.Count);
                 round.Press(note.StartSeconds, 0, 0);
                 Check.Equal(1, round.PerfectCount); Check.Equal(1, round.Notes.Count);
@@ -82,6 +90,44 @@ namespace BBSB.Tests
                 round.Advance(note.StartSeconds); Near(1, Sample(round, note, round.ElapsedSeconds).Progress);
                 Check.Equal(1, round.Calls.Count); Check.Equal(0, round.Results.Count);
                 round.Press(note.StartSeconds, 0, 0); Check.Equal(1, round.PerfectCount);
+            }
+        }
+
+        [Test]
+        public void ThrownDollReachesThePunchThenLandsAndAttacksOnlyAfterAMiss()
+        {
+            foreach (double bpm in new[] { 60.0, 120.0, 168.0, 240.0 })
+            foreach (bool early in new[] { false, true })
+            {
+                var round = Round("clock-quick-tap", bpm); var note = round.Notes.Single();
+                var art = MonsterAttackCatalog.For(note); double target = note.StartSeconds;
+                Check.False(art.Grounded); Check.True(art.LandsAfterMiss);
+                if (early) round.Press(target - round.BeatSeconds * .5, 0, 0);
+                round.Advance(target); var contact = Sample(round, note, target);
+                Check.Equal(MonsterAttackPhase.Contact, contact.Phase); Near(0, contact.MissApproach);
+                double deadline = target + round.HalfMissWindow;
+                round.Advance(deadline + .001); Check.Equal(1, round.MissCount);
+                double landing = deadline + MonsterAttackTimeline.MissApproachSeconds(round.BeatSeconds);
+                var falling = Sample(round, note, (deadline + landing) * .5);
+                Check.Equal(MonsterAttackPhase.Travel, falling.Phase); Near(.5, falling.MissApproach);
+                Check.False(falling.IsReaction);
+                round.Suspend(); var frozen = Sample(round, note, round.ElapsedSeconds);
+                round.Advance(100); Near(frozen.MissApproach, Sample(round, note, round.ElapsedSeconds).MissApproach);
+                round.Resume(false); round.Advance(landing);
+                var hit = Sample(round, note, round.ElapsedSeconds);
+                Check.Equal(MonsterAttackPhase.Miss, hit.Phase); Near(1, hit.MissApproach);
+                round.Advance(landing + MonsterAttackTimeline.ReactionSeconds + .01);
+                Check.False(Sample(round, note, round.ElapsedSeconds).Visible);
+                Check.Equal(1, round.Results.Count); Check.Equal(4m, round.TotalDamageTaken);
+            }
+            foreach (double error in new[] { 0.0, .10 })
+            {
+                var round = Round("clock-quick-tap"); var note = round.Notes.Single();
+                round.Press(note.StartSeconds + error, 0, 0);
+                var reaction = Sample(round, note, round.ElapsedSeconds + PlayerMotionTimeline.TapPreparationDuration(round.BeatSeconds));
+                Check.Equal(error == 0 ? MonsterAttackPhase.Perfect : MonsterAttackPhase.HalfMiss, reaction.Phase);
+                Near(0, reaction.MissApproach);
+                Check.Equal(1, round.Results.Count);
             }
         }
 

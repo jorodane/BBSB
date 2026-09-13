@@ -48,7 +48,7 @@ namespace BBSB.Tests
             Check.Equal(PreviewCueKind.Wait, doll.CueAt(shot.StartSeconds - doll.BeatSeconds).Kind);
             Check.True(Math.Abs(doll.CueAt(shot.StartSeconds - doll.BeatSeconds).BeatsUntilResponse - 1) < .000001);
             var fox = Demo("offbeat-single-tap");
-            Check.True(Math.Abs(fox.DisplayBeat(fox.Round.Notes[0].StartSeconds) - 1.5) < .000001);
+            Check.True(Math.Abs(fox.DisplayBeat(fox.Round.Notes[0].StartSeconds) - 4.5) < .000001);
         }
 
         [Test]

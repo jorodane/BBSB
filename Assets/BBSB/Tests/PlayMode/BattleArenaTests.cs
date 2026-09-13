@@ -449,6 +449,48 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator ThrownDollMeetsThePunchBeforeItsMissLandingAcrossLayouts()
+        {
+            var display = ScriptableObject.CreateInstance<PlayerMotionDisplay>();
+            display.groundPosition = new Vector2(.18f, .19f);
+            try
+            {
+                var monster = MonsterCatalog.All.Single(m => m.Id == "clock-spirit");
+                var pattern = monster.Patterns.Single(p => p.Id == "clock-quick-tap");
+                foreach (float viewportHeight in new[] { 720f, 800f })
+                foreach (float scale in new[] { .6f, .9f })
+                {
+                    display.characterScale = scale;
+                    var round = new MonsterPreview(monster, pattern).Round;
+                    var note = round.Notes.Single(); var arena = Arena(round, display);
+                    ((RectTransform)arena.transform).sizeDelta = new Vector2(1280, viewportHeight);
+                    yield return null; Canvas.ForceUpdateCanvases();
+                    round.Advance(note.StartSeconds); arena.Refresh();
+                    var slot = arena.GetComponentsInChildren<MonsterAttackGraphic>().Single();
+                    var size = ((RectTransform)arena.transform).rect.size;
+                    Assert.AreEqual(MonsterAttackPhase.Contact, slot.Frame.Phase);
+                    Assert.AreEqual(arena.HeroImpactPosition.x * size.x, slot.rectTransform.anchoredPosition.x, .01f);
+                    Assert.AreEqual(arena.HeroImpactPosition.y * size.y, slot.rectTransform.anchoredPosition.y, .01f);
+                    Assert.AreEqual(0, round.Results.Count);
+                    double deadline = note.StartSeconds + round.HalfMissWindow;
+                    double duration = MonsterAttackTimeline.MissApproachSeconds(round.BeatSeconds);
+                    round.Advance(deadline + duration * .5); arena.Refresh();
+                    Assert.AreEqual(1, round.MissCount); Assert.AreEqual(MonsterAttackPhase.Travel, slot.Frame.Phase);
+                    var position = slot.rectTransform.anchoredPosition;
+                    round.Suspend(); arena.SetPaused(true); round.Advance(100); arena.Refresh();
+                    Assert.AreEqual(position, slot.rectTransform.anchoredPosition);
+                    round.Resume(false); arena.SetPaused(false); round.Advance(deadline + duration); arena.Refresh();
+                    Assert.AreEqual(MonsterAttackPhase.Miss, slot.Frame.Phase);
+                    float bottom = slot.rectTransform.anchoredPosition.y - slot.rectTransform.rect.height * slot.rectTransform.pivot.y;
+                    Assert.AreEqual(arena.HeroGroundPosition.y * size.y, bottom, .01f);
+                    Assert.AreEqual(1, round.Results.Count);
+                }
+                LogAssert.NoUnexpectedReceived();
+            }
+            finally { Object.DestroyImmediate(display); }
+        }
+
+        [UnityTest]
         public IEnumerator AttackSlotsFollowPlayerCalibrationAndKeepTheirPhaseWhilePaused()
         {
             var display = ScriptableObject.CreateInstance<PlayerMotionDisplay>();

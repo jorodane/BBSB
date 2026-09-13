@@ -34,9 +34,9 @@ namespace BBSB.Core
             }, encounterWeight: 1.4, artId: "spark-bat"),
             new MonsterDefinition("offbeat-goblin", "여우불 여우요괴", "풍성한 꼬리 끝에서 여우불을 피우는 장난스러운 여우요괴다.", GestureKind.Tap, new[]
             {
-                Pattern("offbeat-single-tap", "뒤따르는 불씨", "옆걸음으로 탁 소리를 내고 반 박 뒤 작은 여우불이 도착한다.", 2,
+                Pattern("offbeat-single-tap", "뒤따르는 불씨", "옆걸음 Call 뒤 기다렸다가 첫 Call 기준 4박 반에 불씨 한 발을 받아친다. 두 꼬리불의 마지막 반응과 같은 시점이다.", 14,
                     new[] { Tap(0) }, new[] { Call(0, "톡!", CallSound.Wood, CallMotion.Step) }, 4, 4, .18),
-                Pattern("offbeat-pair", "두 꼬리불 장난", "방울 소리와 두 번의 가벼운 점프 뒤, 마지막 Call에서 반 박 뒤부터 한 박 간격으로 불씨 두 개가 도착한다..", 6,
+                Pattern("offbeat-pair", "두 꼬리불 장난", "1박과 2박의 방울 Call을 모두 듣고, 3박 반과 4박 반에 불씨를 하나씩 받아친다.", 10,
                     new[] { Tap(0), Tap(4) }, new[] { Call(0, "뿅", CallSound.Bell, CallMotion.Hop), Call(4, "뿅!", CallSound.Bell, CallMotion.Hop) }, 8, 4, .14)
             }, encounterWeight: 1.4, artId: "flick-goblin"),
             new MonsterDefinition("drowsy-slime", "꿈먹는 맥 소녀", "꿈을 먹고 잠에 빠지는 맥 소녀다.", GestureKind.Tap, new[]
@@ -49,7 +49,7 @@ namespace BBSB.Core
             }, encounterWeight: 1.2, artId: "tap-slime"),
             new MonsterDefinition("clock-spirit", "태엽 인형 소녀", "등에 태엽, 가슴에 작은 종을 품은 정교한 인형이다.", GestureKind.Tap, new[]
             {
-                Pattern("clock-quick-tap", "째깍 인형 던지기", "Call에 작은 인형을 던진다.", 4,
+                Pattern("clock-quick-tap", "째깍 인형 던지기", "Call에 작은 인형을 던진다. 한 박 뒤 주먹 위치에 닿을 때 받아치며, 미스하면 그 뒤 발 앞에 내려와 공격한다.", 4,
                     new[] { Tap(0) }, new[] { Call(0, "째깍!", CallSound.Wood, CallMotion.Step) }, 4, 4, .32),
                 Pattern("clock-seven-beat-wait", "뚜방뚜방 일곱 걸음", "Call에 작은 인형을 자기 앞에 내려놓는다.", 28,
                     new[] { Tap(0) }, new[] { Call(0, "땡!", CallSound.Bell, CallMotion.Flash) }, 4, 4, .18,

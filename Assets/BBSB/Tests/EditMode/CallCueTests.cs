@@ -20,7 +20,7 @@ namespace BBSB.Tests
                 {
                     Check.Equal(expected, CallReadability.FirstDifferenceTick(a, b, sound));
                     Check.Equal(expected, CallReadability.FirstDifferenceTick(b, a, sound));
-                    Check.True(Math.Min(a.Pattern.CueLeadTicks, b.Pattern.CueLeadTicks) - expected >= (expected == 0 ? 2 : 4));
+                    Check.True(Math.Min(a.Pattern.CueLeadTicks, b.Pattern.CueLeadTicks) - expected >= 4);
                 }
             }
         }
@@ -77,11 +77,40 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void ImmediateCuesAllowHalfBeatOffbeatsButStillRequirePreparation()
+        public void ImmediateCuesStillLeaveAFullBeatToRecognizeThePattern()
         {
-            var a = Pattern("a", 2, Cue(0)); var b = Pattern("b", 2, Tail(0));
+            var a = Pattern("a", 4, Cue(0)); var b = Pattern("b", 6, Tail(0));
             Check.Equal(2, Monster(a, b).Patterns.Count);
-            Reject(() => Monster(Pattern("too-soon", 1, Cue(0)), b));
+            Reject(() => Monster(Pattern("too-soon", 2, Cue(0)), b));
+        }
+
+        [Test]
+        public void FoxfireFinishesBothCallsBeforeResponsesAndTheSingleEndsWithThePair()
+        {
+            var fox = MonsterCatalog.All.Single(m => m.Id == "offbeat-goblin");
+            foreach (double bpm in new[] { 60.0, 120.0, 168.0, 240.0 })
+            {
+                var single = new MonsterPreview(fox, fox.Patterns.Single(p => p.Id == "offbeat-single-tap"), bpm);
+                var pair = new MonsterPreview(fox, fox.Patterns.Single(p => p.Id == "offbeat-pair"), bpm);
+                double start = single.CallSeconds;
+                Check.True(Math.Abs(single.Round.Notes[0].StartSeconds - (start + 3.5 * single.BeatSeconds)) < 1e-8);
+                Check.True(Math.Abs(pair.Round.Notes[0].StartSeconds - (start + 2.5 * pair.BeatSeconds)) < 1e-8);
+                Check.Equal(single.Round.Notes[0].StartSeconds, pair.Round.Notes[1].StartSeconds);
+                Check.Equal(single.Attack.PhraseEndTick, pair.Attack.PhraseEndTick);
+                double lastCall = RhythmTime.Seconds(pair.Attack.Call.Last().Tick, bpm);
+                Check.True(pair.Round.Notes[0].StartSeconds - pair.Round.HalfMissWindow - lastCall >= pair.BeatSeconds);
+                foreach (var preview in new[] { single, pair })
+                {
+                    var round = preview.Round;
+                    round.Advance(lastCall); Check.Equal(0, round.Results.Count);
+                    foreach (var note in round.Notes)
+                    {
+                        Check.Equal(2, (note.StartTick - preview.Attack.CallStartTick) % 4);
+                        round.Press(note.StartSeconds, 0, 0); round.Release(note.StartSeconds + .001, 0, 0);
+                    }
+                    Check.Equal(round.Notes.Count, round.PerfectCount);
+                }
+            }
         }
 
         [Test]

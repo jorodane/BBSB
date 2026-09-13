@@ -14,21 +14,23 @@ namespace BBSB.Runtime.UI
         public double AnimationBeat { get; }
         public double ReactionProgress { get; }
         public double ShakeProgress { get; }
+        public double MissApproach { get; }
         public bool Shielded { get; }
         public bool Visible => Phase != MonsterAttackPhase.Hidden;
         public bool IsReaction => Phase >= MonsterAttackPhase.Perfect;
         public string ImageName => Phase == MonsterAttackPhase.HalfMiss ? "half-miss" : Phase.ToString().ToLowerInvariant();
 
         internal MonsterAttackFrame(MonsterAttackPhase phase, double progress, double lift, double age,
-            double beat, double reaction = 0, double shake = 0, bool shielded = false)
+            double beat, double reaction = 0, double shake = 0, bool shielded = false, double missApproach = 0)
         { Phase = phase; Progress = progress; Lift = lift; PhaseAge = age; AnimationBeat = beat;
-            ReactionProgress = reaction; ShakeProgress = shake; Shielded = shielded; }
+            ReactionProgress = reaction; ShakeProgress = shake; Shielded = shielded; MissApproach = missApproach; }
     }
 
     /// <summary>Samples the music clock; never emits Calls, resolves inputs or changes combat state.</summary>
     public static class MonsterAttackTimeline
     {
         public const double ReactionSeconds = .32;
+        public static double MissApproachSeconds(double beatSeconds) => Math.Min(.18, beatSeconds * .3);
 
         public static MonsterAttackFrame Evaluate(ResponseNote note, MonsterAttackDefinition art,
             double seconds, double beatSeconds, double halfMissWindow)
@@ -41,6 +43,18 @@ namespace BBSB.Runtime.UI
             {
                 // An early miss must not destroy a shot before its authored attack; sustained hazards keep their full interval.
                 double reacted = Math.Max(end, note.Result.JudgedAtSeconds);
+                bool lands = art.LandsAfterMiss && note.Result.Grade == RhythmGrade.Miss;
+                if (lands)
+                {
+                    // The doll first reaches the punch socket. Only a confirmed miss, after
+                    // the full input window, lets it descend to the floor and strike.
+                    double approach = Math.Max(start + halfMissWindow, note.Result.JudgedAtSeconds);
+                    double approachSeconds = MissApproachSeconds(beatSeconds);
+                    reacted = approach + approachSeconds;
+                    if (seconds >= approach && seconds < reacted)
+                        return new MonsterAttackFrame(MonsterAttackPhase.Travel, 1, 0, seconds - approach, animation,
+                            missApproach: Clamp((seconds - approach) / approachSeconds));
+                }
                 if (note.Step.Kind == GestureKind.Tap && note.Result.Grade != RhythmGrade.Miss)
                     reacted = Math.Max(reacted, note.Result.JudgedAtSeconds + PlayerMotionTimeline.TapPreparationDuration(beatSeconds));
                 double age = seconds - reacted;
@@ -50,7 +64,7 @@ namespace BBSB.Runtime.UI
                     var phase = note.Result.Grade == RhythmGrade.Perfect ? MonsterAttackPhase.Perfect :
                         note.Result.Grade == RhythmGrade.HalfMiss ? MonsterAttackPhase.HalfMiss : MonsterAttackPhase.Miss;
                     return new MonsterAttackFrame(phase, 1, 0, age, animation, age / ReactionSeconds,
-                        note.ShakeProgress, note.Result.BlockedDamage > 0);
+                        note.ShakeProgress, note.Result.BlockedDamage > 0, lands ? 1 : 0);
                 }
             }
             if (seconds >= start)
@@ -89,7 +103,13 @@ namespace BBSB.Runtime.UI
                     double a = calls[index].Tick * beatSeconds / RhythmTime.TicksPerBeat;
                     double b = index + 1 < calls.Count ? calls[index + 1].Tick * beatSeconds / RhythmTime.TicksPerBeat : start;
                     double fraction = Clamp((seconds - a) / Math.Max(.000001, b - a));
-                    progress = (index + Smooth(fraction)) / calls.Count;
+                    // Earlier bounces occupy one share each; reserve two shares for the
+                    // final hop, keeping the attack far from the player on the last Call.
+                    double origin = index / (double)(calls.Count + 1);
+                    double destination = index + 1 < calls.Count ? (index + 1) / (double)(calls.Count + 1) : 1;
+                    // Keep horizontal movement through the judgment beat instead of easing
+                    // to an almost stationary projectile just before the punch.
+                    progress = origin + (destination - origin) * fraction;
                     lift = Math.Sin(fraction * Math.PI) * art.Arc;
                     phaseAge = seconds - a;
                     state = fraction < .18 ? MonsterAttackPhase.Spawn : MonsterAttackPhase.Travel;

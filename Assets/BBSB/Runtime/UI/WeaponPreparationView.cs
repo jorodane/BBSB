@@ -51,7 +51,7 @@ namespace BBSB.Runtime.UI
             detail = ui.Stack(right, "Selected weapon details", 0, 4); RunUI.Size(detail, 132);
             grid = ui.Scroll(right);
             var footer = ui.Row(page, 52);
-            ui.Button(footer, "자동 배치", () => { loadout.AutoArrange(); status.text = "몬스터 박자에 맞춰 자동 배치했어. 무기별 위치를 확인해줘."; RefreshPanels(); }, height: 52);
+            ui.Button(footer, "자동 배치", () => { loadout.AutoArrange(); status.text = "지원하는 행동에 맞춰 패턴별 무기 개수를 고르게 배치했어."; RefreshPanels(); }, height: 52);
             ui.Button(footer, "선택 무기 해제", () => { loadout.Remove(selectedSlot); RefreshPanels(); }, height: 52);
             ui.Button(footer, "이 패턴 연습", () => practice(SelectedPattern), Current != null, true, 52);
             ui.Button(footer, "전투 시작", start, primary: true, height: 52);

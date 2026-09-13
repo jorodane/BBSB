@@ -9,7 +9,7 @@ namespace BBSB.Core
 
     public static class CallReadability
     {
-        public const int ImmediatePreparationTicks = RhythmTime.TicksPerBeat / 2;
+        public const int ImmediatePreparationTicks = RhythmTime.TicksPerBeat;
         public const int SharedPrefixPreparationTicks = RhythmTime.TicksPerBeat;
 
         /// <summary>Compare the cues from their first Call, without revealing the selected pattern's name.

@@ -9,6 +9,25 @@ namespace BBSB.Tests
     public sealed class BattleTrajectoryTests
     {
         [Test]
+        public void MissLandingStartsAtThePunchAndPlacesTheDollsFeetOnTheGround()
+        {
+            foreach (double playerHeight in new[] { 120.0, 180.0, 240.0 })
+            foreach (double scale in new[] { .75, 1.0, 1.5 })
+            foreach (double pivot in new[] { 0.0, .5, 1.0 })
+            {
+                double ground = 100, bodyHeight = .52 * playerHeight * scale;
+                var contact = new BattlePathPoint(200, ground + .46 * playerHeight);
+                var start = BattleTrajectory.MissLanding(contact, ground, bodyHeight, pivot, playerHeight, 0);
+                Check.Equal(contact.X, start.X); Check.Equal(contact.Y, start.Y);
+                var end = BattleTrajectory.MissLanding(contact, ground, bodyHeight, pivot, playerHeight, 1);
+                Check.True(Math.Abs(end.Y - bodyHeight * pivot - ground) < 1e-8);
+                Check.True(end.X < contact.X);
+                var beyond = BattleTrajectory.MissLanding(contact, ground, bodyHeight, pivot, playerHeight, 2);
+                Check.Equal(end.Y, beyond.Y); Check.Equal(end.X, beyond.X);
+            }
+        }
+
+        [Test]
         public void IncomingAndCounterPathsMeetActorsAndStayVisuallySeparated()
         {
             foreach (int count in new[] { 1, 2, 3 })

@@ -86,20 +86,73 @@ namespace BBSB.Core
             return result.AsReadOnly();
         }
 
-        // Prefer existing input edges. Automatic placement is explicit; manual edits are never overwritten.
+        // Balance pattern counts before balancing actions inside each pattern. A flexible weapon
+        // may need the second pattern so a weapon that only fits the first can still be distributed fairly.
         public void AutoArrange()
         {
             placements.Clear();
-            for (int slot = 0; slot < equipment.Count; slot++)
+            var compatible = new int[patterns.Count];
+            for (int p = 0; p < patterns.Count; p++)
+                for (int slot = 0; slot < equipment.Count; slot++)
+                    foreach (var step in patterns[p].Placement.Pattern.Steps)
+                        if (CanPlace(slot, patterns[p].MonsterId, patterns[p].Pattern.Id, step.OffsetTick, out _, step.Kind))
+                        { compatible[p] |= 1 << slot; break; }
+            var assignedPatterns = BalanceTargets(compatible, equipment.Count);
+            for (int p = 0; p < patterns.Count; p++)
             {
-                bool done = false;
-                foreach (var pattern in patterns)
+                var pattern = patterns[p]; var steps = pattern.Placement.Pattern.Steps;
+                var actions = new int[steps.Count];
+                for (int i = 0; i < steps.Count; i++)
+                    for (int slot = 0; slot < equipment.Count; slot++)
+                        if (assignedPatterns[slot] == p && CanPlace(slot, pattern.MonsterId, pattern.Pattern.Id,
+                            steps[i].OffsetTick, out _, steps[i].Kind)) actions[i] |= 1 << slot;
+                var assignedActions = BalanceTargets(actions, equipment.Count);
+                for (int slot = 0; slot < equipment.Count; slot++)
+                    if (assignedActions[slot] >= 0)
+                    {
+                        var step = steps[assignedActions[slot]];
+                        TryPlace(slot, pattern.MonsterId, pattern.Pattern.Id, step.OffsetTick, out _, step.Kind);
+                    }
+            }
+        }
+
+        // Five equipped slots give at most 32 states. Minimize sum(count^2) while assigning
+        // every compatible weapon; this respects restricted choices without first-fit bias.
+        private static int[] BalanceTargets(int[] compatible, int slots)
+        {
+            int states = 1 << slots, all = 0;
+            var counts = new int[states];
+            for (int mask = 1; mask < states; mask++) counts[mask] = counts[mask >> 1] + (mask & 1);
+            var cost = new int[compatible.Length + 1, states];
+            var chosen = new int[compatible.Length + 1, states];
+            for (int p = 0; p <= compatible.Length; p++)
+                for (int mask = 0; mask < states; mask++) cost[p, mask] = int.MaxValue;
+            cost[0, 0] = 0;
+            for (int p = 0; p < compatible.Length; p++)
+            {
+                all |= compatible[p];
+                for (int mask = 0; mask < states; mask++)
                 {
-                    foreach (var step in pattern.Pattern.Pattern.Steps)
-                        if (TryPlace(slot, pattern.MonsterId, pattern.Pattern.Id, step.OffsetTick, out _, step.Kind)) { done = true; break; }
-                    if (done) break;
+                    if (cost[p, mask] == int.MaxValue) continue;
+                    int available = compatible[p] & ~mask;
+                    for (int subset = available; ; subset = (subset - 1) & available)
+                    {
+                        int target = mask | subset, next = cost[p, mask] + counts[subset] * counts[subset];
+                        if (next < cost[p + 1, target])
+                        { cost[p + 1, target] = next; chosen[p + 1, target] = subset; }
+                        if (subset == 0) break;
+                    }
                 }
             }
+            var assignments = new int[slots];
+            for (int slot = 0; slot < slots; slot++) assignments[slot] = -1;
+            for (int p = compatible.Length - 1; p >= 0; p--)
+            {
+                int subset = chosen[p + 1, all];
+                for (int slot = 0; slot < slots; slot++) if ((subset & (1 << slot)) != 0) assignments[slot] = p;
+                all ^= subset;
+            }
+            return assignments;
         }
 
         internal WeaponArrangement Snapshot(BattlePlan target)

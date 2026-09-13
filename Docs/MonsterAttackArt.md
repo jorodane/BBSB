@@ -34,7 +34,7 @@
 
 - 모든 공격은 **오른쪽 몬스터 → 왼쪽 플레이어** 방향으로 그린다. 파일에는 배경·UI·플레이어를 합성하지 않는다.
 - 일반 탄은 중앙 기준, 일정한 캔버스/여백으로 상태별 그림을 맞춘다. 기본 표시 크기는 그림의 세로 픽셀 비율 대신 아래 표의 플레이어 기준 높이로 정한다. 가로세로 비율은 유지한다.
-- 지면 젤리 폭발과 작은 인형은 **아래 중앙을 접지점**으로 쓰며, 이미지 바닥에 발을 맞춘다. 작은 인형은 기본 높이 0.52, 펀치 접점은 플레이어 높이 0.46이므로 `contact`의 공격 손을 캔버스 높이 약 88%에 둔다. 젤리 폭발은 높이 0.48의 꼭대기 근처가 펀치에 닿는다. 떠 있는 젤리 변형은 중앙 기준이다.
+- 지면 젤리 폭발과 걷는 작은 인형은 **아래 중앙을 접지점**으로 쓴다. 걷는 인형의 높이는 0.52, 펀치 접점은 플레이어 높이 0.46이므로 공격 손을 캔버스 높이 약 88%에 둔다. 던진 인형은 중앙 기준으로 주먹 접점에 도달한 뒤, 미스 후 착지할 때만 현재 이미지 높이·피벗으로 발을 지면에 맞춘다. 젤리 폭발은 높이 0.48의 꼭대기 근처가 펀치에 닿고 떠 있는 젤리는 중앙 기준이다.
 - 길게 뻗는 꼬리·방전·장막·실은 **오른쪽 끝이 몬스터 연결부, 왼쪽 끝이 타격 끝**인 수평 띠로 그린다. 코드가 양 끝 사이로 너비를 늘리고 회전한다. 이 형식은 가로 늘어남을 전제로 하므로 원형 장식이나 얼굴을 띠 안에 넣지 않는다.
 - 일반 투사체는 생성 시점의 몬스터 위치에서 출발한다. 몬스터가 이동해도 발사된 탄의 출발점은 끌려가지 않는다. 신체에 붙은 띠는 현재 몬스터 위치를 따라간다.
 
@@ -67,8 +67,8 @@
 | 도자기 골렘 소녀 / `march-slime` | [march-spaced](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/march-slime/march-spaced/README.md) | 분리된 장갑 주먹 · 포물선 | 0 → 1, 2 → 3 | 0, 0 |
 | 깃춤 하피 / `tresillo-bat` | [tresillo-taps](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/README.md) | 깃털 묶음 · 등속 이동 | 0 → 4, 1.5 → 5.5, 3 → 7 | 0, 0, 0 |
 | 깃춤 하피 / `tresillo-bat` | [rotated-tresillo](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/tresillo-bat/rotated-tresillo/README.md) | 깃털 묶음 · 등속 이동 · 짧은 깃춤 | 0 → 1 | 0 |
-| 여우불 여우요괴 / `offbeat-goblin` | [offbeat-single-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/README.md) | 여우불 · 대기 후 급발진 | 0 → 0.5 | 0 |
-| 여우불 여우요괴 / `offbeat-goblin` | [offbeat-pair](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-pair/README.md) | 여우불 · 대기 후 급발진 | 0 → 1.5, 1 → 2.5 | 0, 0 |
+| 여우불 여우요괴 / `offbeat-goblin` | [offbeat-single-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/README.md) | 여우불 · 대기 후 급발진 | 0 → 3.5 | 0 |
+| 여우불 여우요괴 / `offbeat-goblin` | [offbeat-pair](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-pair/README.md) | 여우불 · 대기 후 급발진 | 0 → 2.5, 1 → 3.5 | 0, 0 |
 | 꿈먹는 맥 소녀 / `drowsy-slime` | [drowsy-quick-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-quick-tap/README.md) | 꿈방울 · 포물선 | 0 → 1 | 0 |
 | 꿈먹는 맥 소녀 / `drowsy-slime` | [drowsy-four-beat-wait](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-four-beat-wait/README.md) | 꿈방울 · Response에 실체화 | 0 → 4 | 0 |
 | 태엽 인형 소녀 / `clock-spirit` | [clock-quick-tap](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/clock-spirit/clock-quick-tap/README.md) | 작은 인형 · 포물선 | 0 → 1 | 0 |
@@ -86,9 +86,9 @@
 | 실 잣는 아라크네 / `flick-goblin` | [counted-flick](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/flick-goblin/counted-flick/README.md) | 발목 실 · 대기 후 급발진 | 0 → 2 | 0 |
 | 실 잣는 아라크네 / `flick-goblin` | [offbeat-flick](../Assets/BBSB/Resources/BBSB/BattleArt/MonsterAttacks/flick-goblin/offbeat-flick/README.md) | 발목 실 · 대기 후 급발진 | 0 → 1.5 | 0 |
 
-젤리 연쇄형은 각 Call 위치에서 spawn 이미지를 사용하고 다음 위치로 도약하며, 마지막 Response 한 번만 받아친다. 하피는 0·1.5·3박의 Call마다 깃털을 하나씩 보내고 모두 같은 출발점에서 4박 동안 같은 속도로 이동한다. 마지막 Call 한 박 뒤부터 같은 리듬을 받아친다. 짧은 깃춤은 한 번의 Call 후 한 박 뒤 Tap이다. `rotated-tresillo` ID는 기존 이미지 경로 호환을 위해 유지하고 step-0만 사용한다. 골렘·해파리의 후속 발사는 첫 Call에서 결정된 일정에 따른다. 여우불과 비늘 조각은 생성 후 기다렸다가 정해진 짧은 구간에 급발진한다.
+젤리 연쇄형은 각 Call 위치에서 spawn 이미지를 사용하고 다음 위치로 도약하며 마지막 Response 한 번만 받아친다. 트레실로의 두 번째 Call은 경로 1/3, 네 박 패턴의 세 번째 Call은 1/2 위치다. 마지막 도약에 각각 2/3·1/2 거리를 남기고 수평 속도를 일정하게 유지해 판정 직전의 정체를 없앤다. 하피는 0·1.5·3박의 Call마다 깃털을 하나씩 보내고 모두 같은 출발점에서 4박 동안 같은 속도로 이동한다. 마지막 Call 한 박 뒤부터 같은 리듬을 받아친다. 짧은 깃춤은 한 번의 Call 후 한 박 뒤 Tap이다. `rotated-tresillo` ID는 기존 이미지 경로 호환을 위해 유지하고 step-0만 사용한다. 골렘·해파리의 후속 발사는 첫 Call에서 결정된 일정에 따른다. 여우불과 비늘 조각은 생성 후 기다렸다가 정해진 짧은 구간에 급발진한다.
 
-태엽 인형은 일반 패턴에서 작은 인형을 던져 한 박 뒤 플레이어 앞에 착지·공격한다. 긴 패턴에서는 바로 내려놓고 매 박 한 걸음씩 걷는다. 일곱 번째 걸음의 착지와 공격이 Response이며, 추가로 한 박 더 기다리지 않는다. 발걸음이 카운트를 돕는 것은 이 공격의 특징이다. 현재 발소리 음원은 추가하지 않았고 기존 Call 음향을 유지한다. 꿈먹는 맥의 긴 낮잠은 해당 종족의 선택으로 중간 접근을 감추고 Response에만 실체화한다. 긴 쉼 전체에 카운트 보조 금지를 적용하지 않는다.
+태엽 인형의 던지기는 한 박 뒤 작은 인형의 중앙이 주먹 접점에 도달할 때 판정한다. Perfect·반미스는 기존 Tap 준비 후 주먹 위치에서 반응한다. Miss일 때에는 `max(늦은 입력 마감, 실제 Miss 시각)` 이후 `min(0.18초, 0.3박)` 동안 발 앞으로 내려온 뒤 `miss` 이미지를 재생한다. 너무 이른 Miss도 이 순서를 지키며, 착지 연출은 판정·피해를 추가하지 않는다. 긴 패턴에서는 바로 내려놓고 매 박 한 걸음씩 걷는다. 일곱 번째 걸음의 착지와 공격이 Response이며, 추가로 한 박 더 기다리지 않는다. 발걸음이 카운트를 돕는 것은 이 공격의 특징이다. 현재 발소리 음원은 추가하지 않았고 기존 Call 음향을 유지한다. 꿈먹는 맥의 긴 낮잠은 해당 종족의 선택으로 중간 접근을 감추고 Response에만 실체화한다. 긴 쉼 전체에 카운트 보조 금지를 적용하지 않는다.
 
 ## 몬스터 본체의 교체 자리
 

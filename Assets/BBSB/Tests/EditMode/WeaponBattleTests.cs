@@ -474,6 +474,61 @@ namespace BBSB.Tests
             Check.Equal(4m, failed.TotalDamageTaken);
         }
 
+        [Test]
+        public void AutomaticPlacementBalancesSiblingPatternsAndIsStableWhenRepeated()
+        {
+            var stage = Stage(); var monster = MonsterCatalog.All.Single(m => m.Id == "tap-slime");
+            var choices = monster.Patterns.Select((p, i) => stage.FindPlacements(p.Pattern).Single(x => x.StartTick == 16 + i * 32));
+            var plan = BattlePlanner.Resolve(stage, new[] { new MonsterProposal("slime", monster, choices) }, 1);
+            var loadout = Loadout(plan, "sword", "spear", "hammer", "dagger", "sword");
+            loadout.AutoArrange();
+            var counts = loadout.Patterns.Select(p => loadout.Placements.Count(a => a.Matches(p))).ToArray();
+            Check.Equal(2, counts.Length); Check.Equal(5, counts.Sum()); Check.Equal(1, counts.Max() - counts.Min());
+            var before = loadout.Placements.Select(p => p.Slot + "/" + p.MonsterId + "/" + p.PatternId + "/" + p.OffsetTick + "/" + p.Kind).ToArray();
+            loadout.AutoArrange();
+            Check.True(before.SequenceEqual(loadout.Placements.Select(p => p.Slot + "/" + p.MonsterId + "/" + p.PatternId + "/" + p.OffsetTick + "/" + p.Kind)));
+            foreach (var selected in loadout.Patterns)
+            {
+                var practice = WeaponPractice.Create(plan, loadout, selected, 1000, 100);
+                Perform(practice, selected.Placement.Pattern.Steps, practice.Notes[0].StartSeconds);
+                Check.True(practice.Combat.Activations.Count > 0, "Both sibling patterns need an assigned weapon response.");
+            }
+        }
+
+        [Test]
+        public void AutomaticPlacementReservesRestrictedWeaponsAndNeverForcesUnsupportedActions()
+        {
+            var stage = Stage();
+            var plan = BattlePlanner.Resolve(stage, new[] {
+                Proposal(stage, "tap", new[] { new PatternStep(GestureKind.Tap, 0) }, new[] { 16 }),
+                Proposal(stage, "flick", new[] { new PatternStep(GestureKind.Flick, 0) }, new[] { 48 })
+            }, 1);
+            var loadout = Loadout(plan, "sword", "hammer", "shield"); loadout.AutoArrange();
+            Check.Equal(GestureKind.Flick, loadout.At(0).Kind);
+            Check.Equal(GestureKind.Tap, loadout.At(1).Kind);
+            Check.True(loadout.At(2) == null); Check.Equal(2, loadout.Placements.Count);
+        }
+
+        [Test]
+        public void AutomaticPlacementBalancesAllReachableTargetsAndTheActionsWithinOnePattern()
+        {
+            foreach (int count in new[] { 2, 3, 4, 5, 6 })
+            {
+                var stage = Stage();
+                var plan = BattlePlanner.Resolve(stage, Enumerable.Range(0, count).Select(i =>
+                    Proposal(stage, "target-" + i, new[] { new PatternStep(GestureKind.Tap, 0) }, new[] { 16 })), 1);
+                var loadout = Loadout(plan, "sword", "spear", "hammer", "dagger", "sword"); loadout.AutoArrange();
+                var counts = loadout.Patterns.Select(p => loadout.Placements.Count(a => a.Matches(p))).ToArray();
+                Check.Equal(count, counts.Length); Check.Equal(5, counts.Sum()); Check.True(counts.Max() - counts.Min() <= 1);
+            }
+            var single = Plan(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4), new PatternStep(GestureKind.Tap, 8));
+            var arranged = Loadout(single, "sword", "spear", "hammer", "dagger", "sword"); arranged.AutoArrange();
+            var perAction = new[] { 0, 4, 8 }.Select(t => arranged.Placements.Count(p => p.OffsetTick == t)).ToArray();
+            Check.Equal(5, perAction.Sum()); Check.Equal(1, perAction.Max() - perAction.Min());
+            var round = Round(single, arranged); Perform(round, single.Attacks[0].Placement.Pattern.Steps, 2);
+            Check.Equal(3, round.PerfectCount); Check.Equal(5, round.Combat.Activations.Count);
+        }
+
         private static RunSession Session()
         {
             var run = new RunSession(73, new RunRules(startingHealth: 10000));

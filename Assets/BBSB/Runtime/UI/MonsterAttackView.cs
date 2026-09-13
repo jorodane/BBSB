@@ -105,6 +105,13 @@ namespace BBSB.Runtime.UI
                 var pivot = definition.Grounded ? new Vector2(.5f, 0) : new Vector2(.5f, .5f);
                 if (pose != null && pose.overridePivot) pivot = pose.pivot;
                 float angle = pose?.rotation ?? 0;
+                if (frame.MissApproach > 0)
+                {
+                    var landing = BattleTrajectory.MissLanding(new BattlePathPoint(to.x, to.y),
+                        heroGround.y * size.y + (calibration?.targetOffset.y ?? 0) * heroHeight,
+                        height, pivot.y, heroHeight, frame.MissApproach);
+                    point = new Vector2((float)landing.X, (float)landing.Y);
+                }
                 if (frame.IsReaction)
                 {
                     if (frame.Phase == MonsterAttackPhase.Perfect)

@@ -25,16 +25,18 @@ namespace BBSB.Runtime.UI
         public double Arc { get; }
         public bool Stretch { get; }
         public bool Grounded { get; }
+        public bool LandsAfterMiss { get; }
         public string PatternFolder => ResourceRoot + MonsterId + "/" + PatternId;
         public string ResourceFolder => PatternFolder + "/step-" + StepIndex;
 
         internal MonsterAttackDefinition(string monster, string pattern, int step, MonsterAttackMotion motion,
             MonsterAttackShape shape, MonsterAttackReaction reaction, int call = 0, int offset = 0,
-            double height = .24, double arc = .18, int rush = 1, bool stretch = false, bool grounded = false)
+            double height = .24, double arc = .18, int rush = 1, bool stretch = false, bool grounded = false,
+            bool landsAfterMiss = false)
         {
             MonsterId = monster; PatternId = pattern; StepIndex = step; Motion = motion; Shape = shape;
             Reaction = reaction; CallIndex = call; SpawnOffsetTicks = offset; Height = height; Arc = arc;
-            RushTicks = rush; Stretch = stretch; Grounded = grounded;
+            RushTicks = rush; Stretch = stretch; Grounded = grounded; LandsAfterMiss = landsAfterMiss;
         }
 
         public double SpawnSeconds(ResponseNote note, double beatSeconds) =>
@@ -72,8 +74,8 @@ namespace BBSB.Runtime.UI
                 int offset = pattern.Pattern.Steps[i].OffsetTick;
                 MonsterAttackDefinition D(MonsterAttackMotion motion, MonsterAttackShape shape, MonsterAttackReaction reaction,
                     int call = 0, int delay = 0, double height = .24, double arc = .18, int rush = 1,
-                    bool stretch = false, bool grounded = false) =>
-                    new MonsterAttackDefinition(monster.Id, pattern.Id, i, motion, shape, reaction, call, delay, height, arc, rush, stretch, grounded);
+                    bool stretch = false, bool grounded = false, bool landsAfterMiss = false) =>
+                    new MonsterAttackDefinition(monster.Id, pattern.Id, i, motion, shape, reaction, call, delay, height, arc, rush, stretch, grounded, landsAfterMiss);
 
                 // The motion, source Call and subsequent emissions are authored per pattern, not per input kind.
                 switch (pattern.Id)
@@ -88,7 +90,7 @@ namespace BBSB.Runtime.UI
                     case "offbeat-pair": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Foxfire, MonsterAttackReaction.Fade, call: i)); break;
                     case "drowsy-quick-tap": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Dream, MonsterAttackReaction.Fade, height: .32)); break;
                     case "drowsy-four-beat-wait": values.Add(D(MonsterAttackMotion.Materialize, MonsterAttackShape.Dream, MonsterAttackReaction.Fade, height: .32)); break;
-                    case "clock-quick-tap": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Doll, MonsterAttackReaction.Recoil, height: .52, arc: .75, grounded: true)); break;
+                    case "clock-quick-tap": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Doll, MonsterAttackReaction.Recoil, height: .52, arc: .75, landsAfterMiss: true)); break;
                     case "clock-seven-beat-wait": values.Add(D(MonsterAttackMotion.Walk, MonsterAttackShape.Doll, MonsterAttackReaction.Recoil, height: .52, grounded: true)); break;
                     case "seesaw-steady-tap": values.Add(D(MonsterAttackMotion.Extend, MonsterAttackShape.Tail, MonsterAttackReaction.Withdraw, height: .17, stretch: true)); break;
                     case "seesaw-early-finish": values.Add(D(MonsterAttackMotion.Extend, MonsterAttackShape.Tail, MonsterAttackReaction.Withdraw, delay: offset, height: .17, stretch: true)); break;

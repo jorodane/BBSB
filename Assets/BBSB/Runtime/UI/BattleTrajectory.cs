@@ -30,6 +30,14 @@ namespace BBSB.Runtime.UI
                 u * u * u * fromY + 3 * u * t * controlY + t * t * t * toY);
         }
 
+        public static BattlePathPoint MissLanding(BattlePathPoint contact, double groundY,
+            double bodyHeight, double pivotY, double playerHeight, double progress)
+        {
+            double t = Clamp(progress);
+            return new BattlePathPoint(contact.X - playerHeight * .12 * t,
+                contact.Y + (groundY + bodyHeight * pivotY - contact.Y) * t * t);
+        }
+
         private static double Clamp(double value) => Math.Max(0, Math.Min(1, value));
     }
 }
