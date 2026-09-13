@@ -50,8 +50,7 @@ namespace BBSB.Core
         {
             if (double.IsNaN(loops) || double.IsInfinity(loops) || loops < 1 || loops != Math.Floor(loops))
                 throw new ArgumentOutOfRangeException(nameof(loops));
-            var previous = Round;
-            Restart(); Round.ContinueContactFrom(previous, loops * DurationSeconds);
+            Round = Round.Repeat(loops * DurationSeconds);
         }
         // The first Call is beat 1, including offbeats and silent waits.
         public double DisplayBeat(double seconds) => (seconds - CallSeconds) / BeatSeconds + 1;

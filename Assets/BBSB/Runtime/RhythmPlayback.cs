@@ -37,6 +37,14 @@ namespace BBSB.Runtime
 
         private double Now => Math.Max(Round.ElapsedSeconds, offset + Math.Max(0, AudioSettings.dspTime - origin));
 
+        private double SampleTime()
+        {
+            double now = Now;
+            if (Round.Combat != null && Round.Combat.IsPractice && !Round.Aborted && now >= Round.Plan.Stage.Music.DurationSeconds)
+            { RepeatPractice(now); now = Now; }
+            return now;
+        }
+
         private void Update()
         {
             if (Round == null || completed || Keyboard.current == null || !Keyboard.current.escapeKey.wasPressedThisFrame) return;
@@ -49,12 +57,7 @@ namespace BBSB.Runtime
             if (Round == null || completed) return;
             if (!IsPaused)
             {
-                double now = Now;
-                if (Round.Combat != null && Round.Combat.IsPractice && now >= Round.Plan.Stage.Music.DurationSeconds)
-                {
-                    RepeatPractice(now);
-                    now = Now;
-                }
+                double now = SampleTime();
                 // Sample after UI events, once per frame. Sampling the stale position in Update
                 // would incorrectly count movement as stationary time depending on script order.
                 if (surface.Captured) Round.Move(now, surface.Position.x, surface.Position.y);
@@ -77,7 +80,11 @@ namespace BBSB.Runtime
                 Round.Resume(true, position.x, position.y);
                 WaitingForContact = IsPaused = false; RestartClock();
             }
-            else Round.Press(Now, position.x, position.y);
+            else
+            {
+                double now = SampleTime();
+                Round.Press(now, position.x, position.y);
+            }
             if (Round.Finished) { Finish(); return; }
             view.Refresh(Round.ElapsedSeconds, false);
         }
@@ -85,7 +92,8 @@ namespace BBSB.Runtime
         internal void PointerUp(Vector2 position)
         {
             if (!CanReceiveInput || IsPaused) return;
-            Round.Release(Now, position.x, position.y);
+            double now = SampleTime();
+            Round.Release(now, position.x, position.y);
             if (Round.Finished) { Finish(); return; }
             view.Refresh(Round.ElapsedSeconds, false);
         }
@@ -101,8 +109,9 @@ namespace BBSB.Runtime
                 { WaitingForContact = false; surface.Cancel(); view.ShowPause(true); }
                 return;
             }
-            if (surface.Captured) Round.Move(Now, surface.Position.x, surface.Position.y);
-            else Round.Advance(Now);
+            double now = SampleTime();
+            if (surface.Captured) Round.Move(now, surface.Position.x, surface.Position.y);
+            else Round.Advance(now);
             if (Round.Finished)
             {
                 if (Round.Combat != null && Round.Combat.IsPractice && !Round.Aborted) RepeatPractice(Now);
@@ -151,9 +160,11 @@ namespace BBSB.Runtime
         {
             double duration = Round.Plan.Stage.Music.DurationSeconds;
             double loops = Math.Max(1, Math.Floor(now / duration));
+            // Snapshot contact before completing the old round, which releases its input.
+            var next = Round.RepeatPractice(loops * duration);
             if (!Round.Finished) Round.Advance(Math.Max(Round.ElapsedSeconds, duration + Round.HalfMissWindow + .001));
-            surface.Cancel(); heldAtPause = WaitingForContact = false;
-            Round = Round.RepeatPractice(); PracticeRepetitions++;
+            heldAtPause = WaitingForContact = false;
+            Round = next; PracticeRepetitions++;
             // Keep the DSP grid through repeats; a slow frame skips past loops instead of accumulating drift.
             double dspNow = AudioSettings.dspTime;
             origin = now <= offset + Math.Max(0, dspNow - origin) ? origin - offset + loops * duration :

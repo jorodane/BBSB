@@ -281,6 +281,42 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator WeaponPracticeLoopsKeepContactAndProcessBoundaryInputBeforePausing()
+        {
+            yield return Prepare(); presenter.OpenWeaponPreparation(); yield return null;
+            Assert.IsTrue(presenter.StartWeaponPractice(0)); yield return null;
+            var playback = root.GetComponentInChildren<RhythmPlayback>(); playback.SetBeatSound(false);
+            var surface = playback.GetComponent<RhythmInputSurface>();
+            var point = Pointer(19, new Vector2(140, 210));
+            double duration = playback.Round.Plan.Stage.Music.DurationSeconds;
+            playback.Round.Advance(duration - .3); surface.OnPointerDown(point);
+            playback.Round.Move(duration - .01, surface.Position.x, surface.Position.y);
+            for (int cycle = 0; cycle < 2; cycle++)
+            {
+                var previous = playback.Round; previous.Advance(duration); yield return null;
+                Assert.AreNotSame(previous, playback.Round); Assert.IsTrue(previous.Finished);
+                Assert.AreSame(playback.Round, presenter.ActiveRound);
+                Assert.IsTrue(surface.Captured); Assert.IsTrue(playback.Round.IsDown);
+                Assert.AreEqual(GestureKind.Hold, playback.Round.FreeInput.Kind);
+                Assert.AreEqual(0, playback.Round.Results.Count); Assert.AreEqual(0, playback.Round.Combat.Activations.Count);
+            }
+            var beforeRelease = playback.Round; beforeRelease.Advance(duration); surface.OnPointerUp(point);
+            Assert.AreNotSame(beforeRelease, playback.Round);
+            Assert.IsFalse(surface.Captured); Assert.IsFalse(playback.Round.IsDown);
+            var beforePress = playback.Round; beforePress.Advance(duration); surface.OnPointerDown(point);
+            Assert.AreNotSame(beforePress, playback.Round);
+            Assert.IsTrue(surface.Captured); Assert.IsTrue(playback.Round.IsDown);
+            Assert.AreEqual(1, playback.Round.FreeInput.Sequence);
+            var beforePause = playback.Round; beforePause.Advance(duration); playback.Pause();
+            Assert.AreNotSame(beforePause, playback.Round); Assert.IsTrue(playback.IsPaused);
+            Assert.IsFalse(surface.Captured); Assert.IsFalse(playback.Round.IsDown);
+            Click("이어하기"); Assert.IsTrue(playback.WaitingForContact);
+            surface.OnPointerDown(point); Assert.IsFalse(playback.IsPaused); Assert.IsTrue(playback.Round.IsDown);
+            Assert.AreEqual(0, playback.Round.Results.Count); surface.OnPointerUp(point);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator DepletingSharedHealthFinishesOverkillAndGrantsRewardsOnce()
         {
             yield return Prepare(new RunRules(startingHealth: 10000));

@@ -342,6 +342,34 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void AutomaticPracticeRepeatPreservesContactBeforeFinishingTheOldRound()
+        {
+            var plan = Plan(new PatternStep(GestureKind.Tap, 0));
+            var loadout = Loadout(plan, "sword"); Place(loadout, 0, plan.Attacks[0], 0);
+            foreach (double loops in new[] { 1.0, 3.0 })
+            {
+                var previous = new RhythmRound(plan, combat: new WeaponBattle(loadout, new StageHealth(100), 100, 100, true));
+                previous.Press(previous.Notes[0].StartSeconds, 0, 0); previous.Release(previous.ElapsedSeconds + .001, 0, 0);
+                Check.True(previous.Combat.Activations.Count > 0);
+                double duration = plan.Stage.Music.DurationSeconds;
+                previous.Press(duration - .3, .4, .6); previous.Move(duration - .01, .4, .6);
+                var next = previous.RepeatPractice(loops * duration);
+                previous.Advance(duration + previous.HalfMissWindow + .001);
+                Check.True(previous.Finished); Check.False(previous.IsDown);
+                next.Move(.01, .4, .6);
+                Check.True(next.IsDown); Check.True(next.FreeInput.IsHeld);
+                Check.Equal(GestureKind.Hold, next.FreeInput.Kind.Value);
+                Check.Equal(0, next.Results.Count); Check.Equal(0, next.Calls.Count); Check.Equal(0, next.Combat.Activations.Count);
+                Check.Equal(100m, next.Combat.PlayerHealth); Check.Equal(100m, next.Combat.EnemyHealth.Current);
+                Check.Equal(loadout.At(0).OffsetTick, next.Combat.Loadout.At(0).OffsetTick);
+                Check.True(next.Combat.Bindings.All(x => next.Notes.Contains(x.Note)));
+                next.Release(.02, .4, .6); Check.False(next.IsDown);
+                Check.Equal(GestureKind.Hold, next.FreeInput.Kind.Value);
+                next.Press(next.Notes[0].StartSeconds, 0, 0); Check.Equal(1, next.PerfectCount);
+            }
+        }
+
+        [Test]
         public void RealEnemyHealthPersistsWhenReturningToPreparationAndResetsForNewStage()
         {
             var run = Session();

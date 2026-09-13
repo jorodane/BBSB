@@ -116,19 +116,26 @@ namespace BBSB.Core
         private void Finish() { Finished = true; touch.Release(); FreeInput.Consume(); }
 
         /// <summary>Repeat the same practice plan with fresh judgments and isolated health/weapon state.</summary>
-        public RhythmRound RepeatPractice()
+        public RhythmRound RepeatPractice(double? timeOffset = null)
         {
             if (Combat == null || !Combat.IsPractice) throw new InvalidOperationException("Only practice rounds can repeat.");
-            return new RhythmRound(Plan, rules, new WeaponBattle(Combat.Loadout,
-                new StageHealth(Combat.EnemyHealth.Maximum), Combat.PlayerMaximum, Combat.PlayerMaximum, true));
+            return Repeat(timeOffset);
         }
 
-        // A fresh preview inherits physical contact, never a judged Press or the previous notes.
-        internal void ContinueContactFrom(RhythmRound previous, double timeOffset)
+        // Both rehearsal hosts reset judgments together and optionally continue physical input.
+        internal RhythmRound Repeat(double? timeOffset)
         {
-            if (!previous.IsDown) return;
-            touch.ContinueFrom(previous.touch, timeOffset);
-            FreeInput.ContinueFrom(previous.FreeInput, timeOffset);
+            if (Combat != null && !Combat.IsPractice) throw new InvalidOperationException("Live combat cannot auto-repeat.");
+            if (timeOffset.HasValue && (double.IsNaN(timeOffset.Value) || double.IsInfinity(timeOffset.Value) || timeOffset.Value <= 0))
+                throw new ArgumentOutOfRangeException(nameof(timeOffset));
+            var next = new RhythmRound(Plan, rules, Combat == null ? null : new WeaponBattle(Combat.Loadout,
+                new StageHealth(Combat.EnemyHealth.Maximum), Combat.PlayerMaximum, Combat.PlayerMaximum, true));
+            if (timeOffset.HasValue && IsDown)
+            {
+                next.touch.ContinueFrom(touch, timeOffset.Value);
+                next.FreeInput.ContinueFrom(FreeInput, timeOffset.Value);
+            }
+            return next;
         }
 
         public void Press(double seconds, double x, double y)
