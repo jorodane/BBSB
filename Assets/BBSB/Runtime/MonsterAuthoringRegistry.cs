@@ -22,7 +22,6 @@ namespace BBSB.Runtime
         {
             var entries = new List<MonsterAuthoring>(source);
             var counts = new Dictionary<string, int>();
-            foreach (var builtin in MonsterCatalog.BuiltIn) counts[builtin.Id] = 1;
             foreach (var asset in entries)
                 if (asset != null && asset.includeInEncounters && !string.IsNullOrEmpty(asset.monsterId))
                     counts[asset.monsterId] = counts.TryGetValue(asset.monsterId, out var count) ? count + 1 : 1;
@@ -38,7 +37,7 @@ namespace BBSB.Runtime
                 }
                 catch (ArgumentException exception) { Debug.LogError(asset.name + ": " + exception.Message, asset); }
             }
-            MonsterCatalog.SetCustom(definitions);
+            MonsterCatalog.SetRoster(definitions);
             assets.Clear(); foreach (var entry in next) assets.Add(entry.Key, entry.Value);
             loaded = true;
         }

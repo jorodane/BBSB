@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
+  m_Name: diving-ray
+  m_EditorClassIdentifier: ''
+  includeInEncounters: 1
+  monsterId: diving-ray
+  displayName: 장막 라미아
+  description: 긴 뱀 하반신과 옆으로 넓게 펼쳐지는 꼬리 막을 가진 라미아다.
+  mainGesture: 2
+  encounterWeight: 1
+  damagePerNote: 4
+  portrait: {fileID: 21300000, guid: 21966947496103b4fab4a16c8f99d20d, type: 3}
+  artId: diving-ray
+  patternStrategy: 0
+  steadyCallsPerPhase: 3
+  useLegacyBodyAnimation: 1
+  displayScale: 1
+  displayOffset: {x: 0, y: 0}
+  controller: {fileID: 0}
+  visualPrefab: {fileID: 0}
+  motions:
+  - situation: 0
+    state: Base Layer.Idle
+    durationBeats: 2
+    loop: 1
+  - situation: 1
+    state: Base Layer.Call
+    durationBeats: 0.5
+    loop: 0
+  - situation: 2
+    state: Base Layer.Attack
+    durationBeats: 0.5
+    loop: 0
+  - situation: 3
+    state: Base Layer.Recover
+    durationBeats: 0.5
+    loop: 0
+  - situation: 4
+    state: Base Layer.Hit
+    durationBeats: 0.5
+    loop: 0
+  - situation: 5
+    state: Base Layer.Perfect
+    durationBeats: 0.5
+    loop: 0
+  - situation: 6
+    state: Base Layer.HalfMiss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 7
+    state: Base Layer.Miss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 8
+    state: Base Layer.Defeated
+    durationBeats: 0.5
+    loop: 0
+  patterns:
+  - id: ray-deep-dive
+    description: 두 번의 낮아지는 울림과 몸 낮추기 뒤 넓은 꼬리 막을 펼친다.
+    cueLeadTicks: 8
+    responseTicks: 16
+    restTicks: 8
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.25
+    displayName: 긴 장막
+    calls:
+    - offsetTick: 0
+      label: 부우
+      sound: 6
+      motion: 5
+      animatorState: ''
+    - offsetTick: 4
+      label: 욱!
+      sound: 4
+      motion: 5
+      animatorState: ''
+    steps:
+    - kind: 2
+      offsetTick: 0
+      durationTicks: 16
+    attackState: ''
+    recoverState: ''
+  - id: ray-short-dive
+    description: 올라가는 휘파람과 몸을 드는 Call 뒤 짧게 꼬리를 펼쳤다 거둔다.
+    cueLeadTicks: 4
+    responseTicks: 8
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.2
+    displayName: 짧은 장막
+    calls:
+    - offsetTick: 0
+      label: 슉!
+      sound: 5
+      motion: 4
+      animatorState: ''
+    steps:
+    - kind: 2
+      offsetTick: 0
+      durationTicks: 8
+    attackState: ''
+    recoverState: ''

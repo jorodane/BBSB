@@ -1,0 +1,126 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
+  m_Name: tresillo-bat
+  m_EditorClassIdentifier: ''
+  includeInEncounters: 1
+  monsterId: tresillo-bat
+  displayName: 깃춤 하피
+  description: 팔에서 날개로 이어지는 넓은 깃과 부채꼴 꼬리를 가진 하피다.
+  mainGesture: 0
+  encounterWeight: 1.4
+  damagePerNote: 4
+  portrait: {fileID: 21300000, guid: 0ec8da1bbb9f4f14ba5a17db94a32fb3, type: 3}
+  artId: spark-bat
+  patternStrategy: 0
+  steadyCallsPerPhase: 3
+  useLegacyBodyAnimation: 1
+  displayScale: 1
+  displayOffset: {x: 0, y: 0}
+  controller: {fileID: 0}
+  visualPrefab: {fileID: 0}
+  motions:
+  - situation: 0
+    state: Base Layer.Idle
+    durationBeats: 2
+    loop: 1
+  - situation: 1
+    state: Base Layer.Call
+    durationBeats: 0.5
+    loop: 0
+  - situation: 2
+    state: Base Layer.Attack
+    durationBeats: 0.5
+    loop: 0
+  - situation: 3
+    state: Base Layer.Recover
+    durationBeats: 0.5
+    loop: 0
+  - situation: 4
+    state: Base Layer.Hit
+    durationBeats: 0.5
+    loop: 0
+  - situation: 5
+    state: Base Layer.Perfect
+    durationBeats: 0.5
+    loop: 0
+  - situation: 6
+    state: Base Layer.HalfMiss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 7
+    state: Base Layer.Miss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 8
+    state: Base Layer.Defeated
+    durationBeats: 0.5
+    loop: 0
+  patterns:
+  - id: tresillo-taps
+    description: 1박·2박 반·4박의 Call에 깃털을 하나씩 띄워 기다린다. 5박·6박 반·8박의 반응 직전 반 박 동안 같은 속도로 빠르게 쏘아 보낸다.
+    cueLeadTicks: 16
+    responseTicks: 16
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.16
+    displayName: 세 갈래 깃춤
+    calls:
+    - offsetTick: 0
+      label: 반
+      sound: 2
+      motion: 7
+      animatorState: ''
+    - offsetTick: 6
+      label: 짝
+      sound: 2
+      motion: 7
+      animatorState: ''
+    - offsetTick: 12
+      label: 짝!
+      sound: 2
+      motion: 7
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    - kind: 0
+      offsetTick: 6
+      durationTicks: 0
+    - kind: 0
+      offsetTick: 12
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''
+  - id: rotated-tresillo
+    description: 짧은 Call 한 박 뒤 깃털 한 발을 받아 친다.
+    cueLeadTicks: 4
+    responseTicks: 4
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.14
+    displayName: 짧은 깃춤
+    calls:
+    - offsetTick: 0
+      label: 휙!
+      sound: 8
+      motion: 6
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''

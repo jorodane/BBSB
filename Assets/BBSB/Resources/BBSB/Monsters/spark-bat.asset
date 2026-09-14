@@ -1,0 +1,118 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
+  m_Name: spark-bat
+  m_EditorClassIdentifier: ''
+  includeInEncounters: 1
+  monsterId: spark-bat
+  displayName: 뇌수 소녀
+  description: 이 프로젝트의 뇌수는 뿔과 뾰족한 털, 전기를 모으는 톱니 모양 꼬리를 가진 수인이다.
+  mainGesture: 0
+  encounterWeight: 0.35
+  damagePerNote: 4
+  portrait: {fileID: 21300000, guid: 492966c8676c56c4fb2e3e2592a8d169, type: 3}
+  artId: spark-bat
+  patternStrategy: 0
+  steadyCallsPerPhase: 3
+  useLegacyBodyAnimation: 1
+  displayScale: 1
+  displayOffset: {x: 0, y: 0}
+  controller: {fileID: 0}
+  visualPrefab: {fileID: 0}
+  motions:
+  - situation: 0
+    state: Base Layer.Idle
+    durationBeats: 2
+    loop: 1
+  - situation: 1
+    state: Base Layer.Call
+    durationBeats: 0.5
+    loop: 0
+  - situation: 2
+    state: Base Layer.Attack
+    durationBeats: 0.5
+    loop: 0
+  - situation: 3
+    state: Base Layer.Recover
+    durationBeats: 0.5
+    loop: 0
+  - situation: 4
+    state: Base Layer.Hit
+    durationBeats: 0.5
+    loop: 0
+  - situation: 5
+    state: Base Layer.Perfect
+    durationBeats: 0.5
+    loop: 0
+  - situation: 6
+    state: Base Layer.HalfMiss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 7
+    state: Base Layer.Miss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 8
+    state: Base Layer.Defeated
+    durationBeats: 0.5
+    loop: 0
+  patterns:
+  - id: bat-quick-taps
+    description: 양손에서 불꽃을 두 번 튀기는 Call 뒤, 응집된 전기 구슬 두 개를 반 박 간격으로 보낸다.
+    cueLeadTicks: 4
+    responseTicks: 4
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.14
+    displayName: 찌릿 두 번
+    calls:
+    - offsetTick: 0
+      label: 찌
+      sound: 7
+      motion: 7
+      animatorState: ''
+    - offsetTick: 2
+      label: 릿!
+      sound: 7
+      motion: 7
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    - kind: 0
+      offsetTick: 2
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''
+  - id: bat-hold
+    description: 꼬리를 세우고 올라가는 울림을 내는 Call 뒤 1박 동안 굵은 방전을 내보낸다.
+    cueLeadTicks: 4
+    responseTicks: 4
+    restTicks: 8
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.12
+    displayName: 꼬리 축전
+    calls:
+    - offsetTick: 0
+      label: 반자아악
+      sound: 3
+      motion: 4
+      animatorState: ''
+    steps:
+    - kind: 1
+      offsetTick: 0
+      durationTicks: 4
+    attackState: ''
+    recoverState: ''

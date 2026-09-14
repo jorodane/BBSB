@@ -23,6 +23,7 @@ namespace BBSB.Runtime.UI
             public bool UsesNewArt;
             public bool UsesAuthoredPose;
             public MonsterAnimatorView CustomVisual;
+            public MonsterAuthoring Appearance;
             public ResponsePromptView Prompt;
             public Color Tint;
             public Vector2 Ground;
@@ -127,7 +128,8 @@ namespace BBSB.Runtime.UI
             {
                 var authored = previewAppearance != null && previewAppearance.monsterId == plan.Monster.Id ? previewAppearance : MonsterAuthoringRegistry.Find(plan.Monster.Id);
                 var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name, authored != null ? authored.portrait : null);
-                if (authored != null)
+                actor.Appearance = authored;
+                if (authored != null && !authored.UsesLegacyBodyAnimation)
                 {
                     var visual = ui.Rect("Authored monster " + plan.InstanceId, actor.Root);
                     actor.CustomVisual = visual.gameObject.AddComponent<MonsterAnimatorView>();
@@ -256,7 +258,7 @@ namespace BBSB.Runtime.UI
                 var position = BattleStageLayout.Monster(i, monsters.Count, HeroGroundPosition.x, HeroGroundPosition.y, actor.Advance);
                 actor.Ground = new Vector2((float)position.X, (float)position.Y);
                 float side = (float)BattleStageLayout.MonsterSize(monsters.Count, size.x, size.y, position.Scale, heroDisplayHeight);
-                if (actor.CustomVisual != null) side *= actor.CustomVisual.DisplayScale;
+                if (actor.Appearance != null) side *= actor.Appearance.displayScale;
                 Anchor(actor.Root, actor.Ground, actor.Ground, Vector2.zero, Vector2.zero, new Vector2(.5f, 0));
                 var sprite = actor.Portrait.sprite;
                 var foot = new Vector2(sprite.pivot.x / sprite.rect.width, sprite.pivot.y / sprite.rect.height);
@@ -535,6 +537,11 @@ namespace BBSB.Runtime.UI
         {
             actor.CustomVisual?.SetPose(x, y, tilt, sx, sy, actor.Portrait.rectTransform.rect.height);
             var rect = actor.Portrait.rectTransform;
+            if (actor.CustomVisual == null && actor.Appearance != null)
+            {
+                x += actor.Appearance.displayOffset.x * rect.rect.height;
+                y += actor.Appearance.displayOffset.y * rect.rect.height;
+            }
             rect.anchoredPosition = new Vector2(x, y); rect.localScale = new Vector3(sx, sy, 1);
             rect.localRotation = Quaternion.Euler(0, 0, tilt);
             if (actor.BlendPortrait != null)

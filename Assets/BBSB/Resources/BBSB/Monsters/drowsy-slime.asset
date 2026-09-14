@@ -1,0 +1,110 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
+  m_Name: drowsy-slime
+  m_EditorClassIdentifier: ''
+  includeInEncounters: 1
+  monsterId: drowsy-slime
+  displayName: 꿈먹는 맥 소녀
+  description: 꿈을 먹고 잠에 빠지는 맥 소녀다.
+  mainGesture: 0
+  encounterWeight: 1.2
+  damagePerNote: 4
+  portrait: {fileID: 21300000, guid: a8f543a9909fe984d9c1d3b7bd21b569, type: 3}
+  artId: tap-slime
+  patternStrategy: 0
+  steadyCallsPerPhase: 3
+  useLegacyBodyAnimation: 1
+  displayScale: 1
+  displayOffset: {x: 0, y: 0}
+  controller: {fileID: 0}
+  visualPrefab: {fileID: 0}
+  motions:
+  - situation: 0
+    state: Base Layer.Idle
+    durationBeats: 2
+    loop: 1
+  - situation: 1
+    state: Base Layer.Call
+    durationBeats: 0.5
+    loop: 0
+  - situation: 2
+    state: Base Layer.Attack
+    durationBeats: 0.5
+    loop: 0
+  - situation: 3
+    state: Base Layer.Recover
+    durationBeats: 0.5
+    loop: 0
+  - situation: 4
+    state: Base Layer.Hit
+    durationBeats: 0.5
+    loop: 0
+  - situation: 5
+    state: Base Layer.Perfect
+    durationBeats: 0.5
+    loop: 0
+  - situation: 6
+    state: Base Layer.HalfMiss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 7
+    state: Base Layer.Miss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 8
+    state: Base Layer.Defeated
+    durationBeats: 0.5
+    loop: 0
+  patterns:
+  - id: drowsy-quick-tap
+    description: 발을 통 구르며 놀란 뒤 한 박 후 작은 꿈방울이 도착한다..
+    cueLeadTicks: 4
+    responseTicks: 4
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.32
+    displayName: 깜짝 꿈방울
+    calls:
+    - offsetTick: 0
+      label: 통!
+      sound: 0
+      motion: 0
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''
+  - id: drowsy-four-beat-wait
+    description: 내려가는 하품 소리와 함께 몸을 낮춘다.
+    cueLeadTicks: 16
+    responseTicks: 4
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 16
+    participationChance: 0.18
+    displayName: 네 박 낮잠
+    calls:
+    - offsetTick: 0
+      label: 스르르
+      sound: 6
+      motion: 5
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''

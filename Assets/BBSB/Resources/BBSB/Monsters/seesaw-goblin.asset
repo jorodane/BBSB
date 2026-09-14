@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
+  m_Name: seesaw-goblin
+  m_EditorClassIdentifier: ''
+  includeInEncounters: 1
+  monsterId: seesaw-goblin
+  displayName: 쌍꼬리 네코마타
+  description: 긴 두 꼬리가 서로 먼저 움직이려 하는 네코마타다.
+  mainGesture: 0
+  encounterWeight: 0.6
+  damagePerNote: 4
+  portrait: {fileID: 21300000, guid: dc0cdbcdd0bb95942bffb703e7416a3c, type: 3}
+  artId: flick-goblin
+  patternStrategy: 1
+  steadyCallsPerPhase: 3
+  useLegacyBodyAnimation: 1
+  displayScale: 1
+  displayOffset: {x: 0, y: 0}
+  controller: {fileID: 0}
+  visualPrefab: {fileID: 0}
+  motions:
+  - situation: 0
+    state: Base Layer.Idle
+    durationBeats: 2
+    loop: 1
+  - situation: 1
+    state: Base Layer.Call
+    durationBeats: 0.5
+    loop: 0
+  - situation: 2
+    state: Base Layer.Attack
+    durationBeats: 0.5
+    loop: 0
+  - situation: 3
+    state: Base Layer.Recover
+    durationBeats: 0.5
+    loop: 0
+  - situation: 4
+    state: Base Layer.Hit
+    durationBeats: 0.5
+    loop: 0
+  - situation: 5
+    state: Base Layer.Perfect
+    durationBeats: 0.5
+    loop: 0
+  - situation: 6
+    state: Base Layer.HalfMiss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 7
+    state: Base Layer.Miss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 8
+    state: Base Layer.Defeated
+    durationBeats: 0.5
+    loop: 0
+  patterns:
+  - id: seesaw-steady-tap
+    description: 한 박 뒤 꼬리가 짧게 뻗었다 거둬진다. 정박은 위쪽, 엇박은 아래쪽 꼬리가 오며 연속 구간에는 쉬는 박자가 없다.
+    cueLeadTicks: 4
+    responseTicks: 4
+    restTicks: 0
+    cueAlignmentTicks: 2
+    silentWaitTicks: 0
+    participationChance: 0.24
+    displayName: 꼬리 또각
+    calls:
+    - offsetTick: 0
+      label: 또각!
+      sound: 0
+      motion: 1
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''
+  - id: seesaw-early-finish
+    description: 몸을 비트는 Call 한 박 뒤 첫 꼬리, 반 박 뒤 다른 높이의 꼬리가 온다. 다음 박자도 쉬지 않고 이어진다.
+    cueLeadTicks: 4
+    responseTicks: 4
+    restTicks: 0
+    cueAlignmentTicks: 2
+    silentWaitTicks: 0
+    participationChance: 0.24
+    displayName: 내가 먼저!
+    calls:
+    - offsetTick: 0
+      label: 당겨!
+      sound: 3
+      motion: 6
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    - kind: 0
+      offsetTick: 2
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''

@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
+  m_Name: bubble-spirit
+  m_EditorClassIdentifier: ''
+  includeInEncounters: 1
+  monsterId: bubble-spirit
+  displayName: 해파리 소녀
+  description: 머리 위의 투명한 우산막과 떠 있는 몸, 가느다란 촉수를 가진 해파리 소녀다.
+  mainGesture: 4
+  encounterWeight: 1
+  damagePerNote: 4
+  portrait: {fileID: 21300000, guid: 99dd1fd3c55f50343aaa97d44b38c799, type: 3}
+  artId: bubble-spirit
+  patternStrategy: 0
+  steadyCallsPerPhase: 3
+  useLegacyBodyAnimation: 1
+  displayScale: 1
+  displayOffset: {x: 0, y: 0}
+  controller: {fileID: 0}
+  visualPrefab: {fileID: 0}
+  motions:
+  - situation: 0
+    state: Base Layer.Idle
+    durationBeats: 2
+    loop: 1
+  - situation: 1
+    state: Base Layer.Call
+    durationBeats: 0.5
+    loop: 0
+  - situation: 2
+    state: Base Layer.Attack
+    durationBeats: 0.5
+    loop: 0
+  - situation: 3
+    state: Base Layer.Recover
+    durationBeats: 0.5
+    loop: 0
+  - situation: 4
+    state: Base Layer.Hit
+    durationBeats: 0.5
+    loop: 0
+  - situation: 5
+    state: Base Layer.Perfect
+    durationBeats: 0.5
+    loop: 0
+  - situation: 6
+    state: Base Layer.HalfMiss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 7
+    state: Base Layer.Miss
+    durationBeats: 0.5
+    loop: 0
+  - situation: 8
+    state: Base Layer.Defeated
+    durationBeats: 0.5
+    loop: 0
+  patterns:
+  - id: one-beat-shake
+    description: 맑게 뽕 울리며 떠오른 뒤 큰 젤 막 하나를 보낸다.
+    cueLeadTicks: 4
+    responseTicks: 4
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.18
+    displayName: 우산막 하나
+    calls:
+    - offsetTick: 0
+      label: 뽕!
+      sound: 2
+      motion: 0
+      animatorState: ''
+    steps:
+    - kind: 4
+      offsetTick: 0
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''
+  - id: two-bubble-shakes
+    description: 촉수를 비벼 또르르 울리는 Call 뒤 젤 막을 두 번 보낸다.
+    cueLeadTicks: 4
+    responseTicks: 12
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.14
+    displayName: 우산막 둘
+    calls:
+    - offsetTick: 0
+      label: 또르르!
+      sound: 7
+      motion: 6
+      animatorState: ''
+    steps:
+    - kind: 4
+      offsetTick: 0
+      durationTicks: 0
+    - kind: 4
+      offsetTick: 8
+      durationTicks: 0
+    attackState: ''
+    recoverState: ''

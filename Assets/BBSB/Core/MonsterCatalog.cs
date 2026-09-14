@@ -24,6 +24,26 @@ namespace BBSB.Core
             values.AddRange(custom); combined = values.AsReadOnly();
         }
 
+        // Unity supplies the complete authored roster. Disabled/deleted assets stay absent.
+        // BuiltIn is the stable default for headless simulations and legacy visual templates only.
+        public static void SetRoster(IEnumerable<MonsterDefinition> monsters)
+        {
+            if (monsters == null) throw new ArgumentNullException(nameof(monsters));
+            var values = new List<MonsterDefinition>(monsters);
+            var ids = new HashSet<string>();
+            foreach (var monster in values)
+                if (monster == null || !ids.Add(monster.Id)) throw new ArgumentException("Monster IDs must be unique.");
+            var order = new Dictionary<string, int>();
+            for (int i = 0; i < BuiltIn.Count; i++) order.Add(BuiltIn[i].Id, i);
+            values.Sort((a, b) =>
+            {
+                int first = order.TryGetValue(a.Id, out var ai) ? ai : int.MaxValue;
+                int second = order.TryGetValue(b.Id, out var bi) ? bi : int.MaxValue;
+                return first != second ? first.CompareTo(second) : string.CompareOrdinal(a.Id, b.Id);
+            });
+            combined = values.AsReadOnly();
+        }
+
         public static IReadOnlyList<MonsterDefinition> BuiltIn { get; } = Array.AsReadOnly(new[]
         {
             new MonsterDefinition("tap-slime", "젤리 슬라임 소녀", "둥글고 탄력 있는 실루엣을 가진 명랑한 종족이다.", GestureKind.Tap, new[]

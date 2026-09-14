@@ -16,7 +16,7 @@ namespace BBSB.Tests
         [Test]
         public void CustomCatalogIsDeterministicRejectsCollisionsAndKeepsBuiltIns()
         {
-            var previous = MonsterCatalog.All.Skip(MonsterCatalog.BuiltIn.Count).ToArray();
+            var previous = MonsterCatalog.All;
             try
             {
                 MonsterCatalog.SetCustom(new[] { Monster("z-custom"), Monster("a-custom") });
@@ -32,7 +32,36 @@ namespace BBSB.Tests
                 catch (ArgumentException) { rejected = true; }
                 Check.True(rejected); Check.True(ReferenceEquals(before, MonsterCatalog.All));
             }
-            finally { MonsterCatalog.SetCustom(previous); }
+            finally { MonsterCatalog.SetRoster(previous); }
+        }
+        [Test]
+        public void AuthoredRosterReplacesDefaultsPreservesOrderAndNeverReinsertsRemovedMonsters()
+        {
+            var previous = MonsterCatalog.All;
+            try
+            {
+                var edited = Monster(MonsterCatalog.BuiltIn[0].Id);
+                var second = MonsterCatalog.BuiltIn[1];
+                MonsterCatalog.SetRoster(new[] { Monster("z-custom"), second, Monster("a-custom"), edited });
+                Check.Equal(4, MonsterCatalog.All.Count);
+                Check.True(ReferenceEquals(edited, MonsterCatalog.All[0]));
+                Check.True(ReferenceEquals(second, MonsterCatalog.All[1]));
+                Check.Equal("a-custom", MonsterCatalog.All[2].Id);
+                var before = MonsterCatalog.All;
+                bool rejected = false;
+                try { MonsterCatalog.SetRoster(new[] { edited, edited }); }
+                catch (ArgumentException) { rejected = true; }
+                Check.True(rejected); Check.True(ReferenceEquals(before, MonsterCatalog.All));
+                rejected = false;
+                try { MonsterCatalog.SetRoster(new MonsterDefinition[] { null }); }
+                catch (ArgumentException) { rejected = true; }
+                Check.True(rejected); Check.True(ReferenceEquals(before, MonsterCatalog.All));
+                MonsterCatalog.SetRoster(new[] { second });
+                Check.Equal(1, MonsterCatalog.All.Count); Check.True(ReferenceEquals(second, MonsterCatalog.All[0]));
+                MonsterCatalog.SetRoster(Array.Empty<MonsterDefinition>());
+                Check.Equal(0, MonsterCatalog.All.Count);
+            }
+            finally { MonsterCatalog.SetRoster(previous); }
         }
         [Test]
         public void NewPatternHasAnAttackVisualWithoutHardCodedImageSlots()

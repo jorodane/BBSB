@@ -7,6 +7,8 @@ using UnityEngine;
 
 namespace BBSB.Runtime
 {
+    public enum MonsterPatternStrategy { Independent, BeatShift }
+
     [CreateAssetMenu(menuName = "BBSB/Monster", fileName = "NewMonster")]
     public sealed class MonsterAuthoring : ScriptableObject
     {
@@ -16,9 +18,14 @@ namespace BBSB.Runtime
         public string displayName = "새 몬스터";
         [TextArea] public string description;
         public GestureKind mainGesture;
-        [Min(.01f)] public float encounterWeight = 1;
+        public double encounterWeight = 1;
         [Min(0)] public int damagePerNote = 4;
         public Sprite portrait;
+        public string artId;
+        public MonsterPatternStrategy patternStrategy;
+        [Range(1, 16)] public int steadyCallsPerPhase = 3;
+        public bool useLegacyBodyAnimation;
+        public bool UsesLegacyBodyAnimation => useLegacyBodyAnimation && controller == null && visualPrefab == null;
         [Min(.1f)] public float displayScale = 1;
         public Vector2 displayOffset;
         public RuntimeAnimatorController controller;
@@ -62,7 +69,7 @@ namespace BBSB.Runtime
             [Min(0)] public int restTicks = 4;
             [Min(1)] public int cueAlignmentTicks = 1;
             [Min(0)] public int silentWaitTicks;
-            [Range(.01f, 1)] public float participationChance = .25f;
+            public double participationChance = .25;
             public Call[] calls = { new Call() };
             public Step[] steps = { new Step() };
             public string attackState;
@@ -109,7 +116,12 @@ namespace BBSB.Runtime
                 if (motion == null || !Enum.IsDefined(typeof(MonsterAnimationSituation), motion.situation) ||
                     !situations.Add(motion.situation) || !Finite(motion.durationBeats) || motion.durationBeats <= 0)
                     throw new ArgumentException("상황별 모션은 중복 없이, 길이는 0보다 크게 지정해줘.");
-            return new MonsterDefinition(monsterId, displayName, description, mainGesture, definitions, encounterWeight, damagePerNote);
+            if (!Enum.IsDefined(typeof(MonsterPatternStrategy), patternStrategy))
+                throw new ArgumentException("패턴 배치 방식을 확인해줘.");
+            IMonsterPatternPlanner planner = patternStrategy == MonsterPatternStrategy.BeatShift
+                ? (IMonsterPatternPlanner)new BeatShiftPlanner(steadyCallsPerPhase) : IndependentPatternPlanner.Instance;
+            return new MonsterDefinition(monsterId, displayName, description, mainGesture, definitions, encounterWeight, damagePerNote,
+                string.IsNullOrWhiteSpace(artId) ? null : artId, planner);
         }
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         private static void ValidateId(string value)

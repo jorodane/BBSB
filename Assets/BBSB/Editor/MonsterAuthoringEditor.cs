@@ -18,6 +18,15 @@ namespace BBSB.Editor
         private MonsterAuthoring selected;
         private UnityEditor.Editor inspector;
         private Vector2 scroll;
+        private MonsterAuthoring[] available = Array.Empty<MonsterAuthoring>();
+        private void OnEnable() => RefreshMonsters();
+        private void OnProjectChange() { RefreshMonsters(); Repaint(); }
+        private void RefreshMonsters()
+        {
+            available = AssetDatabase.FindAssets("t:MonsterAuthoring")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<MonsterAuthoring>(AssetDatabase.GUIDToAssetPath(guid)))
+                .Where(asset => asset != null).OrderBy(asset => asset.displayName, StringComparer.Ordinal).ToArray();
+        }
         [MenuItem("BBSB/Monster Editor")]
         public static void Open() => GetWindow<MonsterEditorWindow>("몬스터 에디터");
         private void OnDisable() { if (inspector != null) DestroyImmediate(inspector); }
@@ -27,6 +36,10 @@ namespace BBSB.Editor
             if (GUILayout.Button("새 몬스터", EditorStyles.toolbarButton)) Create();
             if (GUILayout.Button("선택한 에셋 열기", EditorStyles.toolbarButton)) selected = Selection.activeObject as MonsterAuthoring;
             EditorGUILayout.EndHorizontal();
+            var labels = new[] { "몬스터 선택…" }.Concat(available.Select(asset => asset.displayName + " (" + asset.monsterId + ")")).ToArray();
+            int index = Array.IndexOf(available, selected) + 1;
+            int choice = EditorGUILayout.Popup("등록된 몬스터", index, labels);
+            if (choice != index) selected = choice == 0 ? null : available[choice - 1];
             selected = (MonsterAuthoring)EditorGUILayout.ObjectField("몬스터", selected, typeof(MonsterAuthoring), false);
             if (selected == null)
             { EditorGUILayout.HelpBox("새 몬스터를 만들거나 Monster 에셋을 선택해줘. 기본 모습 → 패턴 → Animator 순서로 설정하면 돼.", MessageType.Info); return; }
@@ -71,6 +84,7 @@ namespace BBSB.Editor
         private void Appearance()
         {
             Field("includeInEncounters", "출현 목록에 등록"); Field("monsterId", "고유 ID"); Field("displayName", "이름"); Field("description", "설명");
+            Field("artId", "기존 외형 리소스 ID (선택)");
             Field("mainGesture", "주요 입력"); Field("encounterWeight", "출현 가중치"); Field("damagePerNote", "판정 기본 피해");
             Field("portrait", "기본 모습 / 도감 Sprite"); Field("displayScale", "전투 표시 크기"); Field("displayOffset", "위치 보정 (몸 높이 기준)");
             var sprite = serializedObject.FindProperty("portrait").objectReferenceValue as Sprite;
@@ -91,6 +105,12 @@ namespace BBSB.Editor
         }
         private void Patterns()
         {
+            Field("patternStrategy", "패턴 배치 방식");
+            if (serializedObject.FindProperty("patternStrategy").enumValueIndex == (int)MonsterPatternStrategy.BeatShift)
+            {
+                Field("steadyCallsPerPhase", "전환 전 기본 Call 횟수");
+                EditorGUILayout.HelpBox("Beat Shift는 네코마타의 정박 ↔ 엇박 반복 방식이야. 1박 간격, 0.5박 정렬, 휴식 0인 Tap 패턴 두 개(한 번 / 반 박 뒤 추가 입력)가 필요해.", MessageType.Info);
+            }
             var patterns = serializedObject.FindProperty("patterns");
             EditorGUILayout.HelpBox("시간은 시작점을 0박으로 세고 0.25박 단위로 설정해. Call 시각은 Call 시작 기준, Response 시각은 Response 시작 기준이야. Hold/Dive에만 유지 길이를 지정해.", MessageType.Info);
             if (patterns.arraySize > 0)
@@ -187,6 +207,8 @@ namespace BBSB.Editor
         }
         private void Motions()
         {
+            Field("useLegacyBodyAnimation", "기존 리소스 몸체 모션 사용");
+            EditorGUILayout.HelpBox("기존 몬스터는 리소스에 등록된 전용 몸체 모션을 유지해. Controller 또는 외형 Prefab을 연결하면 새 외형 설정이 우선 적용돼. 기존 모션으로 돌아가려면 연결을 비우고 이 옵션을 켜줘.", MessageType.Info);
             Field("controller", "Animator Controller"); Field("visualPrefab", "UI 외형 Prefab (선택)");
             EditorGUILayout.HelpBox("Base Layer의 전체 상태 경로를 지정해. 예: Base Layer.Call. 재생 길이는 박자 기준이며 곡 시계에 맞춰 샘플링해. 자동 Transition과 Animation Event는 사용하지 않아. Prefab은 512 높이, 발 위치는 아래 중앙이고 Animator는 루트에 둬. 없으면 기본 Image 외형을 만들어.", MessageType.Info);
             Field("motions", "상황별 모션");
@@ -203,7 +225,6 @@ namespace BBSB.Editor
                 string path = AssetDatabase.GetAssetPath(Asset).Replace('\\', '/');
                 if (!path.Contains("/Resources/" + MonsterAuthoring.ResourceFolder + "/"))
                     throw new ArgumentException("에셋을 Resources/BBSB/Monsters 폴더로 옮겨줘.");
-                if (MonsterCatalog.BuiltIn.Any(x => x.Id == Asset.monsterId)) throw new ArgumentException("기존 몬스터와 ID가 같아. 새 ID를 지정해줘.");
                 foreach (var guid in AssetDatabase.FindAssets("t:MonsterAuthoring"))
                 {
                     var other = AssetDatabase.LoadAssetAtPath<MonsterAuthoring>(AssetDatabase.GUIDToAssetPath(guid));
