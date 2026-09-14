@@ -58,10 +58,9 @@ namespace BBSB.Runtime.UI
                     var tint = PatternOverviewGraphic.ActionColor(hit.Action.Kind);
                     double impactAt = WeaponMotion.ImpactSeconds(hit.Action.Motion);
                     float power = Mathf.Clamp(.75f + (float)hit.Damage / 55, .75f, 1.6f);
-                    var origin = weapons.WeaponOrigin(hit.Slot);
                     if (hit.Weapon.IsRanged)
                     {
-                        var muzzle = weapons.ProjectileOrigin(hit.Slot, hit.Weapon.Kind, target);
+                        var muzzle = weapons.ProjectileOrigin(hit.Slot, hit.Weapon.Kind, target, hit.AtSeconds);
                         float angle = Angle(muzzle, target);
                         if (age < .10) Emit("muzzle", muzzle, Vector2.one * heroHeight * .27f * power,
                             angle, tint, 1 - (float)age / .10f);
@@ -85,9 +84,7 @@ namespace BBSB.Runtime.UI
                     }
                     else if (age < impactAt && hit.Damage > 0)
                     {
-                        double p = age / WeaponMotion.Duration(hit.Action.Motion);
-                        var frame = WeaponMotion.Sample(hit.Action.Motion, new BattlePathPoint(origin.x, origin.y),
-                            new BattlePathPoint(target.x, target.y), p);
+                        var frame = weapons.AttackFrame(hit, target, seconds);
                         Emit(BattleVfxCatalog.Strike(hit.Action.Motion), new Vector2((float)frame.Position.X, (float)frame.Position.Y),
                             Vector2.one * heroHeight * .42f * power, (float)frame.Rotation, tint, .7f);
                     }

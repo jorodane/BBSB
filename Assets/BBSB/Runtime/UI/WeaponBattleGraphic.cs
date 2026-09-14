@@ -13,6 +13,7 @@ namespace BBSB.Runtime.UI
         private double beatSeconds = .5;
         private IReadOnlyDictionary<string, Vector2> targetPositions;
         private Vector2 ground, hero;
+        private RectTransform rearLayer;
         private readonly Vector2[] targets = new Vector2[RunRules.WeaponSlots];
         private readonly WeaponActivation[] active = new WeaponActivation[RunRules.WeaponSlots];
         private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[RunRules.WeaponSlots];
@@ -30,12 +31,13 @@ namespace BBSB.Runtime.UI
         internal void SetActivation(WeaponActivation value, Vector2 target)
         { active[value.Slot] = value; targets[value.Slot] = target; }
         internal void SetTargets(IReadOnlyDictionary<string, Vector2> positions) { targetPositions = positions; }
-        internal Vector2 WeaponOrigin(int slot) => Origin(rectTransform.rect, slot);
-        internal Vector2 ProjectileOrigin(int slot, WeaponKind kind, Vector2 target)
+        internal void SetRearLayer(RectTransform layer) { rearLayer = layer; }
+        internal Vector2 WeaponOrigin(int slot) => Position(Formation(slot, seconds, 0));
+        internal Vector2 ProjectileOrigin(int slot, WeaponKind kind, Vector2 target, double launchedAt)
         {
-            // Launch from the resting grip, so a later recoil or reload cannot drag a shot already in flight.
-            var r = rectTransform.rect; var origin = WeaponOrigin(slot);
-            float size = 22 * Mathf.Min(r.width, r.height) / 720 * 3.4f * WeaponSizeMultiplier;
+            // Sample the floating grip at release time, never at the later render time.
+            var r = rectTransform.rect; var launch = Formation(slot, launchedAt, 0); var origin = Position(launch);
+            float size = 22 * Mathf.Min(r.width, r.height) / 720 * 3.4f * WeaponSizeMultiplier * (float)launch.Scale * 1.035f;
             var state = combat.Loadout.Equipment[slot];
             var emission = RangedWeaponArtLayout.Muzzle(state.DefinitionId, state.Rarity, RangedWeaponPose.Release);
             Vector2 socket = new Vector2((float)emission.X - .5f, (float)emission.Y - .5f);
@@ -61,6 +63,7 @@ namespace BBSB.Runtime.UI
         {
             Rect r = rectTransform.rect;
             float unit = Mathf.Min(r.width, r.height) / 720;
+            double support = WeaponFormation.SupportStrength(combat?.Activations, seconds);
             for (int slot = 0; slot < icons.Length; slot++)
             {
                 bool visible = combat != null && slot < combat.Loadout.Equipment.Count && r.width > 0 && r.height > 0;
@@ -75,29 +78,37 @@ namespace BBSB.Runtime.UI
                 var icon = icons[slot]; icon.gameObject.SetActive(true);
                 if (boundIds[slot] != state.DefinitionId || icon.Rarity != state.Rarity)
                 { icon.Bind(state); boundIds[slot] = state.DefinitionId; }
-                Vector2 origin = Origin(r, slot), point = origin;
-                float rotation = -20 + slot * 10, scale = 1;
                 var activation = active[slot];
+                var ranged = weapon.IsRanged ? RangedWeaponTimeline.Evaluate(combat, slot, seconds, beatSeconds) : default;
+                double readiness = weapon.IsRanged ? WeaponFormation.Smooth(ranged.Tension) : 0;
+                var resting = Formation(slot, seconds, support * (1 - readiness));
+                Vector2 origin = Position(resting), point = origin;
+                float rotation = (float)resting.Rotation, scale = (float)resting.Scale;
+                double progress = 0;
                 if (activation != null)
                 {
-                    double progress = (seconds - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion);
-                    var frame = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
-                        new BattlePathPoint(targets[slot].x, targets[slot].y), progress);
-                    point = new Vector2((float)frame.Position.X, (float)frame.Position.Y);
+                    progress = (seconds - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion);
+                    var frame = AttackFrame(activation, targets[slot], seconds);
+                    point = Position(frame);
                     rotation = (float)frame.Rotation; scale = (float)frame.Scale;
                 }
                 if (weapon.IsRanged)
                 {
-                    var ranged = RangedWeaponTimeline.Evaluate(combat, slot, seconds, beatSeconds);
                     icon.SetPose(ranged.Pose);
                     Vector2 aim = hero + Vector2.right * .5f;
                     var target = ranged.Target ?? activation?.Target;
                     if (target != null && targetPositions != null && targetPositions.TryGetValue(target.MonsterId, out var position)) aim = position;
-                    var delta = Vector2.Scale(aim - origin, r.size);
-                    rotation = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg - (weapon.Kind == WeaponKind.Wand ? 45 : 0) +
-                        (activation != null ? rotation : 0);
+                    var grip = activation != null ? Position(Formation(slot, activation.AtSeconds, 0)) : origin;
+                    var delta = Vector2.Scale(aim - grip, r.size);
+                    float aimed = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg - (weapon.Kind == WeaponKind.Wand ? 45 : 0);
+                    double aimWeight = activation != null ? 1 - WeaponFormation.ReturnWeight(progress) : readiness;
+                    rotation = Mathf.LerpAngle((float)resting.Rotation, aimed + (activation != null ? rotation : 0), (float)aimWeight);
                     scale *= 1 + (float)ranged.Tension * .035f;
                 }
+                // Rear and front layers have the same full-arena rectangle; socket children inherit the move.
+                bool behind = activation == null && ranged.Pose == RangedWeaponPose.Idle && support > .001;
+                var parent = behind && rearLayer != null ? rearLayer : rectTransform;
+                if (icon.transform.parent != parent) icon.transform.SetParent(parent, false);
                 float length = weapon.IsRanged ? 3.4f : weapon.Kind == WeaponKind.Spear ? 3.3f : weapon.Kind == WeaponKind.Greatsword ? 2.95f : 2.6f;
                 float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale * length * WeaponSizeMultiplier;
                 icon.rectTransform.anchoredPosition = new Vector2(point.x * r.width, point.y * r.height);
@@ -107,11 +118,29 @@ namespace BBSB.Runtime.UI
             }
             SetVerticesDirty();
         }
-        private Vector2 Origin(Rect r, int slot)
+        private WeaponMotionFrame Formation(int slot, double at, double support)
         {
-            float heroHeight = (hero.y - ground.y) / .46f, angle = (135 - slot * 65) * Mathf.Deg2Rad;
-            return hero + new Vector2(Mathf.Cos(angle) * heroHeight * r.height / r.width * .5f,
-                Mathf.Sin(angle) * heroHeight * .42f + heroHeight * .09f);
+            var r = rectTransform.rect;
+            return WeaponFormation.Sample(slot, at, new BattlePathPoint(hero.x, hero.y),
+                (hero.y - ground.y) / .46, r.height > 0 && r.width > 0 ? r.width / r.height : 1, support);
+        }
+        private static Vector2 Position(WeaponMotionFrame frame) => new Vector2((float)frame.Position.X, (float)frame.Position.Y);
+
+        internal WeaponMotionFrame AttackFrame(WeaponActivation activation, Vector2 target, double at)
+        {
+            bool ranged = activation.Weapon.IsRanged;
+            var launch = Formation(activation.Slot, activation.AtSeconds,
+                ranged ? 0 : WeaponFormation.SupportStrength(combat.Activations, activation.AtSeconds));
+            double readiness = ranged ? WeaponFormation.Smooth(RangedWeaponTimeline.Evaluate(combat, activation.Slot, at, beatSeconds).Tension) : 0;
+            var home = Formation(activation.Slot, at, WeaponFormation.SupportStrength(combat.Activations, at) * (1 - readiness));
+            if (ranged)
+            {
+                // Ranged recoil angles are relative to aim; idle banking is applied separately.
+                launch = new WeaponMotionFrame(launch.Position, 0, launch.Scale);
+                home = new WeaponMotionFrame(home.Position, 0, home.Scale);
+            }
+            return WeaponFormation.Attack(activation.Action.Motion, launch, new BattlePathPoint(target.x, target.y), home,
+                (at - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion));
         }
 
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -124,7 +153,7 @@ namespace BBSB.Runtime.UI
             {
                 if (!ShowLegacyAttackEffects) break;
                 var weapon = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
-                var origin = Origin(r, slot);
+                var origin = WeaponOrigin(slot);
                 var activation = active[slot];
                 var point = origin;
                 if (activation != null)
@@ -132,8 +161,7 @@ namespace BBSB.Runtime.UI
                     // Textured effect actors own ranged projectiles, muzzle flashes and impact timing.
                     if (weapon.IsRanged) continue;
                     float p = (float)((seconds - activation.AtSeconds) / WeaponMotion.Duration(activation.Action.Motion));
-                    var frame = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
-                        new BattlePathPoint(targets[slot].x, targets[slot].y), p);
+                    var frame = AttackFrame(activation, targets[slot], seconds);
                     point = new Vector2((float)frame.Position.X, (float)frame.Position.Y);
                     var target = Point(r, targets[slot]);
                     Color glow = Glow; glow.a = 1 - p;
@@ -146,8 +174,8 @@ namespace BBSB.Runtime.UI
                         Arc(vh, Point(r, hero), 66 * unit, -70, 140, 5 * unit, RunUI.Teal);
                     else
                     {
-                        var previous = WeaponMotion.Sample(activation.Action.Motion, new BattlePathPoint(origin.x, origin.y),
-                            new BattlePathPoint(targets[slot].x, targets[slot].y), Mathf.Max(0, p - .07f));
+                        var previous = AttackFrame(activation, targets[slot],
+                            activation.AtSeconds + Mathf.Max(0, p - .07f) * WeaponMotion.Duration(activation.Action.Motion));
                         Line(vh, Point(r, new Vector2((float)previous.Position.X, (float)previous.Position.Y)), Point(r, point), 5 * unit, glow);
                         if (p > .55f && p < .85f)
                         {

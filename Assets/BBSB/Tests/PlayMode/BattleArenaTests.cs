@@ -726,6 +726,43 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator SupportingWeaponsOrbitBehindActorsAndReturnWhileAttackersStayInFront()
+        {
+            var plan = Round(1, new PatternStep(GestureKind.Tap, 0)).Plan;
+            var equipment = new[] { "sword", "shield", "greatsword", "bell", "blade" }.Select(id => new WeaponState(id)).ToArray();
+            var round = new RhythmRound(plan, combat: new WeaponBattle(new WeaponLoadout(plan, equipment), new StageHealth(1000), 100, 100, true));
+            var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
+            var icons = arena.GetComponentsInChildren<WeaponIconGraphic>().OrderBy(x => x.name).ToArray();
+            Assert.AreEqual(5, icons.Length);
+            var initial = icons.Select(x => x.rectTransform.anchoredPosition).ToArray();
+            round.Advance(.25); arena.Refresh();
+            for (int i = 0; i < icons.Length; i++) Assert.AreNotEqual(initial[i], icons[i].rectTransform.anchoredPosition);
+            double at = round.Notes.Single().StartSeconds;
+            round.Press(at, 0, 0); round.Advance(at + .2); arena.Refresh();
+            Assert.AreEqual(1, round.Combat.Activations.Count);
+            Assert.AreEqual("Equipped weapon attacks", icons[0].transform.parent.name);
+            var rear = arena.GetComponentsInChildren<RectTransform>().Single(x => x.name == "Weapons behind the player");
+            var actors = arena.HeroPortrait.transform.parent.parent;
+            Assert.Less(rear.GetSiblingIndex(), actors.GetSiblingIndex());
+            foreach (var icon in icons.Skip(1))
+            {
+                Assert.AreSame(rear, icon.transform.parent);
+                foreach (var symbol in icon.GetComponentsInChildren<GestureIconGraphic>())
+                    Assert.Less(Quaternion.Angle(icon.transform.rotation, symbol.transform.rotation), .001f);
+            }
+            var frozen = icons.Select(x => x.rectTransform.anchoredPosition).ToArray();
+            round.Suspend(); arena.SetPaused(true);
+            for (int i = 0; i < 10; i++) { round.Advance(100); arena.Refresh(); }
+            CollectionAssert.AreEqual(frozen, icons.Select(x => x.rectTransform.anchoredPosition).ToArray());
+            round.Resume(false); arena.SetPaused(false);
+            round.Advance(at + WeaponFormation.SupportDuration + .01); arena.Refresh();
+            Assert.IsTrue(icons.All(x => x.transform.parent.name == "Equipped weapon attacks"));
+            var replay = round.RepeatPractice(); arena.Repeat(replay);
+            Assert.IsTrue(icons.All(x => x.transform.parent.name == "Equipped weapon attacks"));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator RangedPosesAndPooledEffectsFollowTheRoundAndFreezeOnPause()
         {
             var plan = Round(1, new PatternStep(GestureKind.Tap, 0)).Plan;
@@ -736,6 +773,7 @@ namespace BBSB.Tests
             round.Advance(at - .1); arena.Refresh();
             var icon = arena.GetComponentsInChildren<WeaponIconGraphic>().Single();
             Assert.AreEqual(RangedWeaponPose.Prepare, icon.Pose);
+            Assert.AreEqual("Equipped weapon attacks", icon.transform.parent.name);
             round.Press(at, 0, 0); arena.Refresh();
             Assert.AreEqual(RangedWeaponPose.Release, icon.Pose);
             Assert.Greater(arena.VisualEffects.ActiveCount, 0);

@@ -17,6 +17,7 @@
     <Compile Include="../../../Assets/BBSB/Runtime/UI/MonsterBodyTimeline.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/NamedResourceClips.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponMotion.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponFormation.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponArtLayout.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponPreviewBounds.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/PreparationLayout.cs" />

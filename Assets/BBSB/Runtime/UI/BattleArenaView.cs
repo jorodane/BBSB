@@ -98,6 +98,7 @@ namespace BBSB.Runtime.UI
             backdrop.SetBackdrop();
             if (StageScenery.Add(ui, worldLayer, round.Plan.Stage.Music, "Stage scenery"))
             { backdrop.ShowStageFloor = false; background.SetAsLastSibling(); }
+            var rearWeapons = ui.Rect("Weapons behind the player", worldLayer); RunUI.Stretch(rearWeapons);
             actorLayer = ui.Rect("Actors sorted by ground depth", worldLayer); RunUI.Stretch(actorLayer);
             var attacks = ui.Rect("Monster attack image slots", worldLayer); RunUI.Stretch(attacks);
             monsterAttacks = attacks.gameObject.AddComponent<MonsterAttackView>();
@@ -110,6 +111,7 @@ namespace BBSB.Runtime.UI
                 var weapons = ui.Rect("Equipped weapon attacks", worldLayer); RunUI.Stretch(weapons);
                 weaponGraphic = weapons.gameObject.AddComponent<WeaponBattleGraphic>();
                 weaponGraphic.ShowLegacyAttackEffects = false;
+                weaponGraphic.SetRearLayer(rearWeapons);
                 weaponGraphic.SetTargets(impactAnchors);
             }
             var visualEffects = ui.Rect("Attack and reaction VFX", worldLayer); RunUI.Stretch(visualEffects);
