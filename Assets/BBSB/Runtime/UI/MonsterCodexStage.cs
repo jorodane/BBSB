@@ -21,7 +21,7 @@ namespace BBSB.Runtime.UI
         internal void Bind(RunUI ui, MonsterDefinition monster, MonsterAttackSprites sprites)
         {
             this.ui = ui; this.monster = monster; this.sprites = sprites;
-            fallback = Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
+            fallback = MonsterAuthoringRegistry.Find(monster.Id)?.portrait ?? Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
             ui.Background((RectTransform)transform, RunUI.Panel, true);
             var portrait = ui.Rect("Monster body", transform);
             body = ui.Background(portrait, Color.white); body.preserveAspect = false;

@@ -7,7 +7,24 @@ namespace BBSB.Core
     {
         // Four ticks per beat. Tresillo uses 0, 6, 12 in a 16-tick phrase.
         // Eight of twelve species have a Tap theme; each specialist uses its own pattern placement strategy.
-        public static IReadOnlyList<MonsterDefinition> All { get; } = Array.AsReadOnly(new[]
+        public static IReadOnlyList<MonsterDefinition> All => combined ?? BuiltIn;
+        private static IReadOnlyList<MonsterDefinition> combined;
+
+        // Replace atomically so failed authoring validation cannot leave a partially changed roster.
+        public static void SetCustom(IEnumerable<MonsterDefinition> monsters)
+        {
+            if (monsters == null) throw new ArgumentNullException(nameof(monsters));
+            var values = new List<MonsterDefinition>(BuiltIn);
+            var ids = new HashSet<string>();
+            foreach (var monster in values) ids.Add(monster.Id);
+            var custom = new List<MonsterDefinition>(monsters);
+            foreach (var monster in custom)
+                if (monster == null || !ids.Add(monster.Id)) throw new ArgumentException("Monster IDs must be unique, including built-in monsters.");
+            custom.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+            values.AddRange(custom); combined = values.AsReadOnly();
+        }
+
+        public static IReadOnlyList<MonsterDefinition> BuiltIn { get; } = Array.AsReadOnly(new[]
         {
             new MonsterDefinition("tap-slime", "젤리 슬라임 소녀", "둥글고 탄력 있는 실루엣을 가진 명랑한 종족이다.", GestureKind.Tap, new[]
             {

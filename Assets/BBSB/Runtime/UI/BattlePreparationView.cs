@@ -247,7 +247,7 @@ namespace BBSB.Runtime.UI
         }
         private static void Top(RectTransform rect, float left, float right, float top, float height, float insetLeft = 0, float insetRight = 0) =>
             RunUI.Overlay(rect, new Vector2(left, 1), new Vector2(right, 1), new Vector2(insetLeft, -top - height), new Vector2(-insetRight, -top));
-        private Sprite MonsterPortrait(MonsterDefinition monster) => sprites.Get(MonsterCodexView.IconRoot + "Monsters", monster.Id) ??
+        private Sprite MonsterPortrait(MonsterDefinition monster) => MonsterAuthoringRegistry.Find(monster.Id)?.portrait ?? sprites.Get(MonsterCodexView.IconRoot + "Monsters", monster.Id) ??
             Resources.Load<Sprite>(ArtRoot + "Monsters/" + monster.Id) ??
             sprites.Get(MonsterAttackDefinition.ResourceRoot + monster.Id, "idle") ?? Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
         private Image Portrait(Transform parent, string name, Sprite sprite, string fallback)

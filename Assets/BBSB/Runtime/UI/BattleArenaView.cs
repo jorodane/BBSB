@@ -22,6 +22,7 @@ namespace BBSB.Runtime.UI
             public Sprite FallbackPortrait;
             public bool UsesNewArt;
             public bool UsesAuthoredPose;
+            public MonsterAnimatorView CustomVisual;
             public ResponsePromptView Prompt;
             public Color Tint;
             public Vector2 Ground;
@@ -84,7 +85,7 @@ namespace BBSB.Runtime.UI
 
         internal void HideLabels() { labelLayer.gameObject.SetActive(false); heroLabel.gameObject.SetActive(false); }
 
-        public void Initialize(RhythmRound value, Font font, PlayerMotionDisplay display = null)
+        public void Initialize(RhythmRound value, Font font, PlayerMotionDisplay display = null, MonsterAuthoring previewAppearance = null)
         {
             if (round != null) throw new InvalidOperationException("Battle arena is already bound.");
             round = value ?? throw new ArgumentNullException(nameof(value));
@@ -124,7 +125,14 @@ namespace BBSB.Runtime.UI
             responseResult.raycastTarget = false;
             foreach (var plan in round.Plan.Monsters)
             {
-                var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name);
+                var authored = previewAppearance != null && previewAppearance.monsterId == plan.Monster.Id ? previewAppearance : MonsterAuthoringRegistry.Find(plan.Monster.Id);
+                var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name, authored != null ? authored.portrait : null);
+                if (authored != null)
+                {
+                    var visual = ui.Rect("Authored monster " + plan.InstanceId, actor.Root);
+                    actor.CustomVisual = visual.gameObject.AddComponent<MonsterAnimatorView>();
+                    actor.CustomVisual.Initialize(authored); actor.Portrait.enabled = false;
+                }
                 var prompt = ui.Rect("Response prompt " + plan.InstanceId, promptLayer);
                 actor.Prompt = prompt.gameObject.AddComponent<ResponsePromptView>(); actor.Prompt.Initialize(font);
                 actor.Plan = plan; actor.Tint = MonsterColor(plan.Monster.Id);
@@ -153,6 +161,8 @@ namespace BBSB.Runtime.UI
                 actor.Advance = round.Combat != null && round.Combat.Victory ?
                     (float)actor.StageMotion.Evaluate(round.Combat.DefeatedAtSeconds) * Mathf.Clamp01(1 - (float)((round.ElapsedSeconds - round.Combat.DefeatedAtSeconds) / .3)) :
                     (float)actor.StageMotion.Evaluate(bodySeconds);
+                if (actor.CustomVisual != null)
+                { actor.UsesNewArt = true; actor.UsesAuthoredPose = actor.CustomVisual.HasAnimator; continue; }
                 actor.Portrait.sprite = monsterAttacks.Sprites.BodyBlend(actor.Plan, bodySeconds, round.BeatSeconds,
                     actor.FallbackPortrait, round.Combat != null && round.Combat.Victory,
                     out var next, out actor.PoseBlend, out actor.UsesAuthoredPose);
@@ -246,6 +256,7 @@ namespace BBSB.Runtime.UI
                 var position = BattleStageLayout.Monster(i, monsters.Count, HeroGroundPosition.x, HeroGroundPosition.y, actor.Advance);
                 actor.Ground = new Vector2((float)position.X, (float)position.Y);
                 float side = (float)BattleStageLayout.MonsterSize(monsters.Count, size.x, size.y, position.Scale, heroDisplayHeight);
+                if (actor.CustomVisual != null) side *= actor.CustomVisual.DisplayScale;
                 Anchor(actor.Root, actor.Ground, actor.Ground, Vector2.zero, Vector2.zero, new Vector2(.5f, 0));
                 var sprite = actor.Portrait.sprite;
                 var foot = new Vector2(sprite.pivot.x / sprite.rect.width, sprite.pivot.y / sprite.rect.height);
@@ -254,6 +265,7 @@ namespace BBSB.Runtime.UI
                 var portraitSize = new Vector2(side * sprite.rect.width / sprite.rect.height, side);
                 Anchor(rect, Vector2.zero, Vector2.zero, rect.anchoredPosition, portraitSize, foot);
                 actor.Portrait.preserveAspect = false;
+                actor.CustomVisual?.Layout(side);
                 var next = actor.BlendPortrait.sprite ?? sprite;
                 var nextRect = actor.BlendPortrait.rectTransform;
                 Anchor(nextRect, Vector2.zero, Vector2.zero, nextRect.anchoredPosition,
@@ -384,6 +396,7 @@ namespace BBSB.Runtime.UI
             Color baseTint = actor.UsesNewArt || actor.Plan.Monster.ArtId == actor.Plan.Monster.Id ? Color.white : Color.Lerp(Color.white, actor.Tint, .35f);
             SetPose(actor, x, y, tilt, sx, sy,
                 Color.Lerp(Color.Lerp(baseTint, CueColor(CallMotion.Flash), flash * .45f), RunUI.Red, counter * .45f));
+            actor.CustomVisual?.Sample(MonsterAnimationTimeline.Evaluate(round, actor.Plan, bodySeconds));
         }
 
         private void RefreshHero(double seconds)
@@ -520,6 +533,7 @@ namespace BBSB.Runtime.UI
         { if (age < 0 || age >= duration) return 0; float p = (float)(1 - age / duration); return p * p; }
         private static void SetPose(Actor actor, float x, float y, float tilt, float sx, float sy, Color tint)
         {
+            actor.CustomVisual?.SetPose(x, y, tilt, sx, sy, actor.Portrait.rectTransform.rect.height);
             var rect = actor.Portrait.rectTransform;
             rect.anchoredPosition = new Vector2(x, y); rect.localScale = new Vector3(sx, sy, 1);
             rect.localRotation = Quaternion.Euler(0, 0, tilt);

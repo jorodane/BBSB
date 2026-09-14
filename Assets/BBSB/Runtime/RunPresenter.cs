@@ -36,6 +36,7 @@ namespace BBSB.Runtime
 
         public void Initialize(RunRules runRules, Font font, int? seed, bool showTestControls)
         {
+            MonsterAuthoringRegistry.EnsureLoaded();
             rules = runRules; ui = new RunUI(font); fixedSeed = seed; testControls = showTestControls;
             var canvasRoot = ui.Rect("BBSB Canvas", transform);
             var canvas = canvasRoot.gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;

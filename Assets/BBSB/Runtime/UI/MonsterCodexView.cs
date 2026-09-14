@@ -308,7 +308,7 @@ namespace BBSB.Runtime.UI
             playLabel.text = playing || waitingForContact ? "멈춤" : "재생"; soundLabel.text = sound ? "소리 켜짐" : "소리 꺼짐";
         }
 
-        private Sprite Portrait(MonsterDefinition monster) => sprites.Get(IconRoot + "Monsters", monster.Id) ??
+        private Sprite Portrait(MonsterDefinition monster) => MonsterAuthoringRegistry.Find(monster.Id)?.portrait ?? sprites.Get(IconRoot + "Monsters", monster.Id) ??
             sprites.Get(MonsterAttackDefinition.ResourceRoot + monster.Id, "idle") ?? Resources.Load<Sprite>("BBSB/BattleArt/" + monster.ArtId);
 
         private void SetIcon(RectTransform root, Sprite sprite, string fallback)

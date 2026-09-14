@@ -76,7 +76,7 @@ namespace BBSB.Runtime.UI
         private static IReadOnlyList<MonsterAttackDefinition> Build()
         {
             var values = new List<MonsterAttackDefinition>();
-            foreach (var monster in MonsterCatalog.All)
+            foreach (var monster in MonsterCatalog.BuiltIn)
             foreach (var pattern in monster.Patterns)
             for (int i = 0; i < pattern.Pattern.Steps.Count; i++)
             {

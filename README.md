@@ -1,6 +1,8 @@
 # Beat! Block, Shake~ Beat!
 
 
+몬스터 추가는 Unity 메뉴 **BBSB → Monster Editor**에서 외형·Call/Response 패턴·Animator 모션을 설정한다. [몬스터 에디터 사용법](Docs/MonsterEditor.md)을 참고한다.
+
 장르별 10곡, 총 80개의 음악 스테이지와 시작 맵 선택을 연결했다. 이미지·음악은 별도 ZIP으로 설치한다. 설치와 후크 패턴 보장 규칙은 [Docs/StageAssets.md](Docs/StageAssets.md)를 참고한다.
 
 Unity 모바일 버전의 탐험 흐름, 음악 슬롯, 몬스터 전투 계획과 Call & Response 전투 화면 구현. Unity **6000.3.5f2**, URP 2D, Input System을 사용한다.
