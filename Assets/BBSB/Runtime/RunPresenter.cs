@@ -564,6 +564,7 @@ namespace BBSB.Runtime
             icon.gameObject.AddComponent<WeaponIconGraphic>().Bind(state);
             ui.Label(row, WeaponRarities.Name(state.Rarity) + " · 소켓 " + definition.ActionCountAt(state.Rarity) +
                 "개\n" + definition.ActionLabelAt(state.Rarity), 23, WeaponIconGraphic.RarityColor(state.Rarity), 100);
+            ui.WeaponActions(parent, state);
             ui.Label(parent, definition.EffectLabelAt(state.Rarity, state.Level), 21, RunUI.Muted,
                 definition.ActionCountAt(state.Rarity) * 60);
         }

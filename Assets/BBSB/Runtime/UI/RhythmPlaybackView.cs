@@ -125,6 +125,7 @@ namespace BBSB.Runtime.UI
                 foreach (var state in round.Combat.Loadout.Equipment)
                 {
                     var weapon = WeaponCatalog.Find(state.DefinitionId);
+                    ui.WeaponActions(details, state);
                     ui.Label(details, WeaponRarities.Name(state.Rarity) + " " + weapon.Name + " +" + state.Level + " · " + weapon.ActionLabelAt(state.Rarity) + "\n" + weapon.EffectLabelAt(state.Rarity, state.Level), 22, WeaponIconGraphic.RarityColor(state.Rarity), (weapon.ActionCountAt(state.Rarity) + 1) * 60);
                 }
             foreach (var monster in round.Plan.Monsters) monsters.Add(new MonsterCard(details, ui, round, monster));

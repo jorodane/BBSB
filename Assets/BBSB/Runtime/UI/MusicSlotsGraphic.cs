@@ -34,10 +34,9 @@ namespace BBSB.Runtime.UI
                 float y = rect.yMax - ((int)slot.Kind + .5f) * rowHeight;
                 float x = left + width * Mathf.Clamp01((float)(slot.StartTick - start) / stage.Music.TicksPerBar);
                 float last = left + width * Mathf.Clamp01((float)(slot.EndTick - start) / stage.Music.TicksPerBar);
-                Color tint = slot.Weight > 1.5 ? RunUI.Gold : RunUI.Teal;
+                Color tint = PatternOverviewGraphic.ActionColor(slot.Kind);
                 if (slot.DurationTicks > 0) Quad(vh, x, y - 4, Mathf.Max(1, last - x), 8, tint);
-                if (slot.StartTick >= start) Quad(vh, x - 4, y - 9, 8, 18,
-                    slot.DurationTicks == 0 && slot.Touch.End == TouchTransition.Release ? RunUI.Red : tint);
+                if (slot.StartTick >= start) GestureIconMesh.Badge(vh, new Vector2(x,y), Vector2.one * Mathf.Min(9, rowHeight * .42f), slot.Kind);
                 if (slot.DurationTicks > 0 && slot.EndTick <= end)
                     Quad(vh, last - 3, y - 7, 6, 14, slot.Touch.End == TouchTransition.Release ? RunUI.Red : tint);
             }

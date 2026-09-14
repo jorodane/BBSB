@@ -113,3 +113,7 @@ Unity에서는 **Window → General → Test Runner**에서 EditMode의 `BBSB.Co
 한글 글꼴은 OFL 라이선스의 Noto Sans CJK KR 일부를 `BBSB UI`로 이름을 바꿔 포함했다. 새 한글 텍스트를 넣을 때는 `Tools/subset_font.py`로 글자 집합을 갱신한다. 출처와 라이선스는 폰트 폴더에 있다.
 
 활·석궁·마도봉, 대기·준비·발사 36개 동작, 공격·반응 이펙트 10종과 피격 정지·흔들림은 [BattleEffects.md](Docs/BattleEffects.md)를 참고한다. 새 원거리·이펙트 이미지는 별도 `BBSB_effects_ranged_v1.zip`으로 설치한다.
+
+## 행동 아이콘
+
+무기 소켓은 행동 기호를 항상 표시하며 무기의 회전·크기·자세를 함께 따른다. Call 이후의 다음 Response, 패턴 도표, 조작 도움말과 장비 설명에 공통 아이콘을 사용한다. 실제 투명 PNG 세트 `BBSB_gesture_icons_v1.zip`의 `Assets`를 합치면 금속 문양 아트로 표시하고, 이미지가 없으면 같은 기호의 도형 표시를 사용한다. [GestureIcons.md](Docs/GestureIcons.md)를 참고한다.

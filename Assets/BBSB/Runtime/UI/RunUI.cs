@@ -1,4 +1,5 @@
 using System;
+using BBSB.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -165,15 +166,35 @@ namespace BBSB.Runtime.UI
             return overlay;
         }
 
+        public void WeaponActions(Transform parent, WeaponState state)
+        {
+            var row = Row(parent, 64, 12); row.name = "Supported action icons";
+            foreach (var action in WeaponCatalog.Find(state.DefinitionId).ActionsAt(state.Rarity))
+            {
+                var icon = GestureIconGraphic.Create(row, action.Kind, true, Font);
+                var size = icon.gameObject.AddComponent<LayoutElement>();
+                size.minWidth = size.preferredWidth = 64; size.flexibleWidth = 0;
+            }
+        }
+
+        public void GestureHelp(Transform parent, GestureKind kind, string description)
+        {
+            var row = Row(parent, 82, 12);
+            var icon = GestureIconGraphic.Create(row, kind, true, Font);
+            var element = icon.gameObject.AddComponent<LayoutElement>();
+            element.minWidth = element.preferredWidth = 76; element.flexibleWidth = 0;
+            Label(row, GestureIconCatalog.Name(kind) + "  ·  " + description, 23, TextColor, 82);
+        }
+
         public void Controls(Transform parent)
         {
             Label(parent, "Call을 보고, 같은 리듬으로 대응해.", 27, Gold, 52);
             var card = Card(parent, 18);
-            Label(card, "Tap  ·  박자에 맞춰 누르기", 25, null, 54);
-            Label(card, "Hold  ·  누르고 끝까지 유지하기", 25, null, 54);
-            Label(card, "Dive  ·  누르고 마지막 박자에 떼기", 25, null, 54);
-            Label(card, "Flick  ·  미리 누른 뒤 튕기며 떼기", 25, null, 54);
-            Label(card, "Shake  ·  목표 박자 전후의 반미스 범위 안에서 한 번 왕복\n왕복 완료면 성공 / 미완료면 미스", 24, Teal, 90);
+            GestureHelp(card, GestureKind.Tap, "박자에 맞춰 누르기");
+            GestureHelp(card, GestureKind.Hold, "누르고 끝까지 유지하기");
+            GestureHelp(card, GestureKind.Flick, "미리 누른 뒤 튕기며 떼기");
+            GestureHelp(card, GestureKind.Dive, "누르고 마지막 박자에 떼기");
+            GestureHelp(card, GestureKind.Shake, "목표 박자 전후에 한 번 왕복\n왕복 완료면 성공 / 미완료면 미스");
             Label(parent, "메뉴 버튼 외에는 화면 어디서든 연주할 수 있어.\n마우스 왼쪽 버튼이나 한 손가락을 사용해.", 23, Muted, 86);
             Label(parent, "메뉴를 열면 박자와 판정이 멈춰.\n유지 중에 멈췄다면 이어하기 후 화면을 다시 눌러줘.", 23, Muted, 86);
             Label(parent, "받는 피해: 미스 100% · 반미스 50% · 퍼펙트 0%\nHP가 0이 되면 탐험이 끝나. 준비로 돌아가도 HP는 유지돼.", 23, Muted, 86);

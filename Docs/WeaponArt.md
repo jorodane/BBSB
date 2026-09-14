@@ -49,3 +49,7 @@ CoreChecks는 등급·강화 조합, 보상·구매·교체의 등급 보존, �
 ## 원거리 확장 팩
 
 `BBSB_effects_ranged_v1.zip`을 추가로 합치면 활·석궁·마도봉의 4등급과 대기·준비·발사 동작이 연결된다. `bow`, `crossbow`, `wand` 폴더의 각 PNG는 세 칸짜리 아틀라스다. 원거리의 소켓 수는 등급순 1·2·2·3이며 프레임별 좌표는 `RangedWeaponArtLayout`에 있다. 기존 32개 파일 명세와 별도로 `battle-effects-manifest.json`이 새 12개 아틀라스와 이펙트 10개를 관리한다. 설치·검증은 [BattleEffects.md](BattleEffects.md)를 참고한다.
+
+## 행동 기호 확장
+
+`BBSB_gesture_icons_v1.zip`을 추가하면 작은 소켓의 상시 기호와 큰 Response 안내를 같은 문양으로 표시한다. 기호와 발광은 무기 변환을 그대로 상속하며, 발광 중에도 기호가 사라지지 않는다. [GestureIcons.md](GestureIcons.md)를 참고한다.

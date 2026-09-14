@@ -23,6 +23,7 @@ namespace BBSB.Runtime.UI
             public bool UsesNewArt;
             public bool UsesAuthoredPose;
             public Text Signal;
+            public ResponsePromptView Prompt;
             public Color Tint;
             public Vector2 Ground;
             public Vector2 Impact;
@@ -43,7 +44,7 @@ namespace BBSB.Runtime.UI
         private MonsterAttackView monsterAttacks;
         private RhythmRound round;
         private RectTransform area;
-        private RectTransform actorLayer, labelLayer;
+        private RectTransform actorLayer, labelLayer, promptLayer;
         private RectTransform worldLayer;
         private BattleVfxView battleVfx;
         private readonly Dictionary<string, Vector2> impactAnchors = new Dictionary<string, Vector2>();
@@ -114,9 +115,12 @@ namespace BBSB.Runtime.UI
             var visualEffects = ui.Rect("Attack and reaction VFX", worldLayer); RunUI.Stretch(visualEffects);
             battleVfx = visualEffects.gameObject.AddComponent<BattleVfxView>();
             labelLayer = ui.Rect("Actor labels", area); RunUI.Stretch(labelLayer);
+            promptLayer = ui.Rect("Response action prompts", area); RunUI.Stretch(promptLayer);
             foreach (var plan in round.Plan.Monsters)
             {
                 var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name);
+                var prompt = ui.Rect("Response prompt " + plan.InstanceId, promptLayer);
+                actor.Prompt = prompt.gameObject.AddComponent<ResponsePromptView>(); actor.Prompt.Initialize(font);
                 actor.Plan = plan; actor.Tint = MonsterColor(plan.Monster.Id);
                 actor.StageMotion = new MonsterStageMotion(plan, round.Plan.Stage.Music.Bpm, round.HalfMissWindow);
                 actor.Order = monsters.Count;
@@ -161,7 +165,8 @@ namespace BBSB.Runtime.UI
             }
             effects.Clear(); ActiveResponseEffects = 0;
             double seconds = round.ElapsedSeconds;
-            foreach (var actor in monsters) RefreshMonster(actor, seconds);
+            foreach (var actor in monsters)
+            { RefreshMonster(actor, seconds); actor.Prompt.Refresh(round, actor.Plan.InstanceId, seconds); }
             RefreshHero(seconds);
             monsterAttacks.Refresh(seconds, HeroGroundPosition, heroDisplayHeight);
             battleVfx.Refresh(round, HeroImpactPosition, heroDisplayHeight, weaponGraphic, impactAnchors);
@@ -249,6 +254,10 @@ namespace BBSB.Runtime.UI
                     new Vector2(next.pivot.x / next.rect.width, next.pivot.y / next.rect.height));
                 float bodyHeight = side * (1 - foot.y);
                 Anchor(actor.Labels, actor.Ground, actor.Ground, Vector2.zero, new Vector2(side, bodyHeight), new Vector2(.5f, 0));
+                float promptWidth = Mathf.Min(220, size.x / Mathf.Max(1, monsters.Count) * .65f);
+                float promptY = Mathf.Min(bodyHeight + 40, size.y * .66f - 64 - actor.Ground.y * size.y);
+                Anchor((RectTransform)actor.Prompt.transform, actor.Ground, actor.Ground, new Vector2(0, promptY),
+                    new Vector2(promptWidth, 64), new Vector2(.5f, 0));
                 actor.Impact = actor.Ground + new Vector2(0, bodyHeight / size.y * .48f);
                 impactAnchors[actor.Plan.InstanceId] = actor.Impact;
                 shadows.Add(new BattleGroundShadow { Ground = actor.Ground,

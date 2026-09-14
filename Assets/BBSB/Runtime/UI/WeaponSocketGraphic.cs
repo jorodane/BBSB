@@ -14,6 +14,8 @@ namespace BBSB.Runtime.UI
         private WeaponRarity rarity;
         private IReadOnlyList<WeaponArtSocket> layout;
         private readonly float[] pulses = new float[3];
+        private readonly GestureIconGraphic[] icons = new GestureIconGraphic[3];
+        public int VisibleSymbolCount => SocketCount;
         public int SocketCount => definition == null ? 0 : definition.ActionCountAt(rarity);
 
         internal void Bind(WeaponIconGraphic icon, WeaponDefinition weapon, WeaponRarity grade)
@@ -21,10 +23,20 @@ namespace BBSB.Runtime.UI
             owner = icon; definition = weapon; rarity = grade;
             layout = WeaponArtLayout.Sockets(weapon.Id, rarity);
             for (int i = 0; i < pulses.Length; i++) pulses[i] = 0;
-            raycastTarget = false; SetVerticesDirty();
+            raycastTarget = false;
+            for (int i = 0; i < icons.Length; i++)
+            {
+                if (i < SocketCount)
+                {
+                    if (icons[i] == null) icons[i] = GestureIconGraphic.Create(transform, definition.Actions[i].Kind, false);
+                    else icons[i].Bind(definition.Actions[i].Kind);
+                }
+                if (icons[i] != null) icons[i].gameObject.SetActive(i < SocketCount);
+            }
+            RefreshSymbols(); SetVerticesDirty();
         }
         internal void SetPose(RangedWeaponPose pose)
-        { layout = WeaponArtLayout.Sockets(definition.Id, rarity, pose); SetVerticesDirty(); }
+        { layout = WeaponArtLayout.Sockets(definition.Id, rarity, pose); RefreshSymbols(); SetVerticesDirty(); }
         internal void SetActivity(WeaponBattle combat, int slot, double seconds)
         {
             for (int i = 0; i < pulses.Length; i++) pulses[i] = 0;
@@ -53,12 +65,27 @@ namespace BBSB.Runtime.UI
                 float pulse = pulses[i];
                 var halo = tint; halo.a = .06f + .2f * pulse;
                 Disc(vh, center, radius * (1.15f + .65f * pulse), halo);
-                Color baseColor = Color.Lerp(tint * .72f, tint, .3f + .7f * pulse); baseColor.a = 1;
-                Disc(vh, center, radius * .96f, baseColor);
-                Color core = Color.Lerp(tint, Color.white, .25f + .65f * pulse); core.a = 1;
-                Disc(vh, center, radius * (.43f + .18f * pulse), core);
-                var shine = new Color(1, 1, 1, .65f + .3f * pulse);
-                Disc(vh, center + new Vector2(-radius.x * .25f, radius.y * .3f), radius * .18f, shine);
+                // The symbol is an always-visible child. A pulse only affects the surrounding halo.
+            }
+        }
+        private void LateUpdate() { RefreshSymbols(); }
+        private void RefreshSymbols()
+        {
+            if (owner == null || definition == null) return;
+            var rect = owner.ArtworkRect;
+            for (int i = 0; i < SocketCount; i++)
+            {
+                if (icons[i] == null) continue;
+                var socket = layout[i];
+                var center = owner.HasArtwork ? new Vector2(rect.xMin + (float)socket.X * rect.width,
+                    rect.yMin + (float)socket.Y * rect.height) : rect.center + Vector2.right * ((i - (SocketCount - 1) * .5f) * rect.width * .15f);
+                var radius = owner.HasArtwork ? new Vector2((float)socket.RadiusX * rect.width, (float)socket.RadiusY * rect.height) : Vector2.one * (rect.width * .055f);
+                var child = icons[i].rectTransform;
+                // No world-space counter-rotation: both symbol and socket inherit every weapon transform.
+                child.anchorMin = child.anchorMax = rectTransform.pivot;
+                child.pivot = new Vector2(.5f,.5f); child.anchoredPosition = center;
+                child.sizeDelta = radius * 2;
+                child.localRotation = Quaternion.identity; child.localScale = Vector3.one;
             }
         }
         private static void Disc(VertexHelper vh, Vector2 center, Vector2 radius, Color tint)

@@ -65,7 +65,7 @@ namespace BBSB.Runtime.UI
                 float y = rect.yMax - rowHeight * (lanes.IndexOf(step.Kind) + 1.5f);
                 float x = left + width * (cue + step.OffsetTick) / total;
                 float end = left + width * (cue + step.OffsetTick + step.DurationTicks) / total;
-                Color tint = step.Kind == GestureKind.Flick ? RunUI.Red : RunUI.Teal;
+                Color tint = PatternOverviewGraphic.ActionColor(step.Kind);
                 var note = liveNotes == null ? null : liveNotes[i];
                 if (note != null && note.State == ResponseState.Resolved) tint = RhythmPlaybackView.GradeColor(note.Result.Grade);
                 else if (note != null && note.State == ResponseState.Holding) tint = RunUI.Gold;
@@ -76,7 +76,8 @@ namespace BBSB.Runtime.UI
                     Quad(vh, x - radius, y - marker * .7f, radius * 2, marker * 1.4f, window);
                 }
                 if (step.DurationTicks > 0) Quad(vh, x, y - bar * .5f, Mathf.Max(1, end - x), bar, tint);
-                Quad(vh, x - 3, y - marker * .5f, 6, marker, tint);
+                // Judgment color stays on the duration/end marker; action identity never changes color.
+                GestureIconMesh.Badge(vh, new Vector2(x,y), Vector2.one * (marker * .5f), step.Kind);
                 if (step.DurationTicks > 0) Quad(vh, end - 2, y - marker * .4f, 4, marker * .8f,
                     step.Touch.End == TouchTransition.Release ? RunUI.Red : tint);
             }

@@ -9,16 +9,15 @@ namespace BBSB.Runtime.UI
     {
         private RhythmPattern pattern;
         public void Bind(RhythmPattern value) { pattern = value; raycastTarget = false; SetVerticesDirty(); }
-        public static Color ActionColor(GestureKind kind) => kind == GestureKind.Tap ? RunUI.Teal :
-            kind == GestureKind.Hold ? RunUI.Gold : kind == GestureKind.Dive ? RunUI.Hex("82BBFF") :
-            kind == GestureKind.Flick ? RunUI.Red : RunUI.Hex("C9A6ED");
+        public static Color ActionColor(GestureKind kind) => RunUI.Hex(GestureIconCatalog.ColorHex(kind));
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (pattern == null) return;
             var rect = rectTransform.rect; int last = 0;
             foreach (var step in pattern.Steps) last = Mathf.Max(last, step.OffsetTick + step.DurationTicks);
             int span = last + RhythmTime.TicksPerBeat;
-            float left = rect.xMin + 5, width = Mathf.Max(1, rect.width - 10), y = rect.center.y;
+            float radius = Mathf.Min(8, rect.height * .48f);
+            float left = rect.xMin + radius, width = Mathf.Max(1, rect.width - radius * 2), y = rect.center.y;
             Quad(vh, left, y - .5f, width, 1, RunUI.Muted);
             for (int tick = 0; tick <= span; tick += RhythmTime.TicksPerBeat)
                 Quad(vh, left + width * tick / span - .5f, y - 3, 1, 6, RunUI.Muted);
@@ -27,7 +26,7 @@ namespace BBSB.Runtime.UI
                 float x = left + width * step.OffsetTick / span, end = left + width * (step.OffsetTick + step.DurationTicks) / span;
                 var tint = ActionColor(step.Kind);
                 if (step.DurationTicks > 0) Quad(vh, x, y - 2, Mathf.Max(1, end - x), 4, tint);
-                Quad(vh, x - 2, y - 6, 4, 12, tint);
+                GestureIconMesh.Badge(vh, new Vector2(x,y), Vector2.one * radius, step.Kind);
                 if (step.DurationTicks > 0) Quad(vh, end - 1.5f, y - 5, 3, 10, tint);
             }
         }
