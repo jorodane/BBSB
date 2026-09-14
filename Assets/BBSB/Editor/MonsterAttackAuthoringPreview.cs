@@ -193,7 +193,11 @@ namespace BBSB.Editor
             EditorGUI.BeginChangeCheck(); pathScrub = EditorGUILayout.Slider("생성 → 판정", pathScrub, 0, 1);
             if (EditorGUI.EndChangeCheck()) playingAttack = -1;
             EditorGUILayout.EndHorizontal();
-            if (playingAttack == index) pathScrub = (float)(((EditorApplication.timeSinceStartup - pathOrigin) / Math.Max(.01, duration)) % 1);
+            if (playingAttack == index)
+            {
+                double elapsed = (EditorApplication.timeSinceStartup - pathOrigin) % (duration + .35);
+                pathScrub = Mathf.Clamp01((float)(elapsed / Math.Max(.01, duration)));
+            }
             var display = config != null && config.overrideDisplay ? config.display : null;
             float targetY = note.Step.Kind == GestureKind.Dive ? .8f : note.Step.Kind == GestureKind.Flick ? .12f : .48f;
             var from = new Vector2(3, definition.Grounded ? 0 : targetY) + (display?.sourceOffset ?? Vector2.zero);
