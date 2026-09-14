@@ -57,7 +57,7 @@ namespace BBSB.Tests
         }
 
         [Test]
-        public void SmallerEnemyFormationsLeaveTheCentralTravelSpaceOpen()
+        public void LargerEnemyFormationsKeepPlayerClearanceAndFitTheStage()
         {
             foreach (int count in new[] { 1, 2, 3 })
             foreach (double height in new[] { 720.0, 800.0 })
@@ -66,9 +66,11 @@ namespace BBSB.Tests
             {
                 var monster = BattleStageLayout.Monster(i, count, .14, .15, advance);
                 double side = BattleStageLayout.MonsterSize(count, 1280, height, monster.Scale);
-                Check.True(monster.X - side / 2560 > .64, "The left and central area must stay available for incoming attacks.");
+                Check.True(monster.X - side / 2560 > .46, "Enlarged enemies must retain clear travel space in front of the player.");
                 Check.True(monster.X + side / 2560 < 1);
-                Check.True(side / height < .25);
+                double playerHeight = Math.Min(1280 * .4, height * .7) * .5;
+                Check.True(side >= playerHeight * .9 && side <= playerHeight * 1.12);
+                Check.True(side / height < .4);
             }
         }
     }
