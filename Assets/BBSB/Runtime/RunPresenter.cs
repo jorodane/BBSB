@@ -92,13 +92,14 @@ namespace BBSB.Runtime
                 DrawMap();
             else if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Stage && Session.CurrentNode.IsBattle)
                 DrawBattle();
+            else if (completedRound == null && pendingOffer >= 0)
+                DrawReplacement();
             else
             {
                 page = ui.Stack(screen, "Page content", 24, 12); RunUI.Stretch(page);
                 page.GetComponent<VerticalLayoutGroup>().padding.top = 116;
                 body = ui.Scroll(page);
                 if (completedRound != null) DrawRoundReport();
-                else if (pendingOffer >= 0) DrawReplacement();
                 else
                 {
                     switch (Session.Phase)
@@ -443,13 +444,45 @@ namespace BBSB.Runtime
         private void DrawReplacement()
         {
             var offer = Session.Offers[pendingOffer];
-            Heading("FIVE WEAPONS, ONE RHYTHM", WeaponRarities.Name(offer.Rarity) + " " + offer.Content.Name + " 장착", "다섯 무기 중 교체할 슬롯을 골라줘. 교체한 무기와 강화는 사라져.");
+            int offerIndex = pendingOffer;
+            var page = ui.Stack(screen, "Weapon replacement", 0, 12);
+            RunUI.Overlay(page, Vector2.zero, Vector2.one, new Vector2(24, 24), new Vector2(-24, -116));
+            ui.Label(page, "무기 교체", 32, RunUI.Gold, 44);
+            ui.Label(page, "다섯 무기의 능력치를 비교하고 교체할 슬롯을 골라줘. 교체한 무기와 강화는 사라져.", 20, RunUI.Muted, 36);
+
+            // Each column scrolls independently so browsing equipped weapons retains the new offer.
+            var columns = ui.Row(page, 0, 16); columns.name = "Weapon comparison";
+            var columnSize = columns.GetComponent<LayoutElement>();
+            columnSize.minHeight = 0; columnSize.preferredHeight = -1; columnSize.flexibleHeight = 1;
+            var incoming = ReplacementColumn(columns, "Incoming weapon", "획득할 무기", 1);
+            var candidate = new WeaponState(offer.Content.Id, offer.Rarity);
+            var incomingCard = ui.Card(incoming, 16); incomingCard.name = "Incoming weapon details";
+            ui.Label(incomingCard, WeaponRarities.Name(candidate.Rarity) + " " + offer.Content.Name + " +" + candidate.Level,
+                24, WeaponIconGraphic.RarityColor(candidate.Rarity), 44);
+            DrawWeaponSummary(incomingCard, candidate);
+            if (Session.Phase != RunPhase.Reward)
+                ui.Label(incomingCard, "교체 시 " + offer.Price + " G  ·  보유 " + Session.Gold + " G", 20, RunUI.Gold, 40);
+
+            var equipped = ReplacementColumn(columns, "Equipped weapon choices", "현재 장착 무기", 2);
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
                 int slot = i;
-                ui.Button(body, (i + 1) + "  " + WeaponName(i) + "  교체", () => GrantOffer(pendingOffer, slot), height: 82);
+                var card = ui.Card(equipped, 16); card.name = "Replacement slot " + slot;
+                var state = Session.Weapons[slot];
+                ui.Label(card, (slot + 1) + "  " + WeaponName(slot), 24, WeaponIconGraphic.RarityColor(state.Rarity), 44);
+                DrawWeaponSummary(card, state);
+                ui.Button(card, (slot + 1) + "  " + WeaponName(slot) + "  교체", () => GrantOffer(offerIndex, slot), height: 64);
             }
-            ui.Button(body, "돌아가기", () => { pendingOffer = -1; Render(); });
+            ui.Button(page, "돌아가기", () => { pendingOffer = -1; Render(); }, height: 64);
+        }
+
+        private RectTransform ReplacementColumn(RectTransform parent, string name, string heading, float weight)
+        {
+            var column = ui.Stack(parent, name, 12, 10); ui.Background(column, RunUI.Panel);
+            var size = column.gameObject.AddComponent<LayoutElement>();
+            size.minWidth = size.preferredWidth = 0; size.flexibleWidth = weight;
+            ui.Label(column, heading, 24, RunUI.Gold, 38);
+            return ui.Scroll(column);
         }
 
         private void DrawFieldCleared()
@@ -561,12 +594,15 @@ namespace BBSB.Runtime
             var row = ui.Row(parent, 100);
             var icon = ui.Rect("Weapon artwork " + state.DefinitionId, row);
             var layout = RunUI.Size(icon, 100); layout.minWidth = layout.preferredWidth = 100;
-            icon.gameObject.AddComponent<WeaponIconGraphic>().Bind(state);
+            var artwork = icon.gameObject.AddComponent<WeaponIconGraphic>();
+            artwork.FitVisibleArtwork = true; artwork.Bind(state);
             ui.Label(row, WeaponRarities.Name(state.Rarity) + " · 소켓 " + definition.ActionCountAt(state.Rarity) +
                 "개\n" + definition.ActionLabelAt(state.Rarity), 23, WeaponIconGraphic.RarityColor(state.Rarity), 100);
             ui.WeaponActions(parent, state);
-            ui.Label(parent, definition.EffectLabelAt(state.Rarity, state.Level), 21, RunUI.Muted,
-                definition.ActionCountAt(state.Rarity) * 60);
+            var effects = ui.Label(parent, definition.EffectLabelAt(state.Rarity, state.Level), 21, RunUI.Muted);
+            // Let wrapped effect text report its preferred height, including in narrow comparison columns.
+            var effectsSize = effects.GetComponent<LayoutElement>();
+            effectsSize.minHeight = 0; effectsSize.preferredHeight = -1;
         }
 
         private void DrawInventory()
