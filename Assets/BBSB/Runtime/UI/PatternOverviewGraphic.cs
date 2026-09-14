@@ -8,6 +8,7 @@ namespace BBSB.Runtime.UI
     public sealed class PatternOverviewGraphic : MaskableGraphic
     {
         private RhythmPattern pattern;
+        public float MaximumMarkerRadius { get; set; } = 8;
         public void Bind(RhythmPattern value) { pattern = value; raycastTarget = false; SetVerticesDirty(); }
         public static Color ActionColor(GestureKind kind) => RunUI.Hex(GestureIconCatalog.ColorHex(kind));
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -16,7 +17,7 @@ namespace BBSB.Runtime.UI
             var rect = rectTransform.rect; int last = 0;
             foreach (var step in pattern.Steps) last = Mathf.Max(last, step.OffsetTick + step.DurationTicks);
             int span = last + RhythmTime.TicksPerBeat;
-            float radius = Mathf.Min(8, rect.height * .48f);
+            float radius = Mathf.Min(MaximumMarkerRadius, rect.height * .48f);
             float left = rect.xMin + radius, width = Mathf.Max(1, rect.width - radius * 2), y = rect.center.y;
             Quad(vh, left, y - .5f, width, 1, RunUI.Muted);
             for (int tick = 0; tick <= span; tick += RhythmTime.TicksPerBeat)

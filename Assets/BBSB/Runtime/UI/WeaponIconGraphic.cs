@@ -10,6 +10,12 @@ namespace BBSB.Runtime.UI
         private string definitionId;
         private Sprite artwork;
         private WeaponSocketGraphic sockets;
+        private bool fitVisibleArtwork;
+        public bool FitVisibleArtwork
+        {
+            get => fitVisibleArtwork;
+            set { if (fitVisibleArtwork == value) return; fitVisibleArtwork = value; SetAllDirty(); }
+        }
         public WeaponKind Kind { get; private set; }
         public WeaponRarity Rarity { get; private set; }
         public RangedWeaponPose Pose { get; private set; }
@@ -54,6 +60,11 @@ namespace BBSB.Runtime.UI
             {
                 var rect = GetPixelAdjustedRect();
                 float aspect = artwork != null ? artwork.rect.width / artwork.rect.height : 1;
+                if (FitVisibleArtwork && artwork != null)
+                {
+                    var fitted = WeaponPreviewBounds.Fit(WeaponPreviewBounds.Get(definitionId, Rarity, Pose), aspect, rect.width, rect.height);
+                    return new Rect(rect.xMin + (float)fitted.X, rect.yMin + (float)fitted.Y, (float)fitted.Width, (float)fitted.Height);
+                }
                 float height = Mathf.Min(rect.height, rect.width / aspect), width = height * aspect;
                 return new Rect(rect.center.x - width * .5f, rect.center.y - height * .5f, width, height);
             }
@@ -64,6 +75,15 @@ namespace BBSB.Runtime.UI
             if (artwork != null)
             {
                 var uv = UnityEngine.Sprites.DataUtility.GetOuterUV(artwork);
+                if (FitVisibleArtwork)
+                {
+                    var bounds = WeaponPreviewBounds.Get(definitionId, Rarity, Pose);
+                    // Crop only the preview mesh/UVs; source pixels and combat framing stay intact.
+                    rect = new Rect(rect.xMin + (float)bounds.X * rect.width, rect.yMin + (float)bounds.Y * rect.height,
+                        (float)bounds.Width * rect.width, (float)bounds.Height * rect.height);
+                    uv = new Vector4(Mathf.Lerp(uv.x, uv.z, (float)bounds.X), Mathf.Lerp(uv.y, uv.w, (float)bounds.Y),
+                        Mathf.Lerp(uv.x, uv.z, (float)(bounds.X + bounds.Width)), Mathf.Lerp(uv.y, uv.w, (float)(bounds.Y + bounds.Height)));
+                }
                 vh.AddVert(new Vector3(rect.xMin, rect.yMin), color, new Vector2(uv.x, uv.y));
                 vh.AddVert(new Vector3(rect.xMin, rect.yMax), color, new Vector2(uv.x, uv.w));
                 vh.AddVert(new Vector3(rect.xMax, rect.yMax), color, new Vector2(uv.z, uv.w));

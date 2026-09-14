@@ -20,6 +20,8 @@ namespace BBSB.Runtime.UI
         private readonly List<RectTransform> monsterRows = new List<RectTransform>();
         private readonly List<Button> patternButtons = new List<Button>();
         private readonly List<WeaponIconGraphic> equippedIcons = new List<WeaponIconGraphic>();
+        private readonly List<RectTransform> rhythmGraphs = new List<RectTransform>();
+        private readonly List<RectTransform> responseAreas = new List<RectTransform>();
         private float lastHeight = -1;
         public Image HeroPortrait { get; private set; }
         public IReadOnlyList<Image> MonsterPortraits => portraits;
@@ -47,7 +49,7 @@ namespace BBSB.Runtime.UI
             var scroll = content.GetComponentInParent<ScrollRect>(); viewport = scroll.viewport;
             RunUI.Overlay((RectTransform)scroll.transform, Vector2.zero, Vector2.one, new Vector2(0, 136), new Vector2(0, -98));
             scroll.GetComponent<Image>().color = Color.clear;
-            content.GetComponent<VerticalLayoutGroup>().spacing = 8;
+            content.GetComponent<VerticalLayoutGroup>().spacing = (float)PreparationLayout.RowGap;
             foreach (var monster in session.BattlePlan.Monsters)
                 DrawMonster(content, monster.InstanceId, monster.Monster, monsterCodex);
             DrawEquipment(start);
@@ -70,10 +72,10 @@ namespace BBSB.Runtime.UI
             var subtitle = Text(header, session.Map.Theme.Genre + "  ·  " + music.Bpm.ToString("0.##") + " BPM  ·  STAGE " +
                 (session.CurrentNode.Row + 1).ToString("00"), 16, RunUI.Muted, TextAnchor.MiddleCenter);
             Top(subtitle.rectTransform, .27f, .75f, 38, 22);
-            var book = ui.Button(header, "도감", codex, height: 48);
+            var book = Button(header, "도감", codex, height: 48);
             book.name = "Preparation codex all";
             Top((RectTransform)book.transform, .78f, .88f, 2, 46);
-            var options = ui.Button(header, "메뉴", menu, height: 48);
+            var options = Button(header, "메뉴", menu, height: 48);
             Top((RectTransform)options.transform, .90f, 1, 2, 46);
             PlayerHealthBar = Health(header, "Player", session.Health, session.MaxHealth, 0, .48f, RunUI.Teal);
             EnemyHealthBar = Health(header, "Enemy", session.EnemyHealth.Current, session.EnemyHealth.Maximum, .52f, 1, RunUI.Red);
@@ -98,10 +100,11 @@ namespace BBSB.Runtime.UI
             RunUI.Pin((RectTransform)portrait.transform.parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(8, -4), new Vector2(28, 28));
             portraits.Add(portrait);
             var label = Text(row, monster.Name, 19, RunUI.TextColor); Top(label.rectTransform, 0, .85f, 3, 30, 44);
-            var book = ui.Button(row, "도감", () => codex(monster), height: 28);
+            var book = Button(row, "도감", () => codex(monster), height: 28);
             book.name = "Preparation codex " + instanceId;
             RunUI.Pin((RectTransform)book.transform, Vector2.one, Vector2.one, new Vector2(-8, -4), new Vector2(56, 28));
-            book.GetComponentInChildren<Text>().fontSize = 14;
+            var bookLabel = book.GetComponentInChildren<Text>();
+            bookLabel.fontSize = bookLabel.resizeTextMaxSize = 14;
             RunUI.Stretch(book.GetComponentInChildren<Text>().rectTransform, 2);
             var cards = ui.Rect("Patterns " + instanceId, row);
             RunUI.Overlay(cards, Vector2.zero, Vector2.one, new Vector2(8, 6), new Vector2(-8, -38));
@@ -120,7 +123,7 @@ namespace BBSB.Runtime.UI
 
         private void DrawPattern(RectTransform parent, PlannedAttack pattern, int index)
         {
-            var button = ui.Button(parent, "", () => RequestPractice(index), height: 0);
+            var button = Button(parent, "", () => RequestPractice(index), height: 0);
             button.name = "Practice pattern " + index; patternButtons.Add(button);
             var element = button.GetComponent<LayoutElement>(); element.minHeight = element.preferredHeight = 0; element.flexibleHeight = 1;
             Destroy(button.GetComponentInChildren<Text>().gameObject);
@@ -128,24 +131,27 @@ namespace BBSB.Runtime.UI
             var icon = Portrait(rect, "Pattern icon " + pattern.Pattern.Id,
                 sprites.Get(MonsterCodexView.IconRoot + "Patterns", pattern.Pattern.Id) ?? MonsterPortrait(pattern.Monster), pattern.Pattern.Name);
             RunUI.Pin((RectTransform)icon.transform.parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(7, -5), new Vector2(27, 27));
-            var title = Text(rect, pattern.Pattern.Name, 17, RunUI.TextColor);
-            Top(title.rectTransform, 0, 1, 3, 20, 41, 7);
-            var graph = ui.Rect("Response rhythm", rect); Top(graph, 0, 1, 25, 12, 41, 7);
-            graph.gameObject.AddComponent<PatternOverviewGraphic>().Bind(pattern.Placement.Pattern);
+            var title = Text(rect, pattern.Pattern.Name, 20, RunUI.TextColor);
+            Top(title.rectTransform, 0, 1, 2, 28, 41, 7);
+            var graph = ui.Rect("Response rhythm", rect); rhythmGraphs.Add(graph);
+            Top(graph, 0, 1, 30, 18, 12, 12);
+            var rhythm = graph.gameObject.AddComponent<PatternOverviewGraphic>();
+            rhythm.MaximumMarkerRadius = 16; rhythm.Bind(pattern.Placement.Pattern);
             var icons = ui.Rect("Responding weapons", rect);
-            RunUI.Overlay(icons, Vector2.zero, new Vector2(1, .32f), new Vector2(7, 2), new Vector2(-7, -1));
+            responseAreas.Add(icons);
+            RunUI.Overlay(icons, Vector2.zero, Vector2.one, new Vector2(10, 6), new Vector2(-10, -56));
             var active = session.BattleLoadout.RespondingSlots(pattern);
             if (active.Count == 0)
             {
                 var none = Text(icons, "발동 무기 없음", 13, RunUI.Muted); RunUI.Stretch(none.rectTransform); return;
             }
-            float span = 1f / RunRules.WeaponSlots;
+            float span = 1f / Math.Max(3, active.Count), left = (1 - active.Count * span) * .5f;
             for (int i = 0; i < active.Count; i++)
             {
                 int slot = active[i]; var state = session.BattleLoadout.Equipment[slot];
                 var cell = ui.Rect("Automatic weapon " + slot, icons);
-                RunUI.Overlay(cell, new Vector2(i * span, 0), new Vector2((i + 1) * span, 1), Vector2.zero, Vector2.zero);
-                var weapon = cell.gameObject.AddComponent<WeaponIconGraphic>(); weapon.Bind(state);
+                RunUI.Overlay(cell, new Vector2(left + i * span, 0), new Vector2(left + (i + 1) * span, 1), new Vector2(4, 0), new Vector2(-4, 0));
+                var weapon = cell.gameObject.AddComponent<WeaponIconGraphic>(); weapon.FitVisibleArtwork = true; weapon.Bind(state);
             }
         }
 
@@ -164,14 +170,14 @@ namespace BBSB.Runtime.UI
                 RunUI.Overlay(cell, new Vector2(slot / 5f, 0), new Vector2((slot + 1) / 5f, 1), Vector2.zero, new Vector2(-7, 0));
                 ui.Background(cell, new Color(.11f, .14f, .22f, .96f));
                 var icon = ui.Rect("Weapon icon " + slot, cell);
-                RunUI.Overlay(icon, new Vector2(0, .14f), new Vector2(.29f, .9f), new Vector2(3, 0), Vector2.zero);
-                var graphic = icon.gameObject.AddComponent<WeaponIconGraphic>(); graphic.Bind(state); equippedIcons.Add(graphic);
+                RunUI.Overlay(icon, new Vector2(0, 0), new Vector2(.35f, 1), new Vector2(8, 8), new Vector2(-4, -8));
+                var graphic = icon.gameObject.AddComponent<WeaponIconGraphic>(); graphic.FitVisibleArtwork = true; graphic.Bind(state); equippedIcons.Add(graphic);
                 var name = Text(cell, WeaponRarities.Name(state.Rarity) + " " + weapon.Name + " +" + state.Level, 15, WeaponIconGraphic.RarityColor(state.Rarity));
-                RunUI.Overlay(name.rectTransform, new Vector2(.31f, .51f), new Vector2(1, .91f), Vector2.zero, new Vector2(-5, 0));
+                RunUI.Overlay(name.rectTransform, new Vector2(.37f, .47f), new Vector2(1, .95f), Vector2.zero, new Vector2(-5, 0));
                 var actions = Text(cell, weapon.ActionLabelAt(state.Rarity), 14, RunUI.Teal);
-                RunUI.Overlay(actions.rectTransform, new Vector2(.31f, .12f), new Vector2(1, .51f), Vector2.zero, new Vector2(-5, 0));
+                RunUI.Overlay(actions.rectTransform, new Vector2(.37f, .08f), new Vector2(1, .47f), Vector2.zero, new Vector2(-5, 0));
             }
-            StartButton = ui.Button(footer, "연주 시작", start, primary: true, height: 84);
+            StartButton = Button(footer, "연주 시작", start, primary: true, height: 84);
             RunUI.Overlay((RectTransform)StartButton.transform, new Vector2(.81f, 0), new Vector2(1, 1), new Vector2(0, 4), new Vector2(0, -30));
         }
 
@@ -189,9 +195,9 @@ namespace BBSB.Runtime.UI
             RunUI.Overlay(title.rectTransform, new Vector2(.04f, .68f), new Vector2(.96f, .94f), Vector2.zero, Vector2.zero);
             var name = Text(panel, pattern.Monster.Name + " · " + pattern.Pattern.Name, 20, RunUI.TextColor, TextAnchor.MiddleCenter);
             RunUI.Overlay(name.rectTransform, new Vector2(.04f, .40f), new Vector2(.96f, .68f), Vector2.zero, Vector2.zero);
-            var cancel = ui.Button(panel, "돌아가기", CancelPractice, height: 52); cancel.name = "Cancel pattern practice";
+            var cancel = Button(panel, "돌아가기", CancelPractice, height: 52); cancel.name = "Cancel pattern practice";
             RunUI.Overlay((RectTransform)cancel.transform, new Vector2(.05f, .08f), new Vector2(.47f, .33f), Vector2.zero, Vector2.zero);
-            var accept = ui.Button(panel, "연습 시작", ConfirmPractice, primary: true, height: 52); accept.name = "Confirm pattern practice";
+            var accept = Button(panel, "연습 시작", ConfirmPractice, primary: true, height: 52); accept.name = "Confirm pattern practice";
             RunUI.Overlay((RectTransform)accept.transform, new Vector2(.53f, .08f), new Vector2(.95f, .33f), Vector2.zero, Vector2.zero);
         }
 
@@ -211,9 +217,27 @@ namespace BBSB.Runtime.UI
         private void ReflowRows()
         {
             if (viewport == null || monsterRows.Count == 0 || Mathf.Abs(viewport.rect.height - lastHeight) < .1f) return;
-            lastHeight = viewport.rect.height; int visible = Math.Min(4, monsterRows.Count);
-            float height = Mathf.Clamp((lastHeight - 8 * (visible - 1)) / visible, 104, 148);
+            lastHeight = viewport.rect.height;
+            float height = (float)PreparationLayout.RowHeight(lastHeight, monsterRows.Count);
             foreach (var row in monsterRows) RunUI.Size(row, height);
+            float rhythmHeight = (float)PreparationLayout.RhythmHeight(height);
+            foreach (var graph in rhythmGraphs) Top(graph, 0, 1, 30, rhythmHeight, 12, 12);
+            // Keep the source art centered in the space below the rhythm, with a useful preview cap.
+            float available = height - 44 - 30 - rhythmHeight - 14;
+            float weaponHeight = (float)PreparationLayout.WeaponHeight(height);
+            float bottom = 6 + Mathf.Max(0, available - weaponHeight) * .5f;
+            foreach (var area in responseAreas)
+                RunUI.Overlay(area, Vector2.zero, new Vector2(1, 0), new Vector2(10, bottom), new Vector2(-10, bottom + weaponHeight));
+        }
+        private Button Button(Transform parent, string value, Action action, float height, bool primary = false)
+        {
+            var button = ui.Button(parent, value, action, primary: primary, height: height);
+            var text = button.GetComponentInChildren<Text>();
+            // Fit the actual font line metrics inside short HUD controls.
+            text.resizeTextForBestFit = true; text.resizeTextMinSize = 12; text.resizeTextMaxSize = 24;
+            text.rectTransform.offsetMin = new Vector2(8, 3);
+            text.rectTransform.offsetMax = new Vector2(-8, -3);
+            return button;
         }
         private Text Text(Transform parent, string value, int size, Color tint, TextAnchor align = TextAnchor.MiddleLeft)
         {

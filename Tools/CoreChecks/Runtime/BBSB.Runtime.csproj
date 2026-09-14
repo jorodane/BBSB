@@ -18,6 +18,8 @@
     <Compile Include="../../../Assets/BBSB/Runtime/UI/NamedResourceClips.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponArtLayout.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponPreviewBounds.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/PreparationLayout.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponSocketPulse.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/GestureIconCatalog.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/ResponsePromptTimeline.cs" />

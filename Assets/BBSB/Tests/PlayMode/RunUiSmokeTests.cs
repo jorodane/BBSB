@@ -174,6 +174,28 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator SingleMonsterPreparationFillsTheListAndRendersHeaderButtonLabels()
+        {
+            root = new GameObject("Single monster preparation test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            Click("탐험 시작"); yield return null;
+            var run = presenter.Session;
+            Assert.IsTrue(run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id));
+            presenter.OpenPatternPractice(); yield return null;
+            var arena = root.GetComponentInChildren<BattlePreparationView>();
+            Assert.IsNotNull(arena); Assert.AreEqual(1, arena.MonsterRows.Count);
+            var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
+            foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1480, 720), new Vector2(1280, 800) })
+            {
+                SetViewport(safe, size); yield return null; Canvas.ForceUpdateCanvases();
+                yield return null; Canvas.ForceUpdateCanvases();
+                AssertPreparationReadable(arena);
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator PreparationShowsThreeMonstersAndConfirmsReadOnlyPatternPractice()
         {
             root = new GameObject("Preparation UI smoke test");
@@ -225,6 +247,7 @@ namespace BBSB.Tests
                 AssertContained(rect, (RectTransform)safe.transform);
                 var viewport = arena.GetComponentInChildren<ScrollRect>().viewport;
                 foreach (var row in arena.MonsterRows) AssertContained(row, viewport);
+                AssertPreparationReadable(arena);
                 var buttons = arena.GetComponentsInChildren<Button>();
                 foreach (var button in buttons)
                 {
@@ -407,6 +430,32 @@ namespace BBSB.Tests
             var corner = RectTransformUtility.WorldToScreenPoint(null, menu.TransformPoint(menu.rect.max - Vector2.one));
             Assert.IsTrue(graphic.Raycast(center, null));
             Assert.IsFalse(graphic.Raycast(corner, null), "The circular button's empty corners must not block the scene.");
+        }
+
+        private static void AssertPreparationReadable(BattlePreparationView arena)
+        {
+            var viewport = arena.GetComponentInChildren<ScrollRect>().viewport;
+            float occupied = arena.MonsterRows.Sum(x => x.rect.height) + 8 * (arena.MonsterRows.Count - 1);
+            Assert.AreEqual(viewport.rect.height, occupied, 1, "The monster list must use the middle of the screen.");
+            var header = arena.GetComponentsInChildren<RectTransform>().Single(x => x.name == "Preparation header");
+            foreach (var button in header.GetComponentsInChildren<Button>())
+            {
+                var label = button.GetComponentInChildren<Text>();
+                label.canvasRenderer.cull = false; label.SetVerticesDirty(); label.Rebuild(CanvasUpdate.PreRender);
+                Assert.GreaterOrEqual(label.cachedTextGenerator.characterCountVisible, 2, "Header label disappeared: " + label.text);
+            }
+            foreach (var icon in arena.GetComponentsInChildren<WeaponIconGraphic>())
+            {
+                Assert.IsTrue(icon.FitVisibleArtwork);
+                Assert.GreaterOrEqual(icon.rectTransform.rect.height, 22);
+                icon.canvasRenderer.cull = false; icon.SetVerticesDirty(); icon.Rebuild(CanvasUpdate.PreRender);
+                foreach (var vertex in icon.canvasRenderer.GetMesh().vertices)
+                {
+                    var rect = icon.rectTransform.rect;
+                    Assert.That(vertex.x, Is.InRange(rect.xMin - 1, rect.xMax + 1));
+                    Assert.That(vertex.y, Is.InRange(rect.yMin - 1, rect.yMax + 1));
+                }
+            }
         }
 
         private static void AssertContained(RectTransform child, RectTransform parent)
