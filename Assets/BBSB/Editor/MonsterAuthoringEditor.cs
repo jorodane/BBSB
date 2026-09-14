@@ -48,6 +48,7 @@ namespace BBSB.Editor
             if (selected == null)
             { EditorGUILayout.HelpBox("새 몬스터를 만들거나 Monster 에셋을 선택해줘. 기본 모습 → 패턴 → Animator 순서로 설정하면 돼.", MessageType.Info); return; }
             UnityEditor.Editor.CreateCachedEditor(selected, typeof(MonsterAuthoringEditor), ref inspector);
+            ((MonsterAuthoringEditor)inspector).repaintHost = Repaint;
             scroll = EditorGUILayout.BeginScrollView(scroll);
             try { inspector.OnInspectorGUI(); }
             finally
@@ -218,7 +219,7 @@ namespace BBSB.Editor
             Field(attack, "stretch", "몸체와 이어지는 늘어나는 공격"); Field(attack, "grounded", "지면을 따라 이동");
             Field(attack, "landsAfterMiss", "미스 확정 후 바닥으로 내려와 타격");
             Field(attack, "resourceFolder", "기존 이미지 폴더 (Resources 상대 경로)");
-            Field(attack, "images", "단계별 Sprite 프레임");
+            DrawAttackImages(attack, i);
             EditorGUILayout.HelpBox("Spawn 생성 / Wait 대기 / Travel 이동 / Contact 유지 / Perfect·HalfMiss·Miss 판정 반응. Sprite 배열을 순서대로 재생해. 비운 단계는 기존 이미지 폴더와 이동 이미지로 보완해.", MessageType.None);
             Field(attack, "overrideDisplay", "발사 위치 · 판정 위치 · 이미지 표시 직접 보정");
             if (attack.FindPropertyRelative("overrideDisplay").boolValue)
@@ -237,6 +238,7 @@ namespace BBSB.Editor
                 EditorGUILayout.LabelField("생성 " + spawn.ToString("0.##") + "박 → 판정 " + contact.ToString("0.##") +
                     "박 · 이동 가능 " + (contact - spawn).ToString("0.##") + "박");
             }
+            DrawAttackPath(pattern, step, i);
             EditorGUILayout.EndVertical();
         }
 

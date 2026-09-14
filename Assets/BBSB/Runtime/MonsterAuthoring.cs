@@ -81,6 +81,9 @@ namespace BBSB.Runtime
             public bool overrideDisplay;
             public MonsterAttackDisplay.Slot display = new MonsterAttackDisplay.Slot();
             public AttackFrames[] images = Array.Empty<AttackFrames>();
+            public bool customTrajectory;
+            public AnimationCurve progressCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            public AnimationCurve heightCurve = AnimationCurve.Linear(0, 0, 1, 0);
 
             public Sprite SpriteFor(MonsterAttackPhase phase, double index)
             {
@@ -202,6 +205,11 @@ namespace BBSB.Runtime
                     if (config.motion == MonsterAttackMotion.WaitRush && config.rushTicks > contact - spawn)
                         throw new ArgumentException(context + "돌진 길이가 생성부터 판정까지의 구간보다 길어.");
                     ValidateDisplay(config.display, context);
+                    if (config.customTrajectory)
+                    {
+                        MonsterAttackPath.Validate(config.progressCurve, context);
+                        MonsterAttackPath.Validate(config.heightCurve, context);
+                    }
                     var phases = new HashSet<MonsterAttackPhase>();
                     if (config.images != null) foreach (var frames in config.images)
                     {
@@ -240,6 +248,8 @@ namespace BBSB.Runtime
                 callIndex = source.callIndex, spawnOffsetTicks = source.spawnOffsetTicks, rushTicks = source.rushTicks,
                 height = source.height, arc = source.arc, stretch = source.stretch, grounded = source.grounded,
                 landsAfterMiss = source.landsAfterMiss, resourceFolder = source.resourceFolder, overrideDisplay = source.overrideDisplay,
+                customTrajectory = source.customTrajectory,
+                progressCurve = MonsterAttackPath.Copy(source.progressCurve), heightCurve = MonsterAttackPath.Copy(source.heightCurve),
                 display = new MonsterAttackDisplay.Slot { scale = display.scale, sourceOffset = display.sourceOffset,
                     targetOffset = display.targetOffset, imageOffset = display.imageOffset, framesPerBeat = display.framesPerBeat,
                     poses = poses.ToArray() }, images = images.ToArray()

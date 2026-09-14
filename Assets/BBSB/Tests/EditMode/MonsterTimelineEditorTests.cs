@@ -136,6 +136,35 @@ namespace BBSB.Tests
             Invoke("SetDurationEnd", Pattern(), 1); Apply();
             Assert.AreEqual(1, asset.patterns[0].steps[0].durationTicks);
         }
+        [Test]
+        public void ResponseWindowCanShrinkWithoutTruncatingSustainOrMovingInputs()
+        {
+            var pattern = asset.patterns[0];
+            pattern.responseTicks = 32; pattern.restTicks = 12;
+            pattern.steps = new[] { new MonsterAuthoring.Step { offsetTick = 4, kind = GestureKind.Hold, durationTicks = 8 } };
+            Invoke("SetResponseBoundary", Pattern(), false, 1); Apply();
+            pattern = asset.patterns[0];
+            Assert.AreEqual(12, pattern.responseTicks);
+            Assert.AreEqual(8, pattern.cueLeadTicks + pattern.steps[0].offsetTick);
+            Assert.AreEqual(8, pattern.steps[0].durationTicks);
+            Assert.AreEqual(12, pattern.restTicks);
+            Invoke("SetResponseBoundary", Pattern(), true, 20); Apply();
+            pattern = asset.patterns[0];
+            Assert.AreEqual(8, pattern.cueLeadTicks);
+            Assert.AreEqual(0, pattern.steps[0].offsetTick);
+            Assert.AreEqual(16, pattern.cueLeadTicks + pattern.responseTicks);
+        }
+        [Test]
+        public void WindowEndKeepsOneTickForInstantInputAndSupportsUndo()
+        {
+            asset.patterns[0].responseTicks = 24;
+            asset.patterns[0].steps[0].offsetTick = 5;
+            Undo.IncrementCurrentGroup();
+            Invoke("SetResponseBoundary", Pattern(), false, 0); Apply(); Undo.FlushUndoRecordObjects();
+            Assert.AreEqual(6, asset.patterns[0].responseTicks);
+            Undo.PerformUndo();
+            Assert.AreEqual(24, asset.patterns[0].responseTicks);
+        }
     }
 }
 #endif

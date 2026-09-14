@@ -42,6 +42,39 @@ namespace BBSB.Tests
             MonsterAuthoringRegistry.Reload(Resources.LoadAll<MonsterAuthoring>(MonsterAuthoring.ResourceFolder));
         }
         [Test]
+        public void CustomTrajectoryIsSharedWithPreviewAndSnapshotsCurveKeys()
+        {
+            var authored = asset.patterns[0].steps[0].attack;
+            authored.enabled = true; authored.customTrajectory = true;
+            authored.progressCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            authored.heightCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(.5f, .6f), new Keyframe(1, 0));
+            var monster = asset.BuildDefinition(); var preview = new MonsterPreview(monster, monster.Patterns[0]);
+            var note = preview.Round.Notes[0]; var definition = MonsterAttackCatalog.For(note);
+            var snapshot = MonsterAuthoring.FindAttackArt(definition);
+            double spawn = definition.SpawnSeconds(note, preview.BeatSeconds);
+            var from = new Vector2(300, 50); var to = new Vector2(0, 50);
+            var middle = MonsterAttackTimeline.Evaluate(note, definition, (spawn + note.StartSeconds) / 2, preview.BeatSeconds, preview.Round.HalfMissWindow);
+            var point = MonsterAttackPath.Evaluate(snapshot, middle, from, to, 100);
+            Assert.AreEqual(150, point.x, .001f); Assert.AreEqual(110, point.y, .001f);
+            authored.heightCurve = AnimationCurve.Linear(0, 0, 1, 0);
+            Assert.AreEqual(.6f, snapshot.heightCurve.Evaluate(.5f), .001f);
+            var contact = MonsterAttackTimeline.Evaluate(note, definition, note.StartSeconds, preview.BeatSeconds, preview.Round.HalfMissWindow);
+            Assert.AreEqual(to, MonsterAttackPath.Evaluate(snapshot, contact, from, to, 100));
+            snapshot.customTrajectory = false;
+            Assert.AreEqual(Vector2.LerpUnclamped(from, to, (float)middle.Progress) + Vector2.up * (float)middle.Lift * 100,
+                MonsterAttackPath.Evaluate(snapshot, middle, from, to, 100));
+        }
+        [Test]
+        public void InvalidTrajectoryCannotReplaceAValidAuthoringSnapshot()
+        {
+            var attack = asset.patterns[0].steps[0].attack;
+            attack.enabled = true; attack.customTrajectory = true;
+            attack.progressCurve = new AnimationCurve(new Keyframe(.25f, 0), new Keyframe(.75f, 1));
+            Assert.Throws<ArgumentException>(() => asset.BuildDefinition());
+            attack.progressCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            Assert.DoesNotThrow(() => asset.BuildDefinition());
+        }
+        [Test]
         public void AuthoringConvertsPatternsAndRejectsInvalidTiming()
         {
             var monster = asset.BuildDefinition();

@@ -19,34 +19,35 @@ namespace BBSB.Editor
         private int snapChoice;
         private int dragControl, dragUndoGroup = -1, dragExtent;
         private bool dragEnd;
+        private int dragRange;
         private float dragGrabOffset;
         private string timelineNotice;
         private static readonly Color CallColor = new Color(1f, .74f, .25f);
         private static readonly Color ResponseColor = new Color(.27f, .86f, .78f);
 
-        private void OnEnable() => Undo.undoRedoPerformed += OnTimelineUndo;
+        private void OnEnable() { Undo.undoRedoPerformed += OnTimelineUndo; EditorApplication.update += UpdateAttackPreview; }
         private void OnDisable()
         {
             FinishTimelineDrag();
-            Undo.undoRedoPerformed -= OnTimelineUndo;
+            Undo.undoRedoPerformed -= OnTimelineUndo; EditorApplication.update -= UpdateAttackPreview;
         }
         private void OnTimelineUndo()
         {
             if (dragControl != 0 && GUIUtility.hotControl == dragControl) GUIUtility.hotControl = 0;
-            dragControl = 0; dragUndoGroup = -1; selectedMarker = -1;
+            dragControl = 0; dragUndoGroup = -1; dragRange = 0; selectedMarker = -1;
             validation = null; timelineNotice = null; Repaint();
         }
         private void SelectTimelinePattern(int index)
         {
             if (selectedPattern == index) return;
-            FinishTimelineDrag(); selectedPattern = index; selectedMarker = -1;
+            FinishTimelineDrag(); selectedPattern = index; selectedMarker = -1; playingAttack = -1;
             timelineScroll = Vector2.zero; timelineNotice = null;
         }
         private void FinishTimelineDrag()
         {
             if (dragControl != 0 && GUIUtility.hotControl == dragControl) GUIUtility.hotControl = 0;
             if (dragUndoGroup >= 0) Undo.CollapseUndoOperations(dragUndoGroup);
-            dragControl = 0; dragUndoGroup = -1;
+            dragControl = 0; dragUndoGroup = -1; dragRange = 0;
         }
         private static int Tick(SerializedProperty owner, string name) => owner.FindPropertyRelative(name).intValue;
         private static SerializedProperty TimelineRows(SerializedProperty pattern, bool call) => pattern.FindPropertyRelative(call ? "calls" : "steps");
@@ -93,7 +94,7 @@ namespace BBSB.Editor
             pixelsPerBeat = EditorGUILayout.Slider("확대 (박당 너비)", pixelsPerBeat, 48, 160);
 
             int extent = dragControl == 0 ? TimelineExtent(pattern) : dragExtent;
-            var viewport = GUILayoutUtility.GetRect(100, 166, GUILayout.ExpandWidth(true));
+            var viewport = GUILayoutUtility.GetRect(100, 202, GUILayout.ExpandWidth(true));
             int control = GUIUtility.GetControlID("MonsterCallResponseTimeline".GetHashCode(), FocusType.Keyboard, viewport);
             var e = Event.current;
             bool insideViewport = viewport.Contains(e.mousePosition);
@@ -102,11 +103,11 @@ namespace BBSB.Editor
             float width = contentWidth - 48;
             bool add = false, delete = false, addCall = false;
             int addTick = 0;
-            timelineScroll = GUI.BeginScrollView(viewport, timelineScroll, new Rect(0, 0, contentWidth, 144));
+            timelineScroll = GUI.BeginScrollView(viewport, timelineScroll, new Rect(0, 0, contentWidth, 180));
             try
             {
                 var bar = new Rect(left, 52, width, 34);
-                EditorGUI.DrawRect(new Rect(0, 0, contentWidth, 144), new Color(.105f, .12f, .16f));
+                EditorGUI.DrawRect(new Rect(0, 0, contentWidth, 180), new Color(.105f, .12f, .16f));
                 int cue = Tick(pattern, "cueLeadTicks");
                 int responseEnd = cue + Tick(pattern, "responseTicks");
                 // A shared strip, with stop handles on its upper and lower edges.
@@ -127,7 +128,17 @@ namespace BBSB.Editor
                 }
                 float originX = left + cue / (float)extent * width;
                 EditorGUI.DrawRect(new Rect(originX, bar.y, 2, bar.height), ResponseColor);
-                GUI.Label(new Rect(originX + 3, 126, 130, 18), "Response 구간 시작", EditorStyles.whiteMiniLabel);
+                float rangeEndX = left + responseEnd / (float)extent * width;
+                var rangeBar = new Rect(originX, 145, Mathf.Max(4, rangeEndX - originX), 13);
+                EditorGUI.DrawRect(rangeBar, new Color(.15f, .45f, .42f));
+                EditorGUI.DrawRect(new Rect(originX - 4, 141, 8, 21), ResponseColor);
+                EditorGUI.DrawRect(new Rect(rangeEndX - 4, 141, 8, 21), Color.white);
+                GUI.Label(new Rect(originX, 161, 260, 18), "Response 구간 " + (cue / 4f).ToString("0.##") + " ~ " +
+                    (responseEnd / 4f).ToString("0.##") + "박", EditorStyles.whiteMiniLabel);
+                bool rangeStartHit = new Rect(originX - 6, 138, 12, 25).Contains(e.mousePosition);
+                bool rangeEndHit = new Rect(rangeEndX - 6, 138, 12, 25).Contains(e.mousePosition);
+                if (rangeStartHit || rangeEndHit)
+                    EditorGUIUtility.AddCursorRect(new Rect(e.mousePosition.x - 6, 138, 12, 25), MouseCursor.ResizeHorizontal);
                 DrawTimelineMarkers(pattern, true, left, width, extent);
                 DrawTimelineMarkers(pattern, false, left, width, extent);
 
@@ -167,11 +178,19 @@ namespace BBSB.Editor
                 {
                     case EventType.MouseDown:
                         if (e.button != 0 || !insideViewport) break;
-                        if (hit < 0 && !(new Rect(left - 7, 16, width + 14, 35).Contains(e.mousePosition) ||
+                        if (!rangeStartHit && !rangeEndHit && hit < 0 && !(new Rect(left - 7, 16, width + 14, 35).Contains(e.mousePosition) ||
                             new Rect(left - 7, 88, width + 14, 35).Contains(e.mousePosition))) break;
                         GUI.FocusControl(null); EditorGUIUtility.editingTextField = false;
                         GUIUtility.keyboardControl = control;
-                        if (hit >= 0)
+                        if (rangeStartHit || rangeEndHit)
+                        {
+                            serializedObject.ApplyModifiedProperties(); Undo.IncrementCurrentGroup();
+                            dragUndoGroup = Undo.GetCurrentGroup(); Undo.SetCurrentGroupName("Resize Response window");
+                            dragRange = rangeEndHit ? 2 : 1; dragControl = control; dragExtent = extent;
+                            dragGrabOffset = e.mousePosition.x - (rangeEndHit ? rangeEndX : originX);
+                            GUIUtility.hotControl = control;
+                        }
+                        else if (hit >= 0)
                         {
                             selectedMarker = hit; selectedCall = hitCall; timelineNotice = null;
                             if (!hitCall || !IsAnchor(pattern, hit))
@@ -195,7 +214,8 @@ namespace BBSB.Editor
                     case EventType.MouseDrag:
                         if (dragControl != control || GUIUtility.hotControl != control) break;
                         int movedTick = SnappedTick(e.mousePosition.x - dragGrabOffset, left, width, extent);
-                        if (dragEnd) SetDurationEnd(pattern, movedTick);
+                        if (dragRange != 0) SetResponseBoundary(pattern, dragRange == 1, movedTick);
+                        else if (dragEnd) SetDurationEnd(pattern, movedTick);
                         else SetMarkerTick(pattern, movedTick);
                         serializedObject.ApplyModifiedProperties(); validation = null;
                         e.Use(); Repaint(); break;
@@ -207,7 +227,7 @@ namespace BBSB.Editor
                         if (e.keyCode == KeyCode.Escape && dragControl == control)
                         {
                             int group = dragUndoGroup;
-                            GUIUtility.hotControl = 0; dragControl = 0; dragUndoGroup = -1;
+                            GUIUtility.hotControl = 0; dragControl = 0; dragUndoGroup = -1; dragRange = 0;
                             if (group >= 0) Undo.RevertAllDownToGroup(group);
                             serializedObject.Update(); e.Use(); Repaint();
                         }
@@ -219,6 +239,11 @@ namespace BBSB.Editor
             finally { GUI.EndScrollView(); }
             if (add) { AddTimelineMarker(pattern, addCall, addTick); GUIUtility.ExitGUI(); }
             if (delete) { DeleteTimelineMarker(pattern); GUIUtility.ExitGUI(); }
+            EditorGUILayout.HelpBox("아래 Response 구간 바의 양 끝을 당겨 범위를 조절해. 입력과 유지 종료를 포함하는 범위까지 줄일 수 있어.", MessageType.None);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("끝을 마지막 입력에 맞추기"))
+            { SetResponseBoundary(pattern, false, 0); serializedObject.ApplyModifiedProperties(); Repaint(); }
+            EditorGUILayout.EndHorizontal();
             if (!string.IsNullOrEmpty(timelineNotice)) EditorGUILayout.HelpBox(timelineNotice, MessageType.Info);
         }
 
@@ -303,6 +328,35 @@ namespace BBSB.Editor
             EditorGUILayout.EndVertical();
             if (delete) { DeleteTimelineMarker(pattern); GUIUtility.ExitGUI(); }
             if (!selectedCall) DrawAttack(pattern, row, selectedMarker);
+        }
+
+        private void SetResponseBoundary(SerializedProperty pattern, bool start, int requested)
+        {
+            int origin = Tick(pattern, "cueLeadTicks"), oldEnd = origin + Tick(pattern, "responseTicks");
+            var rows = TimelineRows(pattern, false);
+            int first = oldEnd - 1, last = origin + 1;
+            for (int i = 0; i < rows.arraySize; i++)
+            {
+                var row = rows.GetArrayElementAtIndex(i);
+                int at = AbsoluteTick(pattern, row, false);
+                first = Mathf.Min(first, at);
+                last = Mathf.Max(last, at + Mathf.Max(1, Tick(row, "durationTicks")));
+            }
+            if (start)
+            {
+                int next = Mathf.Clamp(requested, 1, Mathf.Max(1, Mathf.Min(first, oldEnd - 1)));
+                for (int i = 0; i < rows.arraySize; i++) rows.GetArrayElementAtIndex(i).FindPropertyRelative("offsetTick").intValue += origin - next;
+                pattern.FindPropertyRelative("cueLeadTicks").intValue = next;
+                pattern.FindPropertyRelative("responseTicks").intValue = oldEnd - next;
+                timelineNotice = next != requested ? "구간 시작은 첫 입력을 넘길 수 없어." : null;
+            }
+            else
+            {
+                int next = Mathf.Max(last, requested);
+                pattern.FindPropertyRelative("responseTicks").intValue = next - origin;
+                timelineNotice = next != requested ? "마지막 입력과 유지 종료를 포함하는 최소 길이까지 줄였어." : null;
+            }
+            UpdateSilentWait(pattern); validation = null;
         }
 
         private void SetMarkerTick(SerializedProperty pattern, int tick)

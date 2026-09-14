@@ -102,7 +102,7 @@ namespace BBSB.Runtime.UI
                 float lane = (float)definition.LaneHeight(slot.Note) * heroHeight;
                 from.y += lane; to.y += lane;
                 float t = (float)frame.Progress;
-                var point = Vector2.LerpUnclamped(from, to, t) + Vector2.up * (float)frame.Lift * heroHeight;
+                var point = MonsterAttackPath.Evaluate(custom, frame, from, to, heroHeight);
                 float reaction = (float)frame.ReactionProgress;
                 float alpha = frame.IsReaction ? 1 - reaction : 1;
                 var pivot = definition.Grounded ? new Vector2(.5f, 0) : new Vector2(.5f, .5f);
