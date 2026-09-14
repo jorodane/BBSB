@@ -135,6 +135,18 @@ namespace BBSB.Editor
                 int hit = -1; bool hitCall = e.mousePosition.y < bar.center.y, hitEnd = false;
                 float nearest = float.MaxValue;
                 var rows = TimelineRows(pattern, hitCall);
+                // A selected Hold/Dive end can coincide with the next input's start.
+                // Its narrow end grip remains reachable; the next marker's tip still selects that input.
+                if (!hitCall && !selectedCall && selectedMarker >= 0 && selectedMarker < rows.arraySize)
+                {
+                    var selected = rows.GetArrayElementAtIndex(selectedMarker);
+                    if (Sustained(selected))
+                    {
+                        float endX = left + (AbsoluteTick(pattern, selected, false) + Tick(selected, "durationTicks")) / (float)extent * width;
+                        if (new Rect(endX - 4, 95, 8, 20).Contains(e.mousePosition))
+                        { hit = selectedMarker; hitEnd = true; }
+                    }
+                }
                 for (int pass = 0; pass < 2 && hit < 0; pass++)
                 {
                     for (int i = 0; i < rows.arraySize; i++)
@@ -213,12 +225,14 @@ namespace BBSB.Editor
         private void DrawTimelineMarkers(SerializedProperty pattern, bool call, float left, float width, int extent)
         {
             var rows = TimelineRows(pattern, call);
+            for (int pass = 0; pass < 2; pass++)
             for (int i = 0; i < rows.arraySize; i++)
             {
+                bool selected = selectedCall == call && selectedMarker == i;
+                if (selected != (pass == 1)) continue;
                 var row = rows.GetArrayElementAtIndex(i);
                 int tick = AbsoluteTick(pattern, row, call);
                 float x = left + tick / (float)extent * width;
-                bool selected = selectedCall == call && selectedMarker == i;
                 Color color = call ? CallColor : ResponseColor;
                 if (!call && Sustained(row))
                 {
