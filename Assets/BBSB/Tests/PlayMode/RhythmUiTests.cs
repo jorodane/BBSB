@@ -33,6 +33,8 @@ namespace BBSB.Tests
             Assert.AreEqual(0, pulses.Length);
             Assert.IsFalse(root.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Live weapons" || x.name == "Beat signals"));
             Assert.IsFalse(root.GetComponentsInChildren<Text>().Any(x => x.name == "Input status"));
+            var combo = root.GetComponentsInChildren<Text>().Single(x => x.name == "Combo counter");
+            Assert.AreEqual("COMBO 0", combo.text); Assert.IsFalse(combo.raycastTarget);
             Assert.AreEqual(1, root.GetComponentsInChildren<Button>().Length, "Only pause is a live action button.");
             Canvas.ForceUpdateCanvases();
             var arena = root.GetComponentInChildren<BattleArenaView>(); Assert.IsNotNull(arena);
@@ -58,7 +60,7 @@ namespace BBSB.Tests
                 Assert.Less(scene.InverseTransformPoint(arena.HeroPortrait.transform.position).x, 0);
                 Assert.IsTrue(arena.MonsterPortraits.All(x => scene.InverseTransformPoint(x.transform.position).x > 0));
                 foreach (var target in new[] { (RectTransform)arena.transform,
-                    root.GetComponentsInChildren<Text>().Single(x => x.name == "Response feedback").rectTransform, menu })
+                    root.GetComponentsInChildren<Text>().Single(x => x.name == "Response feedback").rectTransform, combo.rectTransform, menu })
                 {
                     var corners = new Vector3[4]; target.GetWorldCorners(corners);
                     foreach (var corner in corners)

@@ -33,6 +33,8 @@ namespace BBSB.Core
         public int PerfectCount { get; private set; }
         public int HalfMissCount { get; private set; }
         public int MissCount { get; private set; }
+        /// <summary>Consecutive successful note judgments in resolution order; HalfMiss also continues the combo.</summary>
+        public int Combo { get; private set; }
         public double ScorePercent => ResponseNoteCount == 0 ? 0 : (PerfectCount + HalfMissCount * .5) * 100.0 / ResponseNoteCount;
 
         public RhythmRound(BattlePlan plan, RhythmRules rules = null, WeaponBattle combat = null)
@@ -370,6 +372,7 @@ namespace BBSB.Core
             Combat?.JudgeWeapons(note.Result);
             Combat?.JudgeIncoming(note.Result); results.Add(note.Result);
             if (grade == RhythmGrade.Perfect) PerfectCount++; else if (grade == RhythmGrade.HalfMiss) HalfMissCount++; else MissCount++;
+            Combo = grade == RhythmGrade.Miss ? 0 : Combo + 1;
             TotalDamageTaken += note.Result.DamageTaken;
             ResultJudged?.Invoke(note.Result);
         }

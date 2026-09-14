@@ -11,7 +11,7 @@ namespace BBSB.Runtime.UI
     {
         private RhythmRound round;
         private readonly RunSession session;
-        private readonly Text feedback, counters;
+        private readonly Text combo, feedback, counters;
         private readonly Text healthLabel, damageLabel;
         private readonly Text enemyLabel;
         private readonly RectTransform enemyFill;
@@ -61,10 +61,14 @@ namespace BBSB.Runtime.UI
                 enemyFill.GetComponent<Image>().color = RunUI.Red;
                 RunUI.Overlay((RectTransform)enemyFill.parent, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -149), new Vector2(0, -141));
             }
-            feedback = ui.Label(root, "", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
+            combo = ui.Label(root, "COMBO " + round.Combo, 34, RunUI.Gold, 48, TextAnchor.MiddleCenter);
+            combo.gameObject.name = "Combo counter";
+            RunUI.Overlay(combo.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 62), new Vector2(0, 110));
+            combo.resizeTextForBestFit = true; combo.resizeTextMinSize = 20; combo.resizeTextMaxSize = 34;
+            feedback = ui.Label(root, "", 23, RunUI.TextColor, 36, TextAnchor.MiddleCenter);
             feedback.gameObject.name = "Response feedback";
-            RunUI.Overlay(feedback.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 62), new Vector2(0, 110));
-            feedback.resizeTextForBestFit = true; feedback.resizeTextMinSize = 18; feedback.resizeTextMaxSize = 30;
+            RunUI.Overlay(feedback.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 24), new Vector2(0, 60));
+            feedback.resizeTextForBestFit = true; feedback.resizeTextMinSize = 15; feedback.resizeTextMaxSize = 23;
             // Playback owns readiness, aggregate grades and victory; avoid a duplicate arena grade.
             arena.ShowResponseJudgment = false;
             ui.FloatingMenu(root, pause);
@@ -121,6 +125,7 @@ namespace BBSB.Runtime.UI
         {
             if (!ReferenceEquals(round.Plan, value.Plan)) throw new InvalidOperationException("Practice must keep the same plan.");
             round = value; callCursor = resultCursor = 0; damageShownAt = double.NegativeInfinity;
+            combo.text = "COMBO " + round.Combo;
             feedback.text = ""; feedback.color = RunUI.TextColor; feedbackShownAt = double.NegativeInfinity;
             foreach (var monster in monsters) monster.Repeat(value);
             arena.Repeat(value);
@@ -128,6 +133,7 @@ namespace BBSB.Runtime.UI
 
         public void Refresh(double seconds, bool waitingForContact)
         {
+            combo.text = "COMBO " + round.Combo;
             bool practice = round.Combat != null && round.Combat.IsPractice;
             decimal health = practice ? round.Combat.PlayerHealth : session.Health;
             healthLabel.text = (practice ? "연습 HP  " : "HP  ") + health.ToString("0.##") + " / " + session.MaxHealth;

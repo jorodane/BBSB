@@ -11,6 +11,39 @@ namespace BBSB.Tests
     public sealed class RhythmRoundTests
     {
         [Test]
+        public void ComboContinuesOnHalfMissBreaksOnMissAndRestarts()
+        {
+            var round = Round(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4),
+                new PatternStep(GestureKind.Tap, 8), new PatternStep(GestureKind.Tap, 12));
+            var observed = new List<int>();
+            round.ResultJudged += _ => observed.Add(round.Combo);
+            Check.Equal(0, round.Combo);
+            round.Press(2, 0, 0); round.Release(2.01, 0, 0);
+            round.Press(2.02, 0, 0); round.Release(2.03, 0, 0);
+            Check.Equal(1, round.Combo); Check.Equal(1, round.Results.Count);
+            round.Press(2.6, 0, 0); round.Release(2.61, 0, 0);
+            Check.Equal(1, round.HalfMissCount); Check.Equal(2, round.Combo);
+            round.Advance(3.2); Check.Equal(0, round.Combo);
+            round.Press(3.5, 0, 0); Check.Equal(1, round.Combo);
+            Check.True(observed.SequenceEqual(new[] { 1, 2, 0, 1 }));
+            Check.Equal(0, new RhythmRound(round.Plan).Combo);
+        }
+
+        [Test]
+        public void HeldNoteAddsComboOnlyOnCompletionAndPausePreservesIt()
+        {
+            var round = Round(new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Hold, 4, 8));
+            round.Press(2, 0, 0); round.Release(2.01, 0, 0);
+            round.Press(2.5, 0, 0); round.Advance(3);
+            Check.Equal(1, round.Combo);
+            Check.True(round.Suspend()); round.Advance(10); Check.Equal(1, round.Combo);
+            round.Resume(true); round.Advance(3.5);
+            Check.Equal(2, round.Combo); Check.Equal(2, round.Results.Count);
+            round.Release(3.6, 0, 0); round.Advance(4);
+            Check.Equal(2, round.Combo);
+        }
+
+        [Test]
         public void TapGradesTimingAndCannotBeScoredTwice()
         {
             var perfect = Round(new PatternStep(GestureKind.Tap, 0));
