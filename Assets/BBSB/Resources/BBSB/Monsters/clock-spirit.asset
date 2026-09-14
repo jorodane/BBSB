@@ -11,11 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: clock-spirit
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: clock-spirit
-  displayName: 태엽 인형 소녀
-  description: 등에 태엽, 가슴에 작은 종을 품은 정교한 인형이다.
+  displayName: "\uD0DC\uC5FD \uC778\uD615 \uC18C\uB140"
+  description: "\uB4F1\uC5D0 \uD0DC\uC5FD, \uAC00\uC2B4\uC5D0 \uC791\uC740 \uC885\uC744
+    \uD488\uC740 \uC815\uAD50\uD55C \uC778\uD615\uC774\uB2E4."
   mainGesture: 0
   encounterWeight: 1.2
   damagePerNote: 4
@@ -67,44 +68,48 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: clock-quick-tap
-    description: Call에 작은 인형을 던진다. 한 박 뒤 주먹 위치에 닿을 때 받아치며, 미스하면 그 뒤 발 앞에 내려와 공격한다.
+    displayName: "\uC9F8\uAE4D \uC778\uD615 \uB358\uC9C0\uAE30"
+    description: "Call\uC5D0 \uC791\uC740 \uC778\uD615\uC744 \uB358\uC9C4\uB2E4.
+      \uD55C \uBC15 \uB4A4 \uC8FC\uBA39 \uC704\uCE58\uC5D0 \uB2FF\uC744 \uB54C \uBC1B\uC544\uCE58\uBA70,
+      \uBBF8\uC2A4\uD558\uBA74 \uADF8 \uB4A4 \uBC1C \uC55E\uC5D0 \uB0B4\uB824\uC640
+      \uACF5\uACA9\uD55C\uB2E4."
     cueLeadTicks: 4
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.32
-    displayName: 째깍 인형 던지기
+    participationChance: 0.6
     calls:
     - offsetTick: 0
-      label: 째깍!
+      label: "\uC9F8\uAE4D!"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: clock-seven-beat-wait
-    description: Call에 작은 인형을 자기 앞에 내려놓는다.
-    cueLeadTicks: 28
+    displayName: "\uB69C\uBC29\uB69C\uBC29 \uC77C\uACF1 \uAC78\uC74C"
+    description: "Call\uC5D0 \uC791\uC740 \uC778\uD615\uC744 \uC790\uAE30 \uC55E\uC5D0
+      \uB0B4\uB824\uB193\uB294\uB2E4."
+    cueLeadTicks: 24
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
-    silentWaitTicks: 28
-    participationChance: 0.18
-    displayName: 뚜방뚜방 일곱 걸음
+    silentWaitTicks: 24
+    participationChance: 0.2
     calls:
     - offsetTick: 0
-      label: 땡!
+      label: "\uB561!"
       sound: 2
       motion: 7
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

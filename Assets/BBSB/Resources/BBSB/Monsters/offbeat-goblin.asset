@@ -11,11 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: offbeat-goblin
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: offbeat-goblin
-  displayName: 여우불 여우요괴
-  description: 풍성한 꼬리 끝에서 여우불을 피우는 장난스러운 여우요괴다.
+  displayName: "\uC5EC\uC6B0\uBD88 \uC5EC\uC6B0\uC694\uAD34"
+  description: "\uD48D\uC131\uD55C \uAF2C\uB9AC \uB05D\uC5D0\uC11C \uC5EC\uC6B0\uBD88\uC744
+    \uD53C\uC6B0\uB294 \uC7A5\uB09C\uC2A4\uB7EC\uC6B4 \uC5EC\uC6B0\uC694\uAD34\uB2E4."
   mainGesture: 0
   encounterWeight: 1.4
   damagePerNote: 4
@@ -67,46 +68,51 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: offbeat-single-tap
-    description: 옆걸음 Call 뒤 기다렸다가 첫 Call 기준 4박 반에 불씨 한 발을 받아친다. 두 꼬리불의 마지막 반응과 같은 시점이다.
+    displayName: "\uB4A4\uB530\uB974\uB294 \uBD88\uC528"
+    description: "\uC606\uAC78\uC74C Call \uB4A4 \uAE30\uB2E4\uB838\uB2E4\uAC00 \uCCAB
+      Call \uAE30\uC900 4\uBC15 \uBC18\uC5D0 \uBD88\uC528 \uD55C \uBC1C\uC744 \uBC1B\uC544\uCE5C\uB2E4.
+      \uB450 \uAF2C\uB9AC\uBD88\uC758 \uB9C8\uC9C0\uB9C9 \uBC18\uC751\uACFC \uAC19\uC740
+      \uC2DC\uC810\uC774\uB2E4."
     cueLeadTicks: 14
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.18
-    displayName: 뒤따르는 불씨
+    participationChance: 0.6
     calls:
     - offsetTick: 0
-      label: 톡!
+      label: "\uD1A1!"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: offbeat-pair
-    description: 1박과 2박의 방울 Call을 모두 듣고, 3박 반과 4박 반에 불씨를 하나씩 받아친다.
+    displayName: "\uB450 \uAF2C\uB9AC\uBD88 \uC7A5\uB09C"
+    description: "1\uBC15\uACFC 2\uBC15\uC758 \uBC29\uC6B8 Call\uC744 \uBAA8\uB450
+      \uB4E3\uACE0, 3\uBC15 \uBC18\uACFC 4\uBC15 \uBC18\uC5D0 \uBD88\uC528\uB97C
+      \uD558\uB098\uC529 \uBC1B\uC544\uCE5C\uB2E4."
     cueLeadTicks: 10
     responseTicks: 8
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.14
-    displayName: 두 꼬리불 장난
+    participationChance: 0.3
     calls:
     - offsetTick: 0
-      label: 뿅
+      label: "\uBFC5"
       sound: 2
       motion: 0
-      animatorState: ''
+      animatorState: 
     - offsetTick: 4
-      label: 뿅!
+      label: "\uBFC5!"
       sound: 2
       motion: 0
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
@@ -114,5 +120,5 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 4
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

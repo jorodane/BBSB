@@ -11,11 +11,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: flick-goblin
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: flick-goblin
-  displayName: 실 잣는 아라크네
-  description: 인간형 상체 아래로 여러 거미 다리가 펼쳐지고, 앞다리와 손으로 실을 잡는 아라크네다.
+  displayName: "\uC2E4 \uC7A3\uB294 \uC544\uB77C\uD06C\uB124"
+  description: "\uC778\uAC04\uD615 \uC0C1\uCCB4 \uC544\uB798\uB85C \uC5EC\uB7EC \uAC70\uBBF8
+    \uB2E4\uB9AC\uAC00 \uD3BC\uCCD0\uC9C0\uACE0, \uC55E\uB2E4\uB9AC\uC640 \uC190\uC73C\uB85C
+    \uC2E4\uC744 \uC7A1\uB294 \uC544\uB77C\uD06C\uB124\uB2E4."
   mainGesture: 3
   encounterWeight: 1
   damagePerNote: 4
@@ -67,54 +69,66 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: counted-flick
-    description: 앞다리로 바닥을 두 번 찍어 하나·둘 Call을 보낸 뒤, 다음 박자에 팽팽한 실을 발목 높이로 당긴다.
-    cueLeadTicks: 8
-    responseTicks: 4
-    restTicks: 4
+    displayName: "\uC14B \uC138\uACE0 \uB2F9\uAE30\uAE30"
+    description: "\uC55E\uB2E4\uB9AC\uB85C \uBC14\uB2E5\uC744 \uC138 \uBC88 \uCC0D\uC5B4
+      \uD558\uB098\xB7\uB458 Call\uC744 \uBCF4\uB0B8 \uB4A4, \uB2E4\uC74C \uBC15\uC790\uC5D0
+      \uD33D\uD33D\uD55C \uC2E4\uC744 \uBC1C\uBAA9 \uB192\uC774\uB85C \uB2F9\uAE34\uB2E4."
+    cueLeadTicks: 4
+    responseTicks: 8
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.18
-    displayName: 둘 세고 당기기
+    participationChance: 0.6
     calls:
     - offsetTick: 0
-      label: 하나
+      label: "\uD558\uB098"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
+    - offsetTick: 2
+      label: "\uB458"
+      sound: 0
+      motion: 1
+      animatorState: 
     - offsetTick: 4
-      label: 둘
+      label: "\uC14B"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 3
-      offsetTick: 0
+      offsetTick: 2
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: offbeat-flick
-    description: 몸을 틀며 스윽, 앞다리를 들며 휙 하는 Call 뒤, 두 번째 신호에서 반 박 뒤 실이 지나간다..
-    cueLeadTicks: 6
-    responseTicks: 4
-    restTicks: 4
+    displayName: "\uBC18 \uBC15 \uBA3C\uC800 \uAC77\uAE30"
+    description: "\uBAB8\uC744 \uD2C0\uBA70 \uC2A4\uC73D, \uC55E\uB2E4\uB9AC\uB97C
+      \uB4E4\uBA70 \uD719 \uD558\uB294 Call \uB4A4, \uB450 \uBC88\uC9F8 \uC2E0\uD638\uC5D0\uC11C
+      \uBC18 \uBC15 \uB4A4 \uC2E4\uC774 \uC9C0\uB098\uAC04\uB2E4.."
+    cueLeadTicks: 4
+    responseTicks: 12
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.16
-    displayName: 반 박 먼저 걷기
+    participationChance: 0.2
     calls:
     - offsetTick: 0
-      label: 스윽
+      label: "\uC2A4\uC73D"
       sound: 8
       motion: 6
-      animatorState: ''
+      animatorState: 
     - offsetTick: 4
-      label: 휙!
+      label: "\uD719!"
       sound: 5
       motion: 4
-      animatorState: ''
+      animatorState: 
     steps:
-    - kind: 3
-      offsetTick: 0
+    - kind: 0
+      offsetTick: 2
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    - kind: 0
+      offsetTick: 6
+      durationTicks: 0
+    attackState: 
+    recoverState: 

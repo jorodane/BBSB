@@ -11,11 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: diving-ray
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: diving-ray
-  displayName: 장막 라미아
-  description: 긴 뱀 하반신과 옆으로 넓게 펼쳐지는 꼬리 막을 가진 라미아다.
+  displayName: "\uC7A5\uB9C9 \uB77C\uBBF8\uC544"
+  description: "\uAE34 \uBC40 \uD558\uBC18\uC2E0\uACFC \uC606\uC73C\uB85C \uB113\uAC8C
+    \uD3BC\uCCD0\uC9C0\uB294 \uAF2C\uB9AC \uB9C9\uC744 \uAC00\uC9C4 \uB77C\uBBF8\uC544\uB2E4."
   mainGesture: 2
   encounterWeight: 1
   damagePerNote: 4
@@ -67,49 +68,58 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: ray-deep-dive
-    description: 두 번의 낮아지는 울림과 몸 낮추기 뒤 넓은 꼬리 막을 펼친다.
+    displayName: "\uAE34 \uC7A5\uB9C9"
+    description: "\uB450 \uBC88\uC758 \uB0AE\uC544\uC9C0\uB294 \uC6B8\uB9BC\uACFC
+      \uBAB8 \uB0AE\uCD94\uAE30 \uB4A4 \uB113\uC740 \uAF2C\uB9AC \uB9C9\uC744 \uD3BC\uCE5C\uB2E4."
     cueLeadTicks: 8
     responseTicks: 16
-    restTicks: 8
-    cueAlignmentTicks: 4
-    silentWaitTicks: 0
-    participationChance: 0.25
-    displayName: 긴 장막
-    calls:
-    - offsetTick: 0
-      label: 부우
-      sound: 6
-      motion: 5
-      animatorState: ''
-    - offsetTick: 4
-      label: 욱!
-      sound: 4
-      motion: 5
-      animatorState: ''
-    steps:
-    - kind: 2
-      offsetTick: 0
-      durationTicks: 16
-    attackState: ''
-    recoverState: ''
-  - id: ray-short-dive
-    description: 올라가는 휘파람과 몸을 드는 Call 뒤 짧게 꼬리를 펼쳤다 거둔다.
-    cueLeadTicks: 4
-    responseTicks: 8
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
     participationChance: 0.2
-    displayName: 짧은 장막
     calls:
     - offsetTick: 0
-      label: 슉!
+      label: "\uBD80\uC6B0"
+      sound: 6
+      motion: 5
+      animatorState: 
+    - offsetTick: 4
+      label: "\uC6B1!"
+      sound: 4
+      motion: 5
+      animatorState: 
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+    - kind: 0
+      offsetTick: 4
+      durationTicks: 0
+    - kind: 0
+      offsetTick: 8
+      durationTicks: 0
+    attackState: 
+    recoverState: 
+  - id: ray-short-dive
+    displayName: "\uC9E7\uC740 \uC7A5\uB9C9"
+    description: "\uC62C\uB77C\uAC00\uB294 \uD718\uD30C\uB78C\uACFC \uBAB8\uC744
+      \uB4DC\uB294 Call \uB4A4 \uC9E7\uAC8C \uAF2C\uB9AC\uB97C \uD3BC\uCCE4\uB2E4
+      \uAC70\uB454\uB2E4."
+    cueLeadTicks: 4
+    responseTicks: 8
+    restTicks: 0
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    participationChance: 0.5
+    calls:
+    - offsetTick: 0
+      label: "\uC289!"
       sound: 5
       motion: 4
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 2
       offsetTick: 0
       durationTicks: 8
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

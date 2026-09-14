@@ -11,17 +11,18 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: iron-turtle
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: iron-turtle
-  displayName: 갑각 용인 소녀
-  description: 넓은 어깨 갑각과 큰 팔갑, 끝이 두꺼운 꼬리를 가진 용인이다.
+  displayName: "\uAC11\uAC01 \uC6A9\uC778 \uC18C\uB140"
+  description: "\uB113\uC740 \uC5B4\uAE68 \uAC11\uAC01\uACFC \uD070 \uD314\uAC11,
+    \uB05D\uC774 \uB450\uAEBC\uC6B4 \uAF2C\uB9AC\uB97C \uAC00\uC9C4 \uC6A9\uC778\uC774\uB2E4."
   mainGesture: 1
   encounterWeight: 1
   damagePerNote: 4
   portrait: {fileID: 21300000, guid: 4ce6b67eff517b6469486c0fc3826002, type: 3}
   artId: iron-turtle
-  patternStrategy: 0
+  patternStrategy: 1
   steadyCallsPerPhase: 3
   useLegacyBodyAnimation: 1
   displayScale: 1
@@ -67,52 +68,55 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: turtle-long-hold
-    description: 낮게 발을 쿵 구른 뒤 두 박 후, 등갑을 닮은 무거운 비늘 방패를 밀어 보내 2박 동안 압박한다.
+    displayName: "\uBE44\uB298 \uBC29\uD328 \uBC00\uAE30"
+    description: "\uB0AE\uAC8C \uBC1C\uC744 \uCFF5 \uAD6C\uB978 \uB4A4 \uB450 \uBC15
+      \uD6C4, \uB4F1\uAC11\uC744 \uB2EE\uC740 \uBB34\uAC70\uC6B4 \uBE44\uB298 \uBC29\uD328\uB97C
+      \uBC00\uC5B4 \uBCF4\uB0B4 2\uBC15 \uB3D9\uC548 \uC555\uBC15\uD55C\uB2E4."
     cueLeadTicks: 8
     responseTicks: 8
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.18
-    displayName: 비늘 방패 밀기
+    participationChance: 0.5
     calls:
     - offsetTick: 0
-      label: 쿵
+      label: "\uCFF5"
       sound: 1
       motion: 2
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 1
       offsetTick: 0
       durationTicks: 8
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: turtle-hold-tap
-    description: 같은 쿵 뒤 한 박 후 꼬리를 크게 휘두르는 Call이 붙는다.
-    cueLeadTicks: 8
-    responseTicks: 16
-    restTicks: 4
+    displayName: "\uAF2C\uB9AC\uAE4C\uC9C0 \uC870\uC2EC!"
+    description: "\uAC19\uC740 \uCFF5 \uB4A4 \uD55C \uBC15 \uD6C4 \uAF2C\uB9AC\uB97C
+      \uD06C\uAC8C \uD718\uB450\uB974\uB294 Call\uC774 \uBD99\uB294\uB2E4."
+    cueLeadTicks: 12
+    responseTicks: 12
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.16
-    displayName: 꼬리까지 조심!
+    participationChance: 0.3
     calls:
     - offsetTick: 0
-      label: 쿵
+      label: "\uCFF5"
       sound: 1
       motion: 2
-      animatorState: ''
-    - offsetTick: 4
-      label: 휙!
+      animatorState: 
+    - offsetTick: 8
+      label: "\uD719!"
       sound: 8
       motion: 3
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 1
       offsetTick: 0
-      durationTicks: 8
+      durationTicks: 4
     - kind: 0
-      offsetTick: 12
+      offsetTick: 8
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

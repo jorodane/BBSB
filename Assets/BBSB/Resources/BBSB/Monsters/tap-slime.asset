@@ -11,11 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: tap-slime
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: tap-slime
-  displayName: 젤리 슬라임 소녀
-  description: 둥글고 탄력 있는 실루엣을 가진 명랑한 종족이다.
+  displayName: "\uC824\uB9AC \uC2AC\uB77C\uC784 \uC18C\uB140"
+  description: "\uB465\uAE00\uACE0 \uD0C4\uB825 \uC788\uB294 \uC2E4\uB8E8\uC5E3\uC744
+    \uAC00\uC9C4 \uBA85\uB791\uD55C \uC885\uC871\uC774\uB2E4."
   mainGesture: 0
   encounterWeight: 1.4
   damagePerNote: 4
@@ -67,59 +68,65 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: count-four-tap
-    description: 첫 쿵에 발을 찍어 지면의 젤리 폭발을 시작하고, 이어지는 쿵마다 폭발이 팍팍 플레이어 쪽으로 번진다.
+    displayName: "\uC14B \uC138\uACE0 \uD1B5!"
+    description: "\uCCAB \uCFF5\uC5D0 \uBC1C\uC744 \uCC0D\uC5B4 \uC9C0\uBA74\uC758
+      \uC824\uB9AC \uD3ED\uBC1C\uC744 \uC2DC\uC791\uD558\uACE0, \uC774\uC5B4\uC9C0\uB294
+      \uCFF5\uB9C8\uB2E4 \uD3ED\uBC1C\uC774 \uD30D\uD30D \uD50C\uB808\uC774\uC5B4
+      \uCABD\uC73C\uB85C \uBC88\uC9C4\uB2E4."
     cueLeadTicks: 12
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.18
-    displayName: 셋 세고 통!
+    participationChance: 0.5
     calls:
     - offsetTick: 0
-      label: 하나
+      label: "\uD558\uB098"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     - offsetTick: 4
-      label: 둘
+      label: "\uB458"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     - offsetTick: 8
-      label: 셋
+      label: "\uC14B"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: tresillo-call-tap
-    description: 첫 낮은 울림에서 젤리를 만들고, 두 번째 울림까지 크게 도약한 뒤 플레이어 쪽으로 다시 튀긴다.
+    displayName: "\uCD9C\uB801, \uCD9C\uB801, \uD1B5!"
+    description: "\uCCAB \uB0AE\uC740 \uC6B8\uB9BC\uC5D0\uC11C \uC824\uB9AC\uB97C
+      \uB9CC\uB4E4\uACE0, \uB450 \uBC88\uC9F8 \uC6B8\uB9BC\uAE4C\uC9C0 \uD06C\uAC8C
+      \uB3C4\uC57D\uD55C \uB4A4 \uD50C\uB808\uC774\uC5B4 \uCABD\uC73C\uB85C \uB2E4\uC2DC
+      \uD280\uAE34\uB2E4."
     cueLeadTicks: 12
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.18
-    displayName: 출렁, 출렁, 통!
+    participationChance: 0.3
     calls:
     - offsetTick: 0
-      label: 둠
+      label: "\uB460"
       sound: 1
       motion: 6
-      animatorState: ''
+      animatorState: 
     - offsetTick: 6
-      label: 둠
+      label: "\uB460"
       sound: 1
       motion: 6
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

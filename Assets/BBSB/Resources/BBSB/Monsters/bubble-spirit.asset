@@ -11,11 +11,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: bubble-spirit
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: bubble-spirit
-  displayName: 해파리 소녀
-  description: 머리 위의 투명한 우산막과 떠 있는 몸, 가느다란 촉수를 가진 해파리 소녀다.
+  displayName: "\uD574\uD30C\uB9AC \uC18C\uB140"
+  description: "\uBA38\uB9AC \uC704\uC758 \uD22C\uBA85\uD55C \uC6B0\uC0B0\uB9C9\uACFC
+    \uB5A0 \uC788\uB294 \uBAB8, \uAC00\uB290\uB2E4\uB780 \uCD09\uC218\uB97C \uAC00\uC9C4
+    \uD574\uD30C\uB9AC \uC18C\uB140\uB2E4."
   mainGesture: 4
   encounterWeight: 1
   damagePerNote: 4
@@ -67,41 +69,43 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: one-beat-shake
-    description: 맑게 뽕 울리며 떠오른 뒤 큰 젤 막 하나를 보낸다.
+    displayName: "\uC6B0\uC0B0\uB9C9 \uD558\uB098"
+    description: "\uB9D1\uAC8C \uBF55 \uC6B8\uB9AC\uBA70 \uB5A0\uC624\uB978 \uB4A4
+      \uD070 \uC824 \uB9C9 \uD558\uB098\uB97C \uBCF4\uB0B8\uB2E4."
     cueLeadTicks: 4
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.18
-    displayName: 우산막 하나
+    participationChance: 0.5
     calls:
     - offsetTick: 0
-      label: 뽕!
+      label: "\uBF55!"
       sound: 2
       motion: 0
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 4
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: two-bubble-shakes
-    description: 촉수를 비벼 또르르 울리는 Call 뒤 젤 막을 두 번 보낸다.
+    displayName: "\uC6B0\uC0B0\uB9C9 \uB458"
+    description: "\uCD09\uC218\uB97C \uBE44\uBCBC \uB610\uB974\uB974 \uC6B8\uB9AC\uB294
+      Call \uB4A4 \uC824 \uB9C9\uC744 \uB450 \uBC88 \uBCF4\uB0B8\uB2E4."
     cueLeadTicks: 4
     responseTicks: 12
     restTicks: 4
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.14
-    displayName: 우산막 둘
+    participationChance: 0.2
     calls:
     - offsetTick: 0
-      label: 또르르!
+      label: "\uB610\uB974\uB974!"
       sound: 7
       motion: 6
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 4
       offsetTick: 0
@@ -109,5 +113,5 @@ MonoBehaviour:
     - kind: 4
       offsetTick: 8
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

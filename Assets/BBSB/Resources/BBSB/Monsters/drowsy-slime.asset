@@ -11,11 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: drowsy-slime
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: drowsy-slime
-  displayName: 꿈먹는 맥 소녀
-  description: 꿈을 먹고 잠에 빠지는 맥 소녀다.
+  displayName: "\uAFC8\uBA39\uB294 \uB9E5 \uC18C\uB140"
+  description: "\uAFC8\uC744 \uBA39\uACE0 \uC7A0\uC5D0 \uBE60\uC9C0\uB294 \uB9E5
+    \uC18C\uB140\uB2E4."
   mainGesture: 0
   encounterWeight: 1.2
   damagePerNote: 4
@@ -67,44 +68,52 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: drowsy-quick-tap
-    description: 발을 통 구르며 놀란 뒤 한 박 후 작은 꿈방울이 도착한다..
+    displayName: "\uAE5C\uC9DD \uAFC8\uBC29\uC6B8"
+    description: "\uBC1C\uC744 \uD1B5 \uAD6C\uB974\uBA70 \uB180\uB780 \uB4A4 \uD55C
+      \uBC15 \uD6C4 \uC791\uC740 \uAFC8\uBC29\uC6B8\uC774 \uB3C4\uCC29\uD55C\uB2E4.."
     cueLeadTicks: 4
-    responseTicks: 4
-    restTicks: 4
+    responseTicks: 12
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.32
-    displayName: 깜짝 꿈방울
+    participationChance: 0.8
     calls:
     - offsetTick: 0
-      label: 통!
+      label: "\uD1B5!"
       sound: 0
       motion: 0
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    - kind: 0
+      offsetTick: 4
+      durationTicks: 0
+    - kind: 0
+      offsetTick: 8
+      durationTicks: 0
+    attackState: 
+    recoverState: 
   - id: drowsy-four-beat-wait
-    description: 내려가는 하품 소리와 함께 몸을 낮춘다.
-    cueLeadTicks: 16
+    displayName: "\uB124 \uBC15 \uB0AE\uC7A0"
+    description: "\uB0B4\uB824\uAC00\uB294 \uD558\uD488 \uC18C\uB9AC\uC640 \uD568\uAED8
+      \uBAB8\uC744 \uB0AE\uCD98\uB2E4."
+    cueLeadTicks: 12
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
-    silentWaitTicks: 16
-    participationChance: 0.18
-    displayName: 네 박 낮잠
+    silentWaitTicks: 12
+    participationChance: 0.1
     calls:
     - offsetTick: 0
-      label: 스르르
+      label: "\uC2A4\uB974\uB974"
       sound: 6
       motion: 5
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

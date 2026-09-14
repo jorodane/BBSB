@@ -11,11 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: seesaw-goblin
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: seesaw-goblin
-  displayName: 쌍꼬리 네코마타
-  description: 긴 두 꼬리가 서로 먼저 움직이려 하는 네코마타다.
+  displayName: "\uC30D\uAF2C\uB9AC \uB124\uCF54\uB9C8\uD0C0"
+  description: "\uAE34 \uB450 \uAF2C\uB9AC\uAC00 \uC11C\uB85C \uBA3C\uC800 \uC6C0\uC9C1\uC774\uB824
+    \uD558\uB294 \uB124\uCF54\uB9C8\uD0C0\uB2E4."
   mainGesture: 0
   encounterWeight: 0.6
   damagePerNote: 4
@@ -67,41 +68,46 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: seesaw-steady-tap
-    description: 한 박 뒤 꼬리가 짧게 뻗었다 거둬진다. 정박은 위쪽, 엇박은 아래쪽 꼬리가 오며 연속 구간에는 쉬는 박자가 없다.
+    displayName: "\uAF2C\uB9AC \uB610\uAC01"
+    description: "\uD55C \uBC15 \uB4A4 \uAF2C\uB9AC\uAC00 \uC9E7\uAC8C \uBED7\uC5C8\uB2E4
+      \uAC70\uB46C\uC9C4\uB2E4. \uC815\uBC15\uC740 \uC704\uCABD, \uC5C7\uBC15\uC740
+      \uC544\uB798\uCABD \uAF2C\uB9AC\uAC00 \uC624\uBA70 \uC5F0\uC18D \uAD6C\uAC04\uC5D0\uB294
+      \uC26C\uB294 \uBC15\uC790\uAC00 \uC5C6\uB2E4."
     cueLeadTicks: 4
     responseTicks: 4
     restTicks: 0
     cueAlignmentTicks: 2
     silentWaitTicks: 0
-    participationChance: 0.24
-    displayName: 꼬리 또각
+    participationChance: 1
     calls:
     - offsetTick: 0
-      label: 또각!
+      label: "\uB610\uAC01!"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: seesaw-early-finish
-    description: 몸을 비트는 Call 한 박 뒤 첫 꼬리, 반 박 뒤 다른 높이의 꼬리가 온다. 다음 박자도 쉬지 않고 이어진다.
+    displayName: "\uB0B4\uAC00 \uBA3C\uC800!"
+    description: "\uBAB8\uC744 \uBE44\uD2B8\uB294 Call \uD55C \uBC15 \uB4A4 \uCCAB
+      \uAF2C\uB9AC, \uBC18 \uBC15 \uB4A4 \uB2E4\uB978 \uB192\uC774\uC758 \uAF2C\uB9AC\uAC00
+      \uC628\uB2E4. \uB2E4\uC74C \uBC15\uC790\uB3C4 \uC26C\uC9C0 \uC54A\uACE0 \uC774\uC5B4\uC9C4\uB2E4."
     cueLeadTicks: 4
     responseTicks: 4
     restTicks: 0
     cueAlignmentTicks: 2
     silentWaitTicks: 0
-    participationChance: 0.24
-    displayName: 내가 먼저!
+    participationChance: 0.2
     calls:
     - offsetTick: 0
-      label: 당겨!
+      label: "\uB2F9\uACA8!"
       sound: 3
       motion: 6
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
@@ -109,5 +115,5 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 2
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

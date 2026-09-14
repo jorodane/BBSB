@@ -11,11 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: march-slime
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: march-slime
-  displayName: 도자기 골렘 소녀
-  description: 커다란 손발과 분절된 관절을 가진 성실한 골렘이다.
+  displayName: "\uB3C4\uC790\uAE30 \uACE8\uB818 \uC18C\uB140"
+  description: "\uCEE4\uB2E4\uB780 \uC190\uBC1C\uACFC \uBD84\uC808\uB41C \uAD00\uC808\uC744
+    \uAC00\uC9C4 \uC131\uC2E4\uD55C \uACE8\uB818\uC774\uB2E4."
   mainGesture: 0
   encounterWeight: 1.4
   damagePerNote: 4
@@ -67,20 +68,22 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: march-three
-    description: 발을 딱 구르는 Call 뒤 마력으로 분리되어 움직이는 장갑 주먹을 세 번 보낸다.
+    displayName: "\uC138 \uAC78\uC74C \uAD8C\uACA9"
+    description: "\uBC1C\uC744 \uB531 \uAD6C\uB974\uB294 Call \uB4A4 \uB9C8\uB825\uC73C\uB85C
+      \uBD84\uB9AC\uB418\uC5B4 \uC6C0\uC9C1\uC774\uB294 \uC7A5\uAC11 \uC8FC\uBA39\uC744
+      \uC138 \uBC88 \uBCF4\uB0B8\uB2E4."
     cueLeadTicks: 4
     responseTicks: 12
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.16
-    displayName: 세 걸음 권격
+    participationChance: 0.6
     calls:
     - offsetTick: 0
-      label: 출발!
+      label: "\uCD9C\uBC1C!"
       sound: 0
       motion: 1
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
@@ -91,23 +94,25 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 8
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: march-spaced
-    description: 높게 발을 들어 크게 뛰는 Call 뒤 장갑을 더 깊게 당겨 두 번 보낸다.
+    displayName: "\uD070 \uBCF4\uD3ED \uAD8C\uACA9"
+    description: "\uB192\uAC8C \uBC1C\uC744 \uB4E4\uC5B4 \uD06C\uAC8C \uB6F0\uB294
+      Call \uB4A4 \uC7A5\uAC11\uC744 \uB354 \uAE4A\uAC8C \uB2F9\uACA8 \uB450 \uBC88
+      \uBCF4\uB0B8\uB2E4."
     cueLeadTicks: 4
     responseTicks: 12
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.14
-    displayName: 큰 보폭 권격
+    participationChance: 0.3
     calls:
     - offsetTick: 0
-      label: 크게!
+      label: "\uD06C\uAC8C!"
       sound: 5
       motion: 0
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
@@ -115,5 +120,5 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 8
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 

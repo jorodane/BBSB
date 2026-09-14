@@ -11,11 +11,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c582b19a8b054d1192e99d4f47c653ca, type: 3}
   m_Name: spark-bat
-  m_EditorClassIdentifier: ''
+  m_EditorClassIdentifier: 
   includeInEncounters: 1
   monsterId: spark-bat
-  displayName: 뇌수 소녀
-  description: 이 프로젝트의 뇌수는 뿔과 뾰족한 털, 전기를 모으는 톱니 모양 꼬리를 가진 수인이다.
+  displayName: "\uB1CC\uC218 \uC18C\uB140"
+  description: "\uC774 \uD504\uB85C\uC81D\uD2B8\uC758 \uB1CC\uC218\uB294 \uBFD4\uACFC
+    \uBFB0\uC871\uD55C \uD138, \uC804\uAE30\uB97C \uBAA8\uC73C\uB294 \uD1B1\uB2C8
+    \uBAA8\uC591 \uAF2C\uB9AC\uB97C \uAC00\uC9C4 \uC218\uC778\uC774\uB2E4."
   mainGesture: 0
   encounterWeight: 0.35
   damagePerNote: 4
@@ -67,25 +69,27 @@ MonoBehaviour:
     loop: 0
   patterns:
   - id: bat-quick-taps
-    description: 양손에서 불꽃을 두 번 튀기는 Call 뒤, 응집된 전기 구슬 두 개를 반 박 간격으로 보낸다.
+    displayName: "\uCC0C\uB9BF \uB450 \uBC88"
+    description: "\uC591\uC190\uC5D0\uC11C \uBD88\uAF43\uC744 \uB450 \uBC88 \uD280\uAE30\uB294
+      Call \uB4A4, \uC751\uC9D1\uB41C \uC804\uAE30 \uAD6C\uC2AC \uB450 \uAC1C\uB97C
+      \uBC18 \uBC15 \uAC04\uACA9\uC73C\uB85C \uBCF4\uB0B8\uB2E4."
     cueLeadTicks: 4
     responseTicks: 4
-    restTicks: 4
+    restTicks: 0
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.14
-    displayName: 찌릿 두 번
+    participationChance: 0.4
     calls:
     - offsetTick: 0
-      label: 찌
+      label: "\uCC0C"
       sound: 7
       motion: 7
-      animatorState: ''
+      animatorState: 
     - offsetTick: 2
-      label: 릿!
+      label: "\uB9BF!"
       sound: 7
       motion: 7
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 0
       offsetTick: 0
@@ -93,26 +97,28 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 2
       durationTicks: 0
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
   - id: bat-hold
-    description: 꼬리를 세우고 올라가는 울림을 내는 Call 뒤 1박 동안 굵은 방전을 내보낸다.
+    displayName: "\uAF2C\uB9AC \uCD95\uC804"
+    description: "\uAF2C\uB9AC\uB97C \uC138\uC6B0\uACE0 \uC62C\uB77C\uAC00\uB294
+      \uC6B8\uB9BC\uC744 \uB0B4\uB294 Call \uB4A4 1\uBC15 \uB3D9\uC548 \uAD75\uC740
+      \uBC29\uC804\uC744 \uB0B4\uBCF4\uB0B8\uB2E4."
     cueLeadTicks: 4
     responseTicks: 4
-    restTicks: 8
+    restTicks: 4
     cueAlignmentTicks: 4
     silentWaitTicks: 0
-    participationChance: 0.12
-    displayName: 꼬리 축전
+    participationChance: 0.5
     calls:
     - offsetTick: 0
-      label: 반자아악
+      label: "\uBC18\uC790\uC544\uC545"
       sound: 3
       motion: 4
-      animatorState: ''
+      animatorState: 
     steps:
     - kind: 1
       offsetTick: 0
       durationTicks: 4
-    attackState: ''
-    recoverState: ''
+    attackState: 
+    recoverState: 
