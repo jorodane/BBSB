@@ -133,8 +133,11 @@ namespace BBSB.Runtime.UI
         private WeaponMotionFrame Formation(int slot, double at, double support)
         {
             var r = rectTransform.rect;
-            return WeaponFormation.Sample(slot, at, new BattlePathPoint(hero.x, hero.y),
-                (hero.y - ground.y) / .46, r.height > 0 && r.width > 0 ? r.width / r.height : 1, support);
+            double height = (hero.y - ground.y) / .46;
+            double aspect = r.height > 0 && r.width > 0 ? r.width / r.height : 1;
+            // Center the formation behind the upper torso, independently of the forward punch socket.
+            var back = new BattlePathPoint(ground.x - height * .025 / aspect, ground.y + height * .68);
+            return WeaponFormation.Sample(slot, at, back, height, aspect, support);
         }
         private static Vector2 Position(WeaponMotionFrame frame) => new Vector2((float)frame.Position.X, (float)frame.Position.Y);
 
