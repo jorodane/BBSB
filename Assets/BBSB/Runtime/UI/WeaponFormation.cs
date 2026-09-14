@@ -35,13 +35,13 @@ namespace BBSB.Runtime.UI
             double phase = slot * Math.PI * 2 / RunRules.WeaponSlots;
             double idleAngle = phase + 135 * Math.PI / 180 + seconds * Math.PI * 2 / IdleOrbitPeriod + Math.Sin(seconds * .65 + phase) * .06;
             double x = Math.Cos(idleAngle) * (.42 + .016 * Math.Sin(seconds * .83 + phase));
-            double y = Math.Sin(idleAngle) * .24 + .014 * Math.Sin(seconds * 1.15 + phase);
+            double y = Math.Sin(idleAngle) * .32 + .014 * Math.Sin(seconds * 1.15 + phase);
             double rotation = -20 + slot * 10 + Math.Sin(seconds * .9 + phase) * 8;
             double scale = 1 + .025 * Math.Sin(seconds * .7 + phase);
             double orbit = seconds * Math.PI * 2 / OrbitPeriod + phase;
             support = Math.Max(0, Math.Min(1, support));
             x += (-.02 + Math.Cos(orbit) * .36 - x) * support;
-            y += (Math.Sin(orbit) * .22 - y) * support;
+            y += (Math.Sin(orbit) * .29 - y) * support;
             rotation += (Math.Sin(orbit) * 32 - rotation) * support;
             scale += (.88 + .045 * Math.Sin(orbit) - scale) * support;
             return new WeaponMotionFrame(new BattlePathPoint(hero.X + x * heroHeight / aspect,
