@@ -36,9 +36,9 @@ namespace BBSB.Runtime.UI
                     if (fadeB <= 0) continue;
                     var start = new Vector2(rect.xMin + (float)a.Position.X * rect.width, rect.yMin + (float)a.Position.Y * rect.height);
                     var end = new Vector2(rect.xMin + (float)b.Position.X * rect.width, rect.yMin + (float)b.Position.Y * rect.height);
-                    Ribbon(vh, start, end, unit * 11, fadeA, fadeB, new Color(1, .12f, .53f, .16f));
-                    Ribbon(vh, start, end, unit * 4, fadeA, fadeB, new Color(1, .25f, .64f, .72f));
-                    Ribbon(vh, start, end, unit * 1.4f, fadeA, fadeB, new Color(1, .69f, .86f, .8f));
+                    Ribbon(vh, start, end, unit * 22, fadeA, fadeB, new Color(1, .12f, .53f, .16f));
+                    Ribbon(vh, start, end, unit * 10, fadeA, fadeB, new Color(1, .25f, .64f, .72f));
+                    Ribbon(vh, start, end, unit * 3, fadeA, fadeB, new Color(1, .69f, .86f, .8f));
                 }
             }
         }
@@ -47,9 +47,10 @@ namespace BBSB.Runtime.UI
             var delta = b - a; if (delta.sqrMagnitude < .001f) return;
             var normal = new Vector2(-delta.y, delta.x).normalized * width * .5f;
             var first = tint; first.a *= fadeA; var last = tint; last.a *= fadeB;
+            float widthA = (float)WeaponFormation.Smooth(fadeA), widthB = (float)WeaponFormation.Smooth(fadeB);
             int index = vh.currentVertCount;
-            vh.AddVert(a - normal * fadeA, first, Vector2.zero); vh.AddVert(a + normal * fadeA, first, Vector2.zero);
-            vh.AddVert(b + normal * fadeB, last, Vector2.zero); vh.AddVert(b - normal * fadeB, last, Vector2.zero);
+            vh.AddVert(a - normal * widthA, first, Vector2.zero); vh.AddVert(a + normal * widthA, first, Vector2.zero);
+            vh.AddVert(b + normal * widthB, last, Vector2.zero); vh.AddVert(b - normal * widthB, last, Vector2.zero);
             vh.AddTriangle(index, index + 1, index + 2); vh.AddTriangle(index, index + 2, index + 3);
         }
     }

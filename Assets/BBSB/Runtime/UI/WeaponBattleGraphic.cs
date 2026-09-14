@@ -19,6 +19,8 @@ namespace BBSB.Runtime.UI
         private readonly Vector2[] targets = new Vector2[RunRules.WeaponSlots];
         private readonly WeaponActivation[] active = new WeaponActivation[RunRules.WeaponSlots];
         private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[RunRules.WeaponSlots];
+        private readonly WeaponMotionFrame[] formationFrames = new WeaponMotionFrame[RunRules.WeaponSlots];
+        private readonly BattlePathPoint[] formationExtents = new BattlePathPoint[RunRules.WeaponSlots];
         private readonly string[] boundIds = new string[RunRules.WeaponSlots];
         internal float WeaponSizeMultiplier { get; set; } = 1.8f;
         internal bool ShowLegacyAttackEffects { get; set; } = true;
@@ -71,7 +73,6 @@ namespace BBSB.Runtime.UI
         internal void Refresh()
         {
             Rect r = rectTransform.rect;
-            float unit = Mathf.Min(r.width, r.height) / 720;
             double support = WeaponFormation.SupportStrength(combat?.Activations, seconds);
             for (int slot = 0; slot < icons.Length; slot++)
             {
@@ -118,8 +119,7 @@ namespace BBSB.Runtime.UI
                 bool behind = activation == null && ranged.Pose == RangedWeaponPose.Idle;
                 var parent = behind && rearLayer != null ? rearLayer : rectTransform;
                 if (icon.transform.parent != parent) icon.transform.SetParent(parent, false);
-                float length = weapon.IsRanged ? 3.4f : weapon.Kind == WeaponKind.Spear ? 3.3f : weapon.Kind == WeaponKind.Greatsword ? 2.95f : 2.6f;
-                float size = (weapon.Kind == WeaponKind.Dagger ? 17 : 22) * unit * scale * length * WeaponSizeMultiplier;
+                float size = WeaponSize(weapon.Kind, weapon.IsRanged, scale);
                 icon.rectTransform.anchoredPosition = new Vector2(point.x * r.width, point.y * r.height);
                 icon.rectTransform.sizeDelta = new Vector2(size, size);
                 icon.rectTransform.localRotation = Quaternion.Euler(0, 0, rotation);
@@ -137,7 +137,38 @@ namespace BBSB.Runtime.UI
             double aspect = r.height > 0 && r.width > 0 ? r.width / r.height : 1;
             // Center the formation behind the upper torso, independently of the forward punch socket.
             var back = new BattlePathPoint(ground.x - height * .025 / aspect, ground.y + height * .68);
-            return WeaponFormation.Sample(slot, at, back, height, aspect, support);
+            double orbit = WeaponFormation.OrbitOffset(combat?.Activations, at);
+            if (combat == null || r.width <= 0 || r.height <= 0)
+                return WeaponFormation.Sample(slot, at, back, height, aspect, support, orbit);
+            int count = combat.Loadout.Equipment.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var frame = WeaponFormation.Sample(i, at, back, height, aspect, support, orbit);
+                // Reserve every home slot, including weapons currently attacking, so neighbours do not shuffle.
+                formationFrames[i] = new WeaponMotionFrame(new BattlePathPoint(frame.Position.X * aspect,
+                    frame.Position.Y), frame.Rotation, frame.Scale);
+                var state = combat.Loadout.Equipment[i]; var weapon = WeaponCatalog.Find(state.DefinitionId);
+                var sprite = WeaponSpriteCache.Get(state.DefinitionId, state.Rarity);
+                double sourceAspect = sprite != null ? sprite.rect.width / sprite.rect.height : 1;
+                var bounds = sprite != null ? WeaponPreviewBounds.Get(state.DefinitionId, state.Rarity)
+                    : new PreviewRect(0, 0, 1, 1);
+                formationExtents[i] = WeaponFormation.HalfExtents(bounds, sourceAspect,
+                    WeaponSize(weapon.Kind, weapon.IsRanged, frame.Scale) / r.height, frame.Rotation);
+            }
+            double margin = 6 * Mathf.Min(r.width, r.height) / 720 / r.height;
+            WeaponFormation.Separate(formationFrames, formationExtents, count,
+                new BattlePathPoint(back.X * aspect, back.Y),
+                new PreviewRect(margin, margin, aspect - margin * 2, 1 - margin * 2), margin);
+            var separated = formationFrames[slot];
+            return new WeaponMotionFrame(new BattlePathPoint(separated.Position.X / aspect,
+                separated.Position.Y), separated.Rotation, separated.Scale);
+        }
+        private float WeaponSize(WeaponKind kind, bool ranged, double scale)
+        {
+            var r = rectTransform.rect;
+            float length = ranged ? 3.4f : kind == WeaponKind.Spear ? 3.3f : kind == WeaponKind.Greatsword ? 2.95f : 2.6f;
+            return (kind == WeaponKind.Dagger ? 17 : 22) * Mathf.Min(r.width, r.height) / 720
+                * (float)scale * length * WeaponSizeMultiplier;
         }
         private static Vector2 Position(WeaponMotionFrame frame) => new Vector2((float)frame.Position.X, (float)frame.Position.Y);
 
