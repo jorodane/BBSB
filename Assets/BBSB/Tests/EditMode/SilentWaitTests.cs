@@ -61,7 +61,8 @@ namespace BBSB.Tests
         public void AuthoredWaitMustReachTheResponseFromTheFinalCallWithoutAnExtraCue()
         {
             Reject(() => Wait(16, -1, 0));
-            Reject(() => Wait(12, 12, 0));
+            Check.Equal(12, Wait(12, 12, 0).SilentWaitTicks);
+            Check.Equal(8, Wait(12, 8, 0, 4).SilentWaitTicks);
             Reject(() => Wait(20, 16, 0));
             Reject(() => Wait(20, 16, 0, 8));
             var valid = Wait(20, 16, 0, 4);
