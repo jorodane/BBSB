@@ -9,6 +9,7 @@ namespace BBSB.Runtime.UI
     {
         public const double SupportDuration = 1.6;
         public const double OrbitPeriod = .6;
+        public const double IdleOrbitPeriod = 12;
 
         public static double SupportStrength(IReadOnlyList<WeaponActivation> activations, double seconds)
         {
@@ -32,7 +33,7 @@ namespace BBSB.Runtime.UI
             if (!(aspect > 0) || double.IsInfinity(aspect)) throw new ArgumentOutOfRangeException(nameof(aspect));
             if (double.IsNaN(seconds) || double.IsInfinity(seconds)) seconds = 0;
             double phase = slot * Math.PI * 2 / RunRules.WeaponSlots;
-            double idleAngle = (135 - slot * 65) * Math.PI / 180 + Math.Sin(seconds * .65 + phase) * .13;
+            double idleAngle = phase + 135 * Math.PI / 180 + seconds * Math.PI * 2 / IdleOrbitPeriod + Math.Sin(seconds * .65 + phase) * .06;
             double x = Math.Cos(idleAngle) * (.5 + .022 * Math.Sin(seconds * .83 + phase));
             double y = Math.Sin(idleAngle) * .42 + .09 + .028 * Math.Sin(seconds * 1.15 + phase);
             double rotation = -20 + slot * 10 + Math.Sin(seconds * .9 + phase) * 8;

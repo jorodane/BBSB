@@ -172,7 +172,8 @@ namespace BBSB.Tests
             var arena = Arena(round); yield return null; Canvas.ForceUpdateCanvases();
             Assert.Less(arena.HeroGroundPosition.x, .2f);
             Assert.Less(arena.HeroPortrait.rectTransform.rect.height / ((RectTransform)arena.transform).rect.height, .4f);
-            Assert.Less(arena.MonsterPortraits[0].rectTransform.rect.height / ((RectTransform)arena.transform).rect.height, .25f);
+            Assert.Greater(arena.MonsterPortraits[0].rectTransform.rect.height / ((RectTransform)arena.transform).rect.height, .28f);
+            Assert.Less(arena.MonsterPortraits[0].rectTransform.rect.height / ((RectTransform)arena.transform).rect.height, .41f);
             round.Press(.4, 0, 0); arena.Refresh();
             Assert.IsTrue(arena.CurrentHeroMotion.IsFreeInput);
             Assert.AreEqual(GestureKind.Tap, arena.CurrentHeroMotion.Kind);
@@ -750,15 +751,22 @@ namespace BBSB.Tests
                 foreach (var symbol in icon.GetComponentsInChildren<GestureIconGraphic>())
                     Assert.Less(Quaternion.Angle(icon.transform.rotation, symbol.transform.rotation), .001f);
             }
+            for (int step = 1; step <= 4; step++) { round.Advance(at + .2 + step * .02); arena.Refresh(); }
+            foreach (var trail in arena.GetComponentsInChildren<WeaponTrailGraphic>())
+            {
+                Assert.IsFalse(trail.raycastTarget);
+                trail.canvasRenderer.cull = false; trail.SetVerticesDirty(); trail.Rebuild(CanvasUpdate.PreRender);
+                Assert.Greater(trail.canvasRenderer.GetMesh().vertexCount, 0);
+            }
             var frozen = icons.Select(x => x.rectTransform.anchoredPosition).ToArray();
             round.Suspend(); arena.SetPaused(true);
             for (int i = 0; i < 10; i++) { round.Advance(100); arena.Refresh(); }
             CollectionAssert.AreEqual(frozen, icons.Select(x => x.rectTransform.anchoredPosition).ToArray());
             round.Resume(false); arena.SetPaused(false);
             round.Advance(at + WeaponFormation.SupportDuration + .01); arena.Refresh();
-            Assert.IsTrue(icons.All(x => x.transform.parent.name == "Equipped weapon attacks"));
+            Assert.IsTrue(icons.All(x => x.transform.parent.name == "Weapons behind the player"));
             var replay = round.RepeatPractice(); arena.Repeat(replay);
-            Assert.IsTrue(icons.All(x => x.transform.parent.name == "Equipped weapon attacks"));
+            Assert.IsTrue(icons.All(x => x.transform.parent.name == "Weapons behind the player"));
             LogAssert.NoUnexpectedReceived();
         }
 

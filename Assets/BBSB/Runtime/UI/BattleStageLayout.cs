@@ -17,9 +17,9 @@ namespace BBSB.Runtime.UI
         {
             if (count < 1 || count > 3 || index < 0 || index >= count) throw new ArgumentOutOfRangeException(nameof(index));
             double x, depth;
-            if (count == 1) { x = .83; depth = .015; }
-            else if (count == 2) { x = .79 + index * .12; depth = index == 0 ? .09 : -.005; }
-            else { x = .77 + index * .08; depth = .12 - index * .065; }
+            if (count == 1) { x = .80; depth = .015; }
+            else if (count == 2) { x = .73 + index * .13; depth = index == 0 ? .045 : -.005; }
+            else { x = .64 + index * .115; depth = .065 - index * .04; }
             double amount = Math.Max(0, Math.Min(1, advance));
             double stride = Math.Min(.055, Math.Max(0, x - playerX - .30));
             // Walk toward the player along the floor; retain separate depth lanes.
@@ -27,7 +27,10 @@ namespace BBSB.Runtime.UI
             return new BattleStagePose(x - stride * amount, playerY + depth, 1 - depth * .85);
         }
 
-        public static double MonsterSize(int count, double width, double height, double depthScale) =>
-            Math.Min(height * .44, width * (count == 1 ? .28 : count == 2 ? .23 : .19)) * depthScale * .55;
+        public static double MonsterSize(int count, double width, double height, double depthScale, double playerHeight = 0)
+        {
+            double reference = playerHeight > 0 ? playerHeight : Math.Min(width * .4, height * .7) * .5;
+            return Math.Min(reference * 1.05, Math.Min(height * .4, width * .24)) * depthScale;
+        }
     }
 }

@@ -240,7 +240,7 @@ namespace BBSB.Runtime.UI
                 var actor = monsters[i];
                 var position = BattleStageLayout.Monster(i, monsters.Count, HeroGroundPosition.x, HeroGroundPosition.y, actor.Advance);
                 actor.Ground = new Vector2((float)position.X, (float)position.Y);
-                float side = (float)BattleStageLayout.MonsterSize(monsters.Count, size.x, size.y, position.Scale);
+                float side = (float)BattleStageLayout.MonsterSize(monsters.Count, size.x, size.y, position.Scale, heroDisplayHeight);
                 Anchor(actor.Root, actor.Ground, actor.Ground, Vector2.zero, Vector2.zero, new Vector2(.5f, 0));
                 var sprite = actor.Portrait.sprite;
                 var foot = new Vector2(sprite.pivot.x / sprite.rect.width, sprite.pivot.y / sprite.rect.height);
@@ -256,8 +256,8 @@ namespace BBSB.Runtime.UI
                     new Vector2(next.pivot.x / next.rect.width, next.pivot.y / next.rect.height));
                 float bodyHeight = side * (1 - foot.y);
                 Anchor(actor.Labels, actor.Ground, actor.Ground, Vector2.zero, new Vector2(side, bodyHeight), new Vector2(.5f, 0));
-                float promptWidth = Mathf.Min(220, size.x / Mathf.Max(1, monsters.Count) * .65f);
-                float promptY = Mathf.Min(bodyHeight + 40, size.y * .66f - 64 - actor.Ground.y * size.y);
+                float promptWidth = Mathf.Min(220, size.x * (monsters.Count == 3 ? .105f : monsters.Count == 2 ? .12f : .17f));
+                float promptY = Mathf.Min(bodyHeight + 16, size.y * .68f - 64 - actor.Ground.y * size.y);
                 Anchor((RectTransform)actor.Prompt.transform, actor.Ground, actor.Ground, new Vector2(0, promptY),
                     new Vector2(promptWidth, 64), new Vector2(.5f, 0));
                 actor.Impact = actor.Ground + new Vector2(0, bodyHeight / size.y * .48f);

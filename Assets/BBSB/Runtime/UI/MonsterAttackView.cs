@@ -88,7 +88,7 @@ namespace BBSB.Runtime.UI
                 var stage = BattleStageLayout.Monster(slot.Order, round.Plan.Monsters.Count, heroGround.x, heroGround.y,
                     slot.Stage.Evaluate(definition.Stretch ? seconds : spawn));
                 var ground = new Vector2((float)stage.X * size.x, (float)stage.Y * size.y);
-                float monsterHeight = (float)BattleStageLayout.MonsterSize(round.Plan.Monsters.Count, size.x, size.y, stage.Scale);
+                float monsterHeight = (float)BattleStageLayout.MonsterSize(round.Plan.Monsters.Count, size.x, size.y, stage.Scale, heroHeight);
                 var from = ground + new Vector2(-.15f, slot.Note.Step.Kind == GestureKind.Dive ? .8f :
                     slot.Note.Step.Kind == GestureKind.Flick ? .12f : .48f) * monsterHeight;
                 from += (calibration?.sourceOffset ?? Vector2.zero) * monsterHeight;

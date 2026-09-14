@@ -14,16 +14,20 @@ namespace BBSB.Runtime.UI
         private IReadOnlyDictionary<string, Vector2> targetPositions;
         private Vector2 ground, hero;
         private RectTransform rearLayer;
+        private WeaponTrailGraphic rearTrail, frontTrail;
+        private readonly WeaponTrailHistory[] trails = new WeaponTrailHistory[RunRules.WeaponSlots];
         private readonly Vector2[] targets = new Vector2[RunRules.WeaponSlots];
         private readonly WeaponActivation[] active = new WeaponActivation[RunRules.WeaponSlots];
         private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[RunRules.WeaponSlots];
         private readonly string[] boundIds = new string[RunRules.WeaponSlots];
-        internal float WeaponSizeMultiplier { get; set; } = 1;
+        internal float WeaponSizeMultiplier { get; set; } = 1.8f;
         internal bool ShowLegacyAttackEffects { get; set; } = true;
         private static readonly Color Edge = RunUI.Hex("CBA66F"), Metal = RunUI.Hex("251D31"), Glow = RunUI.Hex("FF4C9B");
 
         internal void SetFrame(WeaponBattle value, double time, Vector2 groundPoint, Vector2 heroPoint, double beat = .5)
         {
+            if (!ReferenceEquals(combat, value) || time < seconds)
+                foreach (var trail in trails) trail?.Clear();
             combat = value; seconds = time; ground = groundPoint; hero = heroPoint; beatSeconds = beat;
             for (int i = 0; i < active.Length; i++) active[i] = null;
             raycastTarget = false;
@@ -31,7 +35,12 @@ namespace BBSB.Runtime.UI
         internal void SetActivation(WeaponActivation value, Vector2 target)
         { active[value.Slot] = value; targets[value.Slot] = target; }
         internal void SetTargets(IReadOnlyDictionary<string, Vector2> positions) { targetPositions = positions; }
-        internal void SetRearLayer(RectTransform layer) { rearLayer = layer; }
+        internal void SetRearLayer(RectTransform layer)
+        {
+            rearLayer = layer;
+            if (rearTrail == null) rearTrail = WeaponTrailGraphic.Create(layer, "Rear pink weapon trails", trails, false);
+            if (frontTrail == null) frontTrail = WeaponTrailGraphic.Create(transform, "Attack pink weapon trails", trails, true);
+        }
         internal Vector2 WeaponOrigin(int slot) => Position(Formation(slot, seconds, 0));
         internal Vector2 ProjectileOrigin(int slot, WeaponKind kind, Vector2 target, double launchedAt)
         {
@@ -67,7 +76,7 @@ namespace BBSB.Runtime.UI
             for (int slot = 0; slot < icons.Length; slot++)
             {
                 bool visible = combat != null && slot < combat.Loadout.Equipment.Count && r.width > 0 && r.height > 0;
-                if (!visible) { if (icons[slot] != null) icons[slot].gameObject.SetActive(false); continue; }
+                if (!visible) { if (icons[slot] != null) icons[slot].gameObject.SetActive(false); trails[slot]?.Clear(); continue; }
                 var state = combat.Loadout.Equipment[slot]; var weapon = WeaponCatalog.Find(state.DefinitionId);
                 if (icons[slot] == null)
                 {
@@ -106,7 +115,7 @@ namespace BBSB.Runtime.UI
                     scale *= 1 + (float)ranged.Tension * .035f;
                 }
                 // Rear and front layers have the same full-arena rectangle; socket children inherit the move.
-                bool behind = activation == null && ranged.Pose == RangedWeaponPose.Idle && support > .001;
+                bool behind = activation == null && ranged.Pose == RangedWeaponPose.Idle;
                 var parent = behind && rearLayer != null ? rearLayer : rectTransform;
                 if (icon.transform.parent != parent) icon.transform.SetParent(parent, false);
                 float length = weapon.IsRanged ? 3.4f : weapon.Kind == WeaponKind.Spear ? 3.3f : weapon.Kind == WeaponKind.Greatsword ? 2.95f : 2.6f;
@@ -115,7 +124,10 @@ namespace BBSB.Runtime.UI
                 icon.rectTransform.sizeDelta = new Vector2(size, size);
                 icon.rectTransform.localRotation = Quaternion.Euler(0, 0, rotation);
                 icon.SetActivity(combat, slot, seconds);
+                if (trails[slot] == null) trails[slot] = new WeaponTrailHistory();
+                trails[slot].Add(seconds, new BattlePathPoint(point.x, point.y), !behind);
             }
+            rearTrail?.SetTime(seconds); frontTrail?.SetTime(seconds);
             SetVerticesDirty();
         }
         private WeaponMotionFrame Formation(int slot, double at, double support)

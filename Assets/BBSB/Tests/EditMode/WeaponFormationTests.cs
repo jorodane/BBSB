@@ -99,6 +99,35 @@ namespace BBSB.Tests
         private static double Distance(WeaponMotionFrame a, WeaponMotionFrame b) =>
             Math.Abs(a.Position.X - b.Position.X) + Math.Abs(a.Position.Y - b.Position.Y);
 
+        [Test]
+        public void PinkTrailHistoryFreezesOnPauseAndClearsOnRewindOrLongGaps()
+        {
+            var trail = new WeaponTrailHistory(); var position = new BattlePathPoint(.2, .3);
+            trail.Add(1, position, false); trail.Add(1.1, position, false);
+            for (int i = 0; i < 100; i++) trail.Add(1.1, position, false);
+            Check.Equal(2, trail.Count);
+            trail.Add(1.2, position, true);
+            Check.False(trail[1].InFront); Check.True(trail[2].InFront);
+            trail.Add(.1, position, false); Check.Equal(1, trail.Count);
+            trail.Add(2, position, false); Check.Equal(1, trail.Count);
+            trail.Clear(); Check.Equal(0, trail.Count);
+        }
+
+        [Test]
+        public void PinkTrailSamplesExpireAndMemoryStaysBoundedAtHighFrameRates()
+        {
+            var trail = new WeaponTrailHistory();
+            for (int i = 0; i <= 1000; i++) trail.Add(i * .001, new BattlePathPoint(.2 + i * .0001, .3), false);
+            Check.Equal(WeaponTrailHistory.Capacity, trail.Count);
+            Check.True(trail[0].Time > 1 - WeaponTrailHistory.Lifetime);
+            Check.Equal(1.0, trail[trail.Count - 1].Time);
+            Check.Equal(1.0, WeaponTrailHistory.Opacity(0));
+            Check.Equal(0.0, WeaponTrailHistory.Opacity(WeaponTrailHistory.Lifetime));
+            Check.Equal(0.0, WeaponTrailHistory.Opacity(10));
+            trail.Add(1 + WeaponTrailHistory.Lifetime + .01, new BattlePathPoint(.5, .3), false);
+            Check.Equal(1, trail.Count);
+        }
+
         private static RhythmRound Round()
         {
             var pattern = new RhythmPattern("formation", 4, new[] { new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4) });

@@ -103,6 +103,10 @@ namespace BBSB.Tests
                     var pose = BattleStageLayout.Monster(i, count, .24, .17, advance);
                     var home = BattleStageLayout.Monster(i, count, .24, .17, 0);
                     double side = BattleStageLayout.MonsterSize(count, 1280, height, pose.Scale);
+                    double playerHeight = Math.Min(1280 * .4, height * .7) * .5;
+                    Check.True(side > playerHeight * .9 && side < playerHeight * 1.12);
+                    double smallerPlayer = BattleStageLayout.MonsterSize(count, 1280, height, pose.Scale, playerHeight * .6);
+                    Check.True(Math.Abs(smallerPlayer / side - .6) < 1e-9);
                     Check.True(pose.X > .5 && pose.X <= home.X);
                     Check.True(pose.Y < .31 && pose.Y > .14 && pose.Y < previousY);
                     Check.True(pose.Scale > previousScale);
