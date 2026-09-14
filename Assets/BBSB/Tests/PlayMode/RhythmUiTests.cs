@@ -21,7 +21,7 @@ namespace BBSB.Tests
         { if (root != null) Object.Destroy(root); yield return null; }
 
         [UnityTest]
-        public IEnumerator LiveRoundShowsBeatsAndFinishesWithoutClearingOrRerollingStage()
+        public IEnumerator LiveRoundShowsCombatHudAndFinishesWithoutClearingOrRerollingStage()
         {
             yield return Prepare(new RunRules(startingHealth: 10000));
             var plan = presenter.Session.BattlePlan; string ticket = presenter.Session.StageTicket;
@@ -30,8 +30,9 @@ namespace BBSB.Tests
             Assert.IsNotNull(player.Round); Assert.AreSame(plan, player.Round.Plan);
             Assert.IsFalse(presenter.StartRhythmRound(), "A second start cannot replace an active performance.");
             var pulses = root.GetComponentsInChildren<Image>().Where(x => x.name.StartsWith("Beat pulse ")).ToArray();
-            Assert.AreEqual(plan.Stage.Music.BeatsPerBar * 2, pulses.Length);
-            Assert.IsTrue(pulses.All(x => !x.raycastTarget));
+            Assert.AreEqual(0, pulses.Length);
+            Assert.IsFalse(root.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Live weapons" || x.name == "Beat signals"));
+            Assert.IsFalse(root.GetComponentsInChildren<Text>().Any(x => x.name == "Input status"));
             Assert.AreEqual(1, root.GetComponentsInChildren<Button>().Length, "Only pause is a live action button.");
             Canvas.ForceUpdateCanvases();
             var arena = root.GetComponentInChildren<BattleArenaView>(); Assert.IsNotNull(arena);
@@ -54,13 +55,10 @@ namespace BBSB.Tests
                 var menu = root.GetComponentInChildren<RoundMenuGraphic>().rectTransform;
                 Assert.AreSame(scene.parent, menu.parent);
                 Assert.AreEqual(80, menu.rect.height, .1f); Assert.AreEqual(80, menu.rect.width, .1f);
-                var beats = root.GetComponentsInChildren<RectTransform>().Single(x => x.name == "Beat signals");
-                Assert.AreSame(scene.parent, beats.parent);
-                Assert.LessOrEqual(beats.rect.height, 60.1f, "Beat indicators are a small overlay.");
                 Assert.Less(scene.InverseTransformPoint(arena.HeroPortrait.transform.position).x, 0);
                 Assert.IsTrue(arena.MonsterPortraits.All(x => scene.InverseTransformPoint(x.transform.position).x > 0));
                 foreach (var target in new[] { (RectTransform)arena.transform,
-                    root.GetComponentsInChildren<Text>().Single(x => x.name == "Input status").rectTransform, menu, beats })
+                    root.GetComponentsInChildren<Text>().Single(x => x.name == "Response feedback").rectTransform, menu })
                 {
                     var corners = new Vector3[4]; target.GetWorldCorners(corners);
                     foreach (var corner in corners)

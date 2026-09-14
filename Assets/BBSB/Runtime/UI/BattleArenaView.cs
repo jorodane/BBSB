@@ -22,7 +22,6 @@ namespace BBSB.Runtime.UI
             public Sprite FallbackPortrait;
             public bool UsesNewArt;
             public bool UsesAuthoredPose;
-            public Text Signal;
             public ResponsePromptView Prompt;
             public Color Tint;
             public Vector2 Ground;
@@ -219,8 +218,6 @@ namespace BBSB.Runtime.UI
                 actor.Labels = ui.Rect("Labels " + instance, labelLayer);
                 var nameLabel = ui.Label(actor.Labels, label, 20, RunUI.TextColor, 30, TextAnchor.MiddleCenter);
                 Anchor(nameLabel.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, -29), new Vector2(210, 30), new Vector2(.5f, 0));
-                actor.Signal = ui.Label(actor.Labels, "대기", 21, RunUI.Muted, 32, TextAnchor.MiddleCenter);
-                Anchor(actor.Signal.rectTransform, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, 4), new Vector2(230, 32), new Vector2(.5f, 0));
             }
             return actor;
         }
@@ -342,7 +339,7 @@ namespace BBSB.Runtime.UI
             var hit = BattleHitFeedback.Monster(round.Combat, actor.Plan.InstanceId, seconds, round.BeatSeconds);
             double bodySeconds = hit.PoseSeconds(seconds, actor.Plan, round.BeatSeconds);
             double beat = bodySeconds / round.BeatSeconds;
-            float call = 0, counter = 0;
+            float counter = 0;
             float bounce = Mathf.Sin((float)beat * Mathf.PI * 2 + actor.Impact.x * 4);
             float x = 0, y = 0, tilt = 0, sx = 1, sy = 1, flash = 0;
             // Species provide the idle pose; each individual Call chooses its own readable action.
@@ -352,18 +349,14 @@ namespace BBSB.Runtime.UI
                 case "diving-ray": x = bounce * 7; y += 10 + bounce * 6; break;
                 case "bubble-spirit": y += 8 + bounce * 7; break;
             }
-            PlannedAttack current = null;
             foreach (var attack in actor.Plan.Attacks)
             {
                 if (round.Combat != null && round.Combat.Victory) continue;
-                if (seconds >= Time(attack.CallStartTick) && seconds <= Time(attack.PhraseEndTick + attack.Pattern.RestTicks))
-                    current = attack;
                 for (int i = 0; i < attack.Call.Count; i++)
                 {
                     var signal = attack.Call[i];
                     double age = seconds - Time(signal.Tick);
                     float amount = Pulse(age, MonsterBodyTimeline.CallDuration(attack, i, round.BeatSeconds));
-                    call += amount;
                     if (!actor.UsesAuthoredPose) ApplyCallPose(signal.Motion,
                         Pulse(bodySeconds - Time(signal.Tick), MonsterBodyTimeline.CallDuration(attack, i, round.BeatSeconds)),
                         size, ref x, ref y, ref tilt, ref sx, ref sy);
@@ -379,7 +372,7 @@ namespace BBSB.Runtime.UI
                     counter += Pulse(seconds - note.Result.JudgedAtSeconds - .08, .28) * (float)note.Result.Efficiency;
             }
             if (hit.Active) counter = Mathf.Max(counter, (float)hit.Envelope);
-            call = Mathf.Clamp01(call); counter = Mathf.Clamp01(counter);
+            counter = Mathf.Clamp01(counter);
             float direction = Mathf.Sign(HeroImpactPosition.x - actor.Impact.x);
             x -= direction * counter * 9;
             y += counter * 7;
@@ -391,35 +384,6 @@ namespace BBSB.Runtime.UI
             Color baseTint = actor.UsesNewArt || actor.Plan.Monster.ArtId == actor.Plan.Monster.Id ? Color.white : Color.Lerp(Color.white, actor.Tint, .35f);
             SetPose(actor, x, y, tilt, sx, sy,
                 Color.Lerp(Color.Lerp(baseTint, CueColor(CallMotion.Flash), flash * .45f), RunUI.Red, counter * .45f));
-            RefreshSignal(actor, current, seconds, call);
-            if (round.Combat != null && round.Combat.Victory)
-            { actor.Signal.text = "격파"; actor.Signal.color = RunUI.Teal; }
-        }
-
-        private void RefreshSignal(Actor actor, PlannedAttack current, double seconds, float pulse)
-        {
-            var label = actor.Signal;
-            if (current == null) { label.text = "대기"; label.color = RunUI.Muted; }
-            else if (seconds < Time(current.ResponseStartTick))
-            {
-                string call = "CALL"; Color tint = RunUI.Gold;
-                foreach (var signal in current.Call) if (Time(signal.Tick) <= seconds)
-                { call = signal.Label; tint = CueColor(signal.Motion); }
-                label.text = "CALL · " + call; label.color = tint;
-                if (current.Pattern.SilentWaitTicks > 0 &&
-                    seconds >= Time(current.ResponseStartTick - current.Pattern.SilentWaitTicks) + round.BeatSeconds)
-                { label.text = current.Pattern.Id == "clock-seven-beat-wait" ? "쉼 · 인형의 걸음 따라가기" : "쉼 · 박자 기억하기"; label.color = RunUI.Muted; }
-            }
-            else if (seconds <= Time(current.PhraseEndTick) + round.HalfMissWindow)
-            { label.text = "RESPONSE"; label.color = RunUI.Teal; }
-            else { label.text = "쉬는 박자"; label.color = RunUI.Muted; }
-            // A linked cadence may cue its next Tap while the player responds to the previous one.
-            if (current?.Chain != null && seconds < Time(current.ResponseStartTick))
-                foreach (var note in round.Notes)
-                    if (note.Attack.MonsterId == actor.Plan.InstanceId && seconds >= note.StartSeconds &&
-                        seconds <= note.StartSeconds + round.HalfMissWindow)
-                    { label.text += " · TAP"; break; }
-            label.rectTransform.localScale = Vector3.one * (1 + pulse * .1f);
         }
 
         private void RefreshHero(double seconds)

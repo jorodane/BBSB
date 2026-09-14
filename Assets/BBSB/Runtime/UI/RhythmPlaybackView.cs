@@ -11,15 +11,14 @@ namespace BBSB.Runtime.UI
     {
         private RhythmRound round;
         private readonly RunSession session;
-        private readonly Text beatLabel, feedback, counters, contact;
+        private readonly Text feedback, counters;
         private readonly Text healthLabel, damageLabel;
         private readonly Text enemyLabel;
         private readonly RectTransform enemyFill;
-        private readonly Text[] weaponLabels;
         private readonly RectTransform healthFill;
         private readonly Image healthImage;
         private double damageShownAt = double.NegativeInfinity;
-        private readonly Image[] pulses;
+        private double feedbackShownAt = double.NegativeInfinity;
         private readonly RectTransform songProgress;
         private readonly GameObject pauseOverlay;
         private readonly CanvasGroup pauseInput;
@@ -43,22 +42,6 @@ namespace BBSB.Runtime.UI
             var track = (RectTransform)songProgress.parent;
             RunUI.Overlay(track, new Vector2(0, 1), Vector2.one, new Vector2(0, -4), Vector2.zero);
 
-            var beats = ui.Rect("Beat signals", root);
-            RunUI.Overlay(beats, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -90), new Vector2(0, -30));
-            pulses = new Image[music.BeatsPerBar * 2];
-            for (int i = 0; i < pulses.Length; i++)
-            {
-                var cell = ui.Rect("Beat pulse " + i, beats);
-                RunUI.Overlay(cell, new Vector2((float)i / pulses.Length, 0), new Vector2((float)(i + 1) / pulses.Length, 1),
-                    new Vector2(3, 0), new Vector2(-3, 0));
-                pulses[i] = ui.Background(cell, RunUI.Panel);
-                var number = ui.Label(cell, i % 2 == 0 ? (i / 2 + 1).ToString() : "&", i % 2 == 0 ? 34 : 27,
-                    RunUI.TextColor, 60, TextAnchor.MiddleCenter);
-                RunUI.Stretch(number.rectTransform);
-            }
-            beatLabel = ui.Label(root, "", 21, RunUI.Muted, 32);
-            RunUI.Overlay(beatLabel.rectTransform, new Vector2(0, 1), new Vector2(.36f, 1), new Vector2(24, -96), new Vector2(0, -64));
-
             healthLabel = ui.Label(root, "", 25, RunUI.Teal, 36);
             healthLabel.gameObject.name = "Player health";
             RunUI.Overlay(healthLabel.rectTransform, new Vector2(0, 1), new Vector2(.32f, 1), new Vector2(24, -140), new Vector2(0, -104));
@@ -77,28 +60,13 @@ namespace BBSB.Runtime.UI
                 enemyFill = Progress(root, ui, "Shared stage health bar", 8);
                 enemyFill.GetComponent<Image>().color = RunUI.Red;
                 RunUI.Overlay((RectTransform)enemyFill.parent, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -149), new Vector2(0, -141));
-                var strip = ui.Rect("Live weapons", root);
-                RunUI.Overlay(strip, new Vector2(.35f, 1), new Vector2(.98f, 1), new Vector2(0, -217), new Vector2(0, -161));
-                weaponLabels = new Text[round.Combat.Loadout.Equipment.Count];
-                for (int i = 0; i < weaponLabels.Length; i++)
-                {
-                    var card = ui.Rect("Live weapon " + i, strip); ui.Background(card, RunUI.Panel);
-                    RunUI.Overlay(card, new Vector2((float)i / weaponLabels.Length, 0), new Vector2((float)(i + 1) / weaponLabels.Length, 1), new Vector2(3, 0), new Vector2(-3, 0));
-                    weaponLabels[i] = ui.Label(card, "", 17, RunUI.Muted, 56, TextAnchor.MiddleCenter); RunUI.Stretch(weaponLabels[i].rectTransform, 3);
-                    weaponLabels[i].resizeTextForBestFit = true;
-                    weaponLabels[i].resizeTextMinSize = 13; weaponLabels[i].resizeTextMaxSize = 17;
-                }
             }
-            feedback = ui.Label(root, "Call을 보고 박자를 준비해", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
+            feedback = ui.Label(root, "", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
             feedback.gameObject.name = "Response feedback";
             RunUI.Overlay(feedback.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 62), new Vector2(0, 110));
             feedback.resizeTextForBestFit = true; feedback.resizeTextMinSize = 18; feedback.resizeTextMaxSize = 30;
             // Playback owns readiness, aggregate grades and victory; avoid a duplicate arena grade.
             arena.ShowResponseJudgment = false;
-            contact = ui.Label(root, "", 23, RunUI.Teal, 36, TextAnchor.MiddleCenter);
-            contact.gameObject.name = "Input status";
-            RunUI.Overlay(contact.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 24), new Vector2(0, 60));
-            contact.resizeTextForBestFit = true; contact.resizeTextMinSize = 15; contact.resizeTextMaxSize = 23;
             ui.FloatingMenu(root, pause);
 
             var overlay = ui.Modal(root, "Pause overlay", "일시정지", resume, out var panel);
@@ -153,7 +121,7 @@ namespace BBSB.Runtime.UI
         {
             if (!ReferenceEquals(round.Plan, value.Plan)) throw new InvalidOperationException("Practice must keep the same plan.");
             round = value; callCursor = resultCursor = 0; damageShownAt = double.NegativeInfinity;
-            feedback.text = "Call을 보고 박자를 준비해"; feedback.color = RunUI.TextColor;
+            feedback.text = ""; feedback.color = RunUI.TextColor; feedbackShownAt = double.NegativeInfinity;
             foreach (var monster in monsters) monster.Repeat(value);
             arena.Repeat(value);
         }
@@ -164,18 +132,10 @@ namespace BBSB.Runtime.UI
             decimal health = practice ? round.Combat.PlayerHealth : session.Health;
             healthLabel.text = (practice ? "연습 HP  " : "HP  ") + health.ToString("0.##") + " / " + session.MaxHealth;
             float healthRatio = Mathf.Clamp01((float)(health / session.MaxHealth));
-            RefreshWeapons(seconds);
+            RefreshEnemyHealth();
             healthFill.anchorMax = new Vector2(healthRatio, 1);
             healthImage.color = healthLabel.color = healthRatio <= .25f ? RunUI.Red : RunUI.Teal;
             var music = round.Plan.Stage.Music;
-            double beat = Math.Min(seconds / round.BeatSeconds, music.BarCount * music.BeatsPerBar - .00001);
-            int half = (int)Math.Floor(beat * 2), active = half % pulses.Length;
-            float brightness = (float)(1 - (beat * 2 - half));
-            for (int i = 0; i < pulses.Length; i++)
-                pulses[i].color = i == active ? Color.Lerp(RunUI.Panel, i % 2 == 0 ? RunUI.Gold : RunUI.Teal, .25f + brightness * .55f) : RunUI.Panel;
-            beatLabel.text = ((int)beat / music.BeatsPerBar + 1).ToString("00") + " / " + music.BarCount + "마디  ·  " +
-                ((int)beat % music.BeatsPerBar + 1) + (half % 2 == 0 ? " 정박" : " 엇박") + "  ·  " +
-                Math.Min(seconds, music.DurationSeconds).ToString("0.0") + "초";
             songProgress.anchorMax = new Vector2((float)Math.Min(1, seconds / music.DurationSeconds), 1);
 
             while (callCursor < round.Calls.Count)
@@ -198,7 +158,7 @@ namespace BBSB.Runtime.UI
                 if (freshPerfect > 0) labels.Add("PERFECT ×" + freshPerfect);
                 if (freshHalf > 0) labels.Add("반미스 ×" + freshHalf);
                 if (freshMiss > 0) labels.Add("MISS ×" + freshMiss);
-                feedback.text = string.Join("  /  ", labels);
+                feedback.text = string.Join("  /  ", labels); feedbackShownAt = seconds;
                 feedback.color = freshMiss > 0 ? RunUI.Red : freshHalf > 0 ? RunUI.Gold : RunUI.Teal;
                 damageLabel.text = freshDamage > 0 ? "받은 피해 -" + freshDamage.ToString("0.##") : "";
                 damageShownAt = freshDamage > 0 ? seconds : double.NegativeInfinity;
@@ -206,16 +166,9 @@ namespace BBSB.Runtime.UI
             damageLabel.enabled = seconds - damageShownAt < 1;
             counters.text = "정확 " + round.PerfectCount + "  ·  반미스 " + round.HalfMissCount + "  ·  미스 " + round.MissCount +
                 "  /  전체 " + round.ResponseNoteCount;
-            contact.text = waitingForContact ? "화면을 눌러 연주를 이어가" : round.IsDown ? "누르는 중" : "손을 뗀 상태";
-            contact.color = waitingForContact ? RunUI.Gold : round.IsDown ? RunUI.Teal : RunUI.Muted;
-            if (!waitingForContact)
-            {
-                var shakes = new List<string>();
-                foreach (var note in round.Notes)
-                    if (note.Step.Kind == GestureKind.Shake && note.State == ResponseState.Holding && (round.Combat == null || round.Combat.Allows(note.Attack)))
-                        shakes.Add(ShakeStatus(note));
-                if (shakes.Count > 0) contact.text = "Shake " + string.Join(" / ", shakes) + "  ·  한 번 왕복";
-            }
+            if (seconds - feedbackShownAt >= .7) feedback.text = "";
+            if (waitingForContact)
+            { feedback.text = "화면을 눌러 연주를 이어가"; feedback.color = RunUI.Gold; }
             if (round.Combat != null && round.Combat.Victory)
             {
                 feedback.text = seconds < round.Combat.FinaleAtSeconds ? "OVERKILL · 마지막 패턴을 마무리해" : "STAGE CLEAR";
@@ -226,42 +179,11 @@ namespace BBSB.Runtime.UI
             arena.Refresh();
         }
 
-        private void RefreshWeapons(double seconds)
+        private void RefreshEnemyHealth()
         {
             var combat = round.Combat; if (combat == null) return;
             enemyLabel.text = (combat.IsPractice ? "연습 표적 HP " : "스테이지 HP ") + combat.EnemyHealth.Current.ToString("0.##") + " / " + combat.EnemyHealth.Maximum;
             enemyFill.anchorMax = new Vector2((float)(combat.EnemyHealth.Current / combat.EnemyHealth.Maximum), 1);
-            for (int slot = 0; slot < weaponLabels.Length; slot++)
-            {
-                var definition = WeaponCatalog.Find(combat.Loadout.Equipment[slot].DefinitionId);
-                string state = definition.ActionLabelAt(combat.Loadout.Equipment[slot].Rarity) + " 대기";
-                Color tint = RunUI.Muted;
-                ResponseNote next = null;
-                foreach (var binding in combat.Bindings)
-                {
-                    var note = binding.Note;
-                    if (binding.Slot != slot || note.State == ResponseState.Resolved || !combat.Allows(note.Attack)) continue;
-                    if (next == null || note.StartTick < next.StartTick) next = note;
-                }
-                if (next != null && seconds >= RhythmTime.Seconds(next.Attack.ResponseStartTick, round.Plan.Stage.Music.Bpm))
-                {
-                    state = next.Step.Kind + (next.State == ResponseState.Holding ?
-                        (next.Step.Kind == GestureKind.Shake ? " 한 번 왕복" : " 유지") : " · " + (1 + (next.StartTick - next.Attack.ResponseStartTick) / 4.0).ToString("0.##") + "박");
-                    tint = RunUI.Gold;
-                }
-                for (int i = combat.Activations.Count - 1; i >= 0; i--)
-                {
-                    var activation = combat.Activations[i];
-                    if (activation.Slot != slot || seconds - activation.AtSeconds >= .45) continue;
-                    var effects = new List<string>();
-                    if (activation.Damage > 0) effects.Add("피해 " + activation.Damage.ToString("0.##"));
-                    if (activation.Guard > 0) effects.Add("방어막 +" + activation.Guard.ToString("0.##"));
-                    state = activation.Action.Name + " · " + string.Join(" / ", effects);
-                    tint = RunUI.Teal; break;
-                }
-                weaponLabels[slot].text = (slot + 1) + " " + definition.Name + "\n" + state;
-                weaponLabels[slot].color = tint;
-            }
         }
 
         public static string GradeLabel(RhythmGrade grade) => grade == RhythmGrade.Perfect ? "PERFECT" : grade == RhythmGrade.HalfMiss ? "반미스" : "MISS";
