@@ -19,7 +19,7 @@ namespace BBSB.Editor
         private UnityEditor.Editor inspector;
         private Vector2 scroll;
         private MonsterAuthoring[] available = Array.Empty<MonsterAuthoring>();
-        private void OnEnable() => RefreshMonsters();
+        private void OnEnable() { RefreshMonsters(); Undo.undoRedoPerformed += Repaint; }
         private void OnProjectChange() { RefreshMonsters(); Repaint(); }
         private void RefreshMonsters()
         {
@@ -28,8 +28,12 @@ namespace BBSB.Editor
                 .Where(asset => asset != null).OrderBy(asset => asset.displayName, StringComparer.Ordinal).ToArray();
         }
         [MenuItem("BBSB/Monster Editor")]
-        public static void Open() => GetWindow<MonsterEditorWindow>("몬스터 에디터");
-        private void OnDisable() { if (inspector != null) DestroyImmediate(inspector); }
+        public static void Open()
+        {
+            var window = GetWindow<MonsterEditorWindow>("몬스터 에디터");
+            window.minSize = new Vector2(540, 500);
+        }
+        private void OnDisable() { Undo.undoRedoPerformed -= Repaint; if (inspector != null) DestroyImmediate(inspector); }
         private void OnGUI()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
@@ -44,7 +48,13 @@ namespace BBSB.Editor
             if (selected == null)
             { EditorGUILayout.HelpBox("새 몬스터를 만들거나 Monster 에셋을 선택해줘. 기본 모습 → 패턴 → Animator 순서로 설정하면 돼.", MessageType.Info); return; }
             UnityEditor.Editor.CreateCachedEditor(selected, typeof(MonsterAuthoringEditor), ref inspector);
-            scroll = EditorGUILayout.BeginScrollView(scroll); inspector.OnInspectorGUI(); EditorGUILayout.EndScrollView();
+            scroll = EditorGUILayout.BeginScrollView(scroll);
+            try { inspector.OnInspectorGUI(); }
+            finally
+            {
+                EditorGUILayout.EndScrollView();
+                if (GUI.changed || Event.current.type == EventType.Used) Repaint();
+            }
         }
         private void Create()
         {
@@ -57,17 +67,21 @@ namespace BBSB.Editor
         }
     }
     [CustomEditor(typeof(MonsterAuthoring))]
-    public sealed class MonsterAuthoringEditor : UnityEditor.Editor
+    public sealed partial class MonsterAuthoringEditor : UnityEditor.Editor
     {
         private int tab, selectedPattern;
         private string validation;
         private MessageType validationType;
         private float previewBpm = 120;
+        private bool patternDetails;
         private readonly string[] tabs = { "기본 모습", "패턴", "공격 연출", "Animator 모션" };
         private MonsterAuthoring Asset => (MonsterAuthoring)target;
         public override void OnInspectorGUI()
         {
-            serializedObject.Update(); tab = GUILayout.Toolbar(tab, tabs); EditorGUILayout.Space();
+            serializedObject.Update();
+            int nextTab = GUILayout.Toolbar(tab, tabs);
+            if (nextTab != tab) { FinishTimelineDrag(); tab = nextTab; }
+            EditorGUILayout.Space();
             if (tab == 0) Appearance(); else if (tab == 1) Patterns(); else if (tab == 2) Attacks(); else Motions();
             if (serializedObject.ApplyModifiedProperties()) validation = null;
             EditorGUILayout.Space();
@@ -113,11 +127,11 @@ namespace BBSB.Editor
                 EditorGUILayout.HelpBox("Beat Shift는 Tap 전용 정박 ↔ 엇박 반복 방식이야. Hold 등 일반 패턴은 Independent로 설정해. 확률 적용 시 기본 패턴 확률은 연속 구간 진입에, 전환 패턴 확률은 최소 반복 후 매 Call의 전환 시도에 사용돼. 구간 안의 기본 박자는 빠지지 않아.", MessageType.Info);
             }
             var patterns = serializedObject.FindProperty("patterns");
-            EditorGUILayout.HelpBox("시간은 시작점을 0박으로 세고 0.25박 단위로 설정해. Call 시각은 Call 시작 기준, Response 시각은 Response 구간 시작 기준이야. 첫 입력 앞에 빈 박자를 둘 수 있어. Call은 실제 첫 입력 전에 끝나면 돼. Hold/Dive에만 유지 길이를 지정해.", MessageType.Info);
+            EditorGUILayout.HelpBox("타임라인과 마커 설정의 시각은 첫 Call을 0박으로 센 공통 박자야. 아래 구간 설정은 Response 영역의 시작과 길이를 정해. 첫 입력 앞에 빈 박자를 둘 수 있고, Call은 실제 첫 입력 전에 끝나면 돼.", MessageType.Info);
             if (patterns.arraySize > 0)
             {
                 var names = Enumerable.Range(0, patterns.arraySize).Select(i => patterns.GetArrayElementAtIndex(i).FindPropertyRelative("displayName").stringValue).ToArray();
-                selectedPattern = EditorGUILayout.Popup("편집할 패턴", Mathf.Clamp(selectedPattern, 0, patterns.arraySize - 1), names);
+                SelectTimelinePattern(EditorGUILayout.Popup("편집할 패턴", Mathf.Clamp(selectedPattern, 0, patterns.arraySize - 1), names));
             }
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("패턴 추가"))
@@ -125,165 +139,105 @@ namespace BBSB.Editor
                 serializedObject.ApplyModifiedProperties(); Undo.RecordObject(Asset, "Add monster pattern");
                 var list = new List<MonsterAuthoring.Pattern>(Asset.patterns ?? Array.Empty<MonsterAuthoring.Pattern>());
                 list.Add(new MonsterAuthoring.Pattern { id = "pattern-" + Guid.NewGuid().ToString("N").Substring(0, 6) });
-                Asset.patterns = list.ToArray(); EditorUtility.SetDirty(Asset); serializedObject.Update(); selectedPattern = list.Count - 1;
+                Asset.patterns = list.ToArray(); EditorUtility.SetDirty(Asset); serializedObject.Update(); SelectTimelinePattern(list.Count - 1);
             }
             if (patterns.arraySize > 0 && GUILayout.Button("패턴 삭제"))
-            { patterns.DeleteArrayElementAtIndex(selectedPattern); selectedPattern = Mathf.Max(0, selectedPattern - 1); }
+            { FinishTimelineDrag(); patterns.DeleteArrayElementAtIndex(selectedPattern); selectedPattern = Mathf.Max(0, selectedPattern - 1); selectedMarker = -1; }
             EditorGUILayout.EndHorizontal();
             if (patterns.arraySize == 0) return;
             var pattern = patterns.GetArrayElementAtIndex(Mathf.Clamp(selectedPattern, 0, patterns.arraySize - 1));
-            Field(pattern, "id", "패턴 ID"); Field(pattern, "displayName", "패턴 이름"); Field(pattern, "description", "설명");
-            Beats(pattern, "cueLeadTicks", "Response 구간 시작", 1);
-            Beats(pattern, "responseTicks", "Response 구간 길이", 1); Beats(pattern, "restTicks", "이후 휴식");
-            Beats(pattern, "cueAlignmentTicks", "Call 시작 정렬 단위", 1); Beats(pattern, "silentWaitTicks", "마지막 Call → 첫 입력 대기 (없으면 0)");
-            Field(pattern, "participationChance", "패턴 참여 확률");
-            Rows(pattern.FindPropertyRelative("calls"), true); Rows(pattern.FindPropertyRelative("steps"), false);
-            Field(pattern, "attackState", "이 패턴의 Attack 상태 (선택)"); Field(pattern, "recoverState", "이 패턴의 Recover 상태 (선택)");
-            DrawTimeline(pattern);
+            Field(pattern, "displayName", "패턴 이름");
+            patternDetails = EditorGUILayout.Foldout(patternDetails, "패턴 구간 · 확률 · 상태 설정", true);
+            if (patternDetails)
+            {
+                Field(pattern, "id", "패턴 ID"); Field(pattern, "description", "설명");
+                Beats(pattern, "cueLeadTicks", "Response 구간 시작", 1);
+                Beats(pattern, "responseTicks", "Response 구간 길이", 1); Beats(pattern, "restTicks", "이후 휴식");
+                Beats(pattern, "cueAlignmentTicks", "Call 시작 정렬 단위", 1); Beats(pattern, "silentWaitTicks", "마지막 Call → 첫 입력 대기 (없으면 0)");
+                Field(pattern, "participationChance", "패턴 참여 확률");
+                Field(pattern, "attackState", "이 패턴의 Attack 상태 (선택)"); Field(pattern, "recoverState", "이 패턴의 Recover 상태 (선택)");
+            }
+            DrawPatternTimeline(pattern);
+            DrawSelectedMarker(pattern);
         }
-        private static void Rows(SerializedProperty rows, bool calls)
-        {
-            EditorGUILayout.LabelField(calls ? "Call 신호" : "Response 입력", EditorStyles.boldLabel);
-            for (int i = 0; i < rows.arraySize; i++)
-            {
-                var row = rows.GetArrayElementAtIndex(i);
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox); EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField((calls ? "Call " : "Response ") + (i + 1));
-                bool delete = GUILayout.Button("삭제", GUILayout.Width(48)); EditorGUILayout.EndHorizontal();
-                Beats(row, "offsetTick", "시작 시각");
-                if (calls)
-                {
-                    Field(row, "label", "신호 이름"); Field(row, "sound", "Call 소리"); Field(row, "motion", "기본 Call 동작");
-                    Field(row, "animatorState", "Animator 상태 (선택)");
-                }
-                else
-                {
-                    var kind = row.FindPropertyRelative("kind");
-                    EditorGUI.BeginChangeCheck(); EditorGUILayout.PropertyField(kind, new GUIContent("입력"));
-                    bool sustained = kind.enumValueIndex == (int)GestureKind.Hold || kind.enumValueIndex == (int)GestureKind.Dive;
-                    if (EditorGUI.EndChangeCheck()) row.FindPropertyRelative("durationTicks").intValue = sustained ? 4 : 0;
-                    if (sustained) Beats(row, "durationTicks", "유지 길이", 1);
-                }
-                EditorGUILayout.EndVertical();
-                if (delete) { rows.DeleteArrayElementAtIndex(i); break; }
-            }
-            if (GUILayout.Button(calls ? "+ Call" : "+ Response"))
-            {
-                int index = rows.arraySize; rows.InsertArrayElementAtIndex(index);
-                var row = rows.GetArrayElementAtIndex(index);
-                row.FindPropertyRelative("offsetTick").intValue = index * 4;
-                if (calls)
-                {
-                    row.FindPropertyRelative("label").stringValue = "통!"; row.FindPropertyRelative("sound").enumValueIndex = 0;
-                    row.FindPropertyRelative("motion").enumValueIndex = 0; row.FindPropertyRelative("animatorState").stringValue = "";
-                }
-                else { row.FindPropertyRelative("kind").enumValueIndex = 0; row.FindPropertyRelative("durationTicks").intValue = 0; }
-            }
-        }
-        private static void DrawTimeline(SerializedProperty pattern)
-        {
-            float cue = pattern.FindPropertyRelative("cueLeadTicks").intValue;
-            float total = Mathf.Max(4, cue + pattern.FindPropertyRelative("responseTicks").intValue + pattern.FindPropertyRelative("restTicks").intValue);
-            var rect = GUILayoutUtility.GetRect(100, 104, GUILayout.ExpandWidth(true));
-            EditorGUI.DrawRect(rect, new Color(.12f, .14f, .19f));
-            for (int tick = 0; tick <= total; tick += 4)
-            {
-                float x = rect.x + tick / total * rect.width;
-                EditorGUI.DrawRect(new Rect(x, rect.y, 1, rect.height), Color.gray);
-                if (total <= 128 || tick % 16 == 0) GUI.Label(new Rect(x + 2, rect.y, 40, 18), (tick / 4f).ToString("0.##"));
-            }
-            foreach (bool call in new[] { true, false })
-            {
-                var rows = pattern.FindPropertyRelative(call ? "calls" : "steps");
-                for (int i = 0; i < rows.arraySize; i++)
-                {
-                    var row = rows.GetArrayElementAtIndex(i);
-                    float start = (call ? 0 : cue) + row.FindPropertyRelative("offsetTick").intValue;
-                    float duration = call ? .4f : Mathf.Max(.4f, row.FindPropertyRelative("durationTicks").intValue);
-                    var mark = new Rect(rect.x + start / total * rect.width, rect.y + (call ? 26 : 66), Mathf.Max(4, duration / total * rect.width), 12);
-                    EditorGUI.DrawRect(mark, call ? new Color(1, .75f, .25f) : new Color(.25f, .9f, .8f));
-                    GUI.Label(new Rect(mark.x, mark.y + 12, 85, 20), call ? "C" + (i + 1) : ((GestureKind)row.FindPropertyRelative("kind").enumValueIndex).ToString());
-                }
-            }
-        }
-
         private void Attacks()
         {
             var patterns = serializedObject.FindProperty("patterns");
             if (patterns.arraySize == 0) { EditorGUILayout.HelpBox("먼저 패턴과 Response 입력을 추가해줘.", MessageType.Info); return; }
             var names = Enumerable.Range(0, patterns.arraySize).Select(i => patterns.GetArrayElementAtIndex(i).FindPropertyRelative("displayName").stringValue).ToArray();
-            selectedPattern = EditorGUILayout.Popup("편집할 패턴", Mathf.Clamp(selectedPattern, 0, patterns.arraySize - 1), names);
+            SelectTimelinePattern(EditorGUILayout.Popup("편집할 패턴", Mathf.Clamp(selectedPattern, 0, patterns.arraySize - 1), names));
             var pattern = patterns.GetArrayElementAtIndex(selectedPattern);
             var steps = pattern.FindPropertyRelative("steps");
             EditorGUILayout.HelpBox("Response 하나당 공격 한 발을 연결해. 생성은 선택한 Call + 지연 시각, 도착은 그 Response의 판정 시각이야. WaitRush는 먼저 기다린 뒤 지정한 길이 동안 돌진해. 아래 테스트 장면에서 실제 궤적을 연습할 수 있어.", MessageType.Info);
-            for (int i = 0; i < steps.arraySize; i++)
+            for (int i = 0; i < steps.arraySize; i++) DrawAttack(pattern, steps.GetArrayElementAtIndex(i), i);
+        }
+
+        private void DrawAttack(SerializedProperty pattern, SerializedProperty step, int i)
+        {
+            var attack = step.FindPropertyRelative("attack");
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            float contact = (pattern.FindPropertyRelative("cueLeadTicks").intValue + step.FindPropertyRelative("offsetTick").intValue) / 4f;
+            EditorGUILayout.LabelField("Response " + (i + 1) + " · " + ((GestureKind)step.FindPropertyRelative("kind").enumValueIndex) +
+                " · 첫 Call 후 " + contact.ToString("0.##") + "박에 판정", EditorStyles.boldLabel);
+            Field(attack, "enabled", "이 입력의 공격 직접 설정");
+            if (!attack.FindPropertyRelative("enabled").boolValue)
             {
-                var step = steps.GetArrayElementAtIndex(i);
-                var attack = step.FindPropertyRelative("attack");
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                float contact = (pattern.FindPropertyRelative("cueLeadTicks").intValue + step.FindPropertyRelative("offsetTick").intValue) / 4f;
-                EditorGUILayout.LabelField("Response " + (i + 1) + " · " + ((GestureKind)step.FindPropertyRelative("kind").enumValueIndex) +
-                    " · 첫 Call 후 " + contact.ToString("0.##") + "박에 판정", EditorStyles.boldLabel);
-                Field(attack, "enabled", "이 입력의 공격 직접 설정");
-                if (!attack.FindPropertyRelative("enabled").boolValue)
+                if (GUILayout.Button("기존 공격 설정을 가져와 편집"))
                 {
-                    if (GUILayout.Button("기존 공격 설정을 가져와 편집"))
+                    serializedObject.ApplyModifiedProperties(); Undo.RecordObject(Asset, "Configure attack");
+                    var source = MonsterAttackCatalog.Find(Asset.monsterId, Asset.patterns[selectedPattern].id, i) ??
+                        MonsterAttackCatalog.Find(Asset.monsterId, Asset.patterns[selectedPattern].id, 0);
+                    var config = new MonsterAuthoring.Attack { enabled = true };
+                    if (source != null)
                     {
-                        serializedObject.ApplyModifiedProperties(); Undo.RecordObject(Asset, "Configure attack");
-                        var source = MonsterAttackCatalog.Find(Asset.monsterId, Asset.patterns[selectedPattern].id, i) ??
-                            MonsterAttackCatalog.Find(Asset.monsterId, Asset.patterns[selectedPattern].id, 0);
-                        var config = new MonsterAuthoring.Attack { enabled = true };
-                        if (source != null)
-                        {
-                            config.motion = source.Motion; config.shape = source.Shape; config.reaction = source.Reaction;
-                            config.callIndex = Mathf.Min(source.CallIndex, Asset.patterns[selectedPattern].calls.Length - 1);
-                            config.spawnOffsetTicks = source.SpawnOffsetTicks; config.rushTicks = source.RushTicks;
-                            config.height = (float)source.Height; config.arc = (float)source.Arc;
-                            config.stretch = source.Stretch; config.grounded = source.Grounded; config.landsAfterMiss = source.LandsAfterMiss;
-                            config.resourceFolder = source.ResourceFolder;
-                        }
-                        Asset.patterns[selectedPattern].steps[i].attack = config;
-                        EditorUtility.SetDirty(Asset); serializedObject.Update();
+                        config.motion = source.Motion; config.shape = source.Shape; config.reaction = source.Reaction;
+                        config.callIndex = Mathf.Clamp(source.CallIndex, 0, Mathf.Max(0, Asset.patterns[selectedPattern].calls.Length - 1));
+                        config.spawnOffsetTicks = source.SpawnOffsetTicks; config.rushTicks = source.RushTicks;
+                        config.height = (float)source.Height; config.arc = (float)source.Arc;
+                        config.stretch = source.Stretch; config.grounded = source.Grounded; config.landsAfterMiss = source.LandsAfterMiss;
+                        config.resourceFolder = source.ResourceFolder;
                     }
-                    EditorGUILayout.EndVertical(); continue;
+                    Asset.patterns[selectedPattern].steps[i].attack = config;
+                    EditorUtility.SetDirty(Asset); serializedObject.Update();
                 }
-                Field(attack, "motion", "이동 방식"); Field(attack, "shape", "기본 외형 / 지속 효과"); Field(attack, "reaction", "퍼펙트 반응");
-                var calls = pattern.FindPropertyRelative("calls");
-                if (calls.arraySize > 0)
-                {
-                    var choices = Enumerable.Range(0, calls.arraySize).Select(c => "Call " + (c + 1) + " · " +
-                        (calls.GetArrayElementAtIndex(c).FindPropertyRelative("offsetTick").intValue / 4f).ToString("0.##") + "박").ToArray();
-                    var call = attack.FindPropertyRelative("callIndex");
-                    call.intValue = EditorGUILayout.Popup("생성 기준 Call", Mathf.Clamp(call.intValue, 0, calls.arraySize - 1), choices);
-                }
-                Beats(attack, "spawnOffsetTicks", "기준 Call 이후 생성 지연");
-                if (attack.FindPropertyRelative("motion").enumValueIndex == (int)MonsterAttackMotion.WaitRush)
-                    Beats(attack, "rushTicks", "판정 직전 돌진 길이", 1);
-                Field(attack, "height", "공격 높이 (플레이어 키 비율)"); Field(attack, "arc", "궤적 솟는 높이");
-                Field(attack, "stretch", "몸체와 이어지는 늘어나는 공격"); Field(attack, "grounded", "지면을 따라 이동");
-                Field(attack, "landsAfterMiss", "미스 확정 후 바닥으로 내려와 타격");
-                Field(attack, "resourceFolder", "기존 이미지 폴더 (Resources 상대 경로)");
-                Field(attack, "images", "단계별 Sprite 프레임");
-                EditorGUILayout.HelpBox("Spawn 생성 / Wait 대기 / Travel 이동 / Contact 유지 / Perfect·HalfMiss·Miss 판정 반응. Sprite 배열을 순서대로 재생해. 비운 단계는 기존 이미지 폴더와 이동 이미지로 보완해.", MessageType.None);
-                Field(attack, "overrideDisplay", "발사 위치 · 판정 위치 · 이미지 표시 직접 보정");
-                if (attack.FindPropertyRelative("overrideDisplay").boolValue)
-                {
-                    var display = attack.FindPropertyRelative("display");
-                    Field(display, "sourceOffset", "발사 위치 보정 (몬스터 키 기준)");
-                    Field(display, "targetOffset", "판정 위치 보정 (플레이어 키 기준)");
-                    Field(display, "imageOffset", "이미지만 이동"); Field(display, "scale", "이미지 크기");
-                    Field(display, "framesPerBeat", "박당 이미지 프레임 수"); Field(display, "poses", "단계별 크기 · 회전 · Pivot");
-                }
-                if (calls.arraySize > 0)
-                {
-                    int callIndex = Mathf.Clamp(attack.FindPropertyRelative("callIndex").intValue, 0, calls.arraySize - 1);
-                    float spawn = (calls.GetArrayElementAtIndex(callIndex).FindPropertyRelative("offsetTick").intValue +
-                        attack.FindPropertyRelative("spawnOffsetTicks").intValue) / 4f;
-                    EditorGUILayout.LabelField("생성 " + spawn.ToString("0.##") + "박 → 판정 " + contact.ToString("0.##") +
-                        "박 · 이동 가능 " + (contact - spawn).ToString("0.##") + "박");
-                }
-                EditorGUILayout.EndVertical();
+                EditorGUILayout.EndVertical(); return;
             }
+            Field(attack, "motion", "이동 방식"); Field(attack, "shape", "기본 외형 / 지속 효과"); Field(attack, "reaction", "퍼펙트 반응");
+            var calls = pattern.FindPropertyRelative("calls");
+            if (calls.arraySize > 0)
+            {
+                var choices = Enumerable.Range(0, calls.arraySize).Select(c => "Call " + (c + 1) + " · " +
+                    (calls.GetArrayElementAtIndex(c).FindPropertyRelative("offsetTick").intValue / 4f).ToString("0.##") + "박").ToArray();
+                var call = attack.FindPropertyRelative("callIndex");
+                call.intValue = EditorGUILayout.Popup("생성 기준 Call", Mathf.Clamp(call.intValue, 0, calls.arraySize - 1), choices);
+            }
+            Beats(attack, "spawnOffsetTicks", "기준 Call 이후 생성 지연");
+            if (attack.FindPropertyRelative("motion").enumValueIndex == (int)MonsterAttackMotion.WaitRush)
+                Beats(attack, "rushTicks", "판정 직전 돌진 길이", 1);
+            Field(attack, "height", "공격 높이 (플레이어 키 비율)"); Field(attack, "arc", "궤적 솟는 높이");
+            Field(attack, "stretch", "몸체와 이어지는 늘어나는 공격"); Field(attack, "grounded", "지면을 따라 이동");
+            Field(attack, "landsAfterMiss", "미스 확정 후 바닥으로 내려와 타격");
+            Field(attack, "resourceFolder", "기존 이미지 폴더 (Resources 상대 경로)");
+            Field(attack, "images", "단계별 Sprite 프레임");
+            EditorGUILayout.HelpBox("Spawn 생성 / Wait 대기 / Travel 이동 / Contact 유지 / Perfect·HalfMiss·Miss 판정 반응. Sprite 배열을 순서대로 재생해. 비운 단계는 기존 이미지 폴더와 이동 이미지로 보완해.", MessageType.None);
+            Field(attack, "overrideDisplay", "발사 위치 · 판정 위치 · 이미지 표시 직접 보정");
+            if (attack.FindPropertyRelative("overrideDisplay").boolValue)
+            {
+                var display = attack.FindPropertyRelative("display");
+                Field(display, "sourceOffset", "발사 위치 보정 (몬스터 키 기준)");
+                Field(display, "targetOffset", "판정 위치 보정 (플레이어 키 기준)");
+                Field(display, "imageOffset", "이미지만 이동"); Field(display, "scale", "이미지 크기");
+                Field(display, "framesPerBeat", "박당 이미지 프레임 수"); Field(display, "poses", "단계별 크기 · 회전 · Pivot");
+            }
+            if (calls.arraySize > 0)
+            {
+                int callIndex = Mathf.Clamp(attack.FindPropertyRelative("callIndex").intValue, 0, calls.arraySize - 1);
+                float spawn = (calls.GetArrayElementAtIndex(callIndex).FindPropertyRelative("offsetTick").intValue +
+                    attack.FindPropertyRelative("spawnOffsetTicks").intValue) / 4f;
+                EditorGUILayout.LabelField("생성 " + spawn.ToString("0.##") + "박 → 판정 " + contact.ToString("0.##") +
+                    "박 · 이동 가능 " + (contact - spawn).ToString("0.##") + "박");
+            }
+            EditorGUILayout.EndVertical();
         }
 
         private void Motions()
