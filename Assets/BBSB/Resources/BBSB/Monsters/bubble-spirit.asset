@@ -25,6 +25,7 @@ MonoBehaviour:
   artId: bubble-spirit
   patternStrategy: 0
   steadyCallsPerPhase: 3
+  usePatternProbabilities: 1
   useLegacyBodyAnimation: 1
   displayScale: 1
   displayOffset: {x: 0, y: 0}
@@ -88,6 +89,32 @@ MonoBehaviour:
     - kind: 4
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 
   - id: two-bubble-shakes
@@ -110,8 +137,60 @@ MonoBehaviour:
     - kind: 4
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.52
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/two-bubble-shakes/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     - kind: 4
       offsetTick: 8
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 8
+        rushTicks: 2
+        height: 0.52
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/two-bubble-shakes/step-1
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 

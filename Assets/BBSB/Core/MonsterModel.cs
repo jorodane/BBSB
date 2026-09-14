@@ -37,6 +37,28 @@ namespace BBSB.Core
         // Fixed precision keeps repeated health subtraction and accumulated damage identical.
         internal static decimal WeightFor(decimal ticks, int judgments) =>
             decimal.Round(ticks / (2m * RhythmTime.TicksPerBeat * judgments), 4, MidpointRounding.AwayFromZero);
+        // The editor may leave leading space in its Response region. Normalize only the
+        // core origin, preserving every absolute Call/input time and the complete phrase.
+        public static MonsterPatternDefinition FromPhrase(string id, string name, string description,
+            int responseOriginTicks, IEnumerable<PatternStep> steps, IEnumerable<CallSignal> calls,
+            int responseTicks, int restTicks, double participationChance, int cueAlignmentTicks = 1,
+            int silentWaitTicks = 0)
+        {
+            if (steps == null) throw new ArgumentNullException(nameof(steps));
+            var source = new List<PatternStep>(steps);
+            if (source.Count == 0 || source.Exists(x => x == null)) throw new ArgumentException("Response inputs are required.");
+            int first = int.MaxValue;
+            foreach (var step in source) first = Math.Min(first, step.OffsetTick);
+            long lead = (long)responseOriginTicks + first;
+            if (responseOriginTicks <= 0 || lead > int.MaxValue || responseTicks <= first)
+                throw new ArgumentException("The Response region must contain its inputs.");
+            var normalized = new List<PatternStep>();
+            foreach (var step in source)
+                normalized.Add(new PatternStep(step.Kind, step.OffsetTick - first, step.DurationTicks));
+            return new MonsterPatternDefinition(name, description, new RhythmPattern(id, (int)lead, normalized),
+                calls, responseTicks - first, restTicks, participationChance, cueAlignmentTicks, silentWaitTicks);
+        }
+
         public MonsterPatternDefinition(string name, string description, RhythmPattern pattern,
             IEnumerable<CallSignal> call, int responseTicks, int restTicks, double participationChance, int cueAlignmentTicks = 1,
             int silentWaitTicks = 0)
@@ -56,8 +78,8 @@ namespace BBSB.Core
                     throw new ArgumentException("Call signals must be distinct and precede the Response.");
             if (signals[0].OffsetTick != 0) throw new ArgumentException("The first Call signal must mark the cue start.");
             if (silentWaitTicks < 0 || (silentWaitTicks > 0 &&
-                (silentWaitTicks < 4 * RhythmTime.TicksPerBeat || silentWaitTicks != pattern.CueLeadTicks - signals[signals.Count - 1].OffsetTick)))
-                throw new ArgumentException("A silent wait must span at least four beats from the final Call to the Response.");
+                (silentWaitTicks != pattern.CueLeadTicks - signals[signals.Count - 1].OffsetTick)))
+                throw new ArgumentException("A silent wait must match the positive distance from the final Call to the Response.");
             if (!InputCompatibility.IsPlayable(pattern)) throw new ArgumentException("The monster's pattern contains conflicting touch requirements.");
             Id = pattern.Id; Name = name; Description = description ?? ""; Pattern = pattern; Call = signals.AsReadOnly();
             ResponseTicks = responseTicks; RestTicks = restTicks; ParticipationChance = participationChance;
@@ -79,7 +101,7 @@ namespace BBSB.Core
 
         public MonsterDefinition(string id, string name, string description, GestureKind mainGesture,
             IEnumerable<MonsterPatternDefinition> patterns, double encounterWeight = 1, int damagePerNote = 4, string artId = null,
-            IMonsterPatternPlanner patternPlanner = null)
+            IMonsterPatternPlanner patternPlanner = null, bool validateCallReadability = true)
         {
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A monster needs an ID and name.");
             if (!Enum.IsDefined(typeof(GestureKind), mainGesture)) throw new ArgumentOutOfRangeException(nameof(mainGesture));
@@ -93,7 +115,7 @@ namespace BBSB.Core
                 if (pattern == null || !ids.Add(pattern.Id)) throw new ArgumentException("Monster pattern IDs must be distinct.");
             if (copy.FindAll(x => x.SilentWaitTicks > 0).Count > 1)
                 throw new ArgumentException("A monster can have only one silent-wait pattern; pair it with a shorter pattern.");
-            for (int i = 0; i < copy.Count; i++)
+            if (validateCallReadability) for (int i = 0; i < copy.Count; i++)
                 for (int j = i + 1; j < copy.Count; j++) CallReadability.Validate(copy[i], copy[j]);
             PatternPlanner = patternPlanner ?? IndependentPatternPlanner.Instance;
             PatternPlanner.Validate(copy);

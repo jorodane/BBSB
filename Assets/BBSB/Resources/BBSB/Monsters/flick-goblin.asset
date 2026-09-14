@@ -25,6 +25,7 @@ MonoBehaviour:
   artId: flick-goblin
   patternStrategy: 0
   steadyCallsPerPhase: 3
+  usePatternProbabilities: 1
   useLegacyBodyAnimation: 1
   displayScale: 1
   displayOffset: {x: 0, y: 0}
@@ -99,6 +100,32 @@ MonoBehaviour:
     - kind: 3
       offsetTick: 2
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 11
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.07
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/flick-goblin/counted-flick/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 
   - id: offbeat-flick
@@ -127,8 +154,60 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 2
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 11
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.12
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/flick-goblin/offbeat-flick/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     - kind: 0
       offsetTick: 6
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 11
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 1
+        height: 0.12
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/flick-goblin/offbeat-flick/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 

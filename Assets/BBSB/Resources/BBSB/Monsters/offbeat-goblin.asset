@@ -24,6 +24,7 @@ MonoBehaviour:
   artId: flick-goblin
   patternStrategy: 0
   steadyCallsPerPhase: 3
+  usePatternProbabilities: 1
   useLegacyBodyAnimation: 1
   displayScale: 1
   displayOffset: {x: 0, y: 0}
@@ -89,6 +90,32 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 
   - id: offbeat-pair
@@ -117,8 +144,60 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-pair/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     - kind: 0
       offsetTick: 4
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 1
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-pair/step-1
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 

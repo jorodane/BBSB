@@ -514,7 +514,8 @@ namespace BBSB.Runtime.UI
                 var feedback = MonsterAttackTimeline.ContactFeedback(note, seconds, round.BeatSeconds, round.HalfMissWindow);
                 if (!feedback.Active) continue;
                 var definition = MonsterAttackCatalog.For(note);
-                var calibration = monsterAttackDisplay != null ? monsterAttackDisplay.Find(definition) : null;
+                var custom = MonsterAuthoring.FindAttackArt(definition);
+                var calibration = custom != null && custom.overrideDisplay ? custom.display : monsterAttackDisplay != null ? monsterAttackDisplay.Find(definition) : null;
                 var socket = monsterAttackDisplay != null ? monsterAttackDisplay.Socket(note.Step.Kind) : MonsterAttackDisplay.DefaultSocket(note.Step.Kind);
                 socket += calibration?.targetOffset ?? Vector2.zero;
                 var point = HeroGroundPosition + new Vector2(socket.x * heroDisplayHeight / size.x, socket.y * heroDisplayHeight / size.y);

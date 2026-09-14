@@ -63,6 +63,91 @@ namespace BBSB.Tests
             }
             finally { MonsterCatalog.SetRoster(previous); }
         }
+
+        [Test]
+        public void LeadingResponseSpacePreservesCallInputTimesPhraseAndDamageBudget()
+        {
+            var pattern = MonsterPatternDefinition.FromPhrase("delayed-flick", "Delayed", "", 4,
+                new[] { new PatternStep(GestureKind.Flick, 2) },
+                new[] { new CallSignal(0, "one"), new CallSignal(2, "two"), new CallSignal(4, "three") }, 8, 0, .6);
+            Check.Equal(6, pattern.Pattern.CueLeadTicks); Check.Equal(0, pattern.Pattern.Steps[0].OffsetTick);
+            Check.Equal(6, pattern.ResponseTicks); Check.Equal(12, pattern.Pattern.CueLeadTicks + pattern.ResponseTicks);
+            Check.Equal(1.5m, pattern.JudgmentWeight);
+            var monster = new MonsterDefinition("flick", "Flick", "", GestureKind.Flick, new[] { pattern });
+            var preview = new MonsterPreview(monster, pattern);
+            var attack = preview.Round.Notes[0].Attack;
+            Check.Equal(6, preview.Round.Notes[0].StartTick - attack.CallStartTick);
+            Check.Equal(4, attack.Call[2].Tick - attack.CallStartTick);
+        }
+
+        [Test]
+        public void ThreeBeatWaitIsValidAndAmbiguousCallsCanBeReviewedWithoutDiscardingTheMonster()
+        {
+            var wait = MonsterPatternDefinition.FromPhrase("wait", "Wait", "", 12,
+                new[] { new PatternStep(GestureKind.Tap, 0) }, new[] { new CallSignal(0, "wait") }, 4, 0, .1,
+                silentWaitTicks: 12);
+            Check.Equal(12, wait.SilentWaitTicks);
+            var other = MonsterPatternDefinition.FromPhrase("other", "Other", "", 4,
+                new[] { new PatternStep(GestureKind.Tap, 0) }, new[] { new CallSignal(0, "same sound") }, 4, 0, .8);
+            Check.True(CallReadability.Warning(wait, other) != null);
+            var authored = new MonsterDefinition("authored", "Authored", "", GestureKind.Tap, new[] { wait, other },
+                validateCallReadability: false);
+            Check.Equal(2, authored.Patterns.Count);
+        }
+
+        [Test]
+        public void BeatShiftAuthoredProbabilitiesChangeTransitionsWithoutBreakingThePulse()
+        {
+            var source = MonsterCatalog.BuiltIn.Single(x => x.Id == "seesaw-goblin");
+            MonsterDefinition WithChance(double chance)
+            {
+                var patterns = source.Patterns.Select(p => new MonsterPatternDefinition(p.Name, p.Description, p.Pattern, p.Call,
+                    p.ResponseTicks, p.RestTicks, p.Pattern.Steps.Count == 2 ? chance : 1, p.CueAlignmentTicks)).ToArray();
+                return new MonsterDefinition(source.Id, source.Name, "", source.MainGesture, patterns,
+                    patternPlanner: new BeatShiftPlanner(3, true));
+            }
+            var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "rapid-drive"));
+            var dense = WithChance(1); var sparse = WithChance(.2);
+            int denseTransitions = 0, sparseTransitions = 0; bool different = false;
+            string Fingerprint(MonsterProposal p) => string.Join("|", p.Placements.Select(x => x.Pattern.Id + "@" + x.StartTick));
+            for (int seed = 0; seed < 12; seed++)
+            {
+                var a = BattlePlanner.Propose(stage, "same", dense, seed);
+                var b = BattlePlanner.Propose(stage, "same", sparse, seed);
+                Check.Equal(Fingerprint(b), Fingerprint(BattlePlanner.Propose(stage, "same", sparse, seed)));
+                different |= Fingerprint(a) != Fingerprint(b);
+                denseTransitions += a.Placements.Count(x => x.Pattern.Steps.Count == 2);
+                sparseTransitions += b.Placements.Count(x => x.Pattern.Steps.Count == 2);
+                foreach (var chain in b.Chains)
+                {
+                    var ticks = chain.Placements.SelectMany(x => x.Pattern.Steps.Select(step => x.StartTick + step.OffsetTick)).OrderBy(x => x).ToArray();
+                    for (int i = 1; i < ticks.Length; i++) Check.True(ticks[i] - ticks[i - 1] > 0 && ticks[i] - ticks[i - 1] <= 4);
+                }
+            }
+            Check.True(different); Check.True(sparseTransitions < denseTransitions);
+        }
+
+
+        [Test]
+        public void AttackOverridesAreIsolatedPerMonsterDefinitionAndReachTheirOwnJudgment()
+        {
+            var first = Monster(); var second = Monster();
+            var a = new MonsterPreview(first, first.Patterns[0]); var b = new MonsterPreview(second, second.Patterns[0]);
+            var visual = new MonsterAttackDefinition(first.Id, first.Patterns[0].Id, 0,
+                MonsterAttackMotion.WaitRush, MonsterAttackShape.Feather, MonsterAttackReaction.Scatter,
+                rush: 1, resourceFolder: "BBSB/Shared/Feathers");
+            MonsterAttackCatalog.Register(first, new[] { visual });
+            Check.True(ReferenceEquals(visual, MonsterAttackCatalog.For(a.Round.Notes[0])));
+            Check.Equal(MonsterAttackMotion.Linear, MonsterAttackCatalog.For(b.Round.Notes[0]).Motion);
+            var note = a.Round.Notes[0]; double beat = a.Round.BeatSeconds;
+            Check.Equal("BBSB/Shared/Feathers", visual.ResourceFolder);
+            var waiting = MonsterAttackTimeline.Evaluate(note, visual, note.StartSeconds - beat * .5, beat, a.Round.HalfMissWindow);
+            Check.Equal(MonsterAttackPhase.Wait, waiting.Phase); Check.Equal(0.0, waiting.Progress);
+            var flying = MonsterAttackTimeline.Evaluate(note, visual, note.StartSeconds - beat * .125, beat, a.Round.HalfMissWindow);
+            Check.True(Math.Abs(flying.Progress - .5) < .000001);
+            var contact = MonsterAttackTimeline.Evaluate(note, visual, note.StartSeconds, beat, a.Round.HalfMissWindow);
+            Check.Equal(MonsterAttackPhase.Contact, contact.Phase); Check.Equal(1.0, contact.Progress);
+        }
         [Test]
         public void NewPatternHasAnAttackVisualWithoutHardCodedImageSlots()
         {

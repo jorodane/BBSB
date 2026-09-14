@@ -24,6 +24,7 @@ MonoBehaviour:
   artId: tap-slime
   patternStrategy: 0
   steadyCallsPerPhase: 3
+  usePatternProbabilities: 1
   useLegacyBodyAnimation: 1
   displayScale: 1
   displayOffset: {x: 0, y: 0}
@@ -99,6 +100,32 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 2
+        shape: 0
+        reaction: 0
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.48
+        arc: 0.18
+        stretch: 0
+        grounded: 1
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tap-slime/count-four-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 
   - id: tresillo-call-tap
@@ -128,5 +155,31 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 2
+        shape: 0
+        reaction: 0
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.34
+        arc: 0.3
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tap-slime/tresillo-call-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 

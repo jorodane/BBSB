@@ -24,6 +24,7 @@ MonoBehaviour:
   artId: diving-ray
   patternStrategy: 0
   steadyCallsPerPhase: 3
+  usePatternProbabilities: 1
   useLegacyBodyAnimation: 1
   displayScale: 1
   displayOffset: {x: 0, y: 0}
@@ -92,12 +93,90 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 1
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     - kind: 0
       offsetTick: 4
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 1
+        spawnOffsetTicks: 4
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     - kind: 0
       offsetTick: 8
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 1
+        spawnOffsetTicks: 8
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 
   - id: ray-short-dive
@@ -121,5 +200,31 @@ MonoBehaviour:
     - kind: 2
       offsetTick: 0
       durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.22
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 

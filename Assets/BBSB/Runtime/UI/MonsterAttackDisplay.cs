@@ -52,6 +52,8 @@ namespace BBSB.Runtime.UI
 
         public Slot Find(MonsterAttackDefinition definition)
         {
+            var authored = MonsterAuthoring.FindAttackArt(definition);
+            if (authored != null && authored.overrideDisplay) return authored.display;
             if (slots != null) foreach (var slot in slots)
                 if (slot != null && slot.monsterId == definition.MonsterId && slot.patternId == definition.PatternId && slot.stepIndex == definition.StepIndex)
                     return slot;

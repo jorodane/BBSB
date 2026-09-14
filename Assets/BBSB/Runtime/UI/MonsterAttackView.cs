@@ -73,7 +73,8 @@ namespace BBSB.Runtime.UI
                 slot.Image.gameObject.SetActive(visible);
                 if (!visible) continue;
                 ActiveCount++;
-                var calibration = display != null ? display.Find(definition) : null;
+                var custom = MonsterAuthoring.FindAttackArt(definition);
+                var calibration = custom != null && custom.overrideDisplay ? custom.display : display != null ? display.Find(definition) : null;
                 var pose = calibration?.FindPose(frame.Phase);
                 float scale = MonsterAttackDisplay.Positive(calibration?.scale ?? 1) * MonsterAttackDisplay.Positive(pose?.scale ?? 1);
                 float height = (float)definition.Height * heroHeight * scale;

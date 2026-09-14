@@ -6,10 +6,11 @@ namespace BBSB.Core
     public sealed class BeatShiftPlanner : IMonsterPatternPlanner
     {
         public int SteadyCallsPerPhase { get; }
-        public BeatShiftPlanner(int steadyCallsPerPhase = 3)
+        public bool UsePatternProbabilities { get; }
+        public BeatShiftPlanner(int steadyCallsPerPhase = 3, bool usePatternProbabilities = false)
         {
             if (steadyCallsPerPhase < 1 || steadyCallsPerPhase > 16) throw new ArgumentOutOfRangeException(nameof(steadyCallsPerPhase));
-            SteadyCallsPerPhase = steadyCallsPerPhase;
+            SteadyCallsPerPhase = steadyCallsPerPhase; UsePatternProbabilities = usePatternProbabilities;
         }
 
         public void Validate(IReadOnlyList<MonsterPatternDefinition> patterns)
@@ -30,7 +31,9 @@ namespace BBSB.Core
             if (steady != 1 || shift != 1) throw new ArgumentException("A beat-shift loop needs both pattern types.");
         }
 
-        public IReadOnlyList<PatternChain> Candidates(MusicStage stage, MonsterDefinition monster)
+        public IReadOnlyList<PatternChain> Candidates(MusicStage stage, MonsterDefinition monster) => Candidates(stage, monster, null);
+
+        private IReadOnlyList<PatternChain> Candidates(MusicStage stage, MonsterDefinition monster, int? seed)
         {
             var result = new List<PatternChain>();
             var steady = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 1 ? 0 : 1];
@@ -41,11 +44,13 @@ namespace BBSB.Core
             foreach (var first in BattlePlanner.Candidates(stage, steady))
             {
                 if (first.CueStartTick % RhythmTime.TicksPerBeat != 0) continue;
+                var random = new SeededRandom(BattlePlanner.Hash(seed ?? 0, "beat-shift@" + first.CueStartTick));
                 var placements = new List<PatternPlacement>(); int call = first.CueStartTick, steadyCount = 0;
                 int transitions = 0, returnedSteady = 0;
                 while (true)
                 {
-                    bool transition = steadyCount >= SteadyCallsPerPhase;
+                    bool transition = steadyCount >= SteadyCallsPerPhase &&
+                        (!seed.HasValue || random.Next(1000000) / 1000000.0 < shift.ParticipationChance);
                     PatternPlacement placement;
                     if (!transition || !shiftAt.TryGetValue(call + 4, out placement) || !steadyAt.ContainsKey(placement.EndTick + 4))
                     {
@@ -74,14 +79,24 @@ namespace BBSB.Core
 
         public MonsterProposal Propose(MusicStage stage, string instanceId, MonsterDefinition monster, int seed)
         {
-            var candidates = Candidates(stage, monster); var result = new List<PatternChain>();
+            var candidates = Candidates(stage, monster, UsePatternProbabilities ? (int?)seed : null);
+            var result = new List<PatternChain>();
+            var steady = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 1 ? 0 : 1];
+            var random = new SeededRandom(BattlePlanner.Hash(seed, "beat-shift-entry"));
             long callAfter = 0;
             foreach (var candidate in candidates)
             {
                 if (candidate.CallStartTick < callAfter) continue;
+                if (UsePatternProbabilities && random.Next(1000000) / 1000000.0 >= steady.ParticipationChance) continue;
                 result.Add(candidate);
                 // Later candidates in the same span are suffixes, not separate random bursts.
                 callAfter = candidate.PhraseEndTick;
+            }
+            // As with independent patterns, a playable species gets one fallback phrase.
+            if (result.Count == 0)
+            {
+                var fallback = Candidates(stage, monster);
+                if (fallback.Count > 0) result.Add(fallback[0]);
             }
             return new MonsterProposal(instanceId, monster, result);
         }

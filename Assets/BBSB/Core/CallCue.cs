@@ -30,6 +30,12 @@ namespace BBSB.Core
             return -1;
         }
 
+        public static string Warning(MonsterPatternDefinition first, MonsterPatternDefinition second)
+        {
+            try { Validate(first, second); return null; }
+            catch (ArgumentException exception) { return exception.Message; }
+        }
+
         internal static void Validate(MonsterPatternDefinition first, MonsterPatternDefinition second)
         {
             int response = Math.Min(first.Pattern.CueLeadTicks, second.Pattern.CueLeadTicks);

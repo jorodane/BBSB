@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using BBSB.Core;
 
 namespace BBSB.Runtime.UI
@@ -27,16 +28,18 @@ namespace BBSB.Runtime.UI
         public bool Grounded { get; }
         public bool LandsAfterMiss { get; }
         public string PatternFolder => ResourceRoot + MonsterId + "/" + PatternId;
-        public string ResourceFolder => PatternFolder + "/step-" + StepIndex;
+        private readonly string resourceFolder;
+        public string ResourceFolder => string.IsNullOrWhiteSpace(resourceFolder) ? PatternFolder + "/step-" + StepIndex : resourceFolder;
 
-        internal MonsterAttackDefinition(string monster, string pattern, int step, MonsterAttackMotion motion,
+        public MonsterAttackDefinition(string monster, string pattern, int step, MonsterAttackMotion motion,
             MonsterAttackShape shape, MonsterAttackReaction reaction, int call = 0, int offset = 0,
             double height = .24, double arc = .18, int rush = 1, bool stretch = false, bool grounded = false,
-            bool landsAfterMiss = false)
+            bool landsAfterMiss = false, string resourceFolder = null)
         {
             MonsterId = monster; PatternId = pattern; StepIndex = step; Motion = motion; Shape = shape;
             Reaction = reaction; CallIndex = call; SpawnOffsetTicks = offset; Height = height; Arc = arc;
             RushTicks = rush; Stretch = stretch; Grounded = grounded; LandsAfterMiss = landsAfterMiss;
+            this.resourceFolder = resourceFolder;
         }
 
         public double SpawnSeconds(ResponseNote note, double beatSeconds) =>
@@ -60,10 +63,30 @@ namespace BBSB.Runtime.UI
         public static MonsterAttackDefinition Find(string monster, string pattern, int step) =>
             lookup.TryGetValue(Key(monster, pattern, step), out var value) ? value : null;
 
-        public static MonsterAttackDefinition For(ResponseNote note) =>
-            Find(note.Attack.Monster.Id, note.Attack.Pattern.Id, note.StepIndex) ??
-            new MonsterAttackDefinition(note.Attack.Monster.Id, note.Attack.Pattern.Id, note.StepIndex,
-                MonsterAttackMotion.Linear, MonsterAttackShape.Jelly, MonsterAttackReaction.Burst);
+        private static readonly ConditionalWeakTable<MonsterDefinition, Dictionary<string, MonsterAttackDefinition>> authored =
+            new ConditionalWeakTable<MonsterDefinition, Dictionary<string, MonsterAttackDefinition>>();
+
+        // Instance identity keeps isolated previews and immutable battle plans independent.
+        public static void Register(MonsterDefinition monster, IEnumerable<MonsterAttackDefinition> definitions)
+        {
+            var values = new Dictionary<string, MonsterAttackDefinition>();
+            foreach (var definition in definitions)
+            {
+                if (definition == null || definition.MonsterId != monster.Id)
+                    throw new ArgumentException("Attack visuals must belong to their monster.");
+                values.Add(Key(definition.MonsterId, definition.PatternId, definition.StepIndex), definition);
+            }
+            authored.Remove(monster); authored.Add(monster, values);
+        }
+
+        public static MonsterAttackDefinition For(ResponseNote note)
+        {
+            if (authored.TryGetValue(note.Attack.Monster, out var values) &&
+                values.TryGetValue(Key(note.Attack.Monster.Id, note.Attack.Pattern.Id, note.StepIndex), out var definition)) return definition;
+            return Find(note.Attack.Monster.Id, note.Attack.Pattern.Id, note.StepIndex) ??
+                new MonsterAttackDefinition(note.Attack.Monster.Id, note.Attack.Pattern.Id, note.StepIndex,
+                    MonsterAttackMotion.Linear, MonsterAttackShape.Jelly, MonsterAttackReaction.Burst);
+        }
 
         private static string Key(string monster, string pattern, int step) => monster + "/" + pattern + "/" + step;
         private static Dictionary<string, MonsterAttackDefinition> Index()

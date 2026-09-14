@@ -13,5 +13,7 @@
     <ProjectReference Include="Runtime/BBSB.Runtime.csproj" />
     <Compile Include="../../Assets/BBSB/Tests/EditMode/*.cs" />
     <Compile Include="Program.cs" />
+    <Reference Include="Microsoft.CodeAnalysis"><HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath></Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp"><HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath></Reference>
   </ItemGroup>
 </Project>

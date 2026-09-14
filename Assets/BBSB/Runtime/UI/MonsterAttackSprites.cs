@@ -45,9 +45,11 @@ namespace BBSB.Runtime.UI
         public Sprite Attack(MonsterAttackDefinition definition, MonsterAttackFrame frame, float framesPerBeat, double beatSeconds, out bool exactPhase)
         {
             double index = frame.IsReaction ? frame.PhaseAge * 12 : frame.PhaseAge / beatSeconds * framesPerBeat;
-            var sprite = Get(definition.ResourceFolder, frame.ImageName, index);
+            var authored = MonsterAuthoring.FindAttackArt(definition);
+            var sprite = authored?.SpriteFor(frame.Phase, index) ?? Get(definition.ResourceFolder, frame.ImageName, index);
             exactPhase = sprite != null;
-            return sprite != null ? sprite : Get(definition.ResourceFolder, "travel", index) ?? Get(definition.ResourceFolder, "spawn") ??
+            return sprite != null ? sprite : authored?.SpriteFor(MonsterAttackPhase.Travel, index) ??
+                authored?.SpriteFor(MonsterAttackPhase.Spawn, 0) ?? Get(definition.ResourceFolder, "travel", index) ?? Get(definition.ResourceFolder, "spawn") ??
                 Get(definition.ResourceFolder, "contact");
         }
     }

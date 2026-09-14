@@ -25,6 +25,7 @@ MonoBehaviour:
   artId: spark-bat
   patternStrategy: 0
   steadyCallsPerPhase: 3
+  usePatternProbabilities: 1
   useLegacyBodyAnimation: 1
   displayScale: 1
   displayOffset: {x: 0, y: 0}
@@ -94,9 +95,61 @@ MonoBehaviour:
     - kind: 0
       offsetTick: 0
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 7
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/spark-bat/bat-quick-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     - kind: 0
       offsetTick: 2
       durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 7
+        reaction: 2
+        callIndex: 1
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/spark-bat/bat-quick-taps/step-1
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 
   - id: bat-hold
@@ -120,5 +173,31 @@ MonoBehaviour:
     - kind: 1
       offsetTick: 0
       durationTicks: 4
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 7
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/spark-bat/bat-hold/step-0
+        overrideDisplay: 0
+        display:
+          monsterId:
+          patternId:
+          stepIndex: 0
+          scale: 1
+          sourceOffset: {x: 0, y: 0}
+          targetOffset: {x: 0, y: 0}
+          imageOffset: {x: 0, y: 0}
+          framesPerBeat: 2
+          poses: []
+        images: []
     attackState: 
     recoverState: 

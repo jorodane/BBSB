@@ -3,14 +3,18 @@ on:
   push:
     paths:
       - 'Assets/BBSB/Core/**'
-      - 'Assets/BBSB/Runtime/UI/**'
+      - 'Assets/BBSB/Runtime/**'
+      - 'Assets/BBSB/Editor/**'
+      - 'Assets/BBSB/Tests/PlayMode/**'
       - 'Assets/BBSB/Tests/EditMode/**'
       - 'Tools/CoreChecks/**'
       - '.github/workflows/core-checks.yml'
   pull_request:
     paths:
       - 'Assets/BBSB/Core/**'
-      - 'Assets/BBSB/Runtime/UI/**'
+      - 'Assets/BBSB/Runtime/**'
+      - 'Assets/BBSB/Editor/**'
+      - 'Assets/BBSB/Tests/PlayMode/**'
       - 'Assets/BBSB/Tests/EditMode/**'
       - 'Tools/CoreChecks/**'
       - '.github/workflows/core-checks.yml'
@@ -25,7 +29,9 @@ jobs:
         with:
           sparse-checkout: |
             Assets/BBSB/Core
-            Assets/BBSB/Runtime/UI
+            Assets/BBSB/Runtime
+            Assets/BBSB/Editor
+            Assets/BBSB/Tests/PlayMode
             Assets/BBSB/Tests/EditMode
             Tools/CoreChecks
       - uses: actions/setup-dotnet@v4

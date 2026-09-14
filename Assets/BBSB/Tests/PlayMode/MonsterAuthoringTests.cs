@@ -78,47 +78,49 @@ namespace BBSB.Tests
             Assert.IsNull(MonsterAuthoringRegistry.Find(asset.monsterId));
         }
         [Test]
-        public void MigratedAssetsPreserveEveryPatternPlannerAndPortrait()
+        public void AllAuthoredSpeciesBuildWithTheirEditedPatternsAndAttackSettings()
         {
             var entries = Resources.LoadAll<MonsterAuthoring>(MonsterAuthoring.ResourceFolder);
-            foreach (var original in MonsterCatalog.BuiltIn)
+            Assert.GreaterOrEqual(entries.Length, 12);
+            foreach (var entry in entries)
             {
-                var matches = entries.Where(x => x.monsterId == original.Id).ToArray();
-                Assert.AreEqual(1, matches.Length, original.Id);
-                var authored = matches[0]; var actual = authored.BuildDefinition();
-                Assert.IsTrue(authored.includeInEncounters);
-                Assert.IsNotNull(authored.portrait);
-                Assert.IsTrue(authored.UsesLegacyBodyAnimation);
-                Assert.AreEqual(original.Name, actual.Name); Assert.AreEqual(original.Description, actual.Description);
-                Assert.AreEqual(original.ArtId, actual.ArtId); Assert.AreEqual(original.MainGesture, actual.MainGesture);
-                Assert.AreEqual(original.EncounterWeight, actual.EncounterWeight); Assert.AreEqual(original.DamagePerNote, actual.DamagePerNote);
-                Assert.AreEqual(original.PatternPlanner.GetType(), actual.PatternPlanner.GetType());
-                if (original.PatternPlanner is BeatShiftPlanner expectedPlanner)
-                    Assert.AreEqual(expectedPlanner.SteadyCallsPerPhase, ((BeatShiftPlanner)actual.PatternPlanner).SteadyCallsPerPhase);
-                Assert.AreEqual(original.Patterns.Count, actual.Patterns.Count);
-                for (int i = 0; i < original.Patterns.Count; i++)
+                if (!entry.includeInEncounters) continue;
+                var definition = entry.BuildDefinition();
+                Assert.AreEqual(entry.displayName, definition.Name);
+                Assert.AreEqual(entry.patterns.Length, definition.Patterns.Count);
+                for (int i = 0; i < definition.Patterns.Count; i++)
                 {
-                    var expected = original.Patterns[i]; var pattern = actual.Patterns[i];
-                    Assert.AreEqual(expected.Id, pattern.Id); Assert.AreEqual(expected.Name, pattern.Name);
-                    Assert.AreEqual(expected.Description, pattern.Description); Assert.AreEqual(expected.Pattern.CueLeadTicks, pattern.Pattern.CueLeadTicks);
-                    Assert.AreEqual(expected.ResponseTicks, pattern.ResponseTicks); Assert.AreEqual(expected.RestTicks, pattern.RestTicks);
-                    Assert.AreEqual(expected.CueAlignmentTicks, pattern.CueAlignmentTicks); Assert.AreEqual(expected.SilentWaitTicks, pattern.SilentWaitTicks);
-                    Assert.AreEqual(expected.ParticipationChance, pattern.ParticipationChance);
-                    Assert.AreEqual(expected.Call.Count, pattern.Call.Count); Assert.AreEqual(expected.Pattern.Steps.Count, pattern.Pattern.Steps.Count);
-                    for (int c = 0; c < expected.Call.Count; c++)
+                    var pattern = definition.Patterns[i];
+                    var preview = new MonsterPreview(definition, pattern);
+                    foreach (var note in preview.Round.Notes)
                     {
-                        Assert.AreEqual(expected.Call[c].OffsetTick, pattern.Call[c].OffsetTick);
-                        Assert.AreEqual(expected.Call[c].Label, pattern.Call[c].Label);
-                        Assert.AreEqual(expected.Call[c].Sound, pattern.Call[c].Sound); Assert.AreEqual(expected.Call[c].Motion, pattern.Call[c].Motion);
-                    }
-                    for (int n = 0; n < expected.Pattern.Steps.Count; n++)
-                    {
-                        Assert.AreEqual(expected.Pattern.Steps[n].Kind, pattern.Pattern.Steps[n].Kind);
-                        Assert.AreEqual(expected.Pattern.Steps[n].OffsetTick, pattern.Pattern.Steps[n].OffsetTick);
-                        Assert.AreEqual(expected.Pattern.Steps[n].DurationTicks, pattern.Pattern.Steps[n].DurationTicks);
+                        var attack = MonsterAttackCatalog.For(note);
+                        Assert.Less(attack.SpawnSeconds(note, preview.Round.BeatSeconds), note.StartSeconds);
+                        Assert.AreEqual(definition.Id, attack.MonsterId);
                     }
                 }
             }
+        }
+        [Test]
+        public void AuthoringKeepsOffsetCallsAndUsesPerInputArtInAnIsolatedPreview()
+        {
+            var pattern = asset.patterns[0];
+            pattern.cueLeadTicks = 4; pattern.responseTicks = 8;
+            pattern.calls = new[] { new MonsterAuthoring.Call { offsetTick = 0 }, new MonsterAuthoring.Call { offsetTick = 4 } };
+            pattern.steps = new[] { new MonsterAuthoring.Step { kind = GestureKind.Flick, offsetTick = 2,
+                attack = new MonsterAuthoring.Attack { enabled = true, motion = MonsterAttackMotion.WaitRush,
+                    callIndex = 1, rushTicks = 2, overrideDisplay = true,
+                    images = new[] { new MonsterAuthoring.AttackFrames { phase = MonsterAttackPhase.Travel, frames = new[] { sprite } } } } } };
+            var definition = asset.BuildDefinition();
+            var preview = new MonsterPreview(definition, definition.Patterns[0]);
+            var note = preview.Round.Notes[0]; var attack = MonsterAttackCatalog.For(note);
+            Assert.AreEqual(6, note.StartTick - note.Attack.CallStartTick);
+            Assert.AreEqual(note.StartSeconds - preview.Round.BeatSeconds * .5, attack.SpawnSeconds(note, preview.Round.BeatSeconds), .000001);
+            Assert.AreSame(sprite, MonsterAuthoring.FindAttackArt(attack).SpriteFor(MonsterAttackPhase.Travel, 0));
+            pattern.steps[0].attack.height = 5;
+            Assert.AreEqual(.3, attack.Height, .00001, "A running plan keeps its original attack configuration.");
+            pattern.steps[0].attack.spawnOffsetTicks = 2;
+            Assert.Throws<ArgumentException>(() => asset.BuildDefinition(), "Spawning at contact must be rejected.");
         }
         [Test]
         public void AuthoredControllerOverridesLegacyBodyMode()
