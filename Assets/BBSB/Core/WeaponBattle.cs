@@ -147,8 +147,8 @@ namespace BBSB.Core
             if (action.BuildsCombo)
             { damage += 2 * Math.Min(3, daggerChains[binding.Slot]) * efficiency; daggerChains[binding.Slot]++; }
             if (result.Grade == RhythmGrade.Perfect) damage += action.PerfectBonus;
-            damage *= weapon.LevelMultiplier(state.Level);
-            decimal guard = action.Guard * efficiency * weapon.LevelMultiplier(state.Level);
+            damage *= weapon.LevelMultiplier(state.Level) * source.Note.Attack.JudgmentWeight;
+            decimal guard = action.Guard * efficiency * weapon.LevelMultiplier(state.Level) * source.Note.Attack.JudgmentWeight;
             double at = source.JudgedAtSeconds;
             if (damage > 0 && at <= resonanceEnd)
             { damage *= 1 + resonance; resonance = 0; resonanceEnd = double.NegativeInfinity; }
@@ -225,7 +225,7 @@ namespace BBSB.Core
                 source.Stage.Music.BeatsPerBar, new[] { new MusicSection("PRACTICE", 0, bars, 1) },
                 new[] { new[] { new SlotTemplate(GestureKind.Tap, 0) } });
             var attack = new PlannedAttack(selected.MonsterId, selected.Monster,
-                new PatternPlacement(selected.Placement.Pattern, start, new List<MusicSlot>()));
+                new PatternPlacement(selected.Placement.Pattern, start, new List<MusicSlot>()), judgmentWeight: selected.JudgmentWeight);
             var plan = new BattlePlan(MusicStage.Generate(music), new List<MonsterPlan> {
                 new MonsterPlan(selected.MonsterId, selected.Monster, 1, new List<PlannedAttack> { attack }, 0)
             }, new List<PlanWithdrawal>());

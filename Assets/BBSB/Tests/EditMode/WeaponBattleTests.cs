@@ -87,12 +87,12 @@ namespace BBSB.Tests
                         var plan = Plan(step);
                         var loadout = new WeaponLoadout(plan, new[] { new WeaponState(weapon.Id, rarity, level) });
                         var round = Round(plan, loadout); Perform(round, new[] { step }, 2);
-                        decimal expected = i < count ? damageTable[weapon.Id][i] * (1 + .25m * level) : 0;
+                        decimal expected = i < count ? damageTable[weapon.Id][i] * (1 + .25m * level) * plan.Attacks[0].JudgmentWeight : 0;
                         Check.Equal(expected, round.Combat.TotalDamage); Check.Equal(1000 - expected, round.Combat.EnemyHealth.Current);
                         Check.Equal(1, round.PerfectCount); Check.Equal(1, round.Notes.Count); Check.Equal(0m, round.TotalDamageTaken);
                         Check.Equal(i < count ? 1 : 0, round.WeaponResults.Count);
                         Check.Equal(i < count ? 1 : 0, round.Combat.Bindings.Count);
-                        Check.Equal(i < count ? action.Guard * (1 + .25m * level) : 0, round.Combat.GuardAt(round.ElapsedSeconds));
+                        Check.Equal(i < count ? action.Guard * (1 + .25m * level) * plan.Attacks[0].JudgmentWeight : 0, round.Combat.GuardAt(round.ElapsedSeconds));
                     }
                 }
             }
@@ -108,8 +108,8 @@ namespace BBSB.Tests
                 var step = new PatternStep(item.Item2, 0, item.Item2 == GestureKind.Hold || item.Item2 == GestureKind.Dive ? 8 : 0);
                 var plan = Plan(step); var loadout = new WeaponLoadout(plan, new[] { new WeaponState(item.Item1, item.Item3 == 0 ? WeaponRarity.Common : WeaponRarity.Rare, item.Item3) });
                 var round = Round(plan, loadout); Perform(round, new[] { step }, 2, .1);
-                Check.Equal(item.Item4, round.Combat.TotalDamage); Check.Equal(1, round.HalfMissCount);
-                Check.Equal(item.Item1 == "shield" ? 4m : 0m, round.Combat.GuardAt(round.ElapsedSeconds));
+                Check.Equal(item.Item4 * plan.Attacks[0].JudgmentWeight, round.Combat.TotalDamage); Check.Equal(1, round.HalfMissCount);
+                Check.Equal(item.Item1 == "shield" ? 4m * plan.Attacks[0].JudgmentWeight : 0m, round.Combat.GuardAt(round.ElapsedSeconds));
             }
         }
 
@@ -119,7 +119,7 @@ namespace BBSB.Tests
             var plan = Plan(new PatternStep(GestureKind.Tap, 0));
             var loadout = Loadout(plan, "spear", "spear", "spear", "spear", "spear");
             var round = Round(plan, loadout, 20); round.Press(2, 0, 0);
-            Check.Equal(100m, round.Combat.TotalDamage); Check.Equal(5, round.Combat.Activations.Count);
+            Check.Equal(200m, round.Combat.TotalDamage); Check.Equal(5, round.Combat.Activations.Count);
             Check.True(round.Combat.Victory); Check.Equal(0m, round.Combat.EnemyHealth.Current);
             Check.Equal(1, round.Notes.Count); Check.Equal(1, round.Results.Count);
             Check.Equal(5, round.WeaponResults.Count);
@@ -129,7 +129,7 @@ namespace BBSB.Tests
             var motion = new PlayerMotionTimeline(1); motion.Evaluate(round);
             Check.Equal(1, motion.PunchSelections);
             round.Release(2.001, 0, 0); round.Advance(2.1);
-            Check.Equal(100m, round.Combat.TotalDamage);
+            Check.Equal(200m, round.Combat.TotalDamage);
         }
 
         [Test]
@@ -154,7 +154,7 @@ namespace BBSB.Tests
             var loadout = Loadout(plan, "spear", "spear", "spear", "spear", "spear");
             var round = Round(plan, loadout); var motion = new PlayerMotionTimeline(3);
             round.Advance(2.2); var frame = motion.Evaluate(round);
-            Check.Equal(4m, round.TotalDamageTaken); Check.Equal(1, round.MissCount);
+            Check.Equal(8m, round.TotalDamageTaken); Check.Equal(1, round.MissCount);
             Check.Equal(5, round.WeaponResults.Count(x => x.Grade == RhythmGrade.Miss));
             Check.True(round.WeaponResults.All(x => ReferenceEquals(x.Source, round.Results.Single())));
             Check.Equal(0, round.Combat.Activations.Count); Check.Equal(0m, round.Combat.TotalDamage);
@@ -169,8 +169,8 @@ namespace BBSB.Tests
             var round = Round(plan, loadout); round.Press(2.1, 0, 0); round.Release(2.5, 0, 0);
             Check.Equal(1, round.HalfMissCount); Check.Equal(5, round.Combat.Activations.Count);
             Check.True(round.WeaponResults.All(x => x.Grade == RhythmGrade.HalfMiss && ReferenceEquals(x.Source, round.Results[0])));
-            Check.Equal(2m, round.Combat.TotalBlocked); Check.Equal(0m, round.TotalDamageTaken);
-            Check.Equal(28m, round.Combat.GuardAt(2.5)); // Five shields at half strength, one incoming hit.
+            Check.Equal(4m, round.Combat.TotalBlocked); Check.Equal(0m, round.TotalDamageTaken);
+            Check.Equal(56m, round.Combat.GuardAt(2.5)); // Five shields at half strength, one incoming hit.
         }
 
         [Test]
@@ -181,7 +181,7 @@ namespace BBSB.Tests
             Check.Equal(1, loadout.Patterns.Count); Check.Equal(6, round.Notes.Count); Check.Equal(6, round.Combat.Bindings.Count);
             Check.True(round.Combat.Bindings.Select(x => x.Note.StartTick).SequenceEqual(new[] { 16, 20, 24, 48, 52, 56 }));
             Perform(round, plan.Attacks[0].Placement.Pattern.Steps, 2); Perform(round, plan.Attacks[0].Placement.Pattern.Steps, 6);
-            Check.Equal(72m, round.Combat.TotalDamage); Check.Equal(6, round.PerfectCount); Check.Equal(6, round.Combat.Activations.Count);
+            Check.Equal(48.0024m, round.Combat.TotalDamage); Check.Equal(6, round.PerfectCount); Check.Equal(6, round.Combat.Activations.Count);
         }
 
         [Test]
@@ -196,7 +196,7 @@ namespace BBSB.Tests
             Check.Equal(3, round.PerfectCount); Check.Equal(0m, round.TotalDamageTaken);
             Check.Equal(3, round.Notes.Count); Check.Equal(3, round.Results.Count); Check.Equal(3, round.Combat.Activations.Count);
             Check.True(round.WeaponResults.All(x => round.Results.Contains(x.Source)));
-            Check.Equal(45m, round.Combat.TotalDamage); // Bell 8, amplified dagger 14 * 1.5, then blade 16.
+            Check.Equal(30.0015m, round.Combat.TotalDamage); // Bell 8, dagger 14 * 1.5, blade 16; each at the rounded 0.6667 phrase weight.
         }
 
         [Test]
@@ -212,7 +212,7 @@ namespace BBSB.Tests
                 foreach (var pattern in loadout.Patterns) Check.Equal(5, loadout.RespondingSlots(pattern).Count);
                 var round = Round(plan, loadout, 100000); round.Press(2, 0, 0);
                 Check.Equal(count, round.PerfectCount); Check.Equal(count * 5, round.Combat.Activations.Count);
-                Check.Equal(count * 90m, round.Combat.TotalDamage);
+                Check.Equal(count * 180m, round.Combat.TotalDamage);
                 Check.Equal(count * 5, round.Combat.Bindings.Select(b => (b.Note, b.Slot)).Distinct().Count());
             }
         }
@@ -248,9 +248,9 @@ namespace BBSB.Tests
             var plan = Plan(new[] { step }, new[] { 16, 36, 56, 76 });
             var loadout = new WeaponLoadout(plan, new[] { new WeaponState("dagger", WeaponRarity.Rare, 1) }); var round = Round(plan, loadout);
             Perform(round, new[] { step }, 2); Perform(round, new[] { step }, 4.5);
-            Check.Equal(15m, round.Combat.TotalDamage);
+            Check.Equal(30m, round.Combat.TotalDamage);
             round.Advance(7.2); Perform(round, new[] { step }, 9.5);
-            Check.Equal(21.25m, round.Combat.TotalDamage); Check.Equal(1, round.MissCount);
+            Check.Equal(42.5m, round.Combat.TotalDamage); Check.Equal(1, round.MissCount);
             Check.Equal(3, round.Combat.Activations.Count);
         }
 
@@ -317,7 +317,7 @@ namespace BBSB.Tests
             Check.True(round.Combat.Victory); Check.False(round.Combat.FinaleSuccess);
             round.Press(3, 0, 0); round.Release(3.001, 0, 0);
             Check.True(round.Combat.FinaleSuccess); Check.Equal(3, round.PerfectCount);
-            Check.Equal(60m, round.Combat.TotalDamage); Check.Equal(0m, round.TotalDamageTaken);
+            Check.Equal(80m, round.Combat.TotalDamage); Check.Equal(0m, round.TotalDamageTaken);
         }
 
         [Test]
@@ -457,8 +457,8 @@ namespace BBSB.Tests
                 round.Press(note.StartSeconds, 0, 0); round.Advance(note.EndSeconds - .001);
                 Check.Equal(0, round.Combat.Activations.Count); round.Release(note.EndSeconds, 0, 0);
                 Check.Equal(1, round.PerfectCount); Check.Equal(1, round.Combat.Activations.Count);
-                Check.Equal((action.Damage + action.PerfectBonus) * 1.75m, round.Combat.TotalDamage);
-                Check.Equal(action.Guard * 1.75m, round.Combat.GuardAt(note.EndSeconds));
+                Check.Equal((action.Damage + action.PerfectBonus) * 1.75m * plan.Attacks[0].JudgmentWeight, round.Combat.TotalDamage);
+                Check.Equal(action.Guard * 1.75m * plan.Attacks[0].JudgmentWeight, round.Combat.GuardAt(note.EndSeconds));
                 var failed = Round(plan, loadout); failed.Advance(note.EndSeconds + .2);
                 Check.Equal(0, failed.Combat.Activations.Count);
             }
@@ -493,14 +493,14 @@ namespace BBSB.Tests
             var round = Round(plan, loadout);
             round.Press(2, 0, 0); round.Move(2.04, .1, 0); round.Move(2.08, 0, 0);
             Check.Equal(1, round.PerfectCount); Check.Equal(0, round.HalfMissCount);
-            Check.Equal(44.5m, round.Combat.TotalDamage); Check.Equal(10.5m, round.Combat.GuardAt(2.08));
+            Check.Equal(89m, round.Combat.TotalDamage); Check.Equal(21m, round.Combat.GuardAt(2.08));
             Check.True(round.Combat.Activations.Select(a => a.Slot).SequenceEqual(new[] { 2, 0, 1 }));
             Check.True(round.WeaponResults.All(r => ReferenceEquals(r.Source, round.Results.Single())));
             var failed = Round(plan, loadout);
             failed.Press(2, 0, 0); failed.Move(2.04, .1, 0); failed.Advance(2.121);
             Check.Equal(1, failed.MissCount); Check.Equal(0, failed.HalfMissCount);
             Check.Equal(3, failed.WeaponResults.Count); Check.Equal(0, failed.Combat.Activations.Count);
-            Check.Equal(4m, failed.TotalDamageTaken);
+            Check.Equal(8m, failed.TotalDamageTaken);
         }
 
         [Test]

@@ -64,7 +64,7 @@ namespace BBSB.Core
                 choices.Add(options);
             }
             var reserved = new List<PlannedAttack>();
-            if (!Reserve(choices, hooks, plan.Stage.Music.TicksPerBar, 0, reserved))
+            if (!Reserve(choices, hooks, plan.Stage.Music.TicksPerBar, 0, reserved, plan.CallOverlapTicks))
                 throw new InvalidOperationException("This monster roster cannot provide a complete response in every hook of " + plan.Stage.Music.Id);
 
             var attacks = new List<PlannedAttack>(plan.Attacks);
@@ -73,7 +73,7 @@ namespace BBSB.Core
             var grid = BattlePlanner.BeatGrid(plan.Stage);
             foreach (var existing in attacks) foreach (var required in reserved)
             {
-                if (!BattlePlanner.Conflicts(existing, required, out int tick)) continue;
+                if (!BattlePlanner.Conflicts(existing, required, out int tick, plan.CallOverlapTicks)) continue;
                 // Linked Calls and Responses are never cut into independently playable fragments.
                 foreach (var member in attacks)
                     if (ReferenceEquals(member, existing) || existing.Chain != null && ReferenceEquals(member.Chain, existing.Chain))
@@ -92,27 +92,27 @@ namespace BBSB.Core
                 if (owned.Count > 0) owners.Add(new MonsterPlan(owner.InstanceId, owner.Monster, owner.ProposedCount, owned,
                     BattlePlanner.CountOccupied(owned, grid)));
             }
-            var result = new BattlePlan(plan.Stage, owners, withdrawals, fills);
+            var result = new BattlePlan(plan.Stage, owners, withdrawals, fills, plan.CallOverlapTicks);
             foreach (var hook in hooks) if (!Covers(result, hook)) throw new InvalidOperationException("Missing reserved hook response.");
             return result;
         }
 
-        private static bool Reserve(List<List<List<PlannedAttack>>> choices, List<MusicSection> hooks, int ticksPerBar, int index, List<PlannedAttack> reserved)
+        private static bool Reserve(List<List<List<PlannedAttack>>> choices, List<MusicSection> hooks, int ticksPerBar, int index, List<PlannedAttack> reserved, int callOverlapTicks)
         {
             if (index == choices.Count) return true;
             int start = hooks[index].StartBar * ticksPerBar;
             int end = (hooks[index].StartBar + hooks[index].BarCount) * ticksPerBar;
             foreach (var attack in reserved)
                 if (attack.ResponseStartTick >= start && attack.ResponseStartTick < end && attack.PhraseEndTick <= end)
-                    return Reserve(choices, hooks, ticksPerBar, index + 1, reserved);
+                    return Reserve(choices, hooks, ticksPerBar, index + 1, reserved, callOverlapTicks);
             foreach (var bundle in choices[index])
             {
                 bool compatible = true;
                 foreach (var proposed in bundle) foreach (var previous in reserved)
-                    if (BattlePlanner.Conflicts(proposed, previous, out _)) compatible = false;
+                    if (BattlePlanner.Conflicts(proposed, previous, out _, callOverlapTicks)) compatible = false;
                 if (!compatible) continue;
                 int count = reserved.Count; reserved.AddRange(bundle);
-                if (Reserve(choices, hooks, ticksPerBar, index + 1, reserved)) return true;
+                if (Reserve(choices, hooks, ticksPerBar, index + 1, reserved, callOverlapTicks)) return true;
                 reserved.RemoveRange(count, reserved.Count - count);
             }
             return false;

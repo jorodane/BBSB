@@ -17,7 +17,7 @@ namespace BBSB.Runtime.UI
             gameObject.name = "Monster pattern " + plan.InstanceId;
             ui.Label(transform, number.ToString("00") + "  " + monster.Name, 29, RunUI.Gold, 48);
             ui.Label(transform, "이번 곡 " + plan.Attacks.Count + "회 등장", 20, RunUI.Teal, 32);
-            ui.Label(transform, "판정당 기본 피해 " + monster.DamagePerNote + "  ·  미스 100% / 반미스 50% / 퍼펙트 0%", 20, RunUI.Red, 52);
+            ui.Label(transform, "2박당 기본 피해 " + monster.DamagePerNote + "  ·  미스 100% / 반미스 50% / 퍼펙트 0%", 20, RunUI.Red, 52);
             ui.Label(transform, monster.Description, 21, RunUI.TextColor, 66);
             ui.Label(transform, "메인 입력 " + monster.MainGesture + "  ·  패턴 " + monster.Patterns.Count + "개", 20, RunUI.Teal, 32);
             if (monster.PatternPlanner is BeatShiftPlanner)
@@ -27,15 +27,19 @@ namespace BBSB.Runtime.UI
             {
                 int count = 0;
                 foreach (var attack in plan.Attacks) if (attack.Pattern == pattern) count++;
-                BindPattern(ui.Card(transform, 14), ui, pattern, count);
+                decimal weight = pattern.JudgmentWeight;
+                foreach (var attack in plan.Attacks) if (attack.Pattern == pattern) { weight = attack.JudgmentWeight; break; }
+                BindPattern(ui.Card(transform, 14), ui, pattern, count, monster.DamagePerNote, weight);
             }
         }
 
-        private static void BindPattern(Transform root, RunUI ui, MonsterPatternDefinition pattern, int count)
+        private static void BindPattern(Transform root, RunUI ui, MonsterPatternDefinition pattern, int count, int damage, decimal weight)
         {
             root.name = "Pattern variant " + pattern.Id;
             ui.Label(root, pattern.Name + "  ·  이번 곡 " + count + "회", 24, RunUI.Gold, 40);
             ui.Label(root, pattern.Description, 20, RunUI.TextColor, 64);
+            ui.Label(root, "판정당 피해 " + (damage * weight).ToString("0.##") + " · 무기 피해·방어 ×" + weight.ToString("0.##"),
+                19, RunUI.Red, 36);
             ui.Label(root, "CALL  ·  " + Beat(pattern.Pattern.CueLeadTicks) + "박 전조", 20, RunUI.Gold, 32);
             foreach (var signal in pattern.Call)
                 ui.Label(root, Beat(signal.OffsetTick + RhythmTime.TicksPerBeat) + "박 · " + signal.Label + "\n" +

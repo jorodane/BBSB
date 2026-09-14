@@ -57,7 +57,7 @@ namespace BBSB.Core
                     int shortest = int.MaxValue, mostFrequent = -1;
                     foreach (var candidate in candidates)
                     {
-                        var bundle = FirstFit(candidate, gap, attacks);
+                        var bundle = FirstFit(candidate, gap, attacks, plan.CallOverlapTicks);
                         if (bundle == null) continue;
                         int length = bundle[bundle.Count - 1].PhraseEndTick - bundle[0].CallStartTick;
                         if (length > shortest || (length == shortest && candidate.Occurrences < mostFrequent)) continue;
@@ -84,10 +84,10 @@ namespace BBSB.Core
                 monsters.Add(new MonsterPlan(owner.InstanceId, owner.Monster, owner.ProposedCount, owned,
                     BattlePlanner.CountOccupied(owned, grid)));
             }
-            return new BattlePlan(plan.Stage, monsters, new List<PlanWithdrawal>(plan.Withdrawals), fills);
+            return new BattlePlan(plan.Stage, monsters, new List<PlanWithdrawal>(plan.Withdrawals), fills, plan.CallOverlapTicks);
         }
 
-        private static List<PlannedAttack> FirstFit(CandidatePattern candidate, (int start, int end) gap, List<PlannedAttack> attacks)
+        private static List<PlannedAttack> FirstFit(CandidatePattern candidate, (int start, int end) gap, List<PlannedAttack> attacks, int callOverlapTicks)
         {
             List<PlannedAttack> best = null; int shortest = int.MaxValue;
             foreach (var chain in candidate.Chains)
@@ -104,7 +104,7 @@ namespace BBSB.Core
                 foreach (var proposed in bundle)
                 {
                     foreach (var existing in attacks)
-                        if (BattlePlanner.Conflicts(proposed, existing, out _)) { fits = false; break; }
+                        if (BattlePlanner.Conflicts(proposed, existing, out _, callOverlapTicks)) { fits = false; break; }
                     if (!fits) break;
                 }
                 if (fits) { best = bundle; shortest = length; }

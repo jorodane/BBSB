@@ -11,6 +11,48 @@ namespace BBSB.Tests
     public sealed class BattlePlannerTests
     {
         [Test]
+        public void SequentialCallsReserveTheWholePhraseAndExpertHandoffsStaySparse()
+        {
+            var stage = Fixture(2);
+            var a = Monster("first", new[] { new PatternStep(GestureKind.Tap, 0) }, 4);
+            var b = Monster("second", new[] { new PatternStep(GestureKind.Tap, 0) }, 4);
+            var proposals = new[] { Proposal(stage, a, 64), Proposal(stage, b, 68) };
+            var sequential = BattlePlanner.Resolve(stage, proposals, 1, 0);
+            Check.Equal(1, sequential.Attacks.Count);
+            var expert = BattlePlanner.Resolve(stage, proposals, 1, RhythmTime.TicksPerBeat);
+            Check.Equal(2, expert.Attacks.Count);
+            Check.Equal(RhythmTime.TicksPerBeat, expert.CallOverlapTicks);
+            // No arbitrary overlap, shared-response overlap, or two competing Calls.
+            foreach (int second in new[] { 62, 64, 66 })
+                Check.Equal(1, BattlePlanner.Resolve(stage, new[] { Proposal(stage, a, 64), Proposal(stage, b, second) },
+                    1, RhythmTime.TicksPerBeat).Attacks.Count);
+            // Adjacent phrases are legal with no extra idle beat.
+            Check.Equal(2, BattlePlanner.Resolve(stage, new[] { Proposal(stage, a, 64), Proposal(stage, b, 72) }, 1, 0).Attacks.Count);
+            Check.Equal(0, BattlePlanner.CallOverlapFor(StageKind.Boss, 5));
+            Check.Equal(0, BattlePlanner.CallOverlapFor(StageKind.Monster, 6));
+            Check.Equal(4, BattlePlanner.CallOverlapFor(StageKind.Elite, 6));
+        }
+
+        [Test]
+        public void GeneratedPlansKeepTheirCallPolicyThroughGapFillingAndHookReservations()
+        {
+            foreach (var music in StageCatalog.All)
+                foreach (int field in new[] { 1, 3, 6 })
+                    foreach (var kind in new[] { StageKind.Monster, StageKind.Boss })
+                    for (int seed = 0; seed < 3; seed++)
+                    {
+                        var plan = BattlePlanner.Generate(MusicStage.Generate(music.Music), kind, seed, field);
+                        Check.Equal(BattlePlanner.CallOverlapFor(kind, field), plan.CallOverlapTicks);
+                        for (int i = 0; i < plan.Attacks.Count; i++)
+                            for (int j = i + 1; j < plan.Attacks.Count; j++)
+                                Check.False(BattlePlanner.Conflicts(plan.Attacks[i], plan.Attacks[j], out _, plan.CallOverlapTicks));
+                        foreach (var hook in plan.Stage.Music.Sections.Where(x => x.IsHook))
+                            Check.True(HookPatternGuarantee.Covers(plan, hook));
+                        Check.Equal(Fingerprint(plan), Fingerprint(BattlePlanner.Generate(plan.Stage, kind, seed, field)));
+                    }
+        }
+
+        [Test]
         public void SampleEncountersHaveCompleteCalledPatternsAndNoInputConflicts()
         {
             var seen = new HashSet<string>();
@@ -19,7 +61,7 @@ namespace BBSB.Tests
                 var stage = MusicStage.Generate(music);
                 for (int field = 1; field <= 3; field++)
                 foreach (StageKind kind in new[] { StageKind.Monster, StageKind.Elite, StageKind.Boss })
-                for (int seed = 0; seed < 40; seed++)
+                for (int seed = 0; seed < 48; seed++)
                 {
                     var plan = BattlePlanner.Generate(stage, kind, seed, field);
                     Check.True(ReferenceEquals(stage, plan.Stage));
@@ -61,7 +103,7 @@ namespace BBSB.Tests
                     }
                 }
             }
-            Check.Equal(12, MonsterCatalog.All.Count); Check.Equal(12, seen.Count);
+            Check.Equal(12, MonsterCatalog.All.Count); Check.True(seen.Count == 12, "Missing species: " + string.Join(", ", MonsterCatalog.All.Where(x => !seen.Contains(x.Id)).Select(x => x.Id)));
         }
 
         [Test]

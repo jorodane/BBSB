@@ -91,10 +91,14 @@ namespace BBSB.Runtime.UI
             }
             feedback = ui.Label(root, "Call을 보고 박자를 준비해", 30, RunUI.TextColor, 44, TextAnchor.MiddleCenter);
             feedback.gameObject.name = "Response feedback";
-            RunUI.Overlay(feedback.rectTransform, new Vector2(.43f, 0), new Vector2(1, 0), new Vector2(0, 62), new Vector2(-24, 110));
+            RunUI.Overlay(feedback.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 62), new Vector2(0, 110));
+            feedback.resizeTextForBestFit = true; feedback.resizeTextMinSize = 18; feedback.resizeTextMaxSize = 30;
+            // Playback owns readiness, aggregate grades and victory; avoid a duplicate arena grade.
+            arena.ShowResponseJudgment = false;
             contact = ui.Label(root, "", 23, RunUI.Teal, 36, TextAnchor.MiddleCenter);
             contact.gameObject.name = "Input status";
-            RunUI.Overlay(contact.rectTransform, new Vector2(.43f, 0), new Vector2(1, 0), new Vector2(0, 24), new Vector2(-24, 60));
+            RunUI.Overlay(contact.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 24), new Vector2(0, 60));
+            contact.resizeTextForBestFit = true; contact.resizeTextMinSize = 15; contact.resizeTextMaxSize = 23;
             ui.FloatingMenu(root, pause);
 
             var overlay = ui.Modal(root, "Pause overlay", "일시정지", resume, out var panel);

@@ -33,6 +33,10 @@ namespace BBSB.Core
         // A species may count visually through its attack (for example the seven-beat walking doll).
         public int SilentWaitTicks { get; }
         public double ParticipationChance { get; }
+        public decimal JudgmentWeight => WeightFor(Pattern.CueLeadTicks + (decimal)ResponseTicks, Pattern.Steps.Count);
+        // Fixed precision keeps repeated health subtraction and accumulated damage identical.
+        internal static decimal WeightFor(decimal ticks, int judgments) =>
+            decimal.Round(ticks / (2m * RhythmTime.TicksPerBeat * judgments), 4, MidpointRounding.AwayFromZero);
         public MonsterPatternDefinition(string name, string description, RhythmPattern pattern,
             IEnumerable<CallSignal> call, int responseTicks, int restTicks, double participationChance, int cueAlignmentTicks = 1,
             int silentWaitTicks = 0)
@@ -176,6 +180,7 @@ namespace BBSB.Core
 
     public sealed class PlannedAttack
     {
+        private readonly decimal? preservedJudgmentWeight;
         public string Id { get; }
         public string MonsterId { get; }
         public MonsterDefinition Monster { get; }
@@ -186,12 +191,26 @@ namespace BBSB.Core
         public int ResponseStartTick => Placement.StartTick;
         public int ResponseEndTick => Placement.EndTick;
         public int PhraseEndTick => ResponseStartTick + Pattern.ResponseTicks;
+        // Split the actual occupied phrase across its judgments, including linked phases only once.
+        public decimal JudgmentWeight
+        {
+            get
+            {
+                if (preservedJudgmentWeight.HasValue) return preservedJudgmentWeight.Value;
+                if (Chain == null) return Pattern.JudgmentWeight;
+                int judgments = 0;
+                foreach (var placement in Chain.Placements) judgments += placement.Pattern.Steps.Count;
+                return MonsterPatternDefinition.WeightFor(Chain.PhraseEndTick - Chain.CallStartTick, judgments);
+            }
+        }
         public IReadOnlyList<ScheduledCall> Call { get; }
         internal PlannedAttack(MonsterProposal proposal, PatternPlacement placement)
             : this(proposal.InstanceId, proposal.Monster, placement, proposal.ChainFor(placement)) { }
 
-        internal PlannedAttack(string instanceId, MonsterDefinition monster, PatternPlacement placement, PatternChain chain = null)
+        internal PlannedAttack(string instanceId, MonsterDefinition monster, PatternPlacement placement, PatternChain chain = null,
+            decimal? judgmentWeight = null)
         {
+            preservedJudgmentWeight = judgmentWeight;
             MonsterId = instanceId; Monster = monster; Placement = placement;
             Pattern = Monster.FindPattern(placement.Pattern);
             Chain = chain != null && chain.Placements.Count > 1 ? chain : null;
@@ -240,8 +259,11 @@ namespace BBSB.Core
         public IReadOnlyList<ScheduledCall> Calls { get; }
         public IReadOnlyList<PlanWithdrawal> Withdrawals { get; }
         public IReadOnlyList<PlannedAttack> GapFills { get; }
-        internal BattlePlan(MusicStage stage, List<MonsterPlan> monsters, List<PlanWithdrawal> withdrawals, List<PlannedAttack> gapFills = null)
+        public int CallOverlapTicks { get; }
+        internal BattlePlan(MusicStage stage, List<MonsterPlan> monsters, List<PlanWithdrawal> withdrawals, List<PlannedAttack> gapFills = null,
+            int callOverlapTicks = -1)
         {
+            CallOverlapTicks = callOverlapTicks;
             Stage = stage; Monsters = monsters.AsReadOnly(); Withdrawals = withdrawals.AsReadOnly();
             GapFills = (gapFills ?? new List<PlannedAttack>()).AsReadOnly();
             var attacks = new List<PlannedAttack>(); var calls = new List<ScheduledCall>();

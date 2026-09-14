@@ -22,6 +22,35 @@ namespace BBSB.Tests
         { if (root != null) Object.Destroy(root); yield return null; }
 
         [Test]
+        public void ResponsePromptsAndGradesStayAtTheBottomCenterAcrossPauseAndResize()
+        {
+            var round = Round(1, new PatternStep(GestureKind.Tap, 0));
+            var arena = Arena(round);
+            round.Advance(1.5); arena.Refresh();
+            var prompt = arena.GetComponentInChildren<ResponsePromptView>(true);
+            var rect = (RectTransform)prompt.transform;
+            Assert.AreEqual(1, prompt.VisibleCount);
+            Assert.AreEqual(new Vector2(.5f, 0), rect.anchorMin);
+            Assert.AreEqual(0, rect.anchoredPosition.x);
+            Assert.GreaterOrEqual(rect.anchoredPosition.y, 156);
+            Assert.IsFalse(prompt.GetComponentsInChildren<Graphic>().Any(x => x.raycastTarget));
+            round.Press(2, 0, 0); arena.Refresh();
+            var label = arena.GetComponentsInChildren<Text>().Single(x => x.name == "Response judgment");
+            Assert.AreEqual("PERFECT", label.text);
+            Assert.AreEqual(new Vector2(.5f, 0), label.rectTransform.anchorMin);
+            Assert.IsFalse(label.raycastTarget);
+            arena.SetPaused(true);
+            ((RectTransform)arena.transform).sizeDelta = new Vector2(1280, 800); arena.Refresh();
+            Assert.AreEqual("PERFECT", label.text);
+            Assert.AreEqual(new Vector2(.5f, 0), label.rectTransform.anchorMin);
+            arena.SetPaused(false); round.Advance(2.8); arena.Refresh();
+            Assert.AreEqual("", label.text);
+            arena.Repeat(new RhythmRound(round.Plan));
+            Assert.AreEqual(0, prompt.VisibleCount);
+            Assert.AreEqual("", label.text);
+        }
+
+        [Test]
         public void EveryBattlePortraitImportsAsASprite()
         {
             foreach (var id in MonsterCatalog.All.Select(x => x.ArtId).Append("weapon-master").Distinct())

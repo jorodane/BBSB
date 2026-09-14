@@ -56,6 +56,7 @@ namespace BBSB.Runtime.UI
         private BattleArenaGraphic backdrop;
         private WeaponBattleGraphic weaponGraphic;
         private Text heroLabel;
+        private Text responseResult;
         private bool paused;
         private float weaponEnergy, guardStrength, shakeStrength;
         private float heroDisplayHeight;
@@ -68,6 +69,7 @@ namespace BBSB.Runtime.UI
         public BattleVfxView VisualEffects => battleVfx;
         public bool HeroHitStopped => heroHit.Stopped;
         public int ActiveResponseEffects { get; private set; }
+        internal bool ShowResponseJudgment { get; set; } = true;
         public PlayerMotionFrame CurrentHeroMotion { get; private set; }
 
         public void SetPaused(bool value) { paused = value; }
@@ -118,6 +120,9 @@ namespace BBSB.Runtime.UI
             battleVfx = visualEffects.gameObject.AddComponent<BattleVfxView>();
             labelLayer = ui.Rect("Actor labels", area); RunUI.Stretch(labelLayer);
             promptLayer = ui.Rect("Response action prompts", area); RunUI.Stretch(promptLayer);
+            responseResult = ui.Label(promptLayer, "", 24, RunUI.Teal, 32, TextAnchor.MiddleCenter);
+            responseResult.name = "Response judgment";
+            responseResult.raycastTarget = false;
             foreach (var plan in round.Plan.Monsters)
             {
                 var actor = CreateActor(ui, plan.InstanceId, plan.Monster.ArtId, plan.Monster.Name);
@@ -158,6 +163,7 @@ namespace BBSB.Runtime.UI
             LayoutActors();
             if (paused)
             {
+                LayoutResponsePrompts();
                 ApplyHeroLayout();
                 ApplyHeroHit();
                 monsterAttacks.Refresh(round.ElapsedSeconds, HeroGroundPosition, heroDisplayHeight);
@@ -169,6 +175,8 @@ namespace BBSB.Runtime.UI
             double seconds = round.ElapsedSeconds;
             foreach (var actor in monsters)
             { RefreshMonster(actor, seconds); actor.Prompt.Refresh(round, actor.Plan.InstanceId, seconds); }
+            LayoutResponsePrompts();
+            RefreshResponseResult(seconds);
             RefreshHero(seconds);
             monsterAttacks.Refresh(seconds, HeroGroundPosition, heroDisplayHeight);
             battleVfx.Refresh(round, HeroImpactPosition, heroDisplayHeight, weaponGraphic, impactAnchors);
@@ -256,10 +264,6 @@ namespace BBSB.Runtime.UI
                     new Vector2(next.pivot.x / next.rect.width, next.pivot.y / next.rect.height));
                 float bodyHeight = side * (1 - foot.y);
                 Anchor(actor.Labels, actor.Ground, actor.Ground, Vector2.zero, new Vector2(side, bodyHeight), new Vector2(.5f, 0));
-                float promptWidth = Mathf.Min(220, size.x * (monsters.Count == 3 ? .105f : monsters.Count == 2 ? .12f : .17f));
-                float promptY = Mathf.Min(bodyHeight + 16, size.y * .68f - 64 - actor.Ground.y * size.y);
-                Anchor((RectTransform)actor.Prompt.transform, actor.Ground, actor.Ground, new Vector2(0, promptY),
-                    new Vector2(promptWidth, 64), new Vector2(.5f, 0));
                 actor.Impact = actor.Ground + new Vector2(0, bodyHeight / size.y * .48f);
                 impactAnchors[actor.Plan.InstanceId] = actor.Impact;
                 shadows.Add(new BattleGroundShadow { Ground = actor.Ground,
@@ -292,6 +296,44 @@ namespace BBSB.Runtime.UI
             // The Image pivot is the authored foot, so deformation cannot move its ground point.
             hero.Portrait.rectTransform.localScale = new Vector3((float)deformation.X, (float)deformation.Y, 1);
             hero.Portrait.rectTransform.localRotation = Quaternion.identity;
+        }
+
+        private void LayoutResponsePrompts()
+        {
+            // Fixed screen-space focus, outside the shaken world. Compact only the announced actors.
+            int count = 0;
+            foreach (var actor in monsters) if (actor.Prompt.VisibleCount > 0) count++;
+            float width = Mathf.Min(192, area.rect.width * .62f / Mathf.Max(1, count));
+            var anchor = new Vector2(.5f, 0);
+            float bottom = Mathf.Max(156, area.rect.height * .20f);
+            int index = 0;
+            foreach (var actor in monsters)
+            {
+                if (actor.Prompt.VisibleCount == 0) continue;
+                Anchor((RectTransform)actor.Prompt.transform, anchor, anchor,
+                    new Vector2((index++ - (count - 1) * .5f) * width, bottom),
+                    new Vector2(width - 8, 72), new Vector2(.5f, .5f));
+                actor.Prompt.Layout();
+            }
+            Anchor(responseResult.rectTransform, anchor, anchor, new Vector2(0, bottom - 64),
+                new Vector2(area.rect.width * .62f, 32), new Vector2(.5f, .5f));
+        }
+
+        private void RefreshResponseResult(double seconds)
+        {
+            responseResult.enabled = ShowResponseJudgment;
+            RhythmResult latest = null;
+            foreach (var result in round.Results)
+                if (result.JudgedAtSeconds <= seconds && (latest == null || result.JudgedAtSeconds > latest.JudgedAtSeconds ||
+                    result.JudgedAtSeconds == latest.JudgedAtSeconds && (int)result.Grade < (int)latest.Grade)) latest = result;
+            double age = latest == null ? double.PositiveInfinity : seconds - latest.JudgedAtSeconds;
+            responseResult.text = age < .7 ? RhythmPlaybackView.GradeLabel(latest.Grade) : "";
+            if (latest != null)
+            {
+                var color = RhythmPlaybackView.GradeColor(latest.Grade);
+                color.a = 1 - Mathf.Clamp01((float)((age - .45) / .25));
+                responseResult.color = color;
+            }
         }
 
         private void RefreshMonster(Actor actor, double seconds)

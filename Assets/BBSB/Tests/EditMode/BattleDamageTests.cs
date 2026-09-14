@@ -11,6 +11,50 @@ namespace BBSB.Tests
     public sealed class BattleDamageTests
     {
         [Test]
+        public void LongWaitsScaleBothSidesByBeatsRegardlessOfTempo()
+        {
+            var monster = MonsterCatalog.All.Single(x => x.Id == "clock-spirit");
+            foreach (double bpm in new[] { 80.0, 120, 200 })
+                foreach (var pattern in monster.Patterns)
+                {
+                    var preview = new MonsterPreview(monster, pattern, bpm);
+                    decimal weight = pattern.SilentWaitTicks > 0 ? 4m : 1m;
+                    Check.Equal(weight, preview.Attack.JudgmentWeight);
+                    var plan = preview.Round.Plan;
+                    var loadout = new WeaponLoadout(plan, new[] { new WeaponState("sword") });
+                    var combat = new WeaponBattle(loadout, new StageHealth(10000), 100, 100, true);
+                    var perfect = new RhythmRound(plan, combat: combat);
+                    var note = perfect.Notes[0]; perfect.Press(note.StartSeconds, 0, 0);
+                    var action = WeaponCatalog.Find("sword").ActionFor(GestureKind.Tap, WeaponRarity.Common);
+                    Check.Equal((action.Damage + action.PerfectBonus) * weight, combat.TotalDamage);
+                    Check.Equal(0m, perfect.TotalDamageTaken);
+                    var miss = new RhythmRound(plan); miss.Advance(miss.Notes[0].EndSeconds + miss.HalfMissWindow + .01);
+                    Check.Equal(monster.DamagePerNote * weight, miss.TotalDamageTaken);
+                    var half = new RhythmRound(plan);
+                    half.Press(half.Notes[0].StartSeconds + (half.PerfectWindow + half.HalfMissWindow) * .5, 0, 0);
+                    Check.Equal(monster.DamagePerNote * weight * .5m, half.TotalDamageTaken);
+                    half.Advance(half.Notes[0].EndSeconds + 1);
+                    Check.Equal(1, half.Results.Count);
+                }
+        }
+
+        [Test]
+        public void MoreResponsesSplitOnePhraseBudgetAndRestDoesNotIncreaseIt()
+        {
+            var slots = new[] { new PatternStep(GestureKind.Tap, 0), new PatternStep(GestureKind.Tap, 4) };
+            var single = new MonsterDefinition("single", "Single", "", new RhythmPattern("single", 4, new[] { slots[0] }),
+                new[] { new CallSignal(0, "call") }, 12, 4, 1);
+            var pair = new MonsterDefinition("pair", "Pair", "", new RhythmPattern("pair", 4, slots),
+                new[] { new CallSignal(0, "call") }, 12, 40, 1);
+            var one = new MonsterPreview(single, single.Patterns[0]).Round;
+            var two = new MonsterPreview(pair, pair.Patterns[0]).Round;
+            Check.Equal(2m, one.Notes[0].Attack.JudgmentWeight);
+            Check.Equal(1m, two.Notes[0].Attack.JudgmentWeight);
+            one.Advance(one.Plan.Stage.Music.DurationSeconds + 1); two.Advance(two.Plan.Stage.Music.DurationSeconds + 1);
+            Check.Equal(8m, one.TotalDamageTaken); Check.Equal(one.TotalDamageTaken, two.TotalDamageTaken);
+        }
+
+        [Test]
         public void GradesTakeFullHalfAndZeroDamageWithoutRounding()
         {
             foreach (int damage in new[] { 1, 3, 4, 10 })
@@ -130,9 +174,9 @@ namespace BBSB.Tests
             Check.Equal(0m, round.TotalDamageTaken); Check.Equal(2.2, round.ElapsedSeconds);
             round.Resume(true); round.Advance(3);
             Check.Equal(RhythmGrade.HalfMiss, round.Results.Single().Grade);
-            Check.Equal(2m, round.TotalDamageTaken);
+            Check.Equal(3m, round.TotalDamageTaken);
             round.Stop(); round.Advance(100);
-            Check.Equal(2m, round.TotalDamageTaken); Check.Equal(1, round.Results.Count);
+            Check.Equal(3m, round.TotalDamageTaken); Check.Equal(1, round.Results.Count);
             Check.True(round.Aborted);
         }
 

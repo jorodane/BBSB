@@ -5,6 +5,12 @@ namespace BBSB.Core
 {
     public static class BattlePlanner
     {
+        public const int ExpertCallField = 6;
+        public const int CallOverlapCadenceTicks = 16 * RhythmTime.TicksPerBeat;
+
+        public static int CallOverlapFor(StageKind kind, int field) =>
+            field >= ExpertCallField && (kind == StageKind.Elite || kind == StageKind.Boss) ? RhythmTime.TicksPerBeat : 0;
+
         public static BattlePlan ForEncounter(MusicStage stage, int runSeed, StageNode node, int field)
         {
             if (node == null || !node.IsBattle) throw new ArgumentException("A battle node is required.", nameof(node));
@@ -35,7 +41,7 @@ namespace BBSB.Core
                 // Each monster submits independently; it never sees another monster's claimed slots.
                 proposals.Add(Propose(stage, entry.Id, entry, Hash(seed, entry.Id)));
             }
-            var resolved = Resolve(stage, proposals, Hash(seed, "ties"));
+            var resolved = Resolve(stage, proposals, Hash(seed, "ties"), CallOverlapFor(kind, field));
             return HookPatternGuarantee.Ensure(BattleGapFiller.Fill(resolved, Hash(seed, "gap-fill")), Hash(seed, "hooks"));
         }
 
@@ -55,7 +61,9 @@ namespace BBSB.Core
         }
 
         /// <summary>Remove whole conflicting bundles, recomputing each owner's occupied beats after every withdrawal.</summary>
-        public static BattlePlan Resolve(MusicStage stage, IEnumerable<MonsterProposal> submitted, int tieSeed)
+        // Negative overlap retains the independent-input resolver for authored fixtures.
+        // Generated encounters always supply their sequential/expert policy explicitly.
+        public static BattlePlan Resolve(MusicStage stage, IEnumerable<MonsterProposal> submitted, int tieSeed, int callOverlapTicks = -1)
         {
             if (stage == null || submitted == null) throw new ArgumentNullException(stage == null ? nameof(stage) : nameof(submitted));
             var proposals = new List<MonsterProposal>(submitted);
@@ -89,7 +97,7 @@ namespace BBSB.Core
                 int firstOwner = -1, secondOwner = -1, firstAttack = -1, secondAttack = -1, earliest = int.MaxValue;
                 for (int a = 0; a < active.Count; a++) for (int b = a; b < active.Count; b++)
                     for (int x = 0; x < active[a].Count; x++) for (int y = a == b ? x + 1 : 0; y < active[b].Count; y++)
-                        if (Conflicts(active[a][x], active[b][y], out int tick) && tick < earliest)
+                        if (Conflicts(active[a][x], active[b][y], out int tick, callOverlapTicks) && tick < earliest)
                         { firstOwner = a; secondOwner = b; firstAttack = x; secondAttack = y; earliest = tick; }
                 if (firstOwner < 0) break;
                 int leftCount = CountOccupied(active[firstOwner], beatGrid), rightCount = CountOccupied(active[secondOwner], beatGrid);
@@ -108,14 +116,36 @@ namespace BBSB.Core
             var monsters = new List<MonsterPlan>();
             for (int i = 0; i < proposals.Count; i++)
                 if (active[i].Count > 0) monsters.Add(new MonsterPlan(proposals[i], active[i], CountOccupied(active[i], beatGrid)));
-            return new BattlePlan(stage, monsters, withdrawals);
+            return new BattlePlan(stage, monsters, withdrawals, callOverlapTicks: callOverlapTicks);
         }
 
-        public static bool Conflicts(PlannedAttack left, PlannedAttack right, out int tick)
+        public static bool Conflicts(PlannedAttack left, PlannedAttack right, out int tick, int callOverlapTicks = -1)
         {
             if (left == null || right == null) throw new ArgumentNullException(left == null ? nameof(left) : nameof(right));
             if (left.MonsterId != right.MonsterId)
-                return InputCompatibility.Conflict(left.Placement, right.Placement, out tick);
+            {
+                if (InputCompatibility.Conflict(left.Placement, right.Placement, out tick)) return true;
+                if (callOverlapTicks < 0) return false;
+                int first = left.Chain?.CallStartTick ?? left.CallStartTick;
+                int second = right.Chain?.CallStartTick ?? right.CallStartTick;
+                if (first > second) { var swap = left; left = right; right = swap; second = first; }
+                int finish = left.Chain?.PhraseEndTick ?? left.PhraseEndTick;
+                if (second >= finish) return false;
+                // Expert hand-offs: only the outgoing response's last beat, once per 16 beats.
+                // The next Response still waits for the previous phrase, with no simultaneous Calls.
+                int incomingResponse = right.Chain == null ? right.ResponseStartTick : right.Chain.Placements[0].StartTick;
+                int lastCall = left.Call[left.Call.Count - 1].Tick;
+                if (left.Chain != null)
+                    foreach (var placement in left.Chain.Placements)
+                    {
+                        var pattern = left.Monster.FindPattern(placement.Pattern);
+                        lastCall = Math.Max(lastCall, placement.CueStartTick + pattern.Call[pattern.Call.Count - 1].OffsetTick);
+                    }
+                if (callOverlapTicks > 0 && second > lastCall && second >= left.ResponseStartTick &&
+                    finish - second <= callOverlapTicks && incomingResponse >= finish && second % CallOverlapCadenceTicks == 0)
+                    return false;
+                tick = second; return true;
+            }
             if (left.Chain != null && ReferenceEquals(left.Chain, right.Chain))
                 return InputCompatibility.Conflict(left.Placement, right.Placement, out tick);
             // A single actor cannot cue a second pattern during its current Call/Response.

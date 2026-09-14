@@ -19,6 +19,10 @@ namespace BBSB.Runtime.UI
         public void Refresh(RhythmRound round, string monsterId, double seconds)
         {
             VisibleCount = ResponsePromptTimeline.Fill(round, monsterId, seconds, kinds);
+            Layout();
+        }
+        internal void Layout()
+        {
             float side = Mathf.Min(64, ((RectTransform)transform).rect.width / Mathf.Max(1, VisibleCount));
             for (int i = 0; i < icons.Length; i++)
             {

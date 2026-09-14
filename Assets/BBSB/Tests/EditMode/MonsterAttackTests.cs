@@ -218,7 +218,7 @@ namespace BBSB.Tests
                 if (variant < 2) at = Math.Max(at, note.Result.JudgedAtSeconds + PlayerMotionTimeline.TapPreparationDuration(round.BeatSeconds));
                 Check.Equal(phase, Sample(round, note, at).Phase);
                 Check.False(Sample(round, note, at + MonsterAttackTimeline.ReactionSeconds + .01).Visible);
-                Check.Equal(1, round.Results.Count); Check.Equal(variant == 0 ? 0m : variant == 1 ? 2m : 4m, round.TotalDamageTaken);
+                Check.Equal(1, round.Results.Count); Check.Equal((variant == 0 ? 0m : variant == 1 ? 2m : 4m) * note.Attack.JudgmentWeight, round.TotalDamageTaken);
             }
         }
 
@@ -253,7 +253,7 @@ namespace BBSB.Tests
             Near(a.Progress, b.Progress); Near(a.Lift, b.Lift); Near(a.AnimationBeat, b.AnimationBeat);
             round.Resume(false); round.Advance(note.EndSeconds + 1);
             for (int i = 0; i < 100; i++) Check.False(Sample(round, note, round.ElapsedSeconds).Visible);
-            Check.Equal(1, round.Results.Count); Check.Equal(1, round.Calls.Count); Check.Equal(4m, round.TotalDamageTaken);
+            Check.Equal(1, round.Results.Count); Check.Equal(1, round.Calls.Count); Check.Equal(16m, round.TotalDamageTaken);
         }
 
         [Test]

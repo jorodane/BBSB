@@ -73,7 +73,7 @@ namespace BBSB.Core
         public double Efficiency => Grade == RhythmGrade.Perfect ? 1 : Grade == RhythmGrade.HalfMiss ? .5 : 0;
         // Incoming effects are canceled by Perfect and halved by HalfMiss, independently of score.
         public decimal DamageTakenMultiplier => Grade == RhythmGrade.Perfect ? 0m : Grade == RhythmGrade.HalfMiss ? .5m : 1m;
-        public decimal RawDamageTaken => Note.Attack.Monster.DamagePerNote * DamageTakenMultiplier;
+        public decimal RawDamageTaken => Note.Attack.Monster.DamagePerNote * Note.Attack.JudgmentWeight * DamageTakenMultiplier;
         public decimal BlockedDamage { get; internal set; }
         public decimal DamageTaken => Math.Max(0, RawDamageTaken - BlockedDamage);
         internal RhythmResult(ResponseNote note, RhythmGrade grade, MissReason reason, double judgedAt, double error)

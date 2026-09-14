@@ -11,6 +11,24 @@ namespace BBSB.Tests
     public sealed class MonsterPatternPlannerTests
     {
         [Test]
+        public void LinkedCallsShareTheirOccupiedBeatBudgetAndPracticePreservesTheSelectedWeight()
+        {
+            var stage = Stage(); var monster = Seesaw(); var chain = At(stage, monster, 16);
+            var plan = Resolve(stage, monster, chain); var round = new RhythmRound(plan);
+            decimal total = round.Notes.Sum(x => x.Attack.JudgmentWeight);
+            decimal expected = (chain.PhraseEndTick - chain.CallStartTick) / 8m;
+            Check.True(Math.Abs(total - expected) < .01m);
+            var loadout = new WeaponLoadout(plan, new[] { new WeaponState("sword") });
+            foreach (var attack in plan.Attacks.Take(5))
+            {
+                var practice = WeaponPractice.Create(plan, loadout, attack, 10000, 100);
+                Check.Equal(attack.JudgmentWeight, practice.Plan.Attacks[0].JudgmentWeight);
+                var replay = practice.RepeatPractice();
+                Check.Equal(attack.JudgmentWeight, replay.Plan.Attacks[0].JudgmentWeight);
+            }
+        }
+
+        [Test]
         public void BeatShiftChainCountsMainBeatsThenOffbeatsThenMainBeats()
         {
             var stage = Stage(); var monster = Seesaw(); var chain = At(stage, monster, 16);
