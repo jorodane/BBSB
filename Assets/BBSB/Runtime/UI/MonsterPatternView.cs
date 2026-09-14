@@ -53,9 +53,15 @@ namespace BBSB.Runtime.UI
             plot.GetComponent<HorizontalLayoutGroup>().childForceExpandWidth = false;
             var names = ui.Stack(plot, "Pattern lanes", 0, 0);
             var width = names.gameObject.AddComponent<LayoutElement>();
-            width.minWidth = width.preferredWidth = 72; width.flexibleWidth = 0;
+            width.minWidth = width.preferredWidth = 92; width.flexibleWidth = 0;
             ui.Label(names, "CALL", 17, RunUI.Gold, 34);
-            foreach (var kind in kinds) ui.Label(names, kind.ToString(), 17, RunUI.Teal, 34);
+            foreach (var kind in kinds)
+            {
+                var lane = ui.Row(names, 34, 3);
+                var icon = GestureIconGraphic.Create(lane, kind, false);
+                var layout = icon.gameObject.AddComponent<LayoutElement>(); layout.minWidth = layout.preferredWidth = 24; layout.flexibleWidth = 0;
+                ui.Label(lane, kind.ToString(), 13, PatternOverviewGraphic.ActionColor(kind), 34);
+            }
             ui.Label(names, "REST", 17, RunUI.Muted, 34);
             var graph = ui.Rect("Call and response", plot); RunUI.Size(graph, height, 1);
             graph.gameObject.AddComponent<MonsterPatternGraphic>().Bind(pattern);
@@ -71,7 +77,7 @@ namespace BBSB.Runtime.UI
             }
             ui.Label(root, "첫 Call을 1박으로 표시해. 대응 이후 " + Beat(pattern.RestTicks) + "박 휴식.", 18, RunUI.Muted, 48);
             if (kinds.Contains(GestureKind.Shake))
-                ui.Label(root, "Shake  ·  한 번 왕복하면 성공. 돌아오기 전까지는 반미스.", 19, RunUI.Teal, 52);
+                ui.Label(root, "Shake  ·  허용 범위 안에서 한 번 왕복하면 성공. 미완료면 미스.", 19, RunUI.Teal, 52);
         }
 
         private static string Beat(int tick) => (tick / (double)RhythmTime.TicksPerBeat).ToString("0.##", CultureInfo.InvariantCulture);

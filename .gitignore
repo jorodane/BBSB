@@ -110,3 +110,6 @@ InitTestScene*.unity*
 # Local composition caches; the old standalone preparation background is no longer used.
 /Tools/StageAssets/__pycache__/
 /Assets/BBSB/Resources/BBSB/PreparationArt/preparation-background.png*
+
+# Gesture artwork is delivered separately for the user to upload.
+/Assets/BBSB/Resources/BBSB/GestureIcons/**/*.png

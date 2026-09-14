@@ -19,6 +19,8 @@
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponArtLayout.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponSocketPulse.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/GestureIconCatalog.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/ResponsePromptTimeline.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/RangedWeaponTimeline.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/RangedWeaponArtLayout.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/BattleHitFeedback.cs" />
