@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 namespace BBSB.Runtime.UI
@@ -5,7 +6,7 @@ namespace BBSB.Runtime.UI
     public sealed class PreparationScreenBindings : MonoBehaviour
     {
         public Image portrait;
-        public Text playerName, song, playerHealth, enemyHealth;
+        public TextMeshProUGUI playerName, song, playerHealth, enemyHealth;
         public RectTransform playerFill, enemyFill, weapons;
         public ScrollRect patterns;
         public Button start, menu, codex;

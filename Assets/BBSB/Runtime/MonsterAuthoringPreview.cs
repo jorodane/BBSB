@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using BBSB.Core;
 using BBSB.Runtime.UI;
@@ -19,7 +20,7 @@ namespace BBSB.Runtime
         private MonsterPatternGraphic pattern;
         private RhythmInputSurface input;
         private BeatMetronome sound;
-        private Text status, pauseLabel;
+        private TextMeshProUGUI status, pauseLabel;
         private double origin, frozen;
         private bool paused, regrab;
         public RhythmRound Round => preview?.Round;
@@ -32,7 +33,7 @@ namespace BBSB.Runtime
             }
             catch (Exception exception) { Debug.LogError("몬스터 테스트를 시작할 수 없어: " + exception.Message, this); enabled = false; return; }
             if (EventSystem.current == null) new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule)).transform.SetParent(transform);
-            var font = Resources.Load<Font>("BBSB/Fonts/BBSBUI") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var font = PresentationFonts.Load();
             var ui = new RunUI(font); var root = ui.Rect("Monster preview canvas", transform);
             var canvas = root.gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = root.gameObject.AddComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -45,12 +46,12 @@ namespace BBSB.Runtime
             var header = ui.Rect("Pattern preview", root);
             RunUI.Overlay(header, new Vector2(.16f, 1), new Vector2(.84f, 1), new Vector2(0, -126), new Vector2(0, -24));
             pattern = header.gameObject.AddComponent<MonsterPatternGraphic>(); pattern.Bind(preview.Attack.Pattern);
-            status = ui.Label(root, "", 23, RunUI.Gold, 48, TextAnchor.MiddleCenter);
+            status = ui.Label(root, "", 23, RunUI.Gold, 48, TextAlignmentOptions.Center);
             RunUI.Overlay(status.rectTransform, new Vector2(.16f, 0), new Vector2(.84f, 0), new Vector2(0, 24), new Vector2(0, 72));
             var menu = ui.Rect("Preview controls", root);
             RunUI.Overlay(menu, new Vector2(.84f, 1), Vector2.one, new Vector2(0, -210), new Vector2(-12, -16));
             var stack = ui.Stack(menu); RunUI.Stretch(stack);
-            pauseLabel = ui.Button(stack, "일시정지", TogglePause).GetComponentInChildren<Text>();
+            pauseLabel = ui.Button(stack, "일시정지", TogglePause).GetComponentInChildren<TextMeshProUGUI>();
             ui.Button(stack, "처음부터", Restart);
             ui.Button(stack, "소리 켜기/끄기", () => sound.SetMuted(!sound.Muted));
             sound = new BeatMetronome(transform, preview.Round.Plan); Restart();

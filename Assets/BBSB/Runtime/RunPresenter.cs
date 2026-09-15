@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using BBSB.Core;
 using BBSB.Runtime.UI;
@@ -35,7 +36,7 @@ namespace BBSB.Runtime
         private BattlePreparationView preparation;
         private MonsterCodexView codex;
 
-        public void Initialize(RunRules runRules, Font font, int? seed, bool showTestControls)
+        public void Initialize(RunRules runRules, TMP_FontAsset font, int? seed, bool showTestControls)
         {
             MonsterAuthoringRegistry.EnsureLoaded();
             rules = runRules; ui = new RunUI(font); fixedSeed = seed; testControls = showTestControls;
@@ -121,7 +122,7 @@ namespace BBSB.Runtime
                 DrawHud();
             if (!string.IsNullOrEmpty(notice))
             {
-                var toast = ui.Label(page ?? screen, notice, 21, RunUI.Teal, 42, TextAnchor.MiddleCenter);
+                var toast = ui.Label(page ?? screen, notice, 21, RunUI.Teal, 42, TextAlignmentOptions.Center);
                 if (page == null)
                     RunUI.Overlay(toast.rectTransform, new Vector2(.3f, 0), new Vector2(.7f, 0), new Vector2(0, 68), new Vector2(0, 110));
             }
@@ -186,7 +187,7 @@ namespace BBSB.Runtime
             ui.Label(selection, "시작 맵", 23, RunUI.Gold, 36);
             var genres = ui.Row(selection, 64);
             ui.Button(genres, "이전 맵", () => { selectedMap = (selectedMap + StageCatalog.Maps.Count + 1) % (StageCatalog.Maps.Count + 1) - 1; Render(); }, height: 64);
-            ui.Label(genres, selectedMap < 0 ? "랜덤 맵" : StageCatalog.Maps[selectedMap].Genre + " · " + StageCatalog.Maps[selectedMap].Name, 22, RunUI.Teal, 64, TextAnchor.MiddleCenter);
+            ui.Label(genres, selectedMap < 0 ? "랜덤 맵" : StageCatalog.Maps[selectedMap].Genre + " · " + StageCatalog.Maps[selectedMap].Name, 22, RunUI.Teal, 64, TextAlignmentOptions.Center);
             ui.Button(genres, "다음 맵", () => { selectedMap = (selectedMap + 2) % (StageCatalog.Maps.Count + 1) - 1; Render(); }, height: 64);
             var actions = ui.Row(panel, 84);
             ui.Button(actions, "탐험 시작", StartRun, primary: true, height: 84);
@@ -246,11 +247,11 @@ namespace BBSB.Runtime
                 button.colors = colors;
                 if (visited) button.GetComponent<Image>().color = RunUI.Hex("426A65");
                 else if (!available && node.MapKind == StageKind.Boss) button.GetComponent<Image>().color = RunUI.Hex("643A53");
-                var labelText = button.GetComponentInChildren<Text>(); labelText.fontSize = 26;
-                labelText.resizeTextForBestFit = true;
-                labelText.resizeTextMinSize = 18; labelText.resizeTextMaxSize = 26;
+                var labelText = button.GetComponentInChildren<TextMeshProUGUI>(); labelText.fontSize = 26;
+                labelText.enableAutoSizing = true;
+                labelText.fontSizeMin = 18; labelText.fontSizeMax = 26;
             }
-            var hint = ui.Label(screen, "왼쪽에서 오른쪽으로  ·  밝은 무대를 선택해\n? 지역은 들어가면 정체가 밝혀져.", 20, RunUI.Muted, 56, TextAnchor.MiddleCenter);
+            var hint = ui.Label(screen, "왼쪽에서 오른쪽으로  ·  밝은 무대를 선택해\n? 지역은 들어가면 정체가 밝혀져.", 20, RunUI.Muted, 56, TextAlignmentOptions.Center);
             RunUI.Overlay(hint.rectTransform, new Vector2(.20f, 0), new Vector2(.80f, 0), new Vector2(0, 12), new Vector2(0, 68));
         }
 
@@ -391,9 +392,9 @@ namespace BBSB.Runtime
         {
             Heading("ROUND COMPLETE", "연주 결과", "플레이어와 스테이지의 남은 HP를 유지한 채 다시 준비할 수 있어.");
             var card = ui.Card(body);
-            ui.Label(card, completedRound.ScorePercent.ToString("0.0") + "%", 60, RunUI.Teal, 100, TextAnchor.MiddleCenter);
+            ui.Label(card, completedRound.ScorePercent.ToString("0.0") + "%", 60, RunUI.Teal, 100, TextAlignmentOptions.Center);
             ui.Label(card, "정확 " + completedRound.PerfectCount + "  ·  반미스 " + completedRound.HalfMissCount + "  ·  미스 " + completedRound.MissCount,
-                25, RunUI.TextColor, 60, TextAnchor.MiddleCenter);
+                25, RunUI.TextColor, 60, TextAlignmentOptions.Center);
             ui.Label(card, "정확 100% · 반미스 50% · 미스 0%로 집계했어.", 20, RunUI.Muted, 48);
             ui.Label(card, "받은 피해 " + completedRound.TotalDamageTaken.ToString("0.##") + "  ·  남은 HP " +
                 Session.Health.ToString("0.##") + " / " + Session.MaxHealth, 25, RunUI.Red, 54);

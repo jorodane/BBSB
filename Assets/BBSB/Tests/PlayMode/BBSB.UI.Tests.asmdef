@@ -1,7 +1,7 @@
 {
   "name": "BBSB.UI.Tests",
   "rootNamespace": "BBSB.Tests",
-  "references": ["BBSB.Core", "BBSB.Runtime", "Unity.ugui"],
+  "references": ["BBSB.Core", "BBSB.Runtime", "Unity.ugui", "Unity.TextMeshPro"],
   "optionalUnityReferences": ["TestAssemblies"],
   "autoReferenced": false
 }

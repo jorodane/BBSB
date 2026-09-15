@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,17 +13,19 @@ namespace BBSB.Editor
     public static class PresentationPrefabBuilder
     {
         private const string Folder = "Assets/BBSB/Resources/BBSB/Presentation";
-        private static Font Font => Resources.Load<Font>("BBSB/Fonts/BBSBUI") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        private static TMP_FontAsset Font => PresentationFonts.Load();
         [InitializeOnLoadMethod] private static void Schedule() => EditorApplication.delayCall += Ensure;
         [MenuItem("BBSB/Presentation/Create missing Canvas and actor prefabs")]
         public static void Ensure()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
             Directory.CreateDirectory(Folder); AssetDatabase.Refresh();
+            PresentationFontBuilder.Ensure();
             string path = Folder + "/PresentationPrefabs.asset";
             if (AssetDatabase.LoadAssetAtPath<PresentationPrefabs>(path) == null)
             {
                 var library = ScriptableObject.CreateInstance<PresentationPrefabs>();
+                library.defaultFont = Font; library.textMeshProVersion = 1;
                 library.primaryButton = CreateButtonPrefab("PrimaryButton", new Color(.95f, .79f, .47f), Color.black);
                 library.secondaryButton = CreateButtonPrefab("SecondaryButton", new Color(.17f, .22f, .31f), Color.white);
                 library.titleText = CreateTextPrefab("TitleText", 48); library.headingText = CreateTextPrefab("HeadingText", 28);
@@ -137,8 +140,8 @@ namespace BBSB.Editor
         private static void Stretch(RectTransform r) { r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero; }
         private static Image Background(RectTransform r, Color color)
         { var i = r.gameObject.AddComponent<Image>(); i.color = color; i.raycastTarget = false; return i; }
-        private static Text Text(string name, Transform parent, string text, int size)
-        { var r = Rect(name, parent); var t = r.gameObject.AddComponent<Text>(); t.font = Font; t.fontSize = size; t.text = text; t.color = Color.white; t.raycastTarget = false; t.alignment = TextAnchor.MiddleCenter; return t; }
+        private static TextMeshProUGUI Text(string name, Transform parent, string text, int size)
+        { var r = Rect(name, parent); var t = r.gameObject.AddComponent<TextMeshProUGUI>(); t.font = Font; t.fontSize = size; t.text = text; t.color = Color.white; t.raycastTarget = false; t.richText = false; t.textWrappingMode = TextWrappingModes.Normal; t.overflowMode = TextOverflowModes.Truncate; t.alignment = TextAlignmentOptions.Center; return t; }
         private static Button Button(string name, Transform parent, string label)
         {
             var r = Rect(name, parent); r.sizeDelta = new Vector2(260, 72); var image = Background(r, new Color(.17f, .22f, .31f)); image.raycastTarget = true;
@@ -155,9 +158,9 @@ namespace BBSB.Editor
             var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             return existing != null ? existing : PrefabUtility.SaveAsPrefabAsset(source, path);
         }
-        private static Text CreateTextPrefab(string name, int size)
-        { var text = Text(name, null, name, size); text.rectTransform.sizeDelta = new Vector2(400, 60); var result = Save(text.gameObject, name).GetComponent<Text>(); UnityEngine.Object.DestroyImmediate(text.gameObject); return result; }
+        private static TextMeshProUGUI CreateTextPrefab(string name, int size)
+        { var text = Text(name, null, name, size); text.rectTransform.sizeDelta = new Vector2(400, 60); var result = Save(text.gameObject, name).GetComponent<TextMeshProUGUI>(); UnityEngine.Object.DestroyImmediate(text.gameObject); return result; }
         private static Button CreateButtonPrefab(string name, Color background, Color foreground)
-        { var button = Button(name, null, name); button.GetComponent<Image>().color = background; button.GetComponentInChildren<Text>().color = foreground; var result = Save(button.gameObject, name).GetComponent<Button>(); UnityEngine.Object.DestroyImmediate(button.gameObject); return result; }
+        { var button = Button(name, null, name); button.GetComponent<Image>().color = background; button.GetComponentInChildren<TextMeshProUGUI>().color = foreground; var result = Save(button.gameObject, name).GetComponent<Button>(); UnityEngine.Object.DestroyImmediate(button.gameObject); return result; }
     }
 }

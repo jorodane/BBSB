@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using BBSB.Core;
@@ -87,10 +88,10 @@ namespace BBSB.Runtime.UI
             var epithet = Text(header, "다섯 현의 조종자", 15, RunUI.Muted);
             Top(epithet.rectTransform, 0, .26f, 28, 24, 52);
             var music = session.BattleMusic.Music;
-            var song = Text(header, music.Name, 29, RunUI.Gold, TextAnchor.MiddleCenter);
+            var song = Text(header, music.Name, 29, RunUI.Gold, TextAlignmentOptions.Center);
             Top(song.rectTransform, .27f, .75f, 0, 36);
             var subtitle = Text(header, session.Map.Theme.Genre + "  ·  " + music.Bpm.ToString("0.##") + " BPM  ·  STAGE " +
-                (session.CurrentNode.Row + 1).ToString("00"), 16, RunUI.Muted, TextAnchor.MiddleCenter);
+                (session.CurrentNode.Row + 1).ToString("00"), 16, RunUI.Muted, TextAlignmentOptions.Center);
             Top(subtitle.rectTransform, .27f, .75f, 38, 22);
             var book = Button(header, "도감", codex, height: 48);
             book.name = "Preparation codex all";
@@ -104,7 +105,7 @@ namespace BBSB.Runtime.UI
         private PreparationGraphic Health(Transform parent, string name, decimal current, decimal maximum, float left, float right, Color tint)
         {
             var label = Text(parent, (name == "Player" ? "HP  " : "MONSTER HP  ") + current.ToString("0.##") + " / " + maximum.ToString("0.##"),
-                15, tint, name == "Player" ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
+                15, tint, name == "Player" ? TextAlignmentOptions.Left : TextAlignmentOptions.Right);
             Top(label.rectTransform, left, right, 63, 20);
             var rect = ui.Rect("Preparation " + name + " HP", parent); Top(rect, left, right, 85, 7);
             var bar = rect.gameObject.AddComponent<PreparationGraphic>();
@@ -123,9 +124,9 @@ namespace BBSB.Runtime.UI
             var book = Button(row, "도감", () => codex(monster), height: 28);
             book.name = "Preparation codex " + instanceId;
             RunUI.Pin((RectTransform)book.transform, Vector2.one, Vector2.one, new Vector2(-8, -4), new Vector2(56, 28));
-            var bookLabel = book.GetComponentInChildren<Text>();
-            bookLabel.fontSize = bookLabel.resizeTextMaxSize = 14;
-            RunUI.Stretch(book.GetComponentInChildren<Text>().rectTransform, 2);
+            var bookLabel = book.GetComponentInChildren<TextMeshProUGUI>();
+            bookLabel.fontSize = bookLabel.fontSizeMax = 14;
+            RunUI.Stretch(book.GetComponentInChildren<TextMeshProUGUI>().rectTransform, 2);
             var cards = ui.Rect("Patterns " + instanceId, row);
             RunUI.Overlay(cards, Vector2.zero, Vector2.one, new Vector2(8, 6), new Vector2(-8, -38));
             var layout = cards.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -146,7 +147,7 @@ namespace BBSB.Runtime.UI
             var button = Button(parent, "", () => RequestPractice(index), height: 0);
             button.name = "Practice pattern " + index; patternButtons.Add(button);
             var element = button.GetComponent<LayoutElement>(); element.minHeight = element.preferredHeight = 0; element.flexibleHeight = 1;
-            Destroy(button.GetComponentInChildren<Text>().gameObject);
+            Destroy(button.GetComponentInChildren<TextMeshProUGUI>().gameObject);
             var rect = (RectTransform)button.transform;
             var icon = Portrait(rect, "Pattern icon " + pattern.Pattern.Id,
                 sprites.Get(MonsterCodexView.IconRoot + "Patterns", pattern.Pattern.Id) ?? MonsterPortrait(pattern.Monster), pattern.Pattern.Name);
@@ -217,9 +218,9 @@ namespace BBSB.Runtime.UI
             RunUI.Overlay(panel, new Vector2(.24f, .30f), new Vector2(.76f, .70f), Vector2.zero, Vector2.zero);
             ui.Background(panel, RunUI.Panel, true);
             var pattern = session.BattleLoadout.Patterns[patternIndex];
-            var title = Text(panel, "이 패턴을 연습할까?", 26, RunUI.Gold, TextAnchor.MiddleCenter);
+            var title = Text(panel, "이 패턴을 연습할까?", 26, RunUI.Gold, TextAlignmentOptions.Center);
             RunUI.Overlay(title.rectTransform, new Vector2(.04f, .68f), new Vector2(.96f, .94f), Vector2.zero, Vector2.zero);
-            var name = Text(panel, pattern.Monster.Name + " · " + pattern.Pattern.Name, 20, RunUI.TextColor, TextAnchor.MiddleCenter);
+            var name = Text(panel, pattern.Monster.Name + " · " + pattern.Pattern.Name, 20, RunUI.TextColor, TextAlignmentOptions.Center);
             RunUI.Overlay(name.rectTransform, new Vector2(.04f, .40f), new Vector2(.96f, .68f), Vector2.zero, Vector2.zero);
             var cancel = Button(panel, "돌아가기", CancelPractice, height: 52); cancel.name = "Cancel pattern practice";
             RunUI.Overlay((RectTransform)cancel.transform, new Vector2(.05f, .08f), new Vector2(.47f, .33f), Vector2.zero, Vector2.zero);
@@ -258,17 +259,17 @@ namespace BBSB.Runtime.UI
         private Button Button(Transform parent, string value, Action action, float height, bool primary = false)
         {
             var button = ui.Button(parent, value, action, primary: primary, height: height);
-            var text = button.GetComponentInChildren<Text>();
+            var text = button.GetComponentInChildren<TextMeshProUGUI>();
             // Fit the actual font line metrics inside short HUD controls.
-            text.resizeTextForBestFit = true; text.resizeTextMinSize = 12; text.resizeTextMaxSize = 24;
+            text.enableAutoSizing = true; text.fontSizeMin = 12; text.fontSizeMax = 24;
             text.rectTransform.offsetMin = new Vector2(8, 3);
             text.rectTransform.offsetMax = new Vector2(-8, -3);
             return button;
         }
-        private Text Text(Transform parent, string value, int size, Color tint, TextAnchor align = TextAnchor.MiddleLeft)
+        private TextMeshProUGUI Text(Transform parent, string value, int size, Color tint, TextAlignmentOptions align = TextAlignmentOptions.Left)
         {
             var label = ui.Label(parent, value, size, tint, 24, align);
-            label.resizeTextForBestFit = true; label.resizeTextMinSize = Math.Max(11, size - 4); label.resizeTextMaxSize = size;
+            label.enableAutoSizing = true; label.fontSizeMin = Math.Max(11, size - 4); label.fontSizeMax = size;
             return label;
         }
         private static void Top(RectTransform rect, float left, float right, float top, float height, float insetLeft = 0, float insetRight = 0) =>
@@ -286,7 +287,7 @@ namespace BBSB.Runtime.UI
             image.raycastTarget = false; image.enabled = sprite != null;
             if (sprite == null)
             {
-                var text = Text(frame, fallback, 13, RunUI.Gold, TextAnchor.MiddleCenter); RunUI.Stretch(text.rectTransform);
+                var text = Text(frame, fallback, 13, RunUI.Gold, TextAlignmentOptions.Center); RunUI.Stretch(text.rectTransform);
             }
             return image;
         }

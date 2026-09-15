@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -35,7 +36,7 @@ namespace BBSB.Tests
             Assert.GreaterOrEqual(rect.anchoredPosition.y, 156);
             Assert.IsFalse(prompt.GetComponentsInChildren<Graphic>().Any(x => x.raycastTarget));
             round.Press(2, 0, 0); arena.Refresh();
-            var label = arena.GetComponentsInChildren<Text>().Single(x => x.name == "Response judgment");
+            var label = arena.GetComponentsInChildren<TextMeshProUGUI>().Single(x => x.name == "Response judgment");
             Assert.AreEqual("PERFECT", label.text);
             Assert.AreEqual(new Vector2(.5f, 0), label.rectTransform.anchorMin);
             Assert.IsFalse(label.raycastTarget);
@@ -383,7 +384,7 @@ namespace BBSB.Tests
                 Assert.AreEqual(Vector3.one, arena.MonsterPortraits[i].rectTransform.localScale,
                     "An authored Call pose must not also receive the old procedural squash.");
             }
-            Assert.AreEqual(2, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 쿵"));
+            Assert.AreEqual(2, arena.GetComponentsInChildren<TextMeshProUGUI>().Count(x => x.text == "CALL · 쿵"));
             round.Advance(RhythmTime.Seconds(28, stage.Music.Bpm) + round.BeatSeconds * .21); arena.Refresh();
             for (int i = 0; i < plan.Monsters.Count; i++)
             {
@@ -393,7 +394,7 @@ namespace BBSB.Tests
                     arena.MonsterPortraits[i].sprite);
                 Assert.AreEqual(Quaternion.identity, arena.MonsterPortraits[i].rectTransform.localRotation);
             }
-            Assert.AreEqual(1, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 휙!"));
+            Assert.AreEqual(1, arena.GetComponentsInChildren<TextMeshProUGUI>().Count(x => x.text == "CALL · 휙!"));
             Assert.AreEqual(0, round.Results.Count);
             Assert.IsTrue(round.Notes.All(x => x.StartSeconds > round.ElapsedSeconds));
             LogAssert.NoUnexpectedReceived();
@@ -408,9 +409,9 @@ namespace BBSB.Tests
             var plan = BattlePlanner.Resolve(stage, new[] { new MonsterProposal(monster.Id, monster, new List<PatternChain> { chain }) }, 1);
             var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
             round.Advance(RhythmTime.Seconds(28, stage.Music.Bpm)); arena.Refresh();
-            Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "CALL · 당겨! · TAP"));
+            Assert.IsTrue(arena.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "CALL · 당겨! · TAP"));
             round.Advance(RhythmTime.Seconds(34, stage.Music.Bpm)); arena.Refresh();
-            Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "CALL · 또각! · TAP"));
+            Assert.IsTrue(arena.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "CALL · 또각! · TAP"));
             Assert.AreEqual(34, round.Calls.Last().Tick);
             round.Press(RhythmTime.Seconds(34, stage.Music.Bpm), 0, 0); arena.Refresh();
             Assert.AreEqual(RhythmGrade.Perfect, round.Results.Last().Grade);
@@ -430,11 +431,11 @@ namespace BBSB.Tests
                 var round = new RhythmRound(plan); var arena = Arena(round); yield return null;
                 Canvas.ForceUpdateCanvases();
                 round.Advance(RhythmTime.Seconds(plan.Attacks.Single().CallStartTick, stage.Music.Bpm)); arena.Refresh();
-                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "CALL · " + pattern.Call[0].Label));
+                Assert.IsTrue(arena.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "CALL · " + pattern.Call[0].Label));
                 double target = RhythmTime.Seconds(64, stage.Music.Bpm);
                 round.Advance(target - .1); arena.Refresh();
                 bool walking = monster.Id == "clock-spirit";
-                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text ==
+                Assert.IsTrue(arena.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text ==
                     (walking ? "쉼 · 인형의 걸음 따라가기" : "쉼 · 박자 기억하기")));
                 Assert.AreEqual(walking ? 1 : 0, arena.MonsterAttacks.ActiveCount);
                 if (walking)
@@ -446,7 +447,7 @@ namespace BBSB.Tests
                 Assert.AreEqual(1, round.Calls.Count); Assert.AreEqual(0, round.Results.Count);
                 round.Advance(target); arena.Refresh();
                 Assert.Less(arena.MonsterPortraits.Single().rectTransform.anchoredPosition.x, 0);
-                Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "RESPONSE"));
+                Assert.IsTrue(arena.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "RESPONSE"));
                 Assert.AreEqual(1, arena.MonsterAttacks.ActiveCount);
             }
             LogAssert.NoUnexpectedReceived();
@@ -660,7 +661,7 @@ namespace BBSB.Tests
             arena.Refresh(); var idle = arena.MonsterPortraits[0].rectTransform.anchoredPosition;
             round.Advance(1.5); arena.Refresh();
             Assert.Greater(arena.MonsterPortraits[0].rectTransform.anchoredPosition.y, idle.y + 10);
-            Assert.AreEqual(3, arena.GetComponentsInChildren<Text>().Count(x => x.text == "CALL · 통!"));
+            Assert.AreEqual(3, arena.GetComponentsInChildren<TextMeshProUGUI>().Count(x => x.text == "CALL · 통!"));
             Assert.AreEqual(0, arena.ActiveResponseEffects);
             var call = arena.MonsterPortraits[0].rectTransform.anchoredPosition;
             round.Advance(2); arena.Refresh();
@@ -706,13 +707,13 @@ namespace BBSB.Tests
             Assert.AreEqual(PlayerMotionPhase.Idle, arena.CurrentHeroMotion.Phase);
             round.Press(2, 0, 0); arena.Refresh();
             Assert.AreEqual("dive", arena.CurrentHeroMotion.Sheet);
-            Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text.Contains("회피 준비")));
+            Assert.IsTrue(arena.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text.Contains("회피 준비")));
             for (int i = 1; i <= 15; i++)
             {
                 round.Move(2 + i * .05, i % 2 == 1 ? .1 : 0, 0); arena.Refresh();
                 if (i == 1)
                 {
-                    Assert.IsTrue(arena.GetComponentsInChildren<Text>().Any(x => x.text == "양손 밀쳐내기"));
+                    Assert.IsTrue(arena.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "양손 밀쳐내기"));
                     Assert.AreEqual("shake", arena.CurrentHeroMotion.Sheet);
                 }
             }
@@ -750,7 +751,7 @@ namespace BBSB.Tests
             Assert.AreEqual(1, miss.MissCount); Assert.Less(c.HeroPortrait.color.g, c.HeroPortrait.color.r);
             Assert.AreEqual(3, c.CurrentHeroMotion.Index % 4);
             early.Press(1.8, 0, 0); d.Refresh();
-            Assert.IsTrue(d.GetComponentsInChildren<Text>().Any(x => x.text == "너무 이른 동작"));
+            Assert.IsTrue(d.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "너무 이른 동작"));
             Assert.AreEqual(MissReason.TooEarly, early.Results.Single().Reason);
             LogAssert.NoUnexpectedReceived();
         }
@@ -860,7 +861,7 @@ namespace BBSB.Tests
             var rect = new GameObject("Battle arena", typeof(RectTransform)).GetComponent<RectTransform>();
             rect.SetParent(root.transform, false); rect.sizeDelta = new Vector2(1280, 720);
             var view = rect.gameObject.AddComponent<BattleArenaView>();
-            view.Initialize(round, Resources.Load<Font>("BBSB/Fonts/BBSBUI"), display); return view;
+            view.Initialize(round, PresentationFonts.Load(), display); return view;
         }
 
         private static RhythmRound Round(int count, params PatternStep[] steps)

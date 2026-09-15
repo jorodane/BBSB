@@ -30,12 +30,7 @@ namespace BBSB.Runtime
                 var events = new GameObject("BBSB Event System", typeof(EventSystem), typeof(InputSystemUIInputModule));
                 events.transform.SetParent(transform, false);
             }
-            var font = Resources.Load<Font>("BBSB/Fonts/BBSBUI");
-            if (font == null)
-            {
-                Debug.LogError("BBSB UI font is missing. Restore Assets/BBSB/Resources/BBSB/Fonts/BBSBUI.otf.");
-                font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            }
+            var font = UI.PresentationFonts.Load();
             var presenter = gameObject.AddComponent<RunPresenter>();
             presenter.Initialize(new RunRules(startingHealth, startingGold, restPercent), font,
                 useFixedSeed ? (int?)seed : null, showBattleTestControls);

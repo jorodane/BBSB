@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using System.Linq;
 using BBSB.Core;
@@ -32,8 +33,8 @@ namespace BBSB.Tests
             var pulses = root.GetComponentsInChildren<Image>().Where(x => x.name.StartsWith("Beat pulse ")).ToArray();
             Assert.AreEqual(0, pulses.Length);
             Assert.IsFalse(root.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Live weapons" || x.name == "Beat signals"));
-            Assert.IsFalse(root.GetComponentsInChildren<Text>().Any(x => x.name == "Input status"));
-            var combo = root.GetComponentsInChildren<Text>().Single(x => x.name == "Combo counter");
+            Assert.IsFalse(root.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.name == "Input status"));
+            var combo = root.GetComponentsInChildren<TextMeshProUGUI>().Single(x => x.name == "Combo counter");
             Assert.AreEqual("COMBO 0", combo.text); Assert.IsFalse(combo.raycastTarget);
             Assert.AreEqual(1, root.GetComponentsInChildren<Button>().Length, "Only pause is a live action button.");
             Canvas.ForceUpdateCanvases();
@@ -60,7 +61,7 @@ namespace BBSB.Tests
                 Assert.Less(scene.InverseTransformPoint(arena.HeroPortrait.transform.position).x, 0);
                 Assert.IsTrue(arena.MonsterPortraits.All(x => scene.InverseTransformPoint(x.transform.position).x > 0));
                 foreach (var target in new[] { (RectTransform)arena.transform,
-                    root.GetComponentsInChildren<Text>().Single(x => x.name == "Response feedback").rectTransform, combo.rectTransform, menu })
+                    root.GetComponentsInChildren<TextMeshProUGUI>().Single(x => x.name == "Response feedback").rectTransform, combo.rectTransform, menu })
                 {
                     var corners = new Vector3[4]; target.GetWorldCorners(corners);
                     foreach (var corner in corners)
@@ -87,7 +88,7 @@ namespace BBSB.Tests
             yield return null; yield return null;
             Assert.IsTrue(performance.Finished); Assert.AreEqual(performance.ResponseNoteCount, performance.MissCount);
             Assert.IsNull(presenter.ActiveRound);
-            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "연주 결과"));
+            Assert.IsTrue(root.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "연주 결과"));
             Assert.AreEqual(RunPhase.Stage, presenter.Session.Phase);
             Assert.AreEqual(ticket, presenter.Session.StageTicket);
             Assert.AreEqual(health - performance.TotalDamageTaken, presenter.Session.Health);
@@ -136,7 +137,7 @@ namespace BBSB.Tests
             surface.OnPointerUp(first); Assert.IsFalse(player.Round.IsDown);
             Click("메뉴"); Click("준비로 돌아가기"); yield return null;
             Assert.IsNull(presenter.ActiveRound); Assert.AreEqual(RunPhase.Stage, presenter.Session.Phase);
-            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "준비하기"));
+            Assert.IsTrue(root.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "준비하기"));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -194,7 +195,7 @@ namespace BBSB.Tests
             round.Advance(round.Notes[0].EndSeconds + round.HalfMissWindow + .001);
             Click("메뉴"); decimal remaining = presenter.Session.Health;
             Assert.Less(remaining, 10000m);
-            var label = root.GetComponentsInChildren<Text>(true).Single(x => x.name == "Player health");
+            var label = root.GetComponentsInChildren<TextMeshProUGUI>(true).Single(x => x.name == "Player health");
             Assert.AreEqual("HP  " + remaining.ToString("0.##") + " / 10000", label.text);
             var bar = root.GetComponentsInChildren<RectTransform>(true).Single(x => x.name == "Player health bar");
             var fill = (RectTransform)bar.GetChild(0);
@@ -222,7 +223,7 @@ namespace BBSB.Tests
             yield return null; yield return null;
             Assert.IsNull(presenter.ActiveRound); Assert.IsNull(presenter.Session.ActiveRhythmRound);
             Assert.AreEqual(RunPhase.GameOver, presenter.Session.Phase);
-            Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == "GAME OVER"));
+            Assert.IsTrue(root.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "GAME OVER"));
             Assert.IsNull(root.GetComponentInChildren<RhythmPlayback>());
             Assert.IsFalse(presenter.StartRhythmRound());
             LogAssert.NoUnexpectedReceived();
@@ -245,7 +246,7 @@ namespace BBSB.Tests
             Assert.IsTrue(playback.Round.Combat.IsPractice); Assert.AreEqual(1, playback.Round.Plan.Attacks.Count);
             Assert.AreEqual(pattern.Placement.Pattern.Steps.Count, playback.Round.Notes.Count);
             Assert.IsTrue(playback.Round.Combat.Bindings.All(x => playback.Round.Notes.Contains(x.Note)));
-            Assert.IsNotNull(root.GetComponentsInChildren<Text>().Single(x => x.name == "Shared stage health"));
+            Assert.IsNotNull(root.GetComponentsInChildren<TextMeshProUGUI>().Single(x => x.name == "Shared stage health"));
             Click("메뉴"); yield return null;
             Assert.IsTrue(playback.IsPaused); Click("이어하기");
             var arena = root.GetComponentInChildren<BattleArenaView>();
@@ -263,7 +264,7 @@ namespace BBSB.Tests
                 }
                 Assert.AreSame(arena, root.GetComponentInChildren<BattleArenaView>());
                 CollectionAssert.AreEqual(audioObjects, playback.GetComponentsInChildren<AudioSource>());
-                Assert.IsFalse(root.GetComponentsInChildren<Text>().Any(x => x.text == "연습 결과" || x.text == "연주 결과"));
+                Assert.IsFalse(root.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == "연습 결과" || x.text == "연주 결과"));
             }
             Assert.AreEqual(3, playback.PracticeRepetitions);
             Assert.AreEqual(health, run.Health); Assert.AreEqual(enemy, run.EnemyHealth.Current); Assert.AreEqual(gold, run.Gold);
@@ -356,7 +357,7 @@ namespace BBSB.Tests
             surface.OnPointerDown(point); surface.OnPointerUp(point);
             Assert.AreEqual(1, round.PerfectCount); Assert.IsFalse(arena.CurrentHeroMotion.IsFreeInput);
             Assert.AreEqual(GestureKind.Tap, arena.CurrentHeroMotion.Kind);
-            Assert.IsTrue(codex.GetComponentsInChildren<Text>().Any(x => x.text.StartsWith("PERFECT ·")));
+            Assert.IsTrue(codex.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text.StartsWith("PERFECT ·")));
             round.Advance(round.ElapsedSeconds + PlayerMotionTimeline.TapPreparationDuration(round.BeatSeconds));
             yield return null; Assert.AreEqual(1, arena.ActiveResponseEffects);
             round.Advance(round.Plan.Stage.Music.DurationSeconds + 1); yield return null;
@@ -519,11 +520,11 @@ namespace BBSB.Tests
                 var events = new GameObject("Test events", typeof(EventSystem)); events.transform.SetParent(root.transform);
             }
             presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(rules ?? new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            presenter.Initialize(rules ?? new RunRules(), PresentationFonts.Load(), 73, false);
             Click("탐험 시작"); yield return null;
             for (int row = 0; row < FieldMap.StageCount; row++)
             {
-                root.GetComponentsInChildren<Button>().First(x => x.interactable && x.GetComponentInChildren<Text>().text.Contains("진입")).onClick.Invoke();
+                root.GetComponentsInChildren<Button>().First(x => x.interactable && x.GetComponentInChildren<TextMeshProUGUI>().text.Contains("진입")).onClick.Invoke();
                 yield return null;
                 if (presenter.Session.CurrentNode.IsBattle) break;
                 Click("지도에 돌아가기"); yield return null;
@@ -539,6 +540,6 @@ namespace BBSB.Tests
         private static PointerEventData Pointer(int id, Vector2 position) => new PointerEventData(EventSystem.current)
         { pointerId = id, position = position, button = PointerEventData.InputButton.Left };
         private void Click(string label)
-        { root.GetComponentsInChildren<Button>().Single(x => x.IsInteractable() && x.GetComponentInChildren<Text>().text == label).onClick.Invoke(); }
+        { root.GetComponentsInChildren<Button>().Single(x => x.IsInteractable() && x.GetComponentInChildren<TextMeshProUGUI>().text == label).onClick.Invoke(); }
     }
 }

@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using System.Linq;
 using BBSB.Core;
@@ -26,7 +27,7 @@ namespace BBSB.Tests
         {
             root = new GameObject("Codex UI smoke test");
             var presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 73, false);
             Click("몬스터 도감"); yield return null; Canvas.ForceUpdateCanvases();
             Assert.IsNull(presenter.Session);
             var codex = root.GetComponentInChildren<MonsterCodexView>();
@@ -73,10 +74,10 @@ namespace BBSB.Tests
             yield return null;
             var presenter = root.GetComponent<RunPresenter>();
             Assert.IsNotNull(presenter);
-            var font = Resources.Load<Font>("BBSB/Fonts/BBSBUI");
+            var font = PresentationFonts.Load();
             Assert.IsNotNull(font);
             Assert.IsTrue(font.HasCharacter('탐'));
-            var start = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<Text>().text == "탐험 시작");
+            var start = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<TextMeshProUGUI>().text == "탐험 시작");
             start.onClick.Invoke();
             yield return null;
             Canvas.ForceUpdateCanvases();
@@ -89,12 +90,12 @@ namespace BBSB.Tests
             var mesh = renderer.GetMesh();
             Assert.IsNotNull(mesh, "Map connections should submit a mesh to the canvas.");
             Assert.Greater(mesh.vertexCount, 0, "Map connections should contain line geometry.");
-            var nodes = root.GetComponentsInChildren<Button>().Where(x => x.GetComponentInChildren<Text>().text.Contains("진입")).ToArray();
+            var nodes = root.GetComponentsInChildren<Button>().Where(x => x.GetComponentInChildren<TextMeshProUGUI>().text.Contains("진입")).ToArray();
             Assert.AreEqual(4, nodes.Length);
             foreach (var node in nodes)
             {
                 Assert.IsTrue(node.interactable);
-                Assert.IsTrue(node.GetComponentInChildren<Text>().text.Contains("몬스터"));
+                Assert.IsTrue(node.GetComponentInChildren<TextMeshProUGUI>().text.Contains("몬스터"));
                 Assert.Greater(((RectTransform)node.transform).rect.height, 40);
                 Assert.Greater(((RectTransform)node.transform).rect.width, 40);
             }
@@ -110,7 +111,7 @@ namespace BBSB.Tests
         {
             root = new GameObject("Music UI smoke test");
             var presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, true);
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 73, true);
             MusicStage announced = null;
             BattlePlan announcedPlan = null;
             presenter.BattleRequested += (ticket, kind, field) =>
@@ -119,7 +120,7 @@ namespace BBSB.Tests
             yield return null;
             for (int row = 0; row < FieldMap.StageCount; row++)
             {
-                root.GetComponentsInChildren<Button>().First(x => x.interactable && x.GetComponentInChildren<Text>().text.Contains("진입")).onClick.Invoke();
+                root.GetComponentsInChildren<Button>().First(x => x.interactable && x.GetComponentInChildren<TextMeshProUGUI>().text.Contains("진입")).onClick.Invoke();
                 yield return null;
                 if (presenter.Session.CurrentNode.IsBattle) break;
                 Click("지도에 돌아가기");
@@ -162,9 +163,9 @@ namespace BBSB.Tests
             Assert.IsNull(presenter.Session.BattlePlan);
             Assert.IsFalse(root.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Run menu"));
             var weaponOffer = presenter.Session.Offers.Single(x => x.Content.Kind == RewardKind.Weapon);
-            var weaponCard = root.GetComponentsInChildren<Text>().Single(x => x.text == "무기  /  " + weaponOffer.Content.Name).transform.parent;
+            var weaponCard = root.GetComponentsInChildren<TextMeshProUGUI>().Single(x => x.text == "무기  /  " + weaponOffer.Content.Name).transform.parent;
             weaponCard.GetComponentInChildren<Button>().onClick.Invoke(); yield return null;
-            var replacement = root.GetComponentsInChildren<Button>().First(x => x.GetComponentInChildren<Text>().text.EndsWith("  교체"));
+            var replacement = root.GetComponentsInChildren<Button>().First(x => x.GetComponentInChildren<TextMeshProUGUI>().text.EndsWith("  교체"));
             Click("메뉴"); Click("장비 · 가방 · 증강"); Click("닫기"); yield return null;
             Assert.AreEqual(RunPhase.Reward, presenter.Session.Phase);
             Assert.IsTrue(replacement.IsInteractable(), "Checking equipment must retain the pending weapon offer.");
@@ -178,7 +179,7 @@ namespace BBSB.Tests
         {
             root = new GameObject("Single monster preparation test");
             var presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 73, false);
             Click("탐험 시작"); yield return null;
             var run = presenter.Session;
             Assert.IsTrue(run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id));
@@ -200,7 +201,7 @@ namespace BBSB.Tests
         {
             root = new GameObject("Preparation UI smoke test");
             var presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 73, false);
             Click("탐험 시작"); yield return null;
             var run = presenter.Session;
             for (int step = 0; step < 200 && (run.BattlePlan == null || run.BattlePlan.Monsters.Count < 3); step++)
@@ -287,7 +288,7 @@ namespace BBSB.Tests
             Assert.AreSame(plan, run.BattlePlan); Assert.AreSame(loadout, run.BattleLoadout);
             Assert.AreEqual(health, run.Health); Assert.AreEqual(enemyHealth, run.EnemyHealth.Current);
             Click("메뉴");
-            Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<Text>().text == "개발 도구"));
+            Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(x => x.GetComponentInChildren<TextMeshProUGUI>().text == "개발 도구"));
             Click("패턴 연습"); yield return null;
             arena = root.GetComponentInChildren<BattlePreparationView>();
             arena.PatternButtons.Single(x => x.name == "Practice pattern " + selected).onClick.Invoke(); yield return null;
@@ -312,7 +313,7 @@ namespace BBSB.Tests
         {
             root = new GameObject("Fullscreen map test");
             var presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 73, false);
             Click("탐험 시작"); yield return null;
             var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
             var map = (RectTransform)root.GetComponentInChildren<MapConnectionsGraphic>().transform.parent;
@@ -360,12 +361,12 @@ namespace BBSB.Tests
         {
             root = new GameObject("Mystery map test");
             var presenter = root.AddComponent<RunPresenter>();
-            presenter.Initialize(new RunRules(), Resources.Load<Font>("BBSB/Fonts/BBSBUI"), 73, false);
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 73, false);
             Click("탐험 시작"); yield return null;
             var run = presenter.Session;
             foreach (var hidden in run.Map.Nodes.Where(x => x.IsMystery))
             {
-                var label = MapButton(hidden.Id).GetComponentInChildren<Text>().text;
+                var label = MapButton(hidden.Id).GetComponentInChildren<TextMeshProUGUI>().text;
                 Assert.AreEqual((hidden.Row + 1).ToString("00") + "  ?", label);
             }
             var target = run.Map.Nodes.First(x => x.IsMystery);
@@ -373,7 +374,7 @@ namespace BBSB.Tests
             MapButton(opening.Id).onClick.Invoke(); yield return null;
             Assert.IsTrue(presenter.SubmitBattleResult(run.StageTicket, true, run.Health)); yield return null;
             Click("보상 건너뛰기"); yield return null;
-            Assert.AreEqual("02  ?\n진입", MapButton(target.Id).GetComponentInChildren<Text>().text);
+            Assert.AreEqual("02  ?\n진입", MapButton(target.Id).GetComponentInChildren<TextMeshProUGUI>().text);
             Click("메뉴"); Click("조작 방법"); Click("닫기"); yield return null;
             Assert.IsFalse(target.IsRevealed);
             StageKind? announced = null;
@@ -390,13 +391,13 @@ namespace BBSB.Tests
             else
             {
                 Assert.IsNull(announced);
-                Assert.IsTrue(root.GetComponentsInChildren<Text>().Any(x => x.text == ContentCatalog.StageName(target.Kind)));
+                Assert.IsTrue(root.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text == ContentCatalog.StageName(target.Kind)));
                 Click("지도에 돌아가기");
             }
             yield return null;
-            Assert.AreEqual("02  " + ContentCatalog.StageName(target.Kind) + "\n완료", MapButton(target.Id).GetComponentInChildren<Text>().text);
+            Assert.AreEqual("02  " + ContentCatalog.StageName(target.Kind) + "\n완료", MapButton(target.Id).GetComponentInChildren<TextMeshProUGUI>().text);
             foreach (var hidden in run.Map.Nodes.Where(x => x.IsMystery && x != target))
-                Assert.IsTrue(MapButton(hidden.Id).GetComponentInChildren<Text>().text.Contains("?"));
+                Assert.IsTrue(MapButton(hidden.Id).GetComponentInChildren<TextMeshProUGUI>().text.Contains("?"));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -440,7 +441,7 @@ namespace BBSB.Tests
             var header = arena.GetComponentsInChildren<RectTransform>().Single(x => x.name == "Preparation header");
             foreach (var button in header.GetComponentsInChildren<Button>())
             {
-                var label = button.GetComponentInChildren<Text>();
+                var label = button.GetComponentInChildren<TextMeshProUGUI>();
                 label.canvasRenderer.cull = false; label.SetVerticesDirty(); label.Rebuild(CanvasUpdate.PreRender);
                 Assert.GreaterOrEqual(label.cachedTextGenerator.characterCountVisible, 2, "Header label disappeared: " + label.text);
             }
@@ -486,11 +487,11 @@ namespace BBSB.Tests
             {
                 var card = cards.Single(x => x.Plan.InstanceId == monster.InstanceId);
                 Assert.AreSame(monster, card.Plan);
-                Assert.IsTrue(card.GetComponentsInChildren<Text>().Any(x => x.text.Contains(monster.Monster.Name)));
+                Assert.IsTrue(card.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text.Contains(monster.Monster.Name)));
                 var graphics = card.GetComponentsInChildren<MonsterPatternGraphic>();
                 Assert.AreEqual(monster.Monster.Patterns.Count, graphics.Length);
                 foreach (var pattern in monster.Monster.Patterns)
-                    Assert.IsTrue(card.GetComponentsInChildren<Text>().Any(x => x.text.Contains(pattern.Name)));
+                    Assert.IsTrue(card.GetComponentsInChildren<TextMeshProUGUI>().Any(x => x.text.Contains(pattern.Name)));
                 foreach (var graphic in graphics)
                 {
                     var renderer = graphic.GetComponent<CanvasRenderer>();
@@ -505,7 +506,7 @@ namespace BBSB.Tests
 
         private void Click(string label)
         {
-            var button = root.GetComponentsInChildren<Button>().Single(x => x.IsInteractable() && x.GetComponentInChildren<Text>().text == label);
+            var button = root.GetComponentsInChildren<Button>().Single(x => x.IsInteractable() && x.GetComponentInChildren<TextMeshProUGUI>().text == label);
             Assert.IsTrue(button.interactable);
             button.onClick.Invoke();
         }

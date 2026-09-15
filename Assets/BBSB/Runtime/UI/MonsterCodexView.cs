@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -16,7 +17,7 @@ namespace BBSB.Runtime.UI
         private CanvasScreen authoredScreen;
         private Action closed;
         private RectTransform page, gridPage, detail, headerIcon;
-        private Text headerName, state, instructions, beat, playLabel, soundLabel, tempoLabel, laneNames;
+        private TextMeshProUGUI headerName, state, instructions, beat, playLabel, soundLabel, tempoLabel, laneNames;
         private Button back;
         private GridLayoutGroup grid;
         private LayoutElement gridSize;
@@ -77,7 +78,7 @@ namespace BBSB.Runtime.UI
                 var icon = ui.Rect("Portrait", item);
                 RunUI.Overlay(icon, new Vector2(0, .25f), Vector2.one, new Vector2(14, 6), new Vector2(-14, -12));
                 SetIcon(icon, Portrait(monster), monster.Name);
-                var label = ui.Label(item, monster.Name, 23, null, 55, TextAnchor.MiddleCenter);
+                var label = ui.Label(item, monster.Name, 23, null, 55, TextAlignmentOptions.Center);
                 RunUI.Overlay(label.rectTransform, Vector2.zero, new Vector2(1, .25f), new Vector2(8, 4), new Vector2(-8, 0));
                 Fit(label, 17);
             }
@@ -114,17 +115,17 @@ namespace BBSB.Runtime.UI
             stage = visual.gameObject.AddComponent<MonsterCodexStage>(); stage.Bind(ui, monster, sprites);
             surface = visual.gameObject.AddComponent<RhythmInputSurface>();
             surface.Bind(() => preview != null && !closing && (playing || waitingForContact), PointerDown, PointerUp);
-            state = ui.Label(left, "", 25, RunUI.Teal, 36, TextAnchor.MiddleCenter); Fit(state, 19);
-            beat = ui.Label(left, "", 18, RunUI.Muted, 26, TextAnchor.MiddleCenter);
+            state = ui.Label(left, "", 25, RunUI.Teal, 36, TextAlignmentOptions.Center); Fit(state, 19);
+            beat = ui.Label(left, "", 18, RunUI.Muted, 26, TextAlignmentOptions.Center);
             var plot = ui.Row(left, 82, 8);
             laneNames = ui.Label(plot, "CALL\n입력\n휴식", 17, RunUI.Muted, 82); FixedWidth(laneNames.transform, 54);
             var graph = ui.Rect("Pattern timeline", plot); RunUI.Size(graph, 82, 1);
             timeline = graph.gameObject.AddComponent<MonsterPatternGraphic>();
             instructions = ui.Label(left, "", 19, RunUI.TextColor, 96); Fit(instructions, 16);
             var controls = ui.Row(left, 48, 8);
-            playLabel = ui.Button(controls, "멈춤", TogglePlayback, height: 48).GetComponentInChildren<Text>(); Fit(playLabel, 16);
-            Fit(ui.Button(controls, "다시 보기", Restart, height: 48).GetComponentInChildren<Text>(), 16);
-            soundLabel = ui.Button(controls, "소리 켜짐", ToggleSound, height: 48).GetComponentInChildren<Text>(); Fit(soundLabel, 16);
+            playLabel = ui.Button(controls, "멈춤", TogglePlayback, height: 48).GetComponentInChildren<TextMeshProUGUI>(); Fit(playLabel, 16);
+            Fit(ui.Button(controls, "다시 보기", Restart, height: 48).GetComponentInChildren<TextMeshProUGUI>(), 16);
+            soundLabel = ui.Button(controls, "소리 켜짐", ToggleSound, height: 48).GetComponentInChildren<TextMeshProUGUI>(); Fit(soundLabel, 16);
 
             var right = ui.Stack(detail, "Idle and patterns", 0, 10);
             RunUI.Overlay(right, new Vector2(.67f, 0), Vector2.one, new Vector2(10, 0), Vector2.zero);
@@ -138,7 +139,7 @@ namespace BBSB.Runtime.UI
             ui.Label(right, "첫 Call = 1박\n금색: Call · 초록: 반응 · 빨강: 떼기", 17, RunUI.Muted, 56);
             var tempo = ui.Row(right, 48, 6);
             var less = ui.Button(tempo, "−", () => SetTempo(-20), height: 48); FixedWidth(less.transform, 48);
-            tempoLabel = ui.Label(tempo, "", 20, RunUI.Gold, 48, TextAnchor.MiddleCenter);
+            tempoLabel = ui.Label(tempo, "", 20, RunUI.Gold, 48, TextAlignmentOptions.Center);
             var more = ui.Button(tempo, "+", () => SetTempo(20), height: 48); FixedWidth(more.transform, 48);
             SelectPattern(null);
         }
@@ -148,7 +149,7 @@ namespace BBSB.Runtime.UI
             string name = variant == null ? "평상시" : variant.Name;
             var button = ui.Button(list, name, () => SelectPattern(variant), height: 100);
             button.gameObject.name = variant == null ? "Codex idle" : "Codex pattern " + variant.Id;
-            var label = button.GetComponentInChildren<Text>(); label.alignment = TextAnchor.MiddleLeft; Fit(label, 18);
+            var label = button.GetComponentInChildren<TextMeshProUGUI>(); label.alignment = TextAlignmentOptions.Left; Fit(label, 18);
             RunUI.Stretch(label.rectTransform); label.rectTransform.offsetMin = new Vector2(96, 8); label.rectTransform.offsetMax = new Vector2(-8, -8);
             var icon = ui.Rect("Pattern icon", button.transform);
             RunUI.Pin(icon, new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(10, 0), new Vector2(76, 76));
@@ -318,8 +319,8 @@ namespace BBSB.Runtime.UI
         {
             var icon = root.GetComponent<Image>() ?? root.gameObject.AddComponent<Image>();
             icon.sprite = sprite; icon.preserveAspect = true; icon.raycastTarget = false; icon.enabled = sprite != null;
-            var label = root.GetComponentInChildren<Text>();
-            if (label == null) { label = ui.Label(root, "", 22, RunUI.Gold, 60, TextAnchor.MiddleCenter); RunUI.Stretch(label.rectTransform); }
+            var label = root.GetComponentInChildren<TextMeshProUGUI>();
+            if (label == null) { label = ui.Label(root, "", 22, RunUI.Gold, 60, TextAlignmentOptions.Center); RunUI.Stretch(label.rectTransform); }
             label.text = sprite == null ? fallback : "";
         }
 
@@ -359,7 +360,7 @@ namespace BBSB.Runtime.UI
         private static string Format(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
         private static void FixedWidth(Transform target, float width)
         { var size = target.GetComponent<LayoutElement>() ?? target.gameObject.AddComponent<LayoutElement>(); size.minWidth = size.preferredWidth = width; size.flexibleWidth = 0; }
-        private static void Fit(Text label, int minimum) { label.resizeTextForBestFit = true; label.resizeTextMinSize = minimum; label.resizeTextMaxSize = label.fontSize; }
+        private static void Fit(TextMeshProUGUI label, int minimum) { label.enableAutoSizing = true; label.fontSizeMin = minimum; label.fontSizeMax = label.fontSize; }
 
         private void StopAudio()
         { audio?.Dispose(); audio = null; if (audioRoot != null) { audioRoot.SetActive(false); Destroy(audioRoot); } audioRoot = null; }

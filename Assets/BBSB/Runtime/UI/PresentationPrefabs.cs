@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,14 +12,25 @@ namespace BBSB.Runtime.UI
         [Serializable] public sealed class Screen { public RunScreenKind kind; public CanvasScreen prefab; }
         public Screen[] screens = Array.Empty<Screen>();
         public Button primaryButton, secondaryButton;
-        public Text titleText, headingText, bodyText, captionText;
+        public TextMeshProUGUI titleText, headingText, bodyText, captionText;
         public RectTransform card;
+        [Tooltip("기본 TMP 폰트. 개별 텍스트 프리팹의 폰트와 머티리얼은 그대로 유지해.")]
+        public TMP_FontAsset defaultFont;
+        [HideInInspector] public int textMeshProVersion;
+
+        public void PrepareText(GameObject root)
+        {
+            foreach (var text in root.GetComponentsInChildren<TextMeshProUGUI>(true))
+                if (text.font == null || (textMeshProVersion < 1 && PresentationFonts.NeedsProjectFont(text)))
+                    text.font = defaultFont != null ? defaultFont : PresentationFonts.Load();
+        }
         public CanvasScreen Create(RunScreenKind kind, Transform parent)
         {
             foreach (var entry in screens)
                 if (entry != null && entry.kind == kind && entry.prefab != null)
                 {
                     var result = Instantiate(entry.prefab, parent, false);
+                    PrepareText(result.gameObject);
                     var root = (RectTransform)result.transform;
                     root.anchorMin = Vector2.zero; root.anchorMax = Vector2.one;
                     root.offsetMin = root.offsetMax = Vector2.zero;

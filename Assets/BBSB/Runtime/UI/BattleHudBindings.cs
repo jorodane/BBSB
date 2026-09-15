@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 namespace BBSB.Runtime.UI
@@ -5,7 +6,7 @@ namespace BBSB.Runtime.UI
     public sealed class BattleHudBindings : MonoBehaviour
     {
         public RectTransform arena;
-        public Text song, health, enemyHealth, combo, feedback, damage;
+        public TextMeshProUGUI song, health, enemyHealth, combo, feedback, damage;
         public RectTransform songFill, healthFill, enemyFill;
         public Button menu;
         public bool IsValid => arena != null && song != null && health != null && enemyHealth != null && combo != null &&

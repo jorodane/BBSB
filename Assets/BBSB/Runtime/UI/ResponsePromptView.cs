@@ -1,3 +1,4 @@
+using TMPro;
 using BBSB.Core;
 using UnityEngine;
 
@@ -8,9 +9,9 @@ namespace BBSB.Runtime.UI
     {
         private readonly GestureKind[] kinds = new GestureKind[5];
         private readonly GestureIconGraphic[] icons = new GestureIconGraphic[5];
-        private Font font;
+        private TMP_FontAsset font;
         public int VisibleCount { get; private set; }
-        internal void Initialize(Font value)
+        internal void Initialize(TMP_FontAsset value)
         {
             font = value;
             for (int i = 0; i < icons.Length; i++)

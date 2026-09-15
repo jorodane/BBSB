@@ -1,3 +1,4 @@
+using TMPro;
 using BBSB.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,7 +13,7 @@ namespace BBSB.Runtime.UI
         private MonsterPreview preview;
         private MonsterAttackSprites sprites;
         private Image body;
-        private Text missing;
+        private TextMeshProUGUI missing;
         private Sprite fallback;
         private BattleArenaView arena;
         private RhythmRound boundRound;
@@ -25,7 +26,7 @@ namespace BBSB.Runtime.UI
             ui.Background((RectTransform)transform, RunUI.Panel, true);
             var portrait = ui.Rect("Monster body", transform);
             body = ui.Background(portrait, Color.white); body.preserveAspect = false;
-            missing = ui.Label(transform, "모습 준비 중", 24, RunUI.Muted, 60, TextAnchor.MiddleCenter);
+            missing = ui.Label(transform, "모습 준비 중", 24, RunUI.Muted, 60, TextAlignmentOptions.Center);
             RunUI.Stretch(missing.rectTransform);
         }
 

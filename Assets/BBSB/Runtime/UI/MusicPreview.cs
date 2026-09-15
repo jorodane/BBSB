@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using BBSB.Core;
 using UnityEngine;
@@ -33,7 +34,7 @@ namespace BBSB.Runtime.UI
             ui.Label(card, "미리보기의 곡을 바꿔도 이번 전투의 곡은 유지돼.", 20, RunUI.Muted, 60);
             var selector = ui.Row(card, 56);
             ui.Button(selector, "이전 곡", () => Select(-1, redraw), height: 56);
-            ui.Label(selector, (catalogIndex + 1) + " / " + MusicCatalog.All.Count, 21, RunUI.Gold, 56, TextAnchor.MiddleCenter);
+            ui.Label(selector, (catalogIndex + 1) + " / " + MusicCatalog.All.Count, 21, RunUI.Gold, 56, TextAlignmentOptions.Center);
             ui.Button(selector, "다음 곡", () => Select(1, redraw), height: 56);
             ui.Label(card, stage.Music.Name + "  ·  " + stage.Music.Bpm + " BPM", 24, null, 48);
             var section = stage.Music.SectionAtBar(bar);

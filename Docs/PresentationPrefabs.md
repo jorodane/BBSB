@@ -42,3 +42,18 @@ SpriteRenderer의 Sprite, Color, Flip X/Y, 자식 Transform, Sorting Layer/Order
 Animator는 하나를 사용한다. 루트 모션과 Animation Event는 끄고 노래 시각으로 상태를 샘플링한다. 판정·피해는 Animation Event나 StateMachineBehaviour에서 처리하지 않는다. 자동 Transition 없이 각 상태에 Clip을 연결하는 방식을 사용한다. 일시정지와 피격 정지는 기존 전투 시계를 따른다.
 
 검증 범위: 자동 CoreChecks는 핵심 회귀와 C# 문법을 검사한다. SpriteRenderer 표시·Canvas 배치·프리팹 생성·Animator 상호작용은 Unity Editor/PlayMode에서 별도 확인이 필요하다.
+
+## TextMeshPro로 편집하기
+
+UI 텍스트와 모든 화면 바인딩은 이제 `TextMeshProUGUI`를 사용한다. master에 생성된 화면·버튼·텍스트 프리팹도 변환했으며, 기존 GameObject/컴포넌트의 fileID, RectTransform, 버튼 이벤트, 바인딩은 유지했다. 플레이어·몬스터 비주얼 프리팹은 그대로 사용한다.
+
+1. Pull 후 Unity의 스크립트 컴파일을 기다린다. 기존 `BBSBUI.otf`에서 `Assets/BBSB/Resources/BBSB/Fonts/BBSBUI SDF.asset`이 자동 생성된다. 최초 한 번 카탈로그에 연결된 텍스트의 기본 LiberationSans 폰트를 이 한글 폰트로 교체한다. 자동 설정이 실행되지 않았다면 **BBSB → Presentation → Set up TextMeshPro font**를 실행한다. 빌드 전에도 같은 설정을 확인한다.
+2. `Presentation` 폴더의 `TitleScreen`, `PreparationScreen`, `BattleScreen` 등을 Prefab Mode로 연다. 텍스트를 선택해 TMP의 **Font Asset, Material Preset, Font Size / Auto Size, Alignment, Spacing, Wrapping**을 편집한다. 외곽선은 Material Preset에서 조정한다. 한 요소에만 적용할 때는 별도 Material Preset을 만든다.
+3. 반복되는 텍스트는 `TitleText`, `HeadingText`, `BodyText`, `CaptionText`, 버튼은 `PrimaryButton`, `SecondaryButton`을 수정한다. 코드로 생성되는 보상·교체·도감 등도 이 TMP 프리팹을 사용한다. 실행 중 텍스트 내용과 판정 색상 등 게임 상태는 갱신되지만, 텍스트 프리팹에 지정한 폰트·머티리얼은 유지한다.
+4. `PresentationPrefabs.asset`의 Text 필드와 각 화면의 텍스트 바인딩에는 **TextMeshProUGUI 컴포넌트**를 연결한다. `Default Font`는 프리팹 없이 생성하는 텍스트와 폰트가 비어 있는 요소의 기본값이다. 기존 프리팹 전체의 폰트를 바꾸려면 해당 텍스트 프리팹도 함께 수정한다.
+
+최초 폰트 연결이 끝나면 다시 프로젝트를 열어도 사용자가 지정한 폰트·머티리얼을 덮어쓰지 않는다. 자동 생성된 SDF 에셋과 Unity가 갱신한 프리팹·메타파일도 함께 커밋하면 다른 작업 환경에서 동일한 연결을 사용한다. TMP 기본 리소스와 Unity 6의 `com.unity.ugui` 패키지는 기존 설정을 유지한다.
+
+폰트는 Dynamic / Multi Atlas 방식으로 필요한 글자를 생성한다([Unity 문서](https://docs.unity3d.com/Packages/com.unity.textmeshpro@3.2/manual/FontAssetsDynamicFonts.html)). 다만 `BBSBUI.otf` 자체가 현재 게임 문구의 부분집합이므로, 새로운 한글이 빠져 있다면 기존 `Tools/subset_font.py`로 원본 폰트를 갱신하거나 전체 한글을 포함한 TMP 폰트와 fallback을 지정해야 한다.
+
+검증: Unity Test Runner의 PlayMode `TextMeshProPresentationTests`에서 화면 바인딩, 버튼 텍스트, 한글·숫자 글리프, 사용자 TMP 스타일 유지 여부를 검사한다. 일반 Core checks는 Unity 소스 문법과 코어 로직만 검사하므로, 실제 글꼴 렌더링·줄바꿈은 Unity Game 뷰에서 확인한다.

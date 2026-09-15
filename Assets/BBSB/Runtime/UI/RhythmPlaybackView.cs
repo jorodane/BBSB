@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using BBSB.Core;
@@ -11,9 +12,9 @@ namespace BBSB.Runtime.UI
     {
         private RhythmRound round;
         private readonly RunSession session;
-        private readonly Text combo, feedback, counters;
-        private readonly Text healthLabel, damageLabel;
-        private readonly Text enemyLabel;
+        private readonly TextMeshProUGUI combo, feedback, counters;
+        private readonly TextMeshProUGUI healthLabel, damageLabel;
+        private readonly TextMeshProUGUI enemyLabel;
         private readonly RectTransform enemyFill;
         private readonly RectTransform healthFill;
         private readonly Image healthImage;
@@ -22,7 +23,7 @@ namespace BBSB.Runtime.UI
         private readonly RectTransform songProgress;
         private readonly GameObject pauseOverlay;
         private readonly CanvasGroup pauseInput;
-        private readonly Text soundLabel;
+        private readonly TextMeshProUGUI soundLabel;
         private readonly BattleArenaView arena;
         private readonly List<MonsterCard> monsters = new List<MonsterCard>();
         private int callCursor, resultCursor;
@@ -68,21 +69,21 @@ namespace BBSB.Runtime.UI
 
             if (round.Combat != null)
             {
-                enemyLabel = ui.Label(root, "", 23, RunUI.Red, 34, TextAnchor.MiddleCenter);
+                enemyLabel = ui.Label(root, "", 23, RunUI.Red, 34, TextAlignmentOptions.Center);
                 enemyLabel.name = "Shared stage health";
                 RunUI.Overlay(enemyLabel.rectTransform, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -135), new Vector2(0, -101));
                 enemyFill = Progress(root, ui, "Shared stage health bar", 8);
                 enemyFill.GetComponent<Image>().color = RunUI.Red;
                 RunUI.Overlay((RectTransform)enemyFill.parent, new Vector2(.38f, 1), new Vector2(.83f, 1), new Vector2(0, -149), new Vector2(0, -141));
             }
-            combo = ui.Label(root, "COMBO " + round.Combo, 34, RunUI.Gold, 48, TextAnchor.MiddleCenter);
+            combo = ui.Label(root, "COMBO " + round.Combo, 34, RunUI.Gold, 48, TextAlignmentOptions.Center);
             combo.gameObject.name = "Combo counter";
             RunUI.Overlay(combo.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 62), new Vector2(0, 110));
-            combo.resizeTextForBestFit = true; combo.resizeTextMinSize = 20; combo.resizeTextMaxSize = 34;
-            feedback = ui.Label(root, "", 23, RunUI.TextColor, 36, TextAnchor.MiddleCenter);
+            combo.enableAutoSizing = true; combo.fontSizeMin = 20; combo.fontSizeMax = 34;
+            feedback = ui.Label(root, "", 23, RunUI.TextColor, 36, TextAlignmentOptions.Center);
             feedback.gameObject.name = "Response feedback";
             RunUI.Overlay(feedback.rectTransform, new Vector2(.28f, 0), new Vector2(.72f, 0), new Vector2(0, 24), new Vector2(0, 60));
-            feedback.resizeTextForBestFit = true; feedback.resizeTextMinSize = 15; feedback.resizeTextMaxSize = 23;
+            feedback.enableAutoSizing = true; feedback.fontSizeMin = 15; feedback.fontSizeMax = 23;
             // Playback owns readiness, aggregate grades and victory; avoid a duplicate arena grade.
             arena.ShowResponseJudgment = false;
             ui.FloatingMenu(root, pause);
@@ -109,7 +110,7 @@ namespace BBSB.Runtime.UI
             ui.Button(home, "연주 정보 · 패턴", () => select(details.gameObject));
             ui.Button(home, "몬스터 도감", codex);
             ui.Button(home, "조작 방법", () => select(help.gameObject));
-            soundLabel = ui.Button(home, "음악·Call 소리 끄기", sound).GetComponentInChildren<Text>();
+            soundLabel = ui.Button(home, "음악·Call 소리 끄기", sound).GetComponentInChildren<TextMeshProUGUI>();
             ui.Button(home, round.Combat != null && round.Combat.IsPractice ? "패턴 목록으로" : "준비로 돌아가기", leave);
             counters = ui.Label(details, "", 26, RunUI.Gold, 58);
             if (round.Combat != null)
@@ -224,7 +225,7 @@ namespace BBSB.Runtime.UI
         {
             public MonsterPlan Plan { get; }
             private RhythmRound round;
-            private readonly Text phase, signal, result;
+            private readonly TextMeshProUGUI phase, signal, result;
             private readonly MonsterPatternGraphic graphic;
             private ScheduledCall lastCall;
 

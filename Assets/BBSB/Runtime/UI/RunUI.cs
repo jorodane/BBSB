@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using BBSB.Core;
 using UnityEngine;
@@ -14,11 +15,15 @@ namespace BBSB.Runtime.UI
         public static readonly Color Muted = Hex("A6B1C5");
         public static readonly Color Teal = Hex("80DAC5");
         public static readonly Color Red = Hex("EE8B92");
-        private readonly Font font;
+        private readonly TMP_FontAsset font;
         public PresentationPrefabs Prefabs { get; }
-        public Font Font => font;
+        public TMP_FontAsset Font => font;
 
-        public RunUI(Font font) { this.font = font; Prefabs = Resources.Load<PresentationPrefabs>(PresentationPrefabs.ResourcePath); }
+        public RunUI(TMP_FontAsset font)
+        {
+            Prefabs = Resources.Load<PresentationPrefabs>(PresentationPrefabs.ResourcePath);
+            this.font = Prefabs != null && Prefabs.defaultFont != null ? Prefabs.defaultFont : font != null ? font : PresentationFonts.Load();
+        }
         public static Color Hex(string value) { ColorUtility.TryParseHtmlString("#" + value, out var c); return c; }
 
         public RectTransform Rect(string name, Transform parent)
@@ -81,7 +86,7 @@ namespace BBSB.Runtime.UI
             var graphic = rect.gameObject.AddComponent<RoundMenuGraphic>();
             var button = rect.gameObject.AddComponent<Button>(); button.targetGraphic = graphic;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
-            var label = Label(rect, "메뉴", 18, TextColor, 30, TextAnchor.MiddleCenter);
+            var label = Label(rect, "메뉴", 18, TextColor, 30, TextAlignmentOptions.Center);
             Overlay(label.rectTransform, new Vector2(.12f, .08f), new Vector2(.88f, .43f), Vector2.zero, Vector2.zero);
             button.onClick.AddListener(() => action());
             return button;
@@ -100,21 +105,22 @@ namespace BBSB.Runtime.UI
             return card;
         }
 
-        public Text Label(Transform parent, string value, int size = 24, Color? color = null,
-            float height = 40, TextAnchor alignment = TextAnchor.MiddleLeft)
+        public TextMeshProUGUI Label(Transform parent, string value, int size = 24, Color? color = null,
+            float height = 40, TextAlignmentOptions alignment = TextAlignmentOptions.Left)
         {
             var template = Prefabs == null ? null : size >= 40 ? Prefabs.titleText : size >= 27 ? Prefabs.headingText : size < 22 ? Prefabs.captionText : Prefabs.bodyText;
             if (template != null)
             {
                 var authored = UnityEngine.Object.Instantiate(template, parent, false);
+                Prefabs.PrepareText(authored.gameObject);
                 authored.text = value; authored.raycastTarget = false; Size(authored.rectTransform, height, 1);
                 return authored;
             }
             var rect = Rect("Text", parent); Size(rect, height, 1);
-            var text = rect.gameObject.AddComponent<Text>(); text.font = font; text.text = value;
+            var text = rect.gameObject.AddComponent<TextMeshProUGUI>(); text.font = font; text.text = value;
             text.fontSize = size; text.color = color ?? TextColor; text.alignment = alignment;
-            text.raycastTarget = false; text.supportRichText = false;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap; text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.raycastTarget = false; text.richText = false;
+            text.textWrappingMode = TextWrappingModes.Normal; text.overflowMode = TextOverflowModes.Truncate;
             return text;
         }
 
@@ -125,8 +131,9 @@ namespace BBSB.Runtime.UI
             if (template != null)
             {
                 var authored = UnityEngine.Object.Instantiate(template, parent, false);
+                Prefabs.PrepareText(authored.gameObject);
                 authored.name = "Button " + label; authored.interactable = enabled;
-                var caption = authored.GetComponentInChildren<Text>(true); if (caption != null) caption.text = label;
+                var caption = authored.GetComponentInChildren<TextMeshProUGUI>(true); if (caption != null) caption.text = label;
                 Size((RectTransform)authored.transform, height, 1);
                 authored.onClick.AddListener(() => action()); return authored;
             }
@@ -138,7 +145,7 @@ namespace BBSB.Runtime.UI
             colors.highlightedColor = Hex("DDD9CC"); colors.pressedColor = Hex("AAA99F");
             colors.disabledColor = new Color(.5f, .5f, .5f, .55f); button.colors = colors;
             button.interactable = enabled;
-            var text = Label(rect, label, 24, primary ? Ink : TextColor, height, TextAnchor.MiddleCenter);
+            var text = Label(rect, label, 24, primary ? Ink : TextColor, height, TextAlignmentOptions.Center);
             Stretch(text.rectTransform, 8);
             button.onClick.AddListener(() => action());
             return button;

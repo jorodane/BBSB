@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using BBSB.Core;
@@ -58,8 +59,8 @@ namespace BBSB.Runtime.UI
         private BattleArenaGraphic foreground;
         private BattleArenaGraphic backdrop;
         private WeaponBattleGraphic weaponGraphic;
-        private Text heroLabel;
-        private Text responseResult;
+        private TextMeshProUGUI heroLabel;
+        private TextMeshProUGUI responseResult;
         private bool paused;
         private float weaponEnergy, guardStrength, shakeStrength;
         private float heroDisplayHeight;
@@ -88,7 +89,7 @@ namespace BBSB.Runtime.UI
 
         internal void HideLabels() { labelLayer.gameObject.SetActive(false); heroLabel.gameObject.SetActive(false); }
 
-        public void Initialize(RhythmRound value, Font font, PlayerMotionDisplay display = null, MonsterAuthoring previewAppearance = null)
+        public void Initialize(RhythmRound value, TMP_FontAsset font, PlayerMotionDisplay display = null, MonsterAuthoring previewAppearance = null)
         {
             if (round != null) throw new InvalidOperationException("Battle arena is already bound.");
             round = value ?? throw new ArgumentNullException(nameof(value));
@@ -125,7 +126,7 @@ namespace BBSB.Runtime.UI
             battleVfx = visualEffects.gameObject.AddComponent<BattleVfxView>();
             labelLayer = ui.Rect("Actor labels", area); RunUI.Stretch(labelLayer);
             promptLayer = ui.Rect("Response action prompts", area); RunUI.Stretch(promptLayer);
-            responseResult = ui.Label(promptLayer, "", 24, RunUI.Teal, 32, TextAnchor.MiddleCenter);
+            responseResult = ui.Label(promptLayer, "", 24, RunUI.Teal, 32, TextAlignmentOptions.Center);
             responseResult.name = "Response judgment";
             responseResult.raycastTarget = false;
             foreach (var plan in round.Plan.Monsters)
@@ -158,7 +159,7 @@ namespace BBSB.Runtime.UI
             }
             hero.Tint = RunUI.Gold;
             hero.Order = monsters.Count; depthOrder.Add(hero);
-            heroLabel = ui.Label(area, playerAuthoring != null ? playerAuthoring.displayName : "WEAPON MASTER", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
+            heroLabel = ui.Label(area, playerAuthoring != null ? playerAuthoring.displayName : "WEAPON MASTER", 22, RunUI.Gold, 36, TextAlignmentOptions.Center);
             LayoutActors(); Refresh();
         }
 
@@ -238,7 +239,7 @@ namespace BBSB.Runtime.UI
                 actor.BlendPortrait = ui.Background(blend, Color.clear);
                 actor.BlendPortrait.preserveAspect = false; actor.BlendPortrait.enabled = false;
                 actor.Labels = ui.Rect("Labels " + instance, labelLayer);
-                var nameLabel = ui.Label(actor.Labels, label, 20, RunUI.TextColor, 30, TextAnchor.MiddleCenter);
+                var nameLabel = ui.Label(actor.Labels, label, 20, RunUI.TextColor, 30, TextAlignmentOptions.Center);
                 Anchor(nameLabel.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, -29), new Vector2(210, 30), new Vector2(.5f, 0));
             }
             return actor;

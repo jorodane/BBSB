@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using BBSB.Core;
 using UnityEngine;
@@ -10,13 +11,13 @@ namespace BBSB.Runtime.UI
     {
         private static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
         private Sprite artwork;
-        private Text fallbackLabel;
+        private TextMeshProUGUI fallbackLabel;
         public GestureKind Kind { get; private set; }
         public bool Large { get; private set; }
         public bool HasArtwork => artwork != null;
         public override Texture mainTexture => artwork != null ? artwork.texture : base.mainTexture;
 
-        public void Bind(GestureKind kind, bool large = false, Font font = null)
+        public void Bind(GestureKind kind, bool large = false, TMP_FontAsset font = null)
         {
             Kind = kind; Large = large; raycastTarget = false;
             string path = GestureIconCatalog.ResourcePath(kind, large);
@@ -28,9 +29,9 @@ namespace BBSB.Runtime.UI
             if (large && artwork == null && fallbackLabel == null && font != null)
             {
                 var ui = new RunUI(font);
-                fallbackLabel = ui.Label(transform, "", 16, RunUI.Gold, 22, TextAnchor.MiddleCenter);
+                fallbackLabel = ui.Label(transform, "", 16, RunUI.Gold, 22, TextAlignmentOptions.Center);
                 RunUI.Overlay(fallbackLabel.rectTransform, new Vector2(.14f, .10f), new Vector2(.86f, .31f), Vector2.zero, Vector2.zero);
-                fallbackLabel.resizeTextForBestFit = true; fallbackLabel.resizeTextMinSize = 6; fallbackLabel.resizeTextMaxSize = 48;
+                fallbackLabel.enableAutoSizing = true; fallbackLabel.fontSizeMin = 6; fallbackLabel.fontSizeMax = 48;
                 fallbackLabel.raycastTarget = false;
             }
             if (fallbackLabel != null)
@@ -38,7 +39,7 @@ namespace BBSB.Runtime.UI
             SetAllDirty();
         }
 
-        internal static GestureIconGraphic Create(Transform parent, GestureKind kind, bool large, Font font = null)
+        internal static GestureIconGraphic Create(Transform parent, GestureKind kind, bool large, TMP_FontAsset font = null)
         {
             var go = new GameObject("Gesture " + GestureIconCatalog.Name(kind), typeof(RectTransform), typeof(CanvasRenderer));
             go.transform.SetParent(parent, false);
