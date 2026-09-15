@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74cdf626a9204cee8c84e8330b9d95f0, type: 3}
+  m_Name: PresentationPrefabs
+  m_EditorClassIdentifier: BBSB.Runtime::BBSB.Runtime.UI.PresentationPrefabs
+  screens:
+  - kind: 0
+    prefab: {fileID: 4373370178190198797, guid: d0d3f0964aab33b48a4222fe272a3cba, type: 3}
+  - kind: 1
+    prefab: {fileID: 5187473982862212807, guid: 6addb3a89b0f4954ba99aca9a99db059, type: 3}
+  - kind: 2
+    prefab: {fileID: 132075624751225772, guid: 8f56c1fb45ace6e42a71422da6b78678, type: 3}
+  - kind: 3
+    prefab: {fileID: 6132379684515360472, guid: 6c137e4f8c399eb4f9c303af235325f3, type: 3}
+  - kind: 4
+    prefab: {fileID: 134465647164478377, guid: c1b1620f6ee4c3b4fa0f62a14e7e4ea8, type: 3}
+  - kind: 5
+    prefab: {fileID: 8418150587240698769, guid: 881ba50238351a045b3427c409e3a00f, type: 3}
+  - kind: 6
+    prefab: {fileID: 754203545388166302, guid: 5727b7ec5ee4e5d4baf380b7b42507ab, type: 3}
+  - kind: 7
+    prefab: {fileID: 3754612254331872863, guid: 5bff0ee91dad5bb4f958e3c82f496bf3, type: 3}
+  - kind: 8
+    prefab: {fileID: 3678817792424070801, guid: 52962a828295b694983bc724a029ffde, type: 3}
+  - kind: 9
+    prefab: {fileID: 7568362999192832217, guid: 835cb330cb9f81c4681a6ef82c87634f, type: 3}
+  - kind: 10
+    prefab: {fileID: 4201584815837491849, guid: 96ce32ae6cc4a7f4789b0d0444bca342, type: 3}
+  - kind: 11
+    prefab: {fileID: 8690242451514411778, guid: f7d151f51b629424e9003ad99fbd1bd5, type: 3}
+  - kind: 12
+    prefab: {fileID: 6202623916634014733, guid: 304f4c02236d5384d8faac8fc540fe19, type: 3}
+  primaryButton: {fileID: 3625300302461289364, guid: b5102f7fd0078794ea0fa4bc50d1bda2, type: 3}
+  secondaryButton: {fileID: 536689857977213319, guid: 12ea5c9aaa6397142ab86a5f441b8929, type: 3}
+  titleText: {fileID: 3927215030107482051, guid: 8dd4e979b09d90e4c8a353bec0e156a3, type: 3}
+  headingText: {fileID: 5132449694247720872, guid: c0168983ca5f14e46bd4b50eedb63730, type: 3}
+  bodyText: {fileID: 396124631047399472, guid: e7b377f8b9bd9a94da6b926c155046b0, type: 3}
+  captionText: {fileID: 5107774718295643964, guid: 3f5e8db2b33932240b1ec21382cafb36, type: 3}
+  card: {fileID: 5247045271501882254, guid: 6e33bf124c176fa4787e274b728ff381, type: 3}

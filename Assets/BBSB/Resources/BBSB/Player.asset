@@ -1,0 +1,255 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e45f8d72ce35453fa4c2782cee63b675, type: 3}
+  m_Name: Player
+  m_EditorClassIdentifier: BBSB.Runtime::BBSB.Runtime.PlayerAuthoring
+  displayName: WEAPON MASTER
+  portrait: {fileID: 8793639957104055765, guid: 810142f81a473c544a477a0a25ad0bdc, type: 3}
+  visualPrefab: {fileID: 8803816029075514268, guid: 1fa80d33597c63d4fa0b761e0d28103d, type: 3}
+  controller: {fileID: 0}
+  spriteReferenceHeight: 6.2699995
+  displayScale: 1
+  displayOffset: {x: 0, y: 0}
+  useLegacyFrames: 1
+  layout: {fileID: 11400000, guid: 4d898664c05240248ed49bdf1ea5e33c, type: 2}
+  motions:
+  - name: Idle
+    state: Base Layer.Idle
+    phase: 0
+    anyGesture: 1
+    gesture: 0
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 1
+    frames: []
+  - name: Tap Prepare
+    state: Base Layer.TapPrepare
+    phase: 4
+    anyGesture: 0
+    gesture: 0
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Tap Sustain
+    state: Base Layer.TapSustain
+    phase: 1
+    anyGesture: 0
+    gesture: 0
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 1
+    frames: []
+  - name: Tap Impact
+    state: Base Layer.TapImpact
+    phase: 2
+    anyGesture: 0
+    gesture: 0
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Tap Recover
+    state: Base Layer.TapRecover
+    phase: 3
+    anyGesture: 0
+    gesture: 0
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Hold Prepare
+    state: Base Layer.HoldPrepare
+    phase: 4
+    anyGesture: 0
+    gesture: 1
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Hold Sustain
+    state: Base Layer.HoldSustain
+    phase: 1
+    anyGesture: 0
+    gesture: 1
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 1
+    frames: []
+  - name: Hold Impact
+    state: Base Layer.HoldImpact
+    phase: 2
+    anyGesture: 0
+    gesture: 1
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Hold Recover
+    state: Base Layer.HoldRecover
+    phase: 3
+    anyGesture: 0
+    gesture: 1
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Dive Prepare
+    state: Base Layer.DivePrepare
+    phase: 4
+    anyGesture: 0
+    gesture: 2
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Dive Sustain
+    state: Base Layer.DiveSustain
+    phase: 1
+    anyGesture: 0
+    gesture: 2
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 1
+    frames: []
+  - name: Dive Impact
+    state: Base Layer.DiveImpact
+    phase: 2
+    anyGesture: 0
+    gesture: 2
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Dive Recover
+    state: Base Layer.DiveRecover
+    phase: 3
+    anyGesture: 0
+    gesture: 2
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Flick Prepare
+    state: Base Layer.FlickPrepare
+    phase: 4
+    anyGesture: 0
+    gesture: 3
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Flick Sustain
+    state: Base Layer.FlickSustain
+    phase: 1
+    anyGesture: 0
+    gesture: 3
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 1
+    frames: []
+  - name: Flick Impact
+    state: Base Layer.FlickImpact
+    phase: 2
+    anyGesture: 0
+    gesture: 3
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Flick Recover
+    state: Base Layer.FlickRecover
+    phase: 3
+    anyGesture: 0
+    gesture: 3
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Shake Prepare
+    state: Base Layer.ShakePrepare
+    phase: 4
+    anyGesture: 0
+    gesture: 4
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Shake Sustain
+    state: Base Layer.ShakeSustain
+    phase: 1
+    anyGesture: 0
+    gesture: 4
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 1
+    frames: []
+  - name: Shake Impact
+    state: Base Layer.ShakeImpact
+    phase: 2
+    anyGesture: 0
+    gesture: 4
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
+  - name: Shake Recover
+    state: Base Layer.ShakeRecover
+    phase: 3
+    anyGesture: 0
+    gesture: 4
+    anyGrade: 1
+    grade: 0
+    punch: -1
+    durationBeats: 1
+    loop: 0
+    frames: []
