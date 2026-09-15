@@ -15,6 +15,7 @@ namespace BBSB.Runtime.UI
         private Action<int> practice;
         private RectTransform page, viewport, confirmation;
         private CanvasGroup pageGroup;
+        private PreparationScreenBindings bindings;
         private readonly MonsterAttackSprites sprites = new MonsterAttackSprites();
         private readonly List<Image> portraits = new List<Image>();
         private readonly List<RectTransform> monsterRows = new List<RectTransform>();
@@ -39,6 +40,25 @@ namespace BBSB.Runtime.UI
         {
             this.ui = ui; this.session = session; this.practice = practice;
             var root = (RectTransform)transform;
+            bindings = root.GetComponentInParent<CanvasScreen>()?.preparation;
+            if (bindings != null)
+            {
+                if (!bindings.IsValid) throw new InvalidOperationException("준비 화면의 UI 참조를 모두 연결해줘.");
+                page = root; pageGroup = root.GetComponent<CanvasGroup>() ?? root.gameObject.AddComponent<CanvasGroup>();
+                HeroPortrait = bindings.portrait;
+                var player = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);
+                HeroPortrait.sprite = player != null && player.portrait != null ? player.portrait : PlayerIdle();
+                bindings.playerName.text = player != null ? player.displayName : "WEAPON MASTER";
+                bindings.song.text = session.BattleMusic.Music.Name + " / " + session.BattleMusic.Music.Bpm + " BPM";
+                bindings.playerHealth.text = "HP " + session.Health.ToString("0.##") + " / " + session.MaxHealth;
+                bindings.enemyHealth.text = "MONSTER HP " + session.EnemyHealth.Current.ToString("0.##") + " / " + session.EnemyHealth.Maximum;
+                bindings.playerFill.anchorMax = new Vector2((float)(session.Health / session.MaxHealth), 1);
+                bindings.enemyFill.anchorMax = new Vector2(session.EnemyHealth.Maximum > 0 ? (float)(session.EnemyHealth.Current / session.EnemyHealth.Maximum) : 0, 1);
+                bindings.menu.onClick.AddListener(() => menu()); bindings.codex.onClick.AddListener(() => codex());
+                viewport = bindings.patterns.viewport;
+                foreach (var monster in session.BattlePlan.Monsters) DrawMonster(bindings.patterns.content, monster.InstanceId, monster.Monster, monsterCodex);
+                DrawEquipment(start); Canvas.ForceUpdateCanvases(); ReflowRows(); Canvas.ForceUpdateCanvases(); return;
+            }
             ui.Background(root, RunUI.Ink); StageScenery.Add(ui, root, session.BattleMusic.Music, "Preparation scenery");
             var shade = ui.Rect("Preparation shade", root); RunUI.Stretch(shade);
             ui.Background(shade, new Color(.04f, .055f, .09f, .79f));
@@ -60,7 +80,7 @@ namespace BBSB.Runtime.UI
         {
             var header = ui.Rect("Preparation header", page);
             RunUI.Overlay(header, new Vector2(0, 1), Vector2.one, new Vector2(0, -92), Vector2.zero);
-            HeroPortrait = Portrait(header, "Weapon master portrait", Resources.Load<Sprite>(ArtRoot + "player") ?? PlayerIdle(), "W");
+            HeroPortrait = Portrait(header, "Weapon master portrait", Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath)?.portrait ?? Resources.Load<Sprite>(ArtRoot + "player") ?? PlayerIdle(), "W");
             RunUI.Pin((RectTransform)HeroPortrait.transform.parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -2), new Vector2(44, 44));
             var name = Text(header, "WEAPON MASTER", 20, RunUI.TextColor);
             Top(name.rectTransform, 0, .26f, 0, 26, 52);
@@ -157,12 +177,17 @@ namespace BBSB.Runtime.UI
 
         private void DrawEquipment(Action start)
         {
-            var footer = ui.Rect("Equipped weapons", page);
+            RectTransform footer = null, deck;
+            if (bindings != null) deck = bindings.weapons;
+            else
+            {
+            footer = ui.Rect("Equipped weapons", page);
             RunUI.Overlay(footer, Vector2.zero, new Vector2(1, 0), Vector2.zero, new Vector2(0, 126));
             var hint = Text(footer, "패턴을 누르면 연습할 수 있어.", 16, RunUI.Muted);
             Top(hint.rectTransform, 0, .78f, 0, 24);
-            var deck = ui.Rect("Five equipped weapons", footer);
+            deck = ui.Rect("Five equipped weapons", footer);
             RunUI.Overlay(deck, Vector2.zero, new Vector2(.79f, 1), Vector2.zero, new Vector2(0, -30));
+            }
             for (int slot = 0; slot < session.Weapons.Count; slot++)
             {
                 var state = session.Weapons[slot]; var weapon = WeaponCatalog.Find(state.DefinitionId);
@@ -177,6 +202,7 @@ namespace BBSB.Runtime.UI
                 var actions = Text(cell, weapon.ActionLabelAt(state.Rarity), 14, RunUI.Teal);
                 RunUI.Overlay(actions.rectTransform, new Vector2(.37f, .08f), new Vector2(1, .47f), Vector2.zero, new Vector2(-5, 0));
             }
+            if (bindings != null) { StartButton = bindings.start; StartButton.onClick.AddListener(() => start()); return; }
             StartButton = Button(footer, "연주 시작", start, primary: true, height: 84);
             RunUI.Overlay((RectTransform)StartButton.transform, new Vector2(.81f, 0), new Vector2(1, 1), new Vector2(0, 4), new Vector2(0, -30));
         }

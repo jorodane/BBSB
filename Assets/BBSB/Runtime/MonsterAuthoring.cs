@@ -27,12 +27,14 @@ namespace BBSB.Runtime
         [Range(1, 16)] public int steadyCallsPerPhase = 3;
         public bool usePatternProbabilities = true;
         public bool useLegacyBodyAnimation;
-        public bool UsesLegacyBodyAnimation => useLegacyBodyAnimation && controller == null && visualPrefab == null;
+        public bool UsesLegacyBodyAnimation => useLegacyBodyAnimation && controller == null && visualPrefab == null && actorPrefab == null;
         [Min(.1f)] public float displayScale = 1;
         public Vector2 displayOffset;
         public RuntimeAnimatorController controller;
         [Tooltip("Optional UI prefab. Root must be a RectTransform; its Animator drives child Images.")]
         public RectTransform visualPrefab;
+        public GameObject actorPrefab;
+        [Min(.01f)] public float spriteReferenceHeight = 4;
         public Motion[] motions = DefaultMotions();
         public Pattern[] patterns = { new Pattern() };
 

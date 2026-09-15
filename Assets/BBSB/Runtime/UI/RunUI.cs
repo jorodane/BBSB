@@ -15,9 +15,10 @@ namespace BBSB.Runtime.UI
         public static readonly Color Teal = Hex("80DAC5");
         public static readonly Color Red = Hex("EE8B92");
         private readonly Font font;
+        public PresentationPrefabs Prefabs { get; }
         public Font Font => font;
 
-        public RunUI(Font font) { this.font = font; }
+        public RunUI(Font font) { this.font = font; Prefabs = Resources.Load<PresentationPrefabs>(PresentationPrefabs.ResourcePath); }
         public static Color Hex(string value) { ColorUtility.TryParseHtmlString("#" + value, out var c); return c; }
 
         public RectTransform Rect(string name, Transform parent)
@@ -94,6 +95,7 @@ namespace BBSB.Runtime.UI
 
         public RectTransform Card(Transform parent, int padding = 22)
         {
+            if (Prefabs != null && Prefabs.card != null) return UnityEngine.Object.Instantiate(Prefabs.card, parent, false);
             var card = Stack(parent, "Card", padding); Background(card, Panel);
             return card;
         }
@@ -101,6 +103,13 @@ namespace BBSB.Runtime.UI
         public Text Label(Transform parent, string value, int size = 24, Color? color = null,
             float height = 40, TextAnchor alignment = TextAnchor.MiddleLeft)
         {
+            var template = Prefabs == null ? null : size >= 40 ? Prefabs.titleText : size >= 27 ? Prefabs.headingText : size < 22 ? Prefabs.captionText : Prefabs.bodyText;
+            if (template != null)
+            {
+                var authored = UnityEngine.Object.Instantiate(template, parent, false);
+                authored.text = value; authored.raycastTarget = false; Size(authored.rectTransform, height, 1);
+                return authored;
+            }
             var rect = Rect("Text", parent); Size(rect, height, 1);
             var text = rect.gameObject.AddComponent<Text>(); text.font = font; text.text = value;
             text.fontSize = size; text.color = color ?? TextColor; text.alignment = alignment;
@@ -112,6 +121,15 @@ namespace BBSB.Runtime.UI
         public Button Button(Transform parent, string label, Action action, bool enabled = true,
             bool primary = false, float height = 80)
         {
+            var template = Prefabs == null ? null : primary ? Prefabs.primaryButton : Prefabs.secondaryButton;
+            if (template != null)
+            {
+                var authored = UnityEngine.Object.Instantiate(template, parent, false);
+                authored.name = "Button " + label; authored.interactable = enabled;
+                var caption = authored.GetComponentInChildren<Text>(true); if (caption != null) caption.text = label;
+                Size((RectTransform)authored.transform, height, 1);
+                authored.onClick.AddListener(() => action()); return authored;
+            }
             var rect = Rect("Button " + label, parent); Size(rect, height, 1);
             var image = Background(rect, primary ? Gold : Hex("2B3850"), true);
             var button = rect.gameObject.AddComponent<Button>(); button.targetGraphic = image;

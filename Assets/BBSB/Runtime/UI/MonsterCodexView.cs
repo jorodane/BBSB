@@ -13,6 +13,7 @@ namespace BBSB.Runtime.UI
     {
         public const string IconRoot = "BBSB/Codex/";
         private RunUI ui;
+        private CanvasScreen authoredScreen;
         private Action closed;
         private RectTransform page, gridPage, detail, headerIcon;
         private Text headerName, state, instructions, beat, playLabel, soundLabel, tempoLabel, laneNames;
@@ -39,9 +40,11 @@ namespace BBSB.Runtime.UI
 
         internal static MonsterCodexView Open(RectTransform parent, RunUI ui, Action closed, MonsterDefinition monster = null)
         {
-            var root = ui.Rect("Monster encyclopedia", parent); RunUI.Stretch(root);
+            var authored = ui.Prefabs != null ? ui.Prefabs.Create(RunScreenKind.Codex, parent) : null;
+            var root = authored != null ? authored.content : ui.Rect("Monster encyclopedia", parent);
+            if (authored == null) RunUI.Stretch(root);
             var view = root.gameObject.AddComponent<MonsterCodexView>();
-            view.ui = ui; view.closed = closed; view.Build();
+            view.ui = ui; view.authoredScreen = authored; view.closed = closed; view.Build();
             if (monster != null) view.SelectMonster(monster);
             return view;
         }
@@ -85,7 +88,7 @@ namespace BBSB.Runtime.UI
         public void Close()
         {
             if (closing) return;
-            closing = true; StopAudio(); gameObject.SetActive(false); closed?.Invoke(); Destroy(gameObject);
+            closing = true; StopAudio(); gameObject.SetActive(false); closed?.Invoke(); Destroy(authoredScreen != null ? authoredScreen.gameObject : gameObject);
         }
 
         private void ShowGrid()

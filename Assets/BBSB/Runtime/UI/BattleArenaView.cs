@@ -40,6 +40,8 @@ namespace BBSB.Runtime.UI
         private readonly List<BattleEffect> effects = new List<BattleEffect>();
         private PlayerMotionTimeline playerMotion = new PlayerMotionTimeline();
         private PlayerMotionSprites playerSprites;
+        [SerializeField] private PlayerAuthoring playerAuthoring;
+        private PlayerAnimatorView playerVisual;
         [SerializeField] private PlayerMotionDisplay playerDisplay;
         [SerializeField] private MonsterAttackDisplay monsterAttackDisplay;
         private MonsterAttackView monsterAttacks;
@@ -90,6 +92,8 @@ namespace BBSB.Runtime.UI
         {
             if (round != null) throw new InvalidOperationException("Battle arena is already bound.");
             round = value ?? throw new ArgumentNullException(nameof(value));
+            if (playerAuthoring == null) playerAuthoring = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);
+            if (playerAuthoring != null && playerAuthoring.layout != null) playerDisplay = playerAuthoring.layout;
             if (display != null) playerDisplay = display;
             else if (playerDisplay == null) playerDisplay = Resources.Load<PlayerMotionDisplay>(PlayerMotionDisplay.ResourcePath);
             if (monsterAttackDisplay == null) monsterAttackDisplay = Resources.Load<MonsterAttackDisplay>(MonsterAttackDisplay.ResourcePath);
@@ -143,12 +147,18 @@ namespace BBSB.Runtime.UI
                 monsters.Add(actor); portraits.Add(actor.Portrait);
                 depthOrder.Add(actor);
             }
-            playerSprites = new PlayerMotionSprites();
-            hero = CreateActor(ui, "Weapon master", "weapon-master", null, playerSprites.Get("idle", 0));
+            playerSprites = playerAuthoring != null && !playerAuthoring.useLegacyFrames ? null : new PlayerMotionSprites();
+            hero = CreateActor(ui, "Weapon master", "weapon-master", null, (playerSprites != null ? playerSprites.Get("idle", 0) : playerAuthoring.portrait));
             hero.Root.name = "Player ground";
+            if (playerAuthoring != null)
+            {
+                var visual = ui.Rect("Player authored visual", hero.Root);
+                playerVisual = visual.gameObject.AddComponent<PlayerAnimatorView>(); playerVisual.Initialize(playerAuthoring);
+                hero.Portrait.enabled = false;
+            }
             hero.Tint = RunUI.Gold;
             hero.Order = monsters.Count; depthOrder.Add(hero);
-            heroLabel = ui.Label(area, "WEAPON MASTER", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
+            heroLabel = ui.Label(area, playerAuthoring != null ? playerAuthoring.displayName : "WEAPON MASTER", 22, RunUI.Gold, 36, TextAnchor.MiddleCenter);
             LayoutActors(); Refresh();
         }
 
@@ -288,9 +298,10 @@ namespace BBSB.Runtime.UI
         private void ApplyHeroLayout()
         {
             if (heroDisplayHeight <= 0) return;
+            if (playerVisual != null) { playerVisual.Layout(heroDisplayHeight, CurrentHeroMotion, round.BeatSeconds, playerDisplay); return; }
             var sprite = hero.Portrait.sprite;
             var reference = playerDisplay != null && playerDisplay.referencePose != null ?
-                playerDisplay.referencePose : playerSprites.Get("idle", 0);
+                playerDisplay.referencePose : (playerSprites != null ? playerSprites.Get("idle", 0) : playerAuthoring.portrait);
             float scale = 1; Vector2 offset = Vector2.zero;
             if (playerDisplay != null && !playerSprites.UsesFallbackPortrait)
                 playerDisplay.GetCalibration(CurrentHeroMotion.SourceSheet, CurrentHeroMotion.SourceIndex, out scale, out offset);
@@ -414,10 +425,11 @@ namespace BBSB.Runtime.UI
                 System.Math.Abs(seconds - nextMotion.Age - heroHit.At) < 1e-6;
             CurrentHeroMotion = heroHit.Stopped && sameHit ? frozenHeroMotion : nextMotion;
             var motion = CurrentHeroMotion;
-            hero.Portrait.sprite = playerSprites.Get(motion);
+            hero.Portrait.sprite = playerSprites != null ? playerSprites.Get(motion) : playerAuthoring.portrait;
+            playerVisual?.Sample(motion, seconds, round.BeatSeconds, hero.Portrait.sprite);
             ApplyHeroLayout();
             ApplyHeroHit();
-            string action = "WEAPON MASTER";
+            string action = playerAuthoring != null ? playerAuthoring.displayName : "WEAPON MASTER";
             if (motion.IsFreeInput)
                 action = ActionLabel(motion.Kind.Value, motion.Punch) + " · 공미스";
             else if (motion.Phase == PlayerMotionPhase.Sustain)

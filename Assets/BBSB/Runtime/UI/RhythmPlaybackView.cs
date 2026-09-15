@@ -32,6 +32,20 @@ namespace BBSB.Runtime.UI
         {
             this.round = round; this.session = session; var music = round.Plan.Stage.Music;
             root.name = "Rhythm playback";
+            var bindings = root.GetComponentInParent<CanvasScreen>()?.battle;
+            if (bindings != null && !bindings.IsValid) throw new InvalidOperationException("전투 HUD의 UI 참조를 모두 연결해줘.");
+            if (bindings != null)
+            {
+                arena = bindings.arena.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font);
+                bindings.song.text = music.Name + " / " + music.Bpm + " BPM";
+                songProgress = bindings.songFill; healthLabel = bindings.health; healthFill = bindings.healthFill;
+                healthImage = healthFill.GetComponent<Image>(); damageLabel = bindings.damage;
+                enemyLabel = bindings.enemyHealth; enemyFill = bindings.enemyFill;
+                combo = bindings.combo; feedback = bindings.feedback;
+                bindings.menu.onClick.AddListener(() => pause()); arena.ShowResponseJudgment = false;
+            }
+            else
+            {
             ui.Background(root, RunUI.Ink, true);
             var stage = ui.Rect("Battle arena", root); RunUI.Stretch(stage);
             arena = stage.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font);
@@ -73,6 +87,7 @@ namespace BBSB.Runtime.UI
             arena.ShowResponseJudgment = false;
             ui.FloatingMenu(root, pause);
 
+            }
             var overlay = ui.Modal(root, "Pause overlay", "일시정지", resume, out var panel);
             pauseInput = overlay.GetComponent<CanvasGroup>();
             // Cache while building: the overlay is inactive when ShowPause opens it again.

@@ -246,8 +246,10 @@ namespace BBSB.Editor
         {
             Field("useLegacyBodyAnimation", "기존 리소스 몸체 모션 사용");
             EditorGUILayout.HelpBox("기존 몬스터는 리소스에 등록된 전용 몸체 모션을 유지해. Controller 또는 외형 Prefab을 연결하면 새 외형 설정이 우선 적용돼. 기존 모션으로 돌아가려면 연결을 비우고 이 옵션을 켜줘.", MessageType.Info);
-            Field("controller", "Animator Controller"); Field("visualPrefab", "UI 외형 Prefab (선택)");
-            EditorGUILayout.HelpBox("Base Layer의 전체 상태 경로를 지정해. 예: Base Layer.Call. 재생 길이는 박자 기준이며 곡 시계에 맞춰 샘플링해. 자동 Transition과 Animation Event는 사용하지 않아. Prefab은 512 높이, 발 위치는 아래 중앙이고 Animator는 루트에 둬. 없으면 기본 Image 외형을 만들어.", MessageType.Info);
+            Field("controller", "Animator Controller"); Field("actorPrefab", "SpriteRenderer / UI 외형 Prefab");
+            Field("spriteReferenceHeight", "SpriteRenderer 기준 키 (Unity 단위)");
+            Field("visualPrefab", "기존 UI 외형 Prefab (호환)");
+            EditorGUILayout.HelpBox("Base Layer의 전체 상태 경로를 지정해. 예: Base Layer.Call. 재생 길이는 박자 기준이며 곡 시계에 맞춰 샘플링해. 자동 Transition과 Animation Event는 사용하지 않아. UI Prefab은 512 높이, SpriteRenderer Prefab은 지정한 기준 키를 사용해. 발 위치는 원점으로 잡아. 없으면 기본 Image 외형을 만들어.", MessageType.Info);
             Field("motions", "상황별 모션");
             if (GUILayout.Button("Animator · Clip · UI Prefab 기본 틀 생성"))
             { serializedObject.ApplyModifiedProperties(); CreateAnimationTemplate(); serializedObject.Update(); }
@@ -279,7 +281,13 @@ namespace BBSB.Editor
         private void ValidateAnimator()
         {
             var controller = Asset.controller;
-            if (Asset.visualPrefab != null)
+            if (Asset.actorPrefab != null)
+            {
+                ActorPrefabValidation.Validate(Asset.actorPrefab);
+                var actorAnimator = Asset.actorPrefab.GetComponentInChildren<Animator>(true);
+                if (controller == null && actorAnimator != null) controller = actorAnimator.runtimeAnimatorController;
+            }
+            if (Asset.actorPrefab == null && Asset.visualPrefab != null)
             {
                 if (!Asset.visualPrefab.gameObject.activeSelf) throw new ArgumentException("UI Prefab의 루트를 활성화해줘.");
                 if (Asset.visualPrefab.GetComponentsInChildren<Image>(true).Length == 0) throw new ArgumentException("UI Prefab에 Image가 필요해. SpriteRenderer 대신 UI Image를 사용해줘.");

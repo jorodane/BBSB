@@ -18,6 +18,7 @@ namespace BBSB.Runtime
         private RunUI ui;
         private RectTransform safeArea;
         private RectTransform screen;
+        private CanvasScreen authoredScreen;
         private RectTransform body;
         private RectTransform menuOverlay, menuBody;
         private enum MenuPage { None, Home, Inventory, Help, Patterns, Development, Abandon }
@@ -74,11 +75,14 @@ namespace BBSB.Runtime
             if (rendering || ui == null) return;
             rendering = true;
             if (codex != null) codex.Close();
-            if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
+            if (authoredScreen != null) { authoredScreen.gameObject.SetActive(false); Destroy(authoredScreen.gameObject); authoredScreen = null; }
+            else if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
             ClearMenu(); preparation = null;
-            screen = ui.Rect("Run screen", safeArea); RunUI.Stretch(screen);
+            authoredScreen = ui.Prefabs != null ? ui.Prefabs.Create(CurrentScreenKind(), safeArea) : null;
+            screen = authoredScreen != null ? authoredScreen.content : ui.Rect("Run screen", safeArea);
+            if (authoredScreen == null) RunUI.Stretch(screen);
             body = null;
-            screen.gameObject.AddComponent<CanvasGroup>();
+            if (screen.GetComponent<CanvasGroup>() == null) screen.gameObject.AddComponent<CanvasGroup>();
             if (title) { DrawTitle(); rendering = false; return; }
             if (ActiveRound != null)
             {
@@ -141,8 +145,33 @@ namespace BBSB.Runtime
             }
         }
 
+        private RunScreenKind CurrentScreenKind()
+        {
+            if (title) return RunScreenKind.Title;
+            if (ActiveRound != null) return RunScreenKind.Battle;
+            if (completedRound != null) return RunScreenKind.Report;
+            if (pendingOffer >= 0) return RunScreenKind.Replacement;
+            if (Session.Phase == RunPhase.Map) return RunScreenKind.Map;
+            if (Session.Phase == RunPhase.Reward) return RunScreenKind.Reward;
+            if (Session.Phase == RunPhase.FieldCleared) return RunScreenKind.FieldCleared;
+            if (Session.Phase == RunPhase.GameOver) return RunScreenKind.GameOver;
+            if (Session.CurrentNode.IsBattle) return RunScreenKind.Preparation;
+            return Session.CurrentNode.Kind == StageKind.Rest ? RunScreenKind.Rest :
+                Session.CurrentNode.Kind == StageKind.Upgrade ? RunScreenKind.Upgrade : RunScreenKind.Shop;
+        }
+
         private void DrawTitle()
         {
+            var bindings = authoredScreen != null ? authoredScreen.title : null;
+            if (bindings != null && !bindings.IsValid) throw new InvalidOperationException("타이틀 화면의 UI 참조를 모두 연결해줘.");
+            if (bindings != null)
+            {
+                bindings.mapName.text = selectedMap < 0 ? "랜덤 맵" : StageCatalog.Maps[selectedMap].Genre + " · " + StageCatalog.Maps[selectedMap].Name;
+                bindings.start.onClick.AddListener(StartRun); bindings.codex.onClick.AddListener(() => OpenCodex());
+                bindings.previousMap.onClick.AddListener(() => { selectedMap = (selectedMap + StageCatalog.Maps.Count + 1) % (StageCatalog.Maps.Count + 1) - 1; Render(); });
+                bindings.nextMap.onClick.AddListener(() => { selectedMap = (selectedMap + 2) % (StageCatalog.Maps.Count + 1) - 1; Render(); });
+                return;
+            }
             var panel = ui.Stack(screen, "Title content", 32, 14); RunUI.Stretch(panel);
             ui.Label(panel, "RHYTHM  /  WEAPONS  /  ROGUELIKE", 19, RunUI.Gold, 40);
             var content = ui.Scroll(panel);
@@ -177,6 +206,12 @@ namespace BBSB.Runtime
 
         private void Heading(string kicker, string heading, string description)
         {
+            if (authoredScreen != null && authoredScreen.heading != null)
+            {
+                authoredScreen.heading.text = heading;
+                if (authoredScreen.description != null) authoredScreen.description.text = description;
+                return;
+            }
             ui.Label(body, kicker, 18, RunUI.Gold, 28);
             ui.Label(body, heading, 34, RunUI.TextColor, 55);
             if (!string.IsNullOrEmpty(description)) ui.Label(body, description, 22, RunUI.Muted, 72);
@@ -266,7 +301,8 @@ namespace BBSB.Runtime
 
         private void DrawBattle()
         {
-            var stage = ui.Rect("Preparation arena", screen); RunUI.Stretch(stage);
+            var stage = authoredScreen != null && authoredScreen.preparation != null ? screen : ui.Rect("Preparation arena", screen);
+            if (stage != screen) RunUI.Stretch(stage);
             preparation = stage.gameObject.AddComponent<BattlePreparationView>();
             preparation.Bind(ui, Session, index => StartPatternPractice(index), OpenCodex, () => OpenMenu(MenuPage.Home),
                 () => StartRhythmRound(), monster => OpenCodex(monster));
