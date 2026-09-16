@@ -94,7 +94,9 @@ namespace BBSB.Runtime.UI
             var weapon = WeaponCatalog.Find(id);
             if ((int)pose < 0 || (int)pose > 2) throw new ArgumentOutOfRangeException(nameof(pose));
             if (!weapon.IsRanged) pose = RangedWeaponPose.Idle;
-            return frames[id + "/" + WeaponRarities.Key(rarity) + "/" + (int)pose];
+            string key = id + "/" + WeaponRarities.Key(rarity) + "/" + (int)pose;
+            if (frames.TryGetValue(key, out var bounds)) return bounds;
+            return frames[weapon.Kind == WeaponKind.Shield ? "shield/" + WeaponRarities.Key(rarity) + "/0" : key];
         }
 
         // Return the original canvas in target coordinates, so authored sockets retain their alignment.

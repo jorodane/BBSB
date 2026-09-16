@@ -38,6 +38,14 @@ namespace BBSB.Editor
                 foreach (RunScreenKind kind in Enum.GetValues(typeof(RunScreenKind))) screens.Add(new PresentationPrefabs.Screen { kind = kind, prefab = CreateScreen(kind) });
                 library.screens = screens.ToArray(); AssetDatabase.CreateAsset(library, path); EditorUtility.SetDirty(library);
             }
+            // Add only the new screens to existing catalogs; retain all authored prefab changes.
+            var catalog = AssetDatabase.LoadAssetAtPath<PresentationPrefabs>(path);
+            var entries = new List<PresentationPrefabs.Screen>(catalog.screens);
+            foreach (var kind in new[] { RunScreenKind.FiveLaneBattle, RunScreenKind.FiveLanePreparation })
+                if (!entries.Exists(entry => entry != null && entry.kind == kind && entry.prefab != null))
+                { entries.RemoveAll(entry => entry != null && entry.kind == kind); entries.Add(new PresentationPrefabs.Screen { kind = kind, prefab = CreateScreen(kind) }); }
+            if (entries.Count != catalog.screens.Length || Array.Exists(catalog.screens, entry => entry != null && entry.prefab == null))
+            { catalog.screens = entries.ToArray(); EditorUtility.SetDirty(catalog); }
             if (Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath) == null)
             {
                 var asset = ScriptableObject.CreateInstance<PlayerAuthoring>();
@@ -80,6 +88,8 @@ namespace BBSB.Editor
             var view = root.gameObject.AddComponent<CanvasScreen>();
             var backdrop = Rect("Background", root); Stretch(backdrop); Background(backdrop, new Color(.06f, .075f, .13f));
             view.content = Rect("Content", root); Stretch(view.content);
+            if (kind == RunScreenKind.FiveLaneBattle)
+                view.fiveLane = FiveLaneHudBindings.CreateDefault(view.content, Font);
             if (kind == RunScreenKind.Title)
             {
                 var bindings = root.gameObject.AddComponent<TitleScreenBindings>(); view.title = bindings;

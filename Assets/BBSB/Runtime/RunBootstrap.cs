@@ -15,6 +15,8 @@ namespace BBSB.Runtime
         [SerializeField] private int seed = 20260908;
         [Tooltip("Temporary battle result controls; disable after connecting the rhythm battle.")]
         [SerializeField] private bool showBattleTestControls = true;
+        [Tooltip("Use the five-lane weapon phrase battle. Disable only to inspect the legacy prototype.")]
+        [SerializeField] private bool useFiveLaneCombat = true;
 
         private void Awake()
         {
@@ -33,7 +35,7 @@ namespace BBSB.Runtime
             var font = UI.PresentationFonts.Load();
             var presenter = gameObject.AddComponent<RunPresenter>();
             presenter.Initialize(new RunRules(startingHealth, startingGold, restPercent), font,
-                useFixedSeed ? (int?)seed : null, showBattleTestControls);
+                useFixedSeed ? (int?)seed : null, showBattleTestControls, useFiveLaneCombat);
         }
     }
 }

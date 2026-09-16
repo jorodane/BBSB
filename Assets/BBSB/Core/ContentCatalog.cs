@@ -8,7 +8,9 @@ namespace BBSB.Core
     {
         private static readonly ContentDefinition[] definitions = {
             Weapon("sword", "한손검", 45),
-            Weapon("shield", "방패", 45),
+            Weapon("shield", "버클러", 45),
+            Weapon("round-shield", "원형 방패", 50),
+            Weapon("tower-shield", "대형 방패", 60),
             Weapon("spear", "창", 50),
             Weapon("hammer", "해머", 55),
             Weapon("dagger", "단검", 40),

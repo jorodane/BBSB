@@ -60,8 +60,12 @@ namespace BBSB.Runtime.UI
             => Sockets(id, rarity, RangedWeaponPose.Idle);
         public static IReadOnlyList<WeaponArtSocket> Sockets(string id, WeaponRarity rarity, RangedWeaponPose pose)
         {
-            if (WeaponCatalog.Find(id).IsRanged) return RangedWeaponArtLayout.Sockets(id, rarity, pose);
-            return layouts[id + "/" + WeaponRarities.Key(rarity)];
+            var weapon = WeaponCatalog.Find(id);
+            if (weapon.IsRanged) return RangedWeaponArtLayout.Sockets(id, rarity, pose);
+            string key = id + "/" + WeaponRarities.Key(rarity);
+            if (layouts.TryGetValue(key, out var layout)) return layout;
+            // New shield families share the existing art until their own transparent assets are installed.
+            return layouts[weapon.Kind == WeaponKind.Shield ? "shield/" + WeaponRarities.Key(rarity) : key];
         }
     }
 }

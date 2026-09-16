@@ -16,6 +16,8 @@ namespace BBSB.Core
         private readonly List<Offer> offers = new List<Offer>();
         private bool claimedService;
         private string startingMapId;
+        public bool UsesFiveLaneCombat { get; }
+        public FiveLaneBattle PhraseBattle { get; private set; }
 
         public int Seed { get; private set; }
         public decimal Health { get; private set; }
@@ -38,8 +40,9 @@ namespace BBSB.Core
         public IReadOnlyList<string> Visited { get; }
         public IReadOnlyList<Offer> Offers { get; }
 
-        public RunSession(int seed, RunRules rules = null, string mapId = null)
+        public RunSession(int seed, RunRules rules = null, string mapId = null, bool useFiveLaneCombat = false)
         {
+            UsesFiveLaneCombat = useFiveLaneCombat;
             this.rules = rules ?? new RunRules();
             Weapons = weapons.AsReadOnly(); Items = items.AsReadOnly(); Augments = augments.AsReadOnly();
             Visited = visited.AsReadOnly(); Offers = offers.AsReadOnly();
@@ -56,8 +59,10 @@ namespace BBSB.Core
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
-            // The five basic actions cover every gesture once, including a damaging Hold response.
-            foreach (var id in new[] { "greatsword", "bell", "spear", "blade", "dagger" })
+            // The new foundation exposes Tap, Hold, a parry and the three-phrase finisher immediately.
+            var startingWeapons = UsesFiveLaneCombat ? new[] { "sword", "hammer", "shield", "bow", "dagger" } :
+                new[] { "greatsword", "bell", "spear", "blade", "dagger" };
+            foreach (var id in startingWeapons)
                 weapons.Add(new WeaponState(id));
             CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false;
             Map = MapGenerator.Generate(1, mapRandom); StageCatalog.Assign(Map, Seed, startingMapId); Phase = RunPhase.Map;
@@ -108,7 +113,7 @@ namespace BBSB.Core
 
         public RhythmRound StartRhythmRound()
         {
-            if (Phase != RunPhase.Stage || BattlePlan == null || ActiveRhythmRound != null || Health <= 0) return null;
+            if (UsesFiveLaneCombat || Phase != RunPhase.Stage || BattlePlan == null || ActiveRhythmRound != null || Health <= 0) return null;
             ActiveRhythmRound = new RhythmRound(BattlePlan, combat: new WeaponBattle(BattleLoadout, EnemyHealth, Health, MaxHealth));
             ActiveRhythmRound.ResultJudged += ApplyRhythmDamage;
             return ActiveRhythmRound;
@@ -129,9 +134,46 @@ namespace BBSB.Core
 
         private void StopActiveRound()
         {
+            if (PhraseBattle != null)
+            {
+                PhraseBattle.PlayerHealthChanged -= ApplyPhraseHealth;
+                PhraseBattle.Stop(); PhraseBattle = null;
+            }
             if (ActiveRhythmRound == null) return;
             ActiveRhythmRound.ResultJudged -= ApplyRhythmDamage;
             ActiveRhythmRound.Stop(); ActiveRhythmRound = null;
+        }
+
+        public FiveLaneBattle StartFiveLaneBattle(IReadOnlyList<WeaponPhrase> phrases = null)
+        {
+            if (!UsesFiveLaneCombat || Phase != RunPhase.Stage || BattlePlan == null || Health <= 0 || ActiveRhythmRound != null) return null;
+            if (PhraseBattle == null)
+            {
+                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases);
+                PhraseBattle.PlayerHealthChanged += ApplyPhraseHealth;
+            }
+            if (PhraseBattle.Finished) return null;
+            PhraseBattle.Resume(); return PhraseBattle;
+        }
+
+        public bool CanSelectStartingShield => UsesFiveLaneCombat && ClearedStages == 0 && Phase == RunPhase.Stage &&
+            CurrentNode != null && CurrentNode.IsBattle && PhraseBattle == null;
+
+        public bool SelectStartingShield(string definitionId)
+        {
+            if (!CanSelectStartingShield) return false;
+            bool valid = false;
+            foreach (var id in WeaponPhraseCatalog.ShieldIds) if (id == definitionId) valid = true;
+            if (!valid) return false;
+            var previous = weapons[2];
+            weapons[2] = new WeaponState(definitionId, previous.Rarity, previous.Level);
+            BattleLoadout = new WeaponLoadout(BattlePlan, Weapons);
+            return true;
+        }
+
+        private void ApplyPhraseHealth(decimal remaining)
+        {
+            if (Phase == RunPhase.Stage && PhraseBattle != null) Health = remaining;
         }
 
         public bool Rest()

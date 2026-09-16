@@ -1,5 +1,18 @@
 # Beat! Block, Shake~ Beat!
 
+## 현재 기본 전투: 5선 무기 연주
+
+`RunMap.unity`에서 **탐험 시작 → 몬스터 지역 → 연주 시작**으로 실행한다.
+`D / F / Space / J / K`로 검·트레실로 해머·방패·활·단검을 연주한다. 무기마다 첫 입력으로 정박/엇박을 선택하고 독립적인 Tap/Hold 프레이즈를 이어간다. 반미스는 유지, 미스한 무기만 쿨타임에 들어간다. 첫 전투 준비에서 버클러·원형 방패·대형 방패를 선택한다. 버클러와 원형 방패는 첫 누르기, 대형 방패는 Hold 끝에서 떼기가 패링이며 각각 다른 반격을 연주한다. 해머 세 프레이즈 완주 후 그로기, 실시간 적 공격, HP·승패·탐험 보상까지 연결했다.
+
+**[실행·판정·프리팹·프레이즈 편집 안내](Docs/FiveLaneCombat.md)**
+
+새 UI도 **TMP + Canvas 프리팹**으로 편집하며, 무기 프레이즈는 `Create → BBSB → Weapon Phrase`로 추가/수정한다. 검증은 기존 `Core checks` 워크플로를 사용한다.
+
+## 이전 Call & Response 구현 참고
+
+아래는 기존 프로토타입의 구조와 이력이다. 새 기본 전투의 규칙은 위 `FiveLaneCombat.md`를 따른다. 기존 전투를 확인하려면 `RunBootstrap`의 `Use Five Lane Combat`을 끈다.
+
 
 몬스터 추가는 Unity 메뉴 **BBSB → Monster Editor**에서 외형·Call/Response 패턴·Animator 모션을 설정한다. [몬스터 에디터 사용법](Docs/MonsterEditor.md)을 참고한다.
 

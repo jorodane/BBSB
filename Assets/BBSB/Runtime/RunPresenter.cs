@@ -13,6 +13,7 @@ namespace BBSB.Runtime
     {
         public RunSession Session { get; private set; }
         public RhythmRound ActiveRound { get; private set; }
+        public FiveLaneBattle ActiveFiveLaneBattle { get; private set; }
         // Session.BattleMusic and BattlePlan are ready when this fires. Return via SubmitBattleResult.
         public event Action<string, StageKind, int> BattleRequested;
         private RunRules rules;
@@ -26,6 +27,7 @@ namespace BBSB.Runtime
         private MenuPage menuPage;
         private int? fixedSeed;
         private bool testControls;
+        private bool fiveLaneCombat;
         private bool title = true;
         private int selectedMap = -1;
         private int pendingOffer = -1;
@@ -36,9 +38,10 @@ namespace BBSB.Runtime
         private BattlePreparationView preparation;
         private MonsterCodexView codex;
 
-        public void Initialize(RunRules runRules, TMP_FontAsset font, int? seed, bool showTestControls)
+        public void Initialize(RunRules runRules, TMP_FontAsset font, int? seed, bool showTestControls, bool useFiveLaneCombat = false)
         {
             MonsterAuthoringRegistry.EnsureLoaded();
+            fiveLaneCombat = useFiveLaneCombat;
             rules = runRules; ui = new RunUI(font); fixedSeed = seed; testControls = showTestControls;
             var canvasRoot = ui.Rect("BBSB Canvas", transform);
             var canvas = canvasRoot.gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -57,6 +60,7 @@ namespace BBSB.Runtime
         public bool SubmitBattleResult(string ticket, bool victory, decimal remainingHealth)
         {
             if (Session == null || !Session.ResolveBattle(ticket, victory, remainingHealth)) return false;
+            ActiveFiveLaneBattle = null;
             ActiveRound?.Stop(); ActiveRound = completedRound = null;
             menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return true;
         }
@@ -65,7 +69,8 @@ namespace BBSB.Runtime
         {
             int seed = fixedSeed ?? Guid.NewGuid().GetHashCode();
             string mapId = selectedMap < 0 ? null : StageCatalog.Maps[selectedMap].Id;
-            if (Session == null) Session = new RunSession(seed, rules, mapId); else Session.Restart(seed, mapId);
+            if (Session == null) Session = new RunSession(seed, rules, mapId, fiveLaneCombat); else Session.Restart(seed, mapId);
+            ActiveFiveLaneBattle = null;
             ActiveRound = completedRound = null;
 
             title = false; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
@@ -85,6 +90,13 @@ namespace BBSB.Runtime
             body = null;
             if (screen.GetComponent<CanvasGroup>() == null) screen.gameObject.AddComponent<CanvasGroup>();
             if (title) { DrawTitle(); rendering = false; return; }
+            if (ActiveFiveLaneBattle != null)
+            {
+                var battle = ActiveFiveLaneBattle; string ticket = Session.StageTicket;
+                screen.gameObject.AddComponent<FiveLanePlayback>().Bind(battle, Session, ui,
+                    () => FinishFiveLaneBattle(ticket, battle), () => LeaveFiveLaneBattle(ticket, battle));
+                rendering = false; return;
+            }
             if (ActiveRound != null)
             {
                 string ticket = Session.StageTicket;
@@ -137,7 +149,7 @@ namespace BBSB.Runtime
                 if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) codex.Back();
                 return;
             }
-            if (title || ActiveRound != null || Session == null || Session.Phase == RunPhase.GameOver) return;
+            if (title || ActiveRound != null || ActiveFiveLaneBattle != null || Session == null || Session.Phase == RunPhase.GameOver) return;
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 if (preparation != null && preparation.HasPracticeConfirmation) { preparation.CancelPractice(); return; }
@@ -149,6 +161,7 @@ namespace BBSB.Runtime
         private RunScreenKind CurrentScreenKind()
         {
             if (title) return RunScreenKind.Title;
+            if (ActiveFiveLaneBattle != null) return RunScreenKind.FiveLaneBattle;
             if (ActiveRound != null) return RunScreenKind.Battle;
             if (completedRound != null) return RunScreenKind.Report;
             if (pendingOffer >= 0) return RunScreenKind.Replacement;
@@ -156,7 +169,7 @@ namespace BBSB.Runtime
             if (Session.Phase == RunPhase.Reward) return RunScreenKind.Reward;
             if (Session.Phase == RunPhase.FieldCleared) return RunScreenKind.FieldCleared;
             if (Session.Phase == RunPhase.GameOver) return RunScreenKind.GameOver;
-            if (Session.CurrentNode.IsBattle) return RunScreenKind.Preparation;
+            if (Session.CurrentNode.IsBattle) return Session.UsesFiveLaneCombat ? RunScreenKind.FiveLanePreparation : RunScreenKind.Preparation;
             return Session.CurrentNode.Kind == StageKind.Rest ? RunScreenKind.Rest :
                 Session.CurrentNode.Kind == StageKind.Upgrade ? RunScreenKind.Upgrade : RunScreenKind.Shop;
         }
@@ -302,6 +315,7 @@ namespace BBSB.Runtime
 
         private void DrawBattle()
         {
+            if (Session.UsesFiveLaneCombat) { DrawFiveLanePreparation(); return; }
             var stage = authoredScreen != null && authoredScreen.preparation != null ? screen : ui.Rect("Preparation arena", screen);
             if (stage != screen) RunUI.Stretch(stage);
             preparation = stage.gameObject.AddComponent<BattlePreparationView>();
@@ -309,8 +323,69 @@ namespace BBSB.Runtime
                 () => StartRhythmRound(), monster => OpenCodex(monster));
         }
 
+        private void DrawFiveLanePreparation()
+        {
+            var panel = ui.Stack(screen, "Five lane preparation", 28, 10); RunUI.Stretch(panel);
+            ui.Label(panel, "FIVE WEAPONS / ONE BEAT", 28, RunUI.Gold, 44);
+            ui.Label(panel, Session.BattleMusic.Music.Name + " · " + Session.BattleMusic.Music.Bpm + " BPM", 24, RunUI.Teal, 40);
+            ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth +
+                "   ·   ENEMY " + Session.EnemyHealth.Current.ToString("0.#") + " / " + Session.EnemyHealth.Maximum, 22, null, 36);
+            var list = ui.Scroll(panel);
+            ui.Label(list, "원하는 무기의 버튼으로 정박 또는 엇박에 시작해.\n박자 표시가 무기에 닿으면 같은 버튼을 누르고, 긴 박자 표시는 끝까지 유지해.", 22, null, 72);
+            var names = new System.Collections.Generic.List<string>();
+            foreach (var monster in Session.BattlePlan.Monsters) names.Add(monster.Monster.Name);
+            ui.Label(list, "MONSTERS  ·  " + string.Join(" / ", names), 20, RunUI.Red, 40);
+            if (Session.CanSelectStartingShield)
+            {
+                ui.Label(list, "시작 방패 선택 · SPACE", 22, RunUI.Gold, 36);
+                var choices = ui.Row(list, 52);
+                foreach (var id in WeaponPhraseCatalog.ShieldIds)
+                {
+                    string selected = id;
+                    ui.Button(choices, WeaponPhraseCatalog.Find(id).Name, () =>
+                    { if (Session.SelectStartingShield(selected)) Render(); }, primary: Session.Weapons[2].DefinitionId == id, height: 52);
+                }
+            }
+            string[] keys = { "D", "F", "SPACE", "J", "K" };
+            var phrases = WeaponPhraseAuthoring.LoadFor(Session.Weapons);
+            for (int i = 0; i < 5; i++)
+            {
+                var phrase = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Phrase : phrases[i];
+                ui.Label(list, keys[i] + "   " + phrase.Name + "  +" + Session.Weapons[i].Level + "\n" + phrase.Hint, 22, null, 66);
+            }
+            ui.Label(list, "방패마다 누르기 또는 떼기 방어가 있어. 금빛 Hold 끝에서는 버튼을 떼어줘.\n해머는 세 번째 완주에 그로기. 반미스는 이어지고, 미스한 무기만 대기해.", 20, RunUI.Muted, 80);
+            var actions = ui.Row(panel, 64);
+            ui.Button(actions, Session.PhraseBattle == null ? "연주 시작" : "연주 이어가기", () => StartFiveLaneBattle(), primary: true, height: 64);
+            ui.Button(actions, "메뉴", () => OpenMenu(MenuPage.Home), height: 64);
+        }
+
+        public bool StartFiveLaneBattle()
+        {
+            if (Session == null || !Session.UsesFiveLaneCombat || ActiveRound != null || ActiveFiveLaneBattle != null) return false;
+            ActiveFiveLaneBattle = Session.StartFiveLaneBattle(WeaponPhraseAuthoring.LoadFor(Session.Weapons));
+            if (ActiveFiveLaneBattle == null) return false;
+            completedRound = null; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return true;
+        }
+        private void FinishFiveLaneBattle(string ticket, FiveLaneBattle battle)
+        {
+            if (ActiveFiveLaneBattle != battle || Session.StageTicket != ticket || !battle.Finished) return;
+            SubmitBattleResult(ticket, battle.Victory, battle.PlayerHealth);
+        }
+        private void LeaveFiveLaneBattle(string ticket, FiveLaneBattle battle)
+        {
+            if (ActiveFiveLaneBattle != battle || Session.StageTicket != ticket) return;
+            battle.Pause(); ActiveFiveLaneBattle = null; menuPage = MenuPage.None; Render();
+        }
+
         private void DrawPatterns()
         {
+            if (Session.UsesFiveLaneCombat)
+            {
+                ui.Label(body, "붉은 공격이 도착하는 박자에 방패로 방어해. 버클러·원형 방패는 첫 누르기, 대형 방패는 Hold 끝에서 떼기로 방어할 수 있어.", 23, RunUI.Muted, 110);
+                foreach (var monster in Session.BattlePlan.Monsters)
+                    ui.Label(body, monster.Monster.Name + " · 공격 " + monster.Attacks.Count + "묶음", 24, RunUI.Gold, 50);
+                return;
+            }
             var plan = Session.BattlePlan;
             var music = plan.Stage.Music;
             ui.Label(body, music.Name + "  /  " + music.Bpm + " BPM", 28, RunUI.Gold, 50);
@@ -324,7 +399,8 @@ namespace BBSB.Runtime
             var plan = Session.BattlePlan;
             var kind = Session.CurrentNode.Kind;
             ui.Label(body, "개발용 계획 요약  ·  공격 " + plan.Attacks.Count + "묶음 / 양보 " + plan.Withdrawals.Count + "묶음", 19, RunUI.Muted, 48);
-            ui.Label(body, "장착한 무기가 지원하는 행동에 자동으로 대응해.\nHP 0 이후 Overkill을 마치면 클리어야.", 20, RunUI.Muted, 82);
+            ui.Label(body, Session.UsesFiveLaneCombat ? "적 HP가 0이면 클리어, 내 HP가 0이면 게임오버야." :
+                "장착한 무기가 지원하는 행동에 자동으로 대응해.\nHP 0 이후 Overkill을 마치면 클리어야.", 20, RunUI.Muted, 82);
             musicPreview.Draw(ui, body, RenderMusicPreview);
             var card = ui.Card(body);
             ui.Label(card, "테스트용 전투 결과", 21, RunUI.Gold, 40);
@@ -338,13 +414,13 @@ namespace BBSB.Runtime
 
         public void OpenPatternPractice()
         {
-            if (Session?.BattleLoadout == null || ActiveRound != null) return;
+            if (Session?.BattleLoadout == null || Session.UsesFiveLaneCombat || ActiveRound != null) return;
             completedRound = null; menuPage = MenuPage.None; Render();
         }
 
         public bool StartPatternPractice(int patternIndex)
         {
-            if (Session?.BattleLoadout == null || ActiveRound != null || patternIndex < 0 || patternIndex >= Session.BattleLoadout.Patterns.Count) return false;
+            if (Session?.BattleLoadout == null || Session.UsesFiveLaneCombat || ActiveRound != null || patternIndex < 0 || patternIndex >= Session.BattleLoadout.Patterns.Count) return false;
             ActiveRound = WeaponPractice.Create(Session.BattlePlan, Session.BattleLoadout,
                 Session.BattleLoadout.Patterns[patternIndex], Session.EnemyHealth.Maximum, Session.MaxHealth);
             completedRound = null; menuPage = MenuPage.None; Render(); return true;
@@ -352,7 +428,7 @@ namespace BBSB.Runtime
 
         public bool StartRhythmRound()
         {
-            if (Session == null || Session.Phase != RunPhase.Stage || Session.BattlePlan == null || ActiveRound != null ||
+            if (Session == null || Session.UsesFiveLaneCombat || Session.Phase != RunPhase.Stage || Session.BattlePlan == null || ActiveRound != null ||
                 (preparation != null && preparation.HasPracticeConfirmation)) return false;
             ActiveRound = Session.StartRhythmRound();
             if (ActiveRound == null) return false;
@@ -578,7 +654,7 @@ namespace BBSB.Runtime
         private void RenderMenu()
         {
             ClearMenu();
-            if (title || ActiveRound != null || Session.Phase == RunPhase.GameOver) menuPage = MenuPage.None;
+            if (title || ActiveRound != null || ActiveFiveLaneBattle != null || Session.Phase == RunPhase.GameOver) menuPage = MenuPage.None;
             var group = screen.GetComponent<CanvasGroup>();
             group.interactable = group.blocksRaycasts = menuPage == MenuPage.None;
             if (menuPage == MenuPage.None) return;
@@ -596,7 +672,11 @@ namespace BBSB.Runtime
                     ui.Label(body, Session.Map.Theme.Name + " · FIELD " + Session.Map.Number.ToString("00") + "  ·  통과한 스테이지 " + Session.ClearedStages, 25, RunUI.Gold, 54);
                     ui.Button(body, "돌아가기", CloseMenu, primary: true);
                     ui.Button(body, "장비 · 가방 · 증강", () => OpenMenu(MenuPage.Inventory));
-                    if (Session.BattlePlan != null) { ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns)); ui.Button(body, "패턴 연습", OpenPatternPractice); }
+                    if (Session.BattlePlan != null)
+                    {
+                        ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns));
+                        if (!Session.UsesFiveLaneCombat) ui.Button(body, "패턴 연습", OpenPatternPractice);
+                    }
                     ui.Button(body, "몬스터 도감", OpenCodex);
                     ui.Button(body, "조작 방법", () => OpenMenu(MenuPage.Help));
                     if (testControls && Session.BattlePlan != null) ui.Button(body, "개발 도구", () => OpenMenu(MenuPage.Development));
@@ -605,7 +685,10 @@ namespace BBSB.Runtime
                 case MenuPage.Inventory: DrawInventory(); break;
                 case MenuPage.Help:
                     ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n시작 지점 네 곳은 모두 몬스터, 여섯 번째 무대는 보스야.\n? 지역은 들어가면 정체가 밝혀져.", 24, RunUI.Muted, 125);
-                    ui.Controls(body); break;
+                    if (Session.UsesFiveLaneCombat)
+                        ui.Label(body, "D · F · Space · J · K 또는 화면의 다섯 영역으로 무기를 연주해.\n첫 입력으로 정박 또는 엇박에 시작해. 긴 박자 표시는 끝까지 유지해.\n반미스는 이어지고, 미스한 무기만 대기 시간에 들어가. Esc로 일시정지해.", 23, RunUI.Muted, 170);
+                    else ui.Controls(body);
+                    break;
                 case MenuPage.Patterns: DrawPatterns(); break;
                 case MenuPage.Development: DrawDevelopment(); break;
                 case MenuPage.Abandon: DrawAbandon(); break;
@@ -634,6 +717,15 @@ namespace BBSB.Runtime
             var layout = RunUI.Size(icon, 100); layout.minWidth = layout.preferredWidth = 100;
             var artwork = icon.gameObject.AddComponent<WeaponIconGraphic>();
             artwork.FitVisibleArtwork = true; artwork.Bind(state);
+            if (Session.UsesFiveLaneCombat)
+            {
+                foreach (var sockets in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
+                var phrase = WeaponPhraseAuthoring.LoadFor(new[] { state })[0];
+                ui.Label(row, phrase.Name + "\n" + phrase.LengthBeats + "박 · Tap / Hold", 23, RunUI.Teal, 100);
+                ui.Label(parent, phrase.Hint, 21, RunUI.Muted, 66);
+                ui.Label(parent, "강화 능력치 " + (100 + 25 * state.Level) + "% · 미스 시 " + phrase.MissCooldownBeats + "박 대기", 20, RunUI.Muted, 48);
+                return;
+            }
             ui.Label(row, WeaponRarities.Name(state.Rarity) + " · 소켓 " + definition.ActionCountAt(state.Rarity) +
                 "개\n" + definition.ActionLabelAt(state.Rarity), 23, WeaponIconGraphic.RarityColor(state.Rarity), 100);
             ui.WeaponActions(parent, state);

@@ -10,5 +10,6 @@ namespace BBSB.Runtime.UI
         public TitleScreenBindings title;
         public BattleHudBindings battle;
         public PreparationScreenBindings preparation;
+        public FiveLaneHudBindings fiveLane;
     }
 }

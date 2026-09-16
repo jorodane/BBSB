@@ -14,7 +14,12 @@ namespace BBSB.Runtime.UI
             if (!weapon.IsRanged) pose = RangedWeaponPose.Idle;
             string path = WeaponArtLayout.ResourcePath(id, rarity), key = path + "/" + (int)pose;
             if (sprites.TryGetValue(key, out var result) && result != null) return result;
-            if (!weapon.IsRanged) result = Resources.Load<Sprite>(path);
+            if (!weapon.IsRanged)
+            {
+                result = Resources.Load<Sprite>(path);
+                if (result == null && weapon.Kind == WeaponKind.Shield)
+                    result = Resources.Load<Sprite>(WeaponArtLayout.ResourcePath("shield", rarity));
+            }
             else
             {
                 var texture = Resources.Load<Texture2D>(path);
