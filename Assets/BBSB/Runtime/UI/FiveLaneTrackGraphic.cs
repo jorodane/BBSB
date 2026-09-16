@@ -31,10 +31,14 @@ namespace BBSB.Runtime.UI
                     far + Vector2.right * 28, near + Vector2.right * 28, floor);
                 var edge = laneColor; edge.a = .6f;
                 Line(vh, near, far, 2, edge);
-                for (int cell = 1; cell <= 6; cell++)
+                int cells = (int)(LookAheadBeats / SteppedNoteTrack.CellBeats);
+                for (int cell = 1; cell <= cells; cell++)
                 {
-                    var p = Point(slot, cell / 6f);
-                    Line(vh, p - Vector2.right * 26, p + Vector2.right * 26, 2, new Color(.8f, .9f, 1, cell % 2 == 0 ? .3f : .14f));
+                    var p = Point(slot, (float)cell / cells);
+                    bool wholeBeat = cell % 2 == 0;
+                    float halfWidth = wholeBeat ? 28 : 12;
+                    Line(vh, p - Vector2.right * halfWidth, p + Vector2.right * halfWidth,
+                        wholeBeat ? 3 : 1, new Color(.8f, .9f, 1, wholeBeat ? .6f : .18f));
                 }
                 float beatPulse = battle.Beat % 1 < .15 ? 1 - (float)(battle.Beat % 1 / .15) : 0;
                 Ring(vh, near, new Vector2(36 + 4 * beatPulse, 10 + 3 * beatPulse),
@@ -69,15 +73,15 @@ namespace BBSB.Runtime.UI
                     Diamond(vh, p, 9, tint);
                 }
             }
-            // The hostile marker waits at its source, then crosses to the player just
-            // before impact. It must not suggest a continuous half-beat note scroll.
+            // The hostile marker uses the same musical rotation during its final beat.
+            // Its impact stays exact even when scheduled between whole beats.
             var source = enemySource != null ? LocalPoint(enemySource, new Vector2(enemySource.rect.center.x, enemySource.rect.yMin)) : Pixel(new Vector2(.625f, .50f));
             var target = playerTarget != null ? LocalPoint(playerTarget, playerTarget.rect.center) : Pixel(new Vector2(.185f, .43f));
             foreach (var attack in battle.Incoming)
             {
                 double delta = attack.Beat - battle.Beat;
-                if (delta > .5 || delta < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
-                float t = (float)SteppedNoteTrack.DropProgress(delta);
+                if (delta > 1 || delta < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
+                float t = (float)SteppedNoteTrack.ImpactProgress(attack.Beat, battle.Beat);
                 var p = Vector2.Lerp(source, target, t);
                 Color tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
                 Line(vh, p, p + (source - target).normalized * 23, 5, tint);
@@ -85,7 +89,7 @@ namespace BBSB.Runtime.UI
             }
         }
         private Vector2 Position(int slot, double at) => Point(slot,
-            (float)(SteppedNoteTrack.Distance(at - battle.Beat) / LookAheadBeats));
+            (float)(SteppedNoteTrack.Distance(at, battle.Beat) / LookAheadBeats));
         private Vector2 Point(int slot, float distance)
         {
             Vector2 near = targets != null && slot < targets.Length && targets[slot] != null ?

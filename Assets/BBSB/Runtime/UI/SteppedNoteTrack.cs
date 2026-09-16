@@ -2,29 +2,29 @@ using System;
 
 namespace BBSB.Runtime.UI
 {
-    // Six half-beat cells: hold a fixed position for .45 beats, then drop linearly
-    // during the final .05 beats. Arrival, not the start of motion, marks the beat.
+    // One rotation per whole beat, shared by every lane. Half-beat notes pass the
+    // receptor at full speed; only whole beats settle like a combination-lock dial.
     public static class SteppedNoteTrack
     {
         public const double LookAheadBeats = 3;
         public const double CellBeats = .5;
-        public const double DropBeats = .05;
-        public static double Distance(double remainingBeats)
+        public static double Distance(double noteBeat, double currentBeat)
         {
-            if (remainingBeats <= 0) return 0;
-            double restingPosition = Math.Ceiling(remainingBeats / CellBeats) * CellBeats;
-            double landingPosition = restingPosition - CellBeats;
-            double untilLanding = remainingBeats - landingPosition;
-            // No interpolation during the rest. Repeated frames return the same position.
-            if (untilLanding >= DropBeats) return Math.Min(LookAheadBeats, restingPosition);
-            return Math.Min(LookAheadBeats, restingPosition - CellBeats * DropProgress(untilLanding));
+            if (noteBeat <= currentBeat) return 0;
+            // Map both absolute times. Easing the remaining time alone would put
+            // offbeat notes on a different acceleration cycle from on-beat notes.
+            return Math.Max(0, Math.Min(LookAheadBeats, VisualBeat(noteBeat) - VisualBeat(currentBeat)));
         }
-        public static double DropProgress(double untilLanding)
+        public static double ImpactProgress(double impactBeat, double currentBeat) =>
+            1 - Math.Min(1, Distance(impactBeat, currentBeat));
+
+        private static double VisualBeat(double beat)
         {
-            if (untilLanding >= DropBeats) return 0;
-            if (untilLanding <= 0) return 1;
-            // Absolute musical time keeps pauses, skipped frames and impact timing aligned.
-            return 1 - untilLanding / DropBeats;
+            double whole = Math.Floor(beat), phase = beat - whole;
+            // Symmetric quintic easing: zero speed/acceleration at each whole beat,
+            // maximum speed and exactly half the distance at the half beat.
+            double eased = phase * phase * phase * (phase * (phase * 6 - 15) + 10);
+            return whole + eased;
         }
         public static bool InHorizon(double remainingBeats) => remainingBeats <= LookAheadBeats;
     }

@@ -119,24 +119,91 @@ namespace BBSB.Tests
                 Check.True(rejected);
             }
         }
-        [Test] public void NotesDwellThenDropLinearlyEveryHalfBeatAndArriveOnTime()
+        [Test] public void WholeBeatMovementSettlesAtDownbeatsAndPassesHalfBeatAtSpeed()
+        {
+            Check.Equal(3.0, SteppedNoteTrack.Distance(3, 0));
+            Check.Equal(2.5, SteppedNoteTrack.Distance(3, .5));
+            Check.Equal(2.0, SteppedNoteTrack.Distance(3, 1));
+            double first = SteppedNoteTrack.Distance(3, 0) - SteppedNoteTrack.Distance(3, .1);
+            double middle = SteppedNoteTrack.Distance(3, .45) - SteppedNoteTrack.Distance(3, .55);
+            double last = SteppedNoteTrack.Distance(3, .9) - SteppedNoteTrack.Distance(3, 1);
+            Check.True(first > 0 && first < .01);
+            Check.True(middle > first * 10); // No stop or restarted easing at the half beat.
+            Check.True(Math.Abs(first - last) < .000000001);
+            Check.True(SteppedNoteTrack.Distance(3, .25) - SteppedNoteTrack.Distance(3, .75) > .75);
+            double previous = 3;
+            for (int frame = 1; frame <= 200; frame++)
+            {
+                double distance = SteppedNoteTrack.Distance(3, frame / 100.0);
+                Check.True(distance <= previous && distance >= 1); // No bounce at whole-beat boundaries.
+                previous = distance;
+            }
+            Check.True(SteppedNoteTrack.Distance(3, .99) - SteppedNoteTrack.Distance(3, 1.01) < .0001);
+        }
+        [Test] public void AllNotesShareTheSameMotionPhaseRegardlessOfTheirScheduledBeat()
+        {
+            foreach (double now in new[] { .1, .4, .7 })
+            {
+                double movement = SteppedNoteTrack.Distance(2, now) - SteppedNoteTrack.Distance(2, now + .1);
+                foreach (double due in new[] { 2.5, 2.375, 2 + 1.0 / 3 })
+                {
+                    double other = SteppedNoteTrack.Distance(due, now) - SteppedNoteTrack.Distance(due, now + .1);
+                    Check.True(Math.Abs(movement - other) < .000000001);
+                }
+                // Music loops advance the absolute beat without restarting the visual phase.
+                Check.True(Math.Abs(SteppedNoteTrack.Distance(2, now) - SteppedNoteTrack.Distance(34, now + 32)) < .000000001);
+            }
+        }
+        [Test] public void WholeHalfAndFreeTimingNotesArriveAtTheirActualScheduledBeats()
+        {
+            foreach (double due in new[] { 1, 1.5, 2.375, 2 + 1.0 / 3 })
+            {
+                Check.True(SteppedNoteTrack.Distance(due, due - .01) > 0);
+                Check.Equal(0.0, SteppedNoteTrack.Distance(due, due));
+                Check.Equal(0.0, SteppedNoteTrack.Distance(due, due + .01));
+            }
+            Check.Equal(.5, SteppedNoteTrack.Distance(2, 1.5));
+            Check.Equal(.5, SteppedNoteTrack.Distance(2.5, 2));
+            var b = Battle(); b.Press(1, .137); // Heater holds can start between grid lines.
+            double end = b.Lanes[1].NextBeat + b.Lanes[1].Phrase.Notes[0].HoldBeats;
+            Check.True(Math.Abs(2 - SteppedNoteTrack.Distance(end, b.Beat)) < .000000001);
+            b.Advance(end);
+            Check.Equal(0.0, SteppedNoteTrack.Distance(end, b.Beat));
+            Check.False(b.Lanes[1].Holding);
+        }
+        [Test] public void TrackKeepsThreeBeatHorizonAndAttackMarkersMeetTheirImpactTime()
         {
             Check.Equal(3.0, SteppedNoteTrack.LookAheadBeats);
-            Check.Equal(1.5, SteppedNoteTrack.Distance(1.4)); Check.Equal(1.5, SteppedNoteTrack.Distance(1.2));
-            Check.Equal(1.5, SteppedNoteTrack.Distance(1.05));
-            Check.True(Math.Abs(1.25 - SteppedNoteTrack.Distance(1.025)) < .00001);
-            Check.Equal(1.0, SteppedNoteTrack.Distance(1)); Check.Equal(.5, SteppedNoteTrack.Distance(.5));
-            Check.Equal(.5, SteppedNoteTrack.Distance(.05));
-            Check.True(Math.Abs(.25 - SteppedNoteTrack.Distance(.025)) < .00001);
-            Check.Equal(0.0, SteppedNoteTrack.Distance(0)); Check.Equal(0.0, SteppedNoteTrack.Distance(-.1));
             Check.True(SteppedNoteTrack.InHorizon(3)); Check.False(SteppedNoteTrack.InHorizon(3.00001));
-            // Incoming attack markers wait too, and cross only just before their impact.
-            Check.Equal(0.0, SteppedNoteTrack.DropProgress(.5));
-            Check.Equal(0.0, SteppedNoteTrack.DropProgress(.2));
-            Check.Equal(0.0, SteppedNoteTrack.DropProgress(.05));
-            Check.Equal(.5, SteppedNoteTrack.DropProgress(.025));
-            Check.Equal(1.0, SteppedNoteTrack.DropProgress(0));
-            Check.Equal(1.0, SteppedNoteTrack.DropProgress(-.1));
+            foreach (double now in new[] { 0, .17, .5, .99 })
+            {
+                Check.True(Math.Abs(3 - SteppedNoteTrack.Distance(now + 3, now)) < .000000001);
+                Check.Equal(3.0, SteppedNoteTrack.Distance(now + 4, now));
+            }
+            foreach (double due in new[] { 2, 2.5, 2.137 })
+            {
+                Check.Equal(0.0, SteppedNoteTrack.ImpactProgress(due, due - 1.1));
+                Check.True(Math.Abs(SteppedNoteTrack.ImpactProgress(due, due - 1)) < .000000001);
+                Check.True(SteppedNoteTrack.ImpactProgress(due, due - .01) < 1);
+                Check.Equal(1.0, SteppedNoteTrack.ImpactProgress(due, due));
+                Check.Equal(1.0, SteppedNoteTrack.ImpactProgress(due, due + .1));
+            }
+            Check.Equal(.5, SteppedNoteTrack.ImpactProgress(2, 1.5));
+            Check.Equal(.5, SteppedNoteTrack.ImpactProgress(2.5, 2));
+        }
+        [Test] public void PausingAndSkippedFramesDoNotChangeTrackPhase()
+        {
+            var fine = Battle(); var coarse = Battle(); Tap(fine, 0, 0); Tap(coarse, 0, 0);
+            fine.Advance(.2);
+            double heldPosition = SteppedNoteTrack.Distance(fine.Lanes[0].NextBeat, fine.Beat);
+            fine.Pause(); fine.Advance(20);
+            Check.Equal(heldPosition, SteppedNoteTrack.Distance(fine.Lanes[0].NextBeat, fine.Beat));
+            fine.Resume();
+            for (int frame = 21; frame <= 75; frame++) fine.Advance(frame / 100.0);
+            coarse.Advance(.75);
+            Check.Equal(SteppedNoteTrack.Distance(fine.Lanes[0].NextBeat, fine.Beat),
+                SteppedNoteTrack.Distance(coarse.Lanes[0].NextBeat, coarse.Beat));
+            Check.True(fine.Lanes[0].IsNoteVisible(0)); Check.Equal(1.0, fine.Lanes[0].NextBeat);
         }
         [Test] public void WeaponRewardsFillEmptySlotsThenRequireReplacementAtFive()
         {
