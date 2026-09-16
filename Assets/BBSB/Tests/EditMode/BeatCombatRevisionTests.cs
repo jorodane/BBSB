@@ -26,11 +26,26 @@ namespace BBSB.Tests
             Check.True(Math.Abs(lane.ReadyAtBeat - lane.LastJudgedBeat - 2) < .00001);
             b.Advance(lane.ReadyAtBeat); Check.Equal(PhraseLanePhase.Ready, lane.Phase);
         }
-        [Test] public void DaggerCannotStartAnOffbeatChain()
+        [Test] public void DaggerCanStartAndKeepAnOffbeatChain()
         {
-            var b = Battle(); Tap(b, 0, .5);
-            Check.Equal(0m, b.TotalDamage); Check.Equal(1, b.MissCount);
-            Check.Equal(2.5, b.Lanes[0].ReadyAtBeat);
+            var b = Battle(); Tap(b, 0, .42);
+            Check.Equal(6m, b.TotalDamage); Check.Equal(0, b.MissCount);
+            Check.Equal(1.5, b.Lanes[0].NextBeat); Tap(b, 0, 1.5); Tap(b, 0, 2.5);
+            Check.Equal(18m, b.TotalDamage); Check.Equal(3.5, b.Lanes[0].NextBeat);
+        }
+        [Test] public void HeaterOpeningChoosesTheNearestHalfBeatAndEndsItsTwoBeatPattern()
+        {
+            var cases = new[,] { { .24, 0.0 }, { .26, .5 }, { .76, 1.0 } };
+            for (int i = 0; i < cases.GetLength(0); i++)
+            {
+                var b = Battle(); b.Press(1, cases[i, 0]);
+                Check.True(b.Lanes[1].Holding); Check.Equal(cases[i, 1], b.Lanes[1].StartBeat);
+                Check.Equal(0, b.MissCount); Check.Equal(0m, b.TotalBlocked);
+                double end = cases[i, 1] + 2;
+                b.Advance(end - .01); Check.True(b.Lanes[1].Holding);
+                b.Advance(end); Check.False(b.Lanes[1].Holding);
+                Check.Equal(end + 2, b.Lanes[1].ReadyAtBeat); Check.Equal(1, b.PerfectCount);
+            }
         }
         [Test] public void HeaterParriesAtPressThenReducesDamageOnlyDuringItsTwoBeatHold()
         {
@@ -45,7 +60,7 @@ namespace BBSB.Tests
         [Test] public void HeaterCanGuardWithoutAParryAndEarlyReleaseStartsTwoBeatCooldown()
         {
             var b = Battle(new BeatAttack("a", .5, 10), new BeatAttack("a", 1.5, 10));
-            b.Press(1, .1); Check.True(b.Lanes[1].Holding); Check.Equal(.1, b.Lanes[1].StartBeat);
+            b.Press(1, .1); Check.True(b.Lanes[1].Holding); Check.Equal(0.0, b.Lanes[1].StartBeat);
             Check.Equal("GUARD", b.Lanes[1].Feedback); b.Release(1, .75);
             Check.Equal(2.75, b.Lanes[1].ReadyAtBeat); Check.Equal(0, b.MissCount);
             b.Advance(1.8); Check.Equal(85m, b.PlayerHealth); Check.Equal(5m, b.TotalReduced);
@@ -101,12 +116,13 @@ namespace BBSB.Tests
             Tap(b, 0, 1.5); Tap(b, 0, 2); Check.Equal(14m, b.TotalDamage);
             Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[0].Phase);
         }
-        [Test] public void MissingAnOpeningStillLeavesUnconditionalLaterNotesPlayable()
+        [Test] public void MissingARepeatedOpeningStillLeavesUnconditionalLaterNotesPlayable()
         {
             var b = new FiveLaneBattle(new[] { new WeaponState("sword") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100);
-            Tap(b, 0, .25); Check.Equal(PhraseNoteState.Missed, b.Lanes[0].NoteStates[0]);
+            Tap(b, 0, 0); Tap(b, 0, 1); Tap(b, 0, 2); b.Advance(4.25);
+            Check.Equal(PhraseNoteState.Missed, b.Lanes[0].NoteStates[0]);
             Check.True(b.Lanes[0].IsNoteVisible(1)); Check.True(b.Lanes[0].IsNoteVisible(2));
-            Tap(b, 0, 1.5); Tap(b, 0, 2.5); Check.Equal(20m, b.TotalDamage); Check.Equal(1, b.MissCount);
+            Tap(b, 0, 5); Tap(b, 0, 6); Check.Equal(48m, b.TotalDamage); Check.Equal(1, b.MissCount);
         }
         [Test] public void ConditionalNotesRejectForwardOrNonParryPrerequisites()
         {
@@ -164,9 +180,10 @@ namespace BBSB.Tests
             }
             Check.Equal(.5, SteppedNoteTrack.Distance(2, 1.5));
             Check.Equal(.5, SteppedNoteTrack.Distance(2.5, 2));
-            var b = Battle(); b.Press(1, .137); // Heater holds can start between grid lines.
+            var b = Battle(); b.Press(1, .137); // The opening press chooses a grid-aligned hold end.
             double end = b.Lanes[1].NextBeat + b.Lanes[1].Phrase.Notes[0].HoldBeats;
-            Check.True(Math.Abs(2 - SteppedNoteTrack.Distance(end, b.Beat)) < .000000001);
+            Check.Equal(0.0, b.Lanes[1].StartBeat);
+            Check.Equal(2.0, SteppedNoteTrack.Distance(end, b.Lanes[1].StartBeat));
             b.Advance(end);
             Check.Equal(0.0, SteppedNoteTrack.Distance(end, b.Beat));
             Check.False(b.Lanes[1].Holding);

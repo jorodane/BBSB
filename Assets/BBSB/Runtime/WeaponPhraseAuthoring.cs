@@ -17,10 +17,11 @@ namespace BBSB.Runtime
         public bool repeat = true;
         [Tooltip("Timing of notes marked Parry: keydown, or release at that Hold's end. Any notes can be parries, including repeats.")]
         public ParryInputEdge parryInput;
-        [Min(0), Tooltip("Opening grid in beats; zero allows starting at any instant.")]
+        [Min(0), Tooltip("The opening input always succeeds. This grid sets the following rhythm: 0.5 chooses the nearest beat/offbeat; zero keeps the exact input time.")]
         public float startGridBeats = .5f;
         [Range(0, 1)] public float holdDamageReduction;
         public bool releaseEndsPhrase;
+        [Tooltip("Later parry notes require a timed block. The opening press is always accepted, but counters still require an actual parry.")]
         public bool parryRequired = true;
         [Min(0)] public float completionCooldownBeats;
         [Min(0)] public int finisherEvery;

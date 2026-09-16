@@ -134,7 +134,7 @@ namespace BBSB.Runtime.UI
                 var lane = battle.Lanes[i];
                 if (lane.LastJudgedBeat > battle.Lanes[latestSlot].LastJudgedBeat) latestSlot = i;
                 hud.laneStatus[i].text = lane.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, lane.ReadyAtBeat - battle.Beat).ToString("0.0") :
-                    lane.Phase == PhraseLanePhase.Ready ? (lane.Phrase.StartGridBeats == 1 ? "TAP ON BEAT" : "READY") :
+                    lane.Phase == PhraseLanePhase.Ready ? "READY" :
                     lane.WaitingForParryRelease ? "HOLD → UP" : lane.Holding ?
                     "HOLD " + Math.Max(0, lane.NextBeat + lane.Phrase.Notes[lane.NextNote].HoldBeats - battle.Beat).ToString("0.0") :
                     "NOTE " + (lane.NextNote + 1) + "/" + lane.Phrase.Notes.Count +
@@ -185,7 +185,7 @@ namespace BBSB.Runtime.UI
         {
             HideModal();
             modal = ui.Modal(parent, "Five lane pause", "일시정지", resume, out var content);
-            ui.Label(content, hud.help.text + "\n단검은 정박마다, 방패는 최대 2박 유지.\n빨간 표시가 아래에 닿는 순간 방어해.", 22, null, 100);
+            ui.Label(content, hud.help.text + "\n단검은 1박마다, 긴 표시는 끝까지 유지.\n빨간 표시가 아래에 닿는 순간 방어해.", 22, null, 100);
             ui.Button(content, "이어하기", resume, primary: true);
             ui.Button(content, "준비 화면으로", leave);
         }

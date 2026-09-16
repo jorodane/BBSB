@@ -46,6 +46,7 @@ namespace BBSB.Core
         internal readonly PhraseNoteState[] states;
         internal readonly bool[] parried;
         public IReadOnlyList<PhraseNoteState> NoteStates { get; }
+        public bool CanRepeat => Phase == PhraseLanePhase.Playing && Phrase.Repeat && !FailedCycle;
         public bool IsNoteVisible(int index) => Phase == PhraseLanePhase.Playing &&
             (states[index] == PhraseNoteState.Pending || states[index] == PhraseNoteState.Holding);
         public double NextBeat => StartBeat + Phrase.Notes[NextNote].Beat;
@@ -152,6 +153,8 @@ namespace BBSB.Core
             bool starting = lane.Phase == PhraseLanePhase.Ready;
             if (starting)
             {
+                // A fresh input chooses the phrase's phase; it is not a timing test.
+                // Repeats stay Playing and never receive this opening grace again.
                 double grid = lane.Phrase.StartGridBeats;
                 lane.StartBeat = grid == 0 ? Beat : Math.Round(Beat / grid, MidpointRounding.AwayFromZero) * grid;
                 lane.CompletedPhrases = 0; BeginCycle(lane);
@@ -159,17 +162,16 @@ namespace BBSB.Core
             double error = Math.Abs(Beat - lane.NextBeat);
             var note = lane.Phrase.Notes[lane.NextNote];
             bool pressParry = note.IsParry && lane.Phrase.ParryInput == ParryInputEdge.KeyDown;
-            bool alignOpening = starting && pressParry && lane.Phrase.ParryRequired;
-            if (!alignOpening && error > HalfMissWindow + Epsilon) { Miss(lane); return; }
-            var grade = error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
+            if (!starting && error > HalfMissWindow + Epsilon) { Miss(lane); return; }
+            var grade = starting || error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
             if (pressParry)
             {
-                bool parried = TryParry(out double targetBeat, out var parryGrade);
-                if (!parried && lane.Phrase.ParryRequired) { Miss(lane); lane.Feedback = "NO PARRY"; return; }
+                // Entry grace accepts the note, but only an actual timed parry blocks
+                // damage and unlocks counters. It must not retime the chosen phase.
+                bool parried = TryParry(out var parryGrade);
+                if (!starting && !parried && lane.Phrase.ParryRequired) { Miss(lane); lane.Feedback = "NO PARRY"; return; }
                 lane.parried[lane.NextNote] = parried;
-                // Only a fresh start chooses its phase; later parries keep the weapon's established rhythm.
-                if (alignOpening) { lane.StartBeat = targetBeat; grade = parryGrade; }
-                else if (parried && parryGrade == RhythmGrade.HalfMiss) grade = RhythmGrade.HalfMiss;
+                if (!starting && parried && parryGrade == RhythmGrade.HalfMiss) grade = RhythmGrade.HalfMiss;
                 lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Feedback = parried ? "PARRY" : "GUARD";
             }
             if (note.IsHold)
@@ -190,7 +192,7 @@ namespace BBSB.Core
             if (lane.WaitingForParryRelease)
             {
                 double error = Math.Abs(Beat - lane.NextBeat - lane.Phrase.Notes[lane.NextNote].HoldBeats);
-                if (error > HalfMissWindow + Epsilon || !TryParry(out _, out var parryGrade))
+                if (error > HalfMissWindow + Epsilon || !TryParry(out var parryGrade))
                 { Miss(lane); lane.Feedback = "NO PARRY"; return; }
                 var grade = error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
                 if (parryGrade == RhythmGrade.HalfMiss || lane.HoldGrade == RhythmGrade.HalfMiss) grade = RhythmGrade.HalfMiss;
@@ -258,14 +260,13 @@ namespace BBSB.Core
             if (slot < 0 || slot >= lanes.Count) throw new ArgumentOutOfRangeException(nameof(slot));
             if (!WeaponPhraseNote.Finite(atBeat) || atBeat < Beat - Epsilon) throw new ArgumentOutOfRangeException(nameof(atBeat));
         }
-        private bool TryParry(out double targetBeat, out RhythmGrade grade)
+        private bool TryParry(out RhythmGrade grade)
         {
             IncomingBeatAttack target = null; double nearest = double.PositiveInfinity;
             foreach (var attack in incoming)
                 if (attack.State == IncomingAttackState.Pending && Math.Abs(attack.Beat - Beat) <= HalfMissWindow + Epsilon &&
                     Math.Abs(attack.Beat - Beat) < nearest)
                 { target = attack; nearest = Math.Abs(attack.Beat - Beat); }
-            targetBeat = target == null ? Beat : target.Beat;
             grade = nearest <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
             if (target == null) return false;
             // The configured key edge blocks simultaneous impacts only, never the whole Hold interval.
@@ -308,7 +309,8 @@ namespace BBSB.Core
             lane.states[lane.NextNote] = PhraseNoteState.Hit;
             lane.Holding = false; lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Activations++;
             lane.Feedback = note.IsParry ?
-                (note.IsHold && lane.Phrase.ParryInput == ParryInputEdge.KeyDown ? "HOLD OK" : "PARRY") :
+                (note.IsHold && lane.Phrase.ParryInput == ParryInputEdge.KeyDown ? "HOLD OK" :
+                    lane.parried[lane.NextNote] ? "PARRY" : "OK") :
                 grade == RhythmGrade.Perfect ? "PERFECT" : "HALF";
             if (grade == RhythmGrade.Perfect) PerfectCount++; else HalfMissCount++;
             Combo++;

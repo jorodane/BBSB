@@ -31,6 +31,70 @@ namespace BBSB.Tests
             Tap(b, 4, 2); Tap(b, 0, 2.5);
             Check.Equal(4.5, b.Lanes[0].StartBeat); Check.Equal(3.0, b.Lanes[4].StartBeat);
         }
+        [Test] public void OpeningAlwaysSucceedsAndChoosesNearestBeatOrOffbeatAcrossTempos()
+        {
+            var cases = new[,] { { 0.0, 0.0 }, { .249, 0.0 }, { .25, .5 }, { .5, .5 },
+                { .749, .5 }, { .75, 1.0 }, { 1.18, 1.0 }, { 1.42, 1.5 } };
+            foreach (double bpm in new[] { 60.0, 72, 120, 240 })
+            for (int i = 0; i < cases.GetLength(0); i++)
+            {
+                var b = Battle(bpm: bpm); Tap(b, 4, cases[i, 0]);
+                Check.Equal(0, b.MissCount); Check.Equal(0, b.HalfMissCount);
+                Check.Equal(1, b.PerfectCount); Check.Equal(6m, b.TotalDamage);
+                Check.Equal(cases[i, 1] + 1, b.Lanes[4].NextBeat);
+                Tap(b, 4, b.Lanes[4].NextBeat);
+                Check.Equal(2, b.PerfectCount); Check.Equal(cases[i, 1] + 2, b.Lanes[4].NextBeat);
+            }
+        }
+        [Test] public void EveryBuiltInWeaponAcceptsItsOpeningWithoutAnEnemyTarget()
+        {
+            foreach (var phrase in WeaponPhraseCatalog.All)
+            {
+                var b = new FiveLaneBattle(new[] { new WeaponState(phrase.WeaponId) }, 72, 32,
+                    Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100);
+                b.Press(0, .25); // Between both grids, outside the normal timing window.
+                var lane = b.Lanes[0];
+                Check.Equal(0, b.MissCount); Check.Equal(0, b.HalfMissCount);
+                Check.Equal(.5 + (phrase.Repeat && phrase.Notes.Count == 1 ? phrase.LengthBeats : 0), lane.StartBeat);
+                if (phrase.Notes[0].IsHold) Check.True(lane.Holding);
+                else { Check.Equal(1, b.PerfectCount); Check.Equal(1, lane.Activations); }
+                Check.Equal(0m, b.TotalBlocked);
+                foreach (var note in phrase.Notes.Select((value, index) => new { value, index }))
+                    if (note.value.Condition == PhraseNoteCondition.Parry) Check.False(lane.IsNoteVisible(note.index));
+            }
+        }
+        [Test] public void OpeningGraceNeverAppliesToTheNextAutomaticRepeat()
+        {
+            foreach (double error in new[] { -.25, .25 })
+            {
+                var b = Battle(); Tap(b, 4, .25); Check.Equal(1.5, b.Lanes[4].NextBeat);
+                Tap(b, 4, 1.5 + error);
+                Check.Equal(1, b.PerfectCount); Check.Equal(1, b.MissCount);
+                Check.Equal(6m, b.TotalDamage); Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[4].Phase);
+            }
+        }
+        [Test] public void CooldownRestartCanChooseANewPhaseButAStillHeldKeyCannot()
+        {
+            var b = Battle(); Tap(b, 4, .18); Tap(b, 4, .5);
+            Check.Equal(2.5, b.Lanes[4].ReadyAtBeat);
+            b.Press(4, 2.2); b.Advance(2.5); b.Press(4, 2.68);
+            Check.Equal(6m, b.TotalDamage); Check.Equal(PhraseLanePhase.Ready, b.Lanes[4].Phase);
+            b.Release(4, 2.68); Tap(b, 4, 2.68);
+            Check.Equal(12m, b.TotalDamage); Check.Equal(3.5, b.Lanes[4].NextBeat);
+            Check.Equal(1, b.MissCount); Check.Equal(0, b.HalfMissCount);
+        }
+        [Test] public void OpeningHoldGraceStillRequiresSustainAndTimedRelease()
+        {
+            var bow = Battle(); bow.Press(3, .25);
+            Check.True(bow.Lanes[3].Holding); Check.Equal(.5, bow.Lanes[3].StartBeat);
+            bow.Release(3, 1.25); Check.Equal(1, bow.MissCount);
+            Check.False(bow.Lanes[3].IsNoteVisible(1)); Check.Equal(0m, bow.TotalDamage);
+            var shield = Battle(new[] { new BeatAttack("enemy", 2, 10) }, shield: "tower-shield");
+            shield.Press(2, .25); Check.True(shield.Lanes[2].Holding);
+            shield.Release(2, 1.5); shield.Advance(2.25);
+            Check.Equal(1, shield.MissCount); Check.Equal(0m, shield.TotalBlocked);
+            Check.Equal(990m, shield.PlayerHealth); Check.False(shield.Lanes[2].IsNoteVisible(1));
+        }
         [Test] public void MissPreservesTheRemainingPatternAndDoesNotAffectOtherWeapons()
         {
             var b = Battle(); Tap(b, 0, 0); Tap(b, 1, 0); Tap(b, 0, 1.20);
@@ -84,22 +148,33 @@ namespace BBSB.Tests
             Tap(b, 2, 3.5); Tap(b, 2, 4); Check.Equal(19m, b.TotalDamage);
             b.Advance(4.5); Check.Equal(PhraseLanePhase.Ready, b.Lanes[2].Phase);
         }
-        [Test] public void FailedParryDealsNoDamageAndNeverOpensCounters()
+        [Test] public void AcceptedOpeningWithoutAParryDoesNotBlockDamageOrOpenCounters()
         {
             var b = Battle(new[] { new BeatAttack("enemy", 2, 10) }); Tap(b, 2, 1);
             Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[2].Phase); Check.Equal(0m, b.TotalDamage);
+            Check.Equal(0, b.MissCount); Check.Equal(1, b.PerfectCount); Check.Equal("OK", b.Lanes[2].Feedback);
+            for (int i = 1; i < b.Lanes[2].NoteStates.Count; i++) Check.Equal(PhraseNoteState.Skipped, b.Lanes[2].NoteStates[i]);
             b.Advance(2.25); Check.Equal(990m, b.PlayerHealth); Check.Equal(0m, b.TotalBlocked);
         }
-        [Test] public void LateHalfMissParryStillFullyBlocksBeforeImpactDeadline()
+        [Test] public void LateOpeningParryForgivesEntryGradeAndBlocksWithinTheRealWindow()
         {
             var b = Battle(new[] { new BeatAttack("enemy", 2, 10) }); Tap(b, 2, 2.2); b.Advance(2.3);
-            Check.Equal(1, b.HalfMissCount); Check.Equal(1000m, b.PlayerHealth); Check.Equal(10m, b.TotalBlocked);
+            Check.Equal(1, b.PerfectCount); Check.Equal(0, b.HalfMissCount);
+            Check.Equal(1000m, b.PlayerHealth); Check.Equal(10m, b.TotalBlocked);
             Check.Equal(2.0, b.Lanes[2].StartBeat);
+        }
+        [Test] public void SnappingOpeningToAnAttackBeatDoesNotWidenTheActualParryWindow()
+        {
+            var b = Battle(new[] { new BeatAttack("enemy", 2, 10) }, bpm: 60); Tap(b, 2, 2.2);
+            Check.Equal(2.0, b.Lanes[2].StartBeat); Check.Equal(1, b.PerfectCount); Check.Equal(0, b.MissCount);
+            Check.Equal(0m, b.TotalBlocked); Check.Equal(990m, b.PlayerHealth);
+            Check.False(b.Lanes[2].IsNoteVisible(1)); Check.Equal("OK", b.Lanes[2].Feedback);
         }
         [Test] public void BucklerCanParryAnAuthoredQuarterBeatExactly()
         {
             var b = Battle(new[] { new BeatAttack("enemy", 2.25, 10) }); Tap(b, 2, 2.25); b.Advance(2.5);
             Check.Equal(1, b.PerfectCount); Check.Equal(1000m, b.PlayerHealth); Check.Equal(10m, b.TotalBlocked);
+            Check.Equal(2.5, b.Lanes[2].StartBeat); Check.Equal(3.5, b.Lanes[2].NextBeat);
         }
         [Test] public void DefenseWindowBoundaryIsInclusive()
         {
@@ -212,6 +287,16 @@ namespace BBSB.Tests
             Tap(b, 2, 0); Tap(b, 2, 1); b.Advance(1.3);
             Check.Equal(10m, b.TotalBlocked); Check.Equal(990m, b.PlayerHealth);
             Check.Equal(1, b.MissCount); Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[2].Phase);
+        }
+        [Test] public void LaterRequiredParryStillFailsWithoutAnAttackAndKeepsRemainingNotes()
+        {
+            var phrase = new WeaponPhrase("shield", "test", "test", 4,
+                new[] { new WeaponPhraseNote(0, 3), new WeaponPhraseNote(1.5, 0, effect: PhraseEffect.Parry),
+                    new WeaponPhraseNote(3, 7) }, repeat: false);
+            var b = Battle(shieldPhrase: phrase); Tap(b, 2, .25); Tap(b, 2, 2);
+            Check.Equal(1, b.MissCount); Check.Equal("NO PARRY", b.Lanes[2].Feedback);
+            Check.True(b.Lanes[2].IsNoteVisible(2)); Tap(b, 2, 3.5);
+            Check.Equal(10m, b.TotalDamage); Check.Equal(0m, b.TotalBlocked);
         }
         [Test] public void MultipleReleaseParriesUseTheirOwnHoldLengthsAcrossPhraseRepeats()
         {

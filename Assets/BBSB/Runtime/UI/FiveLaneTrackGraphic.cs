@@ -9,6 +9,7 @@ namespace BBSB.Runtime.UI
     public sealed class FiveLaneTrackGraphic : MaskableGraphic
     {
         private FiveLaneBattle battle;
+        private readonly FiveLaneNoteTimeline noteTimeline = new FiveLaneNoteTimeline();
         private RectTransform[] targets;
         private RectTransform playerTarget, enemySource;
         public const double LookAheadBeats = SteppedNoteTrack.LookAheadBeats;
@@ -21,6 +22,7 @@ namespace BBSB.Runtime.UI
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (battle == null) return;
+            noteTimeline.Refresh(battle);
             for (int slot = 0; slot < battle.Lanes.Count; slot++)
             {
                 var lane = battle.Lanes[slot];
@@ -54,24 +56,28 @@ namespace BBSB.Runtime.UI
                         Line(vh, p + new Vector2(-22, 7), p + new Vector2(0, -5), 4, tint);
                         Line(vh, p + new Vector2(0, -5), p + new Vector2(22, 7), 4, tint);
                     }
-                if (lane.Phase != PhraseLanePhase.Playing) continue;
-                // Only instantiated notes: no speculative repeat, counter or bow shot.
-                for (int n = 0; n < lane.Phrase.Notes.Count; n++)
+                foreach (var shown in noteTimeline.Notes)
                 {
-                    if (!lane.IsNoteVisible(n)) continue;
-                    var note = lane.Phrase.Notes[n];
-                    double at = lane.StartBeat + note.Beat;
-                    if (at + note.HoldBeats < battle.Beat - battle.HalfMissWindow || at > battle.Beat + LookAheadBeats) continue;
+                    if (shown.Slot != slot) continue;
+                    var note = shown.Definition;
+                    double at = shown.Beat;
                     var p = Position(slot, at); Color tint = note.IsHold ? Color.Lerp(laneColor, Color.white, .35f) : laneColor;
+                    if (shown.IsPreview) { tint = Color.Lerp(tint, Color.white, .3f); tint.a = .45f; }
                     if (note.IsHold)
                     {
-                        Line(vh, Position(slot, Math.Max(battle.Beat, at)), Position(slot, at + note.HoldBeats), 11, tint);
-                        bool releaseParry = note.IsParry && lane.Phrase.ParryInput == ParryInputEdge.KeyUp;
+                        var head = Position(slot, Math.Max(battle.Beat, at)); var tail = Position(slot, shown.EndBeat);
+                        if (shown.IsPreview) DashedLine(vh, head, tail, tint);
+                        else Line(vh, head, tail, 11, tint);
                         if (SteppedNoteTrack.InHorizon(at + note.HoldBeats - battle.Beat))
-                            Diamond(vh, Position(slot, at + note.HoldBeats), releaseParry ? 11 : 7, releaseParry ? RunUI.Gold : Color.white);
+                        {
+                            var endTint = shown.ReleaseParry ? RunUI.Gold : Color.white; endTint.a = tint.a;
+                            NoteHead(vh, tail, shown.ReleaseParry ? 11 : 7, endTint, shown.IsPreview);
+                        }
                     }
-                    Diamond(vh, p, 9, tint);
+                    NoteHead(vh, p, 9, tint, shown.IsPreview);
                 }
+                foreach (var broken in noteTimeline.Broken)
+                    if (broken.Note.Slot == slot) DrawBroken(vh, broken, laneColor);
             }
             // The hostile marker uses the same musical rotation during its final beat.
             // Its impact stays exact even when scheduled between whole beats.
@@ -108,6 +114,55 @@ namespace BBSB.Runtime.UI
                 case 2: return new Color(.25f, .70f, 1);
                 case 3: return new Color(.25f, 1, .72f);
                 default: return new Color(.79f, .40f, 1);
+            }
+        }
+        private void DrawBroken(VertexHelper vh, BrokenTrackNote broken, Color laneColor)
+        {
+            float progress = (float)broken.Progress(battle.Beat);
+            var tint = Color.Lerp(laneColor, RunUI.Red, .4f);
+            tint.a = (1 - progress) * (broken.Note.IsPreview ? .7f : 1);
+            var head = Point(broken.Note.Slot, (float)(broken.HeadDistance / LookAheadBeats));
+            Fragments(vh, head, 9, progress, tint);
+            if (!broken.Note.Definition.IsHold) return;
+            var tail = Point(broken.Note.Slot, (float)(broken.TailDistance / LookAheadBeats));
+            if (broken.TailVisible) Fragments(vh, tail, 7, progress, tint);
+            float length = Vector2.Distance(head, tail);
+            var direction = (tail - head).normalized;
+            for (int i = 0; i * 18 < length; i++)
+            {
+                var offset = new Vector2((i % 2 == 0 ? -1 : 1) * (3 + 20 * progress), -18 * progress * progress);
+                Line(vh, head + direction * (i * 18) + offset,
+                    head + direction * Mathf.Min(length, i * 18 + 9) + offset, 4, tint);
+            }
+        }
+        private static void NoteHead(VertexHelper vh, Vector2 p, float radius, Color tint, bool preview)
+        {
+            if (!preview) { Diamond(vh, p, radius, tint); return; }
+            var fill = tint; fill.a *= .3f; Diamond(vh, p, radius, fill);
+            Line(vh, p + Vector2.left * radius, p + Vector2.up * radius, 2, tint);
+            Line(vh, p + Vector2.up * radius, p + Vector2.right * radius, 2, tint);
+            Line(vh, p + Vector2.right * radius, p + Vector2.down * radius, 2, tint);
+            Line(vh, p + Vector2.down * radius, p + Vector2.left * radius, 2, tint);
+        }
+        private static void DashedLine(VertexHelper vh, Vector2 a, Vector2 b, Color tint)
+        {
+            float length = Vector2.Distance(a, b); var direction = (b - a).normalized;
+            for (float start = 0; start < length; start += 14)
+                Line(vh, a + direction * start, a + direction * Mathf.Min(length, start + 7), 5, tint);
+        }
+        private static void Fragments(VertexHelper vh, Vector2 center, float radius, float progress, Color tint)
+        {
+            float spread = 2 + 24 * (1 - (1 - progress) * (1 - progress));
+            for (int part = 0; part < 4; part++)
+            {
+                float angle = part * Mathf.PI * .5f;
+                var a = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+                var b = new Vector2(-Mathf.Sin(angle), Mathf.Cos(angle)) * radius;
+                var origin = center + (a + b).normalized * spread + Vector2.down * (14 * progress * progress);
+                int i = vh.currentVertCount;
+                vh.AddVert(origin, tint, Vector2.zero);
+                vh.AddVert(origin + a, tint, Vector2.zero); vh.AddVert(origin + b, tint, Vector2.zero);
+                vh.AddTriangle(i, i + 2, i + 1);
             }
         }
         private static void Ring(VertexHelper vh, Vector2 center, Vector2 radius, Color tint)
