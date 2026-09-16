@@ -30,7 +30,7 @@ namespace BBSB.Core
         public double StartBeat { get; internal set; }
         public int NextNote { get; internal set; }
         public bool Holding { get; internal set; }
-        public bool WaitingForParryRelease => Holding && NextNote == 0 && Phrase.OpensWithParry && Phrase.ParryInput == ParryInputEdge.KeyUp;
+        public bool WaitingForParryRelease => Holding && Phrase.Notes[NextNote].IsParry && Phrase.ParryInput == ParryInputEdge.KeyUp;
         public bool InputHeld { get; internal set; }
         public int CompletedPhrases { get; internal set; }
         public double ReadyAtBeat { get; internal set; }
@@ -135,24 +135,28 @@ namespace BBSB.Core
             if (lane.InputHeld) return;
             lane.InputHeld = true;
             if (lane.Phase == PhraseLanePhase.Cooldown || lane.Holding) return;
-            if (lane.Phase == PhraseLanePhase.Ready)
+            bool starting = lane.Phase == PhraseLanePhase.Ready;
+            if (starting)
             {
                 lane.StartBeat = Math.Round(Beat * 2, MidpointRounding.AwayFromZero) / 2;
                 lane.NextNote = lane.CompletedPhrases = 0; lane.Phase = PhraseLanePhase.Playing;
             }
             double error = Math.Abs(Beat - lane.NextBeat);
             var note = lane.Phrase.Notes[lane.NextNote];
-            bool openingParry = lane.NextNote == 0 && lane.Phrase.OpensWithParry && lane.Phrase.ParryInput == ParryInputEdge.KeyDown;
-            if (!openingParry && error > HalfMissWindow + Epsilon) { Miss(lane); return; }
+            bool pressParry = note.IsParry && lane.Phrase.ParryInput == ParryInputEdge.KeyDown;
+            bool alignOpening = starting && pressParry;
+            if (!alignOpening && error > HalfMissWindow + Epsilon) { Miss(lane); return; }
             var grade = error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
-            if (openingParry)
+            if (pressParry)
             {
-                if (!TryParry(out double targetBeat, out grade)) { Miss(lane); lane.Feedback = "NO PARRY"; return; }
-                lane.StartBeat = targetBeat;
+                if (!TryParry(out double targetBeat, out var parryGrade)) { Miss(lane); lane.Feedback = "NO PARRY"; return; }
+                // Only a fresh start chooses its phase; later parries keep the weapon's established rhythm.
+                if (alignOpening) { lane.StartBeat = targetBeat; grade = parryGrade; }
+                else if (parryGrade == RhythmGrade.HalfMiss) grade = RhythmGrade.HalfMiss;
                 lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Feedback = "PARRY";
             }
             if (note.IsHold)
-            { lane.Holding = true; lane.HoldGrade = grade; lane.Feedback = openingParry ? "PARRY / HOLD" : "HOLD"; }
+            { lane.Holding = true; lane.HoldGrade = grade; lane.Feedback = pressParry ? "PARRY / HOLD" : "HOLD"; }
             else Succeed(lane, grade);
         }
 
@@ -165,7 +169,7 @@ namespace BBSB.Core
             if (Finished || !lane.Holding) return;
             if (lane.WaitingForParryRelease)
             {
-                double error = Math.Abs(Beat - lane.NextBeat - lane.Phrase.Notes[0].HoldBeats);
+                double error = Math.Abs(Beat - lane.NextBeat - lane.Phrase.Notes[lane.NextNote].HoldBeats);
                 if (error > HalfMissWindow + Epsilon || !TryParry(out _, out var parryGrade))
                 { Miss(lane); lane.Feedback = "NO PARRY"; return; }
                 var grade = error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
@@ -237,7 +241,7 @@ namespace BBSB.Core
         {
             if (lane.Phase == PhraseLanePhase.Ready) return double.PositiveInfinity;
             if (lane.Phase == PhraseLanePhase.Cooldown) return lane.ReadyAtBeat;
-            if (lane.WaitingForParryRelease) return lane.NextBeat + lane.Phrase.Notes[0].HoldBeats + HalfMissWindow + Epsilon;
+            if (lane.WaitingForParryRelease) return lane.NextBeat + lane.Phrase.Notes[lane.NextNote].HoldBeats + HalfMissWindow + Epsilon;
             return lane.Holding ? Math.Max(Beat, lane.NextBeat + lane.Phrase.Notes[lane.NextNote].HoldBeats) :
                 lane.NextBeat + HalfMissWindow + Epsilon;
         }
@@ -263,7 +267,7 @@ namespace BBSB.Core
         {
             var note = lane.Phrase.Notes[lane.NextNote];
             lane.Holding = false; lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Activations++;
-            lane.Feedback = lane.NextNote == 0 && lane.Phrase.OpensWithParry ?
+            lane.Feedback = note.IsParry ?
                 (note.IsHold && lane.Phrase.ParryInput == ParryInputEdge.KeyDown ? "HOLD OK" : "PARRY") :
                 grade == RhythmGrade.Perfect ? "PERFECT" : "HALF";
             if (grade == RhythmGrade.Perfect) PerfectCount++; else HalfMissCount++;

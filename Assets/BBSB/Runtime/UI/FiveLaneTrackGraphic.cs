@@ -43,7 +43,7 @@ namespace BBSB.Runtime.UI
                     if (note.IsHold)
                     {
                         Line(vh, Position(slot, Math.Max(battle.Beat, at)), Position(slot, at + note.HoldBeats), 11, tint);
-                        bool releaseParry = n == 0 && lane.Phrase.OpensWithParry && lane.Phrase.ParryInput == ParryInputEdge.KeyUp;
+                        bool releaseParry = note.IsParry && lane.Phrase.ParryInput == ParryInputEdge.KeyUp;
                         Diamond(vh, Position(slot, at + note.HoldBeats), releaseParry ? 11 : 7, releaseParry ? RunUI.Gold : Color.white);
                     }
                     Diamond(vh, p, 9 + 7 * (1 - Mathf.Clamp01((float)((at - battle.Beat) / LookAheadBeats))), tint);

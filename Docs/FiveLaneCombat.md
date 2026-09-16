@@ -17,13 +17,13 @@
 | 항목 | 동작 |
 |---|---|
 | 공통 시계 | DSP 시간 → 음악의 beat. 입력·노트·적 공격·Hold·쿨타임·그로기가 같은 시계를 사용 |
-| 첫 입력 | 가장 가까운 0.5박으로 스냅. 누르기 패링 방패는 적 공격의 실제 박자에 맞춤 |
+| 첫 입력 | 가장 가까운 0.5박으로 스냅. 첫 입력이 누르기 패링이면 적 공격의 실제 박자에 맞춤. 이후 패링과 반복은 정해진 프레이즈 박자를 유지 |
 | 판정 | Perfect ±90ms, 반미스 ±180ms. 빠른 곡은 인접 반박을 구분하도록 반미스를 최대 0.24박, Perfect를 그 75% 이하로 제한 |
 | 반미스 | 효과 50%, 프레이즈와 연속 완주 진행은 유지. 패링은 누르기/떼기 모두 성공 판정이면 전량 방어 |
 | 미스 | 해당 무기의 노트 흐름 종료, 연속 완주 초기화, 해당 무기만 쿨타임. 자체 피격은 없음 |
 | 일반 Hold | 누른 상태로 끝까지 유지하면 자동 완료. 끝나기 전에 떼면 미스. 완료 뒤에는 떼어도 됨 |
 | 떼기 패링 Hold | 시작 박자에 누르고 끝 박자와 적 공격의 판정 구간에 맞춰 떼어야 성공. 자동 완료되지 않으며 계속 유지하거나 너무 일찍 떼면 미스. 시작/끝/적 공격 중 가장 낮은 판정을 적용 |
-| 방패 패링 | 모든 방패는 첫 노트의 지정된 입력 한 번으로만 패링. 같은 박자의 공격들을 함께 방어하며 Hold 구간 전체를 방어하지 않음 |
+| 방패 패링 | 패링 위치와 횟수는 각 노트의 `effect = Parry`로 지정. 프레이즈 중간이나 여러 노트에 배치하고 반복할 수 있음. 각 패링은 같은 박자의 공격들을 함께 방어하며 Hold 구간 전체를 방어하지 않음 |
 | 적 공격 | 기존 몬스터 데이터의 판정 박자를 실제 적 공격으로 변환. 유지 공격은 끝 박자에 도착. 장착 무기의 제스처 호환성은 검사하지 않음 |
 | 방어 실패 | 해당 적 공격의 피해를 그대로 받음. 늦은 방어도 인정하도록 반미스 허용 구간이 끝난 뒤 피해 확정 |
 | 음악 반복 | 같은 음악과 적 배치를 반복하며 전투 지속. 플레이어의 프레이즈/쿨타임은 반복 경계에서 초기화되지 않음 |
@@ -56,7 +56,7 @@
 ## 편집
 
 - **Canvas:** 최초 로드 시 `BBSB → Presentation → Create missing Canvas and actor prefabs`가 기존 목록에 새 화면만 추가한다. `Assets/BBSB/Resources/BBSB/Presentation/FiveLaneBattleScreen.prefab`의 `FiveLaneHudBindings`에서 TMP 텍스트·무기 위치·입력 영역·HP 바를 연결한다. 기존 프리팹은 덮어쓰지 않는다. 아직 생성되지 않았어도 런타임 기본 화면으로 실행된다.
-- **무기:** Project 창 `Create → BBSB → Weapon Phrase`로 만들고 `Assets/BBSB/Resources/BBSB/WeaponPhrases/`에 둔다. `weaponId`를 기존 무기 ID로 지정한다. `beat`, `holdBeats`, `damage`, `effect`, 반복 길이, 미스 쿨타임과 완주 효과를 조절한다. 첫 노트는 beat 0, 노트끼리 겹치지 않아야 하고 마지막 노트/Hold 끝은 반복 길이보다 작아야 한다. 방패는 첫 노트에 반드시 패링이 적용된다. `parryInput`의 `KeyDown`은 첫 누르기, `KeyUp`은 첫 Hold 끝에서 떼기이며 `KeyUp`에는 첫 노트의 `holdBeats > 0`이 필요하다. 잘못된 에셋이나 중복 ID는 오류를 남기고 해당 무기의 기본 정의를 사용한다.
+- **무기:** Project 창 `Create → BBSB → Weapon Phrase`로 만들고 `Assets/BBSB/Resources/BBSB/WeaponPhrases/`에 둔다. `weaponId`를 기존 무기 ID로 지정한다. `beat`, `holdBeats`, `damage`, `effect`, 반복 길이, 미스 쿨타임과 완주 효과를 조절한다. 첫 노트는 beat 0, 노트끼리 겹치지 않아야 하고 마지막 노트/Hold 끝은 반복 길이보다 작아야 한다. 패링할 노트에 `effect = Parry`를 지정하며 첫 노트일 필요는 없다. `parryInput`은 패링 노트들에 적용되며 `KeyDown`은 누르기, `KeyUp`은 해당 Hold 끝에서 떼기다. `KeyUp`이면 모든 패링 노트에 `holdBeats > 0`이 필요하다. 예를 들어 4박 프레이즈의 0 / 1.5 / 3박에 패링을 넣고 `repeat`를 켜면 트레실로 패링을 반복한다. 잘못된 에셋이나 중복 ID는 오류를 남기고 해당 무기의 기본 정의를 사용한다.
 - **캐릭터:** 기존 `PlayerAuthoring`과 `MonsterAuthoring`의 SpriteRenderer/Animator 프리팹 및 초상화를 사용한다. 현재 화면은 기존 2D 아트를 이용한 원근 레인 기반 테스트 구도이며, 후면/숄더뷰 전용 아트와 무기별 정식 애니메이션은 후속 작업이다.
 
 노트 레인의 시작 위치는 `FiveLaneTrackGraphic.LanePoint`에서 정의한다. 판정점은 `weaponRoots`의 실제 위치를 따라가므로 Canvas에서 무기 위치를 옮기면 노트의 도착점도 함께 이동한다. 기본 배치는 16:9 / 16:10 가로 화면을 기준으로 작성했다.
@@ -68,7 +68,7 @@
 - `Runtime/FiveLanePlayback.cs`: DSP/키보드/포인터/음악과 재접촉 처리.
 - `Runtime/UI/FiveLane*`: TMP Canvas, 이동 노트, 캐릭터, 결과 화면.
 - `RunSession`/`RunPresenter`: 탐험·HP·장비·결과·보상 연결. 기존 전투의 테스트용 경로 유지.
-- `Tests/EditMode/FiveLaneBattleTests.cs`: 독립 레인, 정박/엇박, 반미스 유지, 미스/쿨타임, Hold, 누르기/떼기 패링과 판정 경계, 방패 선택 잠금, 그로기, 곡 반복, 큰 프레임, 승패 후 처리, 세션 보존 회귀 검사.
+- `Tests/EditMode/FiveLaneBattleTests.cs`: 독립 레인, 정박/엇박, 반미스 유지, 미스/쿨타임, Hold, 누르기/떼기 패링과 판정 경계, 여러 패링과 트레실로 반복의 박자 유지, 방패 선택 잠금, 그로기, 곡 반복, 큰 프레임, 승패 후 처리, 세션 보존 회귀 검사.
 
 ```sh
 dotnet run --project Tools/CoreChecks/BBSB.CoreChecks.csproj --configuration Release

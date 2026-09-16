@@ -15,7 +15,7 @@ namespace BBSB.Runtime
         [Min(.5f)] public float lengthBeats = 4;
         [Min(.25f)] public float missCooldownBeats = 2;
         public bool repeat = true;
-        [Tooltip("Shield parry timing: opening keydown, or release at the opening Hold's end.")]
+        [Tooltip("Timing of notes marked Parry: keydown, or release at that Hold's end. Any notes can be parries, including repeats.")]
         public ParryInputEdge parryInput;
         [Min(0)] public int finisherEvery;
         [Min(0)] public float finisherDamage, groggyBeats;
@@ -24,6 +24,7 @@ namespace BBSB.Runtime
         {
             [Min(0)] public float beat, holdBeats;
             [Min(0)] public float damage = 8;
+            [Tooltip("Mark any desired notes Parry; their positions and count are not restricted.")]
             public PhraseEffect effect;
         }
         public WeaponPhrase Build()

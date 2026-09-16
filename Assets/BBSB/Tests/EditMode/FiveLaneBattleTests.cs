@@ -101,14 +101,14 @@ namespace BBSB.Tests
             var b = Battle(new[] { new BeatAttack("enemy", 2, 10) }); Tap(b, 2, 2 + b.HalfMissWindow);
             b.Advance(2.5); Check.Equal(1000m, b.PlayerHealth);
         }
-        [Test] public void ShieldVariantsEachHaveOneParryAndRoundShieldUsesTwoFastCounters()
+        [Test] public void BuiltInShieldsHaveParryNotesAndRoundShieldUsesTwoFastCounters()
         {
             Check.Equal(3, WeaponPhraseCatalog.ShieldIds.Count);
             foreach (string id in WeaponPhraseCatalog.ShieldIds)
             {
                 var phrase = WeaponPhraseCatalog.Find(id);
-                Check.Equal(WeaponKind.Shield, WeaponCatalog.Find(id).Kind); Check.True(phrase.OpensWithParry);
-                Check.Equal(1, phrase.Notes.Count(n => n.Effect == PhraseEffect.Parry));
+                Check.Equal(WeaponKind.Shield, WeaponCatalog.Find(id).Kind);
+                Check.True(phrase.Notes.Any(n => n.IsParry));
                 Check.Equal(RewardKind.Weapon, ContentCatalog.Find(id).Kind);
             }
             var b = Battle(new[] { new BeatAttack("enemy", 2, 10) }, shield: "round-shield");
@@ -146,10 +146,10 @@ namespace BBSB.Tests
             Check.Equal(10m, b.TotalBlocked); Check.Equal(1000m, b.PlayerHealth);
             Check.Equal(1, b.HalfMissCount); Check.Equal(1, b.Lanes[2].NextNote);
         }
-        [Test] public void AuthoredShieldAlwaysParriesAndKeyDownHoldDoesNotParryTwice()
+        [Test] public void AuthoredKeyDownParryHoldDoesNotParryAgainOnRelease()
         {
             var phrase = new WeaponPhrase("shield", "test", "test", 2,
-                new[] { new WeaponPhraseNote(0, 0, 1), new WeaponPhraseNote(1.5, 5) }, repeat: false);
+                new[] { new WeaponPhraseNote(0, 0, 1, PhraseEffect.Parry), new WeaponPhraseNote(1.5, 5) }, repeat: false);
             var b = Battle(new[] { new BeatAttack("enemy", 2, 10), new BeatAttack("enemy", 3, 7) }, shieldPhrase: phrase);
             b.Press(2, 2); Check.Equal(10m, b.TotalBlocked); Check.True(b.Lanes[2].Holding);
             b.Release(2, 3); b.Advance(3.25);
@@ -164,13 +164,66 @@ namespace BBSB.Tests
             b.Resume(); b.Release(2, 1.5);
             Check.Equal(10m, b.TotalBlocked); Check.Equal(1, b.PerfectCount); Check.Equal(0, b.MissCount);
         }
-        [Test] public void ReleaseParryRequiresAnOpeningHold()
+        [Test] public void ReleaseParryRequiresAHoldAtEveryParryNote()
         {
-            bool rejected = false;
-            try { new WeaponPhrase("shield", "test", "test", 2, new[] { new WeaponPhraseNote(0, 0) },
-                parryInput: ParryInputEdge.KeyUp); }
-            catch (ArgumentException) { rejected = true; }
-            Check.True(rejected);
+            foreach (var notes in new[] {
+                new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.Parry) },
+                new[] { new WeaponPhraseNote(0, 0, 1, PhraseEffect.Parry), new WeaponPhraseNote(2, 0, effect: PhraseEffect.Parry) } })
+            {
+                bool rejected = false;
+                try { new WeaponPhrase("shield", "test", "test", 4, notes, parryInput: ParryInputEdge.KeyUp); }
+                catch (ArgumentException) { rejected = true; }
+                Check.True(rejected);
+            }
+        }
+        [Test] public void ShieldCanParryLaterWithoutTurningItsOpeningStrikeIntoAParry()
+        {
+            var phrase = new WeaponPhrase("shield", "test", "test", 4,
+                new[] { new WeaponPhraseNote(0, 3), new WeaponPhraseNote(1.5, 0, effect: PhraseEffect.Parry),
+                    new WeaponPhraseNote(3, 7) }, repeat: false);
+            var b = Battle(new[] { new BeatAttack("enemy", 0, 4), new BeatAttack("enemy", 1.5, 10) }, shieldPhrase: phrase);
+            Tap(b, 2, 0); Check.Equal(0m, b.TotalBlocked); Check.Equal(3m, b.TotalDamage);
+            Tap(b, 2, 1.5); Check.Equal(10m, b.TotalBlocked); Check.Equal("PARRY", b.Lanes[2].Feedback);
+            Tap(b, 2, 3); Check.Equal(10m, b.TotalDamage); Check.Equal(996m, b.PlayerHealth);
+        }
+        [Test] public void RepeatingTresilloParriesEveryAuthoredNoteWithoutShiftingItsRhythm()
+        {
+            var phrase = new WeaponPhrase("shield", "test", "test", 4,
+                new[] { 0.0, 1.5, 3.0 }.Select(at => new WeaponPhraseNote(at, 0, effect: PhraseEffect.Parry)));
+            var b = Battle(new[] { 0.0, 1.5, 3.0, 4.125, 5.5, 7.0 }.Select(at => new BeatAttack("enemy", at, 10)).ToArray(),
+                shieldPhrase: phrase);
+            Tap(b, 2, 0); Tap(b, 2, 1.7); Check.Equal(1, b.HalfMissCount); Tap(b, 2, 3);
+            Check.Equal(4.0, b.Lanes[2].StartBeat);
+            Tap(b, 2, 4.125); Check.Equal(4.0, b.Lanes[2].StartBeat);
+            Tap(b, 2, 5.5); Tap(b, 2, 7);
+            Check.Equal(60m, b.TotalBlocked); Check.Equal(1000m, b.PlayerHealth);
+            Check.Equal(2, b.Lanes[2].CompletedPhrases); Check.Equal(8.0, b.Lanes[2].StartBeat);
+        }
+        [Test] public void LaterParryCannotIgnoreTheWeaponRhythmToBlockAnOffBeatAttack()
+        {
+            var phrase = new WeaponPhrase("shield", "test", "test", 4,
+                new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.Parry), new WeaponPhraseNote(1.5, 0, effect: PhraseEffect.Parry) });
+            var b = Battle(new[] { new BeatAttack("enemy", 0, 10), new BeatAttack("enemy", 1, 10) }, shieldPhrase: phrase);
+            Tap(b, 2, 0); Tap(b, 2, 1); b.Advance(1.3);
+            Check.Equal(10m, b.TotalBlocked); Check.Equal(990m, b.PlayerHealth);
+            Check.Equal(1, b.MissCount); Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[2].Phase);
+        }
+        [Test] public void MultipleReleaseParriesUseTheirOwnHoldLengthsAcrossPhraseRepeats()
+        {
+            var phrase = new WeaponPhrase("shield", "test", "test", 5,
+                new[] { new WeaponPhraseNote(0, 3), new WeaponPhraseNote(1, 0, .5, PhraseEffect.Parry),
+                    new WeaponPhraseNote(2.5, 0, 1, PhraseEffect.Parry), new WeaponPhraseNote(4, 7) },
+                parryInput: ParryInputEdge.KeyUp);
+            var b = Battle(new[] { 1.5, 3.5, 6.5, 8.5 }.Select(at => new BeatAttack("enemy", at, 10)).ToArray(), shieldPhrase: phrase);
+            for (int cycle = 0; cycle < 2; cycle++)
+            {
+                double start = cycle * 5;
+                Tap(b, 2, start); b.Press(2, start + 1); Check.True(b.Lanes[2].WaitingForParryRelease);
+                b.Release(2, start + 1.5); b.Press(2, start + 2.5); b.Release(2, start + 3.5);
+                Check.Equal("PARRY", b.Lanes[2].Feedback); Tap(b, 2, start + 4);
+            }
+            Check.Equal(40m, b.TotalBlocked); Check.Equal(20m, b.TotalDamage);
+            Check.Equal(2, b.Lanes[2].CompletedPhrases); Check.Equal(0, b.MissCount);
         }
         [Test] public void StartingShieldChoiceIsLockedAfterBattleStartsIncludingPause()
         {

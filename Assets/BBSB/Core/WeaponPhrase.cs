@@ -15,6 +15,7 @@ namespace BBSB.Core
         public decimal Damage { get; }
         public PhraseEffect Effect { get; }
         public bool IsHold => HoldBeats > 0;
+        public bool IsParry => Effect == PhraseEffect.Parry;
         public WeaponPhraseNote(double beat, decimal damage, double holdBeats = 0, PhraseEffect effect = PhraseEffect.Strike)
         {
             if (!Finite(beat) || beat < 0 || !Finite(holdBeats) || holdBeats < 0 || damage < 0 ||
@@ -33,7 +34,6 @@ namespace BBSB.Core
         public double LengthBeats { get; }
         public double MissCooldownBeats { get; }
         public bool Repeat { get; }
-        public bool OpensWithParry { get; }
         public ParryInputEdge ParryInput { get; }
         public int FinisherEvery { get; }
         public decimal FinisherDamage { get; }
@@ -44,28 +44,27 @@ namespace BBSB.Core
             int finisherEvery = 0, decimal finisherDamage = 0, double groggyBeats = 0,
             ParryInputEdge parryInput = ParryInputEdge.KeyDown)
         {
-            var weapon = WeaponCatalog.Find(weaponId);
+            WeaponCatalog.Find(weaponId);
             if (!WeaponPhraseNote.Finite(lengthBeats) || lengthBeats <= 0 || !WeaponPhraseNote.Finite(missCooldownBeats) ||
                 missCooldownBeats <= 0 || finisherEvery < 0 || finisherDamage < 0 ||
                 !WeaponPhraseNote.Finite(groggyBeats) || groggyBeats < 0) throw new ArgumentOutOfRangeException(nameof(lengthBeats));
             var copy = new List<WeaponPhraseNote>(notes ?? throw new ArgumentNullException(nameof(notes)));
             if (copy.Count == 0 || copy[0] == null || copy[0].Beat != 0) throw new ArgumentException("A phrase starts at beat zero.");
+            if (!Enum.IsDefined(typeof(ParryInputEdge), parryInput))
+                throw new ArgumentOutOfRangeException(nameof(parryInput));
             for (int i = 0; i < copy.Count; i++)
             {
                 var note = copy[i];
                 if (note == null || note.Beat + note.HoldBeats >= lengthBeats ||
-                    (i > 0 && note.Beat <= copy[i - 1].Beat + copy[i - 1].HoldBeats) ||
-                    (note.Effect == PhraseEffect.Parry && i != 0))
+                    (i > 0 && note.Beat <= copy[i - 1].Beat + copy[i - 1].HoldBeats))
                     throw new ArgumentException("Notes must be ordered, separated, and contained within the phrase.");
+                if (note.IsParry && parryInput == ParryInputEdge.KeyUp && !note.IsHold)
+                    throw new ArgumentException("A release parry needs a Hold note.", nameof(notes));
             }
             WeaponId = weaponId; Name = name; Hint = hint; LengthBeats = lengthBeats;
             MissCooldownBeats = missCooldownBeats; Repeat = repeat; FinisherEvery = finisherEvery;
             FinisherDamage = finisherDamage; GroggyBeats = groggyBeats; Notes = copy.AsReadOnly();
-            // Every shield owns one parry on its opening note, with an explicit input edge.
-            OpensWithParry = weapon.Kind == WeaponKind.Shield || copy[0].Effect == PhraseEffect.Parry;
-            if (!Enum.IsDefined(typeof(ParryInputEdge), parryInput) ||
-                (OpensWithParry && parryInput == ParryInputEdge.KeyUp && !copy[0].IsHold))
-                throw new ArgumentException("A release parry needs an opening Hold note.", nameof(parryInput));
+            // Parry placement and frequency belong to the authored notes, including repeated phrases.
             ParryInput = parryInput;
         }
     }
