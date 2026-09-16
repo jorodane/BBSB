@@ -216,9 +216,9 @@ namespace BBSB.Tests
             {
                 Assert.IsNotNull(graphic.canvasRenderer, "Canvas meshes need a live CanvasRenderer.");
                 graphic.Rebuild(CanvasUpdate.PreRender);
-                var mesh = new Mesh();
-                try { graphic.canvasRenderer.GetMesh(mesh); Assert.Greater(mesh.vertexCount, 0, "The sprite must submit geometry to the Canvas."); }
-                finally { Object.DestroyImmediate(mesh); }
+                var mesh = graphic.canvasRenderer.GetMesh();
+                Assert.IsNotNull(mesh);
+                Assert.Greater(mesh.vertexCount, 0, "The sprite must submit geometry to the Canvas.");
             }
         }
     }

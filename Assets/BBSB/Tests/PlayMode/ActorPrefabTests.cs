@@ -48,9 +48,9 @@ namespace BBSB.Tests
                 Assert.AreSame(sprite.texture, mesh.mainTexture); Assert.IsFalse(mesh.raycastTarget);
                 Assert.IsNotNull(mesh.canvasRenderer);
                 mesh.Rebuild(CanvasUpdate.PreRender);
-                var geometry = new Mesh();
-                try { mesh.canvasRenderer.GetMesh(geometry); Assert.Greater(geometry.vertexCount, 0); }
-                finally { Object.DestroyImmediate(geometry); }
+                var geometry = mesh.canvasRenderer.GetMesh();
+                Assert.IsNotNull(geometry);
+                Assert.Greater(geometry.vertexCount, 0);
                 Assert.IsFalse(host.GetComponent<CanvasGroup>().blocksRaycasts);
                 source.enabled = false; view.RefreshSprites(); Assert.IsFalse(mesh.enabled);
             }
