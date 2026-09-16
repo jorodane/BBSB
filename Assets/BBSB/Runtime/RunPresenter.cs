@@ -150,7 +150,7 @@ namespace BBSB.Runtime
                     DrawHud();
                 if (!string.IsNullOrEmpty(notice))
                 {
-                    var toast = ui.Label(page ?? screen, notice, 21, RunUI.Teal, 42, TextAlignmentOptions.Center);
+                    var toast = ui.Label(page != null ? page : screen, notice, 21, RunUI.Teal, 42, TextAlignmentOptions.Center);
                     if (page == null)
                         RunUI.Overlay(toast.rectTransform, new Vector2(.3f, 0), new Vector2(.7f, 0), new Vector2(0, 68), new Vector2(0, 110));
                 }
@@ -382,7 +382,8 @@ namespace BBSB.Runtime
             ActiveFiveLaneBattle = Session.StartFiveLaneBattle(WeaponPhraseAuthoring.LoadFor(Session.Weapons));
             if (ActiveFiveLaneBattle == null) return false;
             completedRound = null; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
-            return screen != null && screen.GetComponent<FiveLanePlayback>()?.IsInitialized == true;
+            var playback = screen != null ? screen.GetComponent<FiveLanePlayback>() : null;
+            return playback != null && playback.IsInitialized;
         }
         private void FinishFiveLaneBattle(string ticket, FiveLaneBattle battle)
         {

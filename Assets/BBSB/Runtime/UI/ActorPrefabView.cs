@@ -61,7 +61,10 @@ namespace BBSB.Runtime.UI
                 if (Animator.runtimeAnimatorController != null) { Animator.Rebind(); Animator.Update(0); }
             }
             foreach (var graphic in Instance.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
-            var group = GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+            // Unity's missing-component wrapper can be non-null to C#'s ?? operator.
+            // Use Unity's equality check before accessing the native CanvasGroup.
+            var group = GetComponent<CanvasGroup>();
+            if (group == null) group = gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = group.interactable = false; RefreshSprites();
         }
         public void SetSprite(Sprite sprite)

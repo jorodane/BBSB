@@ -45,7 +45,8 @@ namespace BBSB.Runtime.UI
             if (bindings != null)
             {
                 if (!bindings.IsValid) throw new InvalidOperationException("준비 화면의 UI 참조를 모두 연결해줘.");
-                page = root; pageGroup = root.GetComponent<CanvasGroup>() ?? root.gameObject.AddComponent<CanvasGroup>();
+                page = root; pageGroup = root.GetComponent<CanvasGroup>();
+                if (pageGroup == null) pageGroup = root.gameObject.AddComponent<CanvasGroup>();
                 HeroPortrait = bindings.portrait;
                 var player = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);
                 HeroPortrait.sprite = player != null && player.portrait != null ? player.portrait : PlayerIdle();

@@ -64,7 +64,8 @@ namespace BBSB.Runtime.UI
                 // The old gesture sockets described automatic responses. This screen shows the weapon's phrase instead.
                 foreach (var sockets in icons[i].GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
                 hud.laneLabels[i].text = Keys[i];
-                var input = hud.inputAreas[i].GetComponent<FiveLaneInputSurface>() ?? hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
+                var input = hud.inputAreas[i].GetComponent<FiveLaneInputSurface>();
+                if (input == null) input = hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
                 input.Bind(playback, i);
             }
             var hero = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);

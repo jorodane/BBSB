@@ -40,7 +40,8 @@ namespace BBSB.Runtime.UI
 
         public static LayoutElement Size(RectTransform rect, float height, float flexibleWidth = 0)
         {
-            var layout = rect.gameObject.GetComponent<LayoutElement>() ?? rect.gameObject.AddComponent<LayoutElement>();
+            var layout = rect.gameObject.GetComponent<LayoutElement>();
+            if (layout == null) layout = rect.gameObject.AddComponent<LayoutElement>();
             layout.minHeight = height; layout.preferredHeight = height; layout.flexibleWidth = flexibleWidth;
             // A nested layout group also reports flexible size. Explicitly override it for
             // fixed controls; only the caller that owns a growing content area opts back in.

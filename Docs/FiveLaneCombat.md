@@ -67,6 +67,8 @@
 
 화면과 오디오 초기화가 모두 끝나기 전에는 입력과 전투 시간을 진행하지 않는다. 초기화 도중 예외가 발생하면 최초 예외를 한 번 남기고 갱신을 중단하며, 화면에서 재시도하거나 준비 화면으로 돌아갈 수 있다. HP·노트·프레이즈 상태는 같은 전투 객체에 보존한다. 따라서 뒤따르는 `LateUpdate` NullReference가 최초 원인을 덮지 않는다. SpriteRenderer의 이미지 연결만 빠진 경우에는 authoring의 초상화가 있으면 이를 사용한다.
 
+확인된 최초 오류는 `ActorPrefabView.Initialize`의 `CanvasGroup` 누락이었다. `GetComponent<CanvasGroup>() ?? AddComponent<CanvasGroup>()`는 Unity의 누락된 네이티브 객체를 일반 C# null과 다르게 취급하여 추가를 건너뛸 수 있다. 해당 코드와 공용 UI의 같은 컴포넌트 추가 패턴을 `component == null` 검사로 교체했다. `ActorPrefabTests`에 그룹이 처음부터 없음 / 제거됨 / 이미 있음의 세 경우를 추가했다.
+
 ## 코드와 검증
 
 - `Core/WeaponPhrase.cs`: 엔진 비의존 프레이즈 데이터와 방패 3종을 포함한 13종 기본 정의.

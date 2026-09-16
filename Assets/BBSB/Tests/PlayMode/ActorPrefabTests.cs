@@ -9,6 +9,28 @@ namespace BBSB.Tests
 {
     public sealed class ActorPrefabTests
     {
+        [TestCase(0)] // No group on a freshly created Visual.
+        [TestCase(1)] // A removed native component must also be treated as absent.
+        [TestCase(2)] // Reuse a valid authored group without changing its opacity.
+        public void ActorInitializationCreatesOrReusesExactlyOneCanvasGroup(int state)
+        {
+            var host = new GameObject("Visual", typeof(RectTransform));
+            try
+            {
+                CanvasGroup previous = null;
+                if (state != 0) { previous = host.AddComponent<CanvasGroup>(); previous.alpha = .6f; }
+                if (state == 1) Object.DestroyImmediate(previous);
+                var view = host.AddComponent<ActorPrefabView>();
+                Assert.DoesNotThrow(() => view.Initialize(null, null, null));
+                var group = host.GetComponent<CanvasGroup>();
+                Assert.IsTrue(group != null, "A live native CanvasGroup is required before setting interactable.");
+                Assert.AreEqual(1, host.GetComponents<CanvasGroup>().Length);
+                Assert.IsFalse(group.interactable); Assert.IsFalse(group.blocksRaycasts);
+                if (state == 2) { Assert.AreSame(previous, group); Assert.AreEqual(.6f, group.alpha); }
+            }
+            finally { Object.DestroyImmediate(host); }
+        }
+
         [Test]
         public void SpritePrefabKeepsNativeRendererAndCreatesNonBlockingCanvasMesh()
         {

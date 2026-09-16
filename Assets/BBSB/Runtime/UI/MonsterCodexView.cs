@@ -317,7 +317,8 @@ namespace BBSB.Runtime.UI
 
         private void SetIcon(RectTransform root, Sprite sprite, string fallback)
         {
-            var icon = root.GetComponent<Image>() ?? root.gameObject.AddComponent<Image>();
+            var icon = root.GetComponent<Image>();
+            if (icon == null) icon = root.gameObject.AddComponent<Image>();
             icon.sprite = sprite; icon.preserveAspect = true; icon.raycastTarget = false; icon.enabled = sprite != null;
             var label = root.GetComponentInChildren<TextMeshProUGUI>();
             if (label == null) { label = ui.Label(root, "", 22, RunUI.Gold, 60, TextAlignmentOptions.Center); RunUI.Stretch(label.rectTransform); }
@@ -359,7 +360,11 @@ namespace BBSB.Runtime.UI
             kind == GestureKind.Flick ? "Flick · 미리 누르고 튕겨 떼기" : "Shake · 누른 채 왕복";
         private static string Format(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
         private static void FixedWidth(Transform target, float width)
-        { var size = target.GetComponent<LayoutElement>() ?? target.gameObject.AddComponent<LayoutElement>(); size.minWidth = size.preferredWidth = width; size.flexibleWidth = 0; }
+        {
+            var size = target.GetComponent<LayoutElement>();
+            if (size == null) size = target.gameObject.AddComponent<LayoutElement>();
+            size.minWidth = size.preferredWidth = width; size.flexibleWidth = 0;
+        }
         private static void Fit(TextMeshProUGUI label, int minimum) { label.enableAutoSizing = true; label.fontSizeMin = minimum; label.fontSizeMax = label.fontSize; }
 
         private void StopAudio()
