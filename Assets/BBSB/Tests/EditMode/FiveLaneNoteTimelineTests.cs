@@ -112,6 +112,22 @@ namespace BBSB.Tests
             Check.False(timeline.Broken.Any(note => note.Note.Beat == 1.5 || note.Note.Beat == 2));
             Tap(b, 1.5); Tap(b, 2); Check.Equal(14m, b.TotalDamage);
         }
+        [Test] public void VoluntaryGuardReleaseEndsTheLiveHoldAndOnlyBreaksCanceledPreviews()
+        {
+            foreach (bool hasFollowup in new[] { false, true })
+            {
+                var phrase = hasFollowup ? new WeaponPhrase("heater-shield", "guard", "", 3, new[] {
+                    new WeaponPhraseNote(0, 0, 1, PhraseEffect.Parry),
+                    new WeaponPhraseNote(2, 3, prerequisite: 0, condition: PhraseNoteCondition.Hit) },
+                    repeat: false, releaseEndsPhrase: true, parryRequired: false, completionCooldownBeats: 2) : null;
+                var b = Battle("heater-shield", phrase); b.Press(0, 0);
+                var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
+                b.Release(0, .5); timeline.Refresh(b);
+                Check.Equal(0, b.MissCount); Check.Equal(0, timeline.Notes.Count);
+                Check.False(timeline.Broken.Any(note => !note.Note.IsPreview));
+                Check.Equal(hasFollowup ? 1 : 0, timeline.Broken.Count);
+            }
+        }
         [Test] public void SkippedRenderFramesAndFractionalCyclesDoNotDuplicateOrShatterPromotions()
         {
             var b = Battle("dagger"); Tap(b, 0);

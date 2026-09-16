@@ -113,7 +113,11 @@ namespace BBSB.Runtime.UI
             if (note.CycleStart > lane.StartBeat + .000001) return !lane.CanRepeat;
             if (Math.Abs(note.CycleStart - lane.StartBeat) > .000001) return false;
             var state = lane.NoteStates[note.Index];
-            return state == PhraseNoteState.Skipped || state == PhraseNoteState.Missed;
+            // A voluntary guard release skips the live Hold without a failure.
+            // Only its canceled forecasts should break, including unresolved locks
+            // when ReleaseEndsPhrase closes the lane immediately.
+            return state == PhraseNoteState.Missed || note.IsPreview &&
+                (state == PhraseNoteState.Skipped || state == PhraseNoteState.Locked && lane.Phase != PhraseLanePhase.Playing);
         }
     }
 }
