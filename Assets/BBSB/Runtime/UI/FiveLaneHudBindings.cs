@@ -8,14 +8,99 @@ namespace BBSB.Runtime.UI
     public sealed class FiveLaneHudBindings : MonoBehaviour
     {
         public RectTransform scenery, actors, tracks;
+        public RectTransform playerSlot, monsterArea;
         public TextMeshProUGUI song, health, enemyHealth, beat, feedback, help;
         public RectTransform playerFill, enemyFill;
         public Button pause;
         public RectTransform[] weaponRoots = new RectTransform[5];
+        public RectTransform[] judgmentPoints = new RectTransform[5];
         public RectTransform[] inputAreas = new RectTransform[5];
         public TextMeshProUGUI[] laneLabels = new TextMeshProUGUI[5];
         public TextMeshProUGUI[] laneStatus = new TextMeshProUGUI[5];
         public TextMeshProUGUI[] laneResults = new TextMeshProUGUI[5];
+        [SerializeField, HideInInspector] private int stageLayoutVersion;
+
+        public bool TryValidate(out string problem)
+        {
+            problem = null;
+            if (scenery == null || actors == null || tracks == null || song == null || health == null ||
+                enemyHealth == null || beat == null || feedback == null || help == null ||
+                playerFill == null || enemyFill == null || pause == null)
+                problem = "FiveLaneHudBindings is missing a stage, text, HP bar or pause reference.";
+            else if (!Complete(weaponRoots) || !Complete(inputAreas) || !Complete(laneLabels) || !Complete(laneStatus) || !Complete(laneResults))
+                problem = "FiveLaneHudBindings requires five non-null entries in each weapon, input and label array.";
+            return problem == null;
+        }
+        private static bool Complete<T>(T[] entries) where T : Object
+        {
+            if (entries == null || entries.Length != 5) return false;
+            foreach (var entry in entries) if (entry == null) return false;
+            return true;
+        }
+
+        // Upgrade only untouched positions from the first generated HUD. Artist-edited
+        // anchors, offsets, graphics and text styles remain owned by the prefab.
+        public bool EnsureStageLayout()
+        {
+            if (!TryValidate(out _)) return false;
+            bool changed = false;
+            var ui = new RunUI(song.font);
+            if (playerSlot == null)
+            { playerSlot = ui.Rect("Player stage slot", actors); Place(playerSlot, .025f, .15f, .345f, .71f); changed = true; }
+            if (monsterArea == null)
+            { monsterArea = ui.Rect("Monster stage area", actors); Place(monsterArea, .39f, .50f, .86f, .88f); changed = true; }
+            if (judgmentPoints == null || judgmentPoints.Length != 5)
+            { judgmentPoints = new RectTransform[5]; changed = true; }
+            for (int i = 0; i < 5; i++)
+                if (judgmentPoints[i] == null)
+                {
+                    var point = FiveLaneTrackGraphic.LanePoint(i, 0);
+                    judgmentPoints[i] = ui.Rect("Judgment point " + i, tracks);
+                    Place(judgmentPoints[i], point.x - .035f, point.y - .025f, point.x + .035f, point.y + .025f);
+                    changed = true;
+                }
+            if (stageLayoutVersion >= 1) return changed;
+            MoveDefault(song.rectTransform, .30f, .93f, .70f, .99f, .72f, .025f, .92f, .09f);
+            MoveDefault(health.rectTransform, .02f, .93f, .28f, .99f, .025f, .085f, .29f, .14f);
+            MoveDefault((RectTransform)playerFill.parent, .02f, .91f, .28f, .925f, .025f, .06f, .29f, .08f);
+            MoveDefault(enemyHealth.rectTransform, .72f, .93f, .90f, .99f, .40f, .93f, .86f, .985f);
+            MoveDefault((RectTransform)enemyFill.parent, .72f, .91f, .90f, .925f, .40f, .90f, .86f, .92f);
+            MoveDefault(beat.rectTransform, .30f, .855f, .70f, .92f, .82f, .54f, .98f, .64f);
+            MoveDefault(feedback.rectTransform, .30f, .785f, .70f, .85f, .48f, .32f, .81f, .40f);
+            MoveDefault(help.rectTransform, .10f, .005f, .90f, .045f, .36f, .01f, .70f, .05f);
+            for (int i = 0; i < 5; i++)
+            {
+                float oldX = .12f + .19f * i, oldY = .32f + .045f * (2 - Mathf.Abs(i - 2));
+                float x = FiveLaneTrackGraphic.LanePoint(i, 0).x;
+                var weapon = WeaponPoint(i);
+                MoveDefault(weaponRoots[i], oldX - .052f, oldY - .07f, oldX + .052f, oldY + .07f,
+                    weapon.x - .052f, weapon.y - .07f, weapon.x + .052f, weapon.y + .07f);
+                MoveDefault(laneLabels[i].rectTransform, oldX - .09f, .105f, oldX + .09f, .20f, x - .06f, .105f, x + .06f, .17f);
+                MoveDefault(laneStatus[i].rectTransform, oldX - .09f, .05f, oldX + .09f, .10f, x - .06f, .065f, x + .06f, .10f);
+                MoveDefault(laneResults[i].rectTransform, oldX - .09f, .205f, oldX + .09f, .255f, x - .06f, .255f, x + .06f, .30f);
+                MoveDefault(inputAreas[i], i * .2f, .045f, (i + 1) * .2f, .77f, x - .065f, .06f, x + .065f, .48f);
+            }
+            stageLayoutVersion = 1;
+            return true;
+        }
+        private static Vector2 WeaponPoint(int slot)
+        {
+            switch (slot)
+            {
+                case 0: return new Vector2(.075f, .64f);
+                case 1: return new Vector2(.28f, .76f);
+                case 2: return new Vector2(.08f, .33f);
+                case 3: return new Vector2(.30f, .52f);
+                default: return new Vector2(.31f, .25f);
+            }
+        }
+        private static void MoveDefault(RectTransform rect, float x0, float y0, float x1, float y1,
+            float nextX0, float nextY0, float nextX1, float nextY1)
+        {
+            if (rect != null && rect.anchorMin == new Vector2(x0, y0) && rect.anchorMax == new Vector2(x1, y1) &&
+                rect.offsetMin == Vector2.zero && rect.offsetMax == Vector2.zero)
+                Place(rect, nextX0, nextY0, nextX1, nextY1);
+        }
 
         public static FiveLaneHudBindings CreateDefault(RectTransform parent, TMP_FontAsset font)
         {
@@ -37,7 +122,7 @@ namespace BBSB.Runtime.UI
             for (int i = 0; i < 5; i++)
             {
                 float x = .12f + .19f * i;
-                var point = FiveLaneTrackGraphic.LanePoint(i, 0);
+                var point = new Vector2(x, .32f + .045f * (2 - Mathf.Abs(i - 2)));
                 b.weaponRoots[i] = ui.Rect("Weapon " + i, root);
                 Place(b.weaponRoots[i], point.x - .052f, point.y - .07f, point.x + .052f, point.y + .07f);
                 b.laneLabels[i] = Text(ui, root, "", 21, x - .09f, .105f, x + .09f, .20f);
@@ -49,6 +134,7 @@ namespace BBSB.Runtime.UI
             }
             b.pause = ui.Button(root, "II", () => { });
             Place((RectTransform)b.pause.transform, .925f, .905f, .985f, .985f);
+            b.EnsureStageLayout();
             return b;
         }
         private static TextMeshProUGUI Text(RunUI ui, Transform parent, string value, int size, float x0, float y0, float x1, float y1)

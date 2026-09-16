@@ -17,76 +17,103 @@ namespace BBSB.Runtime.UI
         private readonly List<ActorPrefabView> monsters = new List<ActorPrefabView>();
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
+        private readonly List<StageActor> stageActors = new List<StageActor>();
         private RectTransform modal;
         private static readonly string[] Keys = { "D", "F", "SPACE", "J", "K" };
+
+        private sealed class StageActor
+        {
+            public RectTransform Slot, Visual;
+            public float Scale, Aspect;
+            public Vector2 Offset;
+            public void Layout()
+            {
+                float height = Mathf.Min(Slot.rect.height, Slot.rect.width / Mathf.Max(.1f, Aspect));
+                Visual.localScale = Vector3.one * (height * Scale / 512);
+                Visual.anchoredPosition = Offset * height;
+            }
+        }
 
         public FiveLaneBattleView(RectTransform parent, RunUI ui, RunSession session, FiveLanePlayback playback)
         {
             this.parent = parent; this.ui = ui; battle = playback.Battle;
             var screen = parent.GetComponentInParent<CanvasScreen>();
-            hud = screen != null && screen.fiveLane != null ? screen.fiveLane : FiveLaneHudBindings.CreateDefault(parent, ui.Font);
-            ValidateBindings();
+            var authored = screen != null ? screen.fiveLane : parent.GetComponentInChildren<FiveLaneHudBindings>();
+            if (authored != null && !authored.TryValidate(out var problem))
+            {
+                Debug.LogWarning(problem + " Using the built-in battle layout for this instance.", authored);
+                if (authored.transform != parent && authored.transform.IsChildOf(parent)) authored.gameObject.SetActive(false);
+                authored = null;
+            }
+            hud = authored != null ? authored : FiveLaneHudBindings.CreateDefault(parent, ui.Font);
+            hud.EnsureStageLayout();
             StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art");
-            var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .52f));
-            tracks = hud.tracks.gameObject.AddComponent<FiveLaneTrackGraphic>(); tracks.Bind(battle, hud.weaponRoots);
+            var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .32f));
+            // A prefab slot may already have an Image. Unity permits only one Graphic per
+            // object, so runtime meshes get their own children instead of AddComponent failing.
+            var trackMesh = ui.Rect("Live note tracks", hud.tracks); RunUI.Stretch(trackMesh);
+            tracks = trackMesh.gameObject.AddComponent<FiveLaneTrackGraphic>();
+            tracks.Bind(battle, hud.judgmentPoints, hud.playerSlot, hud.monsterArea);
             hud.pause.onClick.AddListener(playback.Pause);
-            hud.song.text = session.BattleMusic.Music.Name + " · " + battle.Bpm + " BPM";
+            hud.song.text = session.BattleMusic.Music.Name + "\n" + battle.Bpm + " BPM";
             for (int i = 0; i < 5; i++)
             {
-                icons[i] = hud.weaponRoots[i].gameObject.AddComponent<WeaponIconGraphic>();
+                var weaponMesh = ui.Rect("Live weapon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
+                icons[i] = weaponMesh.gameObject.AddComponent<WeaponIconGraphic>();
                 icons[i].FitVisibleArtwork = true; icons[i].Bind(battle.Lanes[i].Weapon);
                 // The old gesture sockets described automatic responses. This screen shows the weapon's phrase instead.
                 foreach (var sockets in icons[i].GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
-                hud.laneLabels[i].text = Keys[i] + "\n" + battle.Lanes[i].Phrase.Name;
-                hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>().Bind(playback, i);
+                hud.laneLabels[i].text = Keys[i];
+                var input = hud.inputAreas[i].GetComponent<FiveLaneInputSurface>() ?? hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
+                input.Bind(playback, i);
             }
             var hero = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);
-            player = Actor("Player", .5f, .24f, .22f, hero != null ? hero.visualPrefab : null,
-                hero != null ? hero.controller : null, hero != null ? hero.portrait : Resources.Load<Sprite>("BBSB/BattleArt/weapon-master"),
-                hero != null ? hero.spriteReferenceHeight : 4, hero != null ? hero.displayScale : 1);
+            Sprite heroPortrait = hero != null ? hero.portrait : null;
+            if (heroPortrait == null)
+                foreach (var sprite in Resources.LoadAll<Sprite>(PlayerMotionSprites.ResourcePath + "idle"))
+                    if (sprite.name == "idle_0") { heroPortrait = sprite; break; }
+            if (heroPortrait == null) heroPortrait = Resources.Load<Sprite>("BBSB/BattleArt/weapon-master");
+            player = Actor("Player", hud.playerSlot, 0, 1, hero != null ? hero.visualPrefab : null,
+                hero != null ? hero.controller : null, heroPortrait,
+                hero != null ? hero.spriteReferenceHeight : 4, hero != null ? hero.displayScale : 1,
+                hero != null ? hero.displayOffset : Vector2.zero);
             int count = session.BattlePlan.Monsters.Count;
             for (int i = 0; i < count; i++)
             {
                 var plan = session.BattlePlan.Monsters[i];
-                var authored = MonsterAuthoringRegistry.Find(plan.Monster.Id);
-                var prefab = authored != null ? authored.actorPrefab != null ? authored.actorPrefab :
-                    authored.visualPrefab != null ? authored.visualPrefab.gameObject : null : null;
-                monsters.Add(Actor(plan.Monster.Name, .5f + (i - (count - 1) * .5f) * .18f, .66f, .18f,
-                    prefab, authored != null ? authored.controller : null,
-                    authored != null && authored.portrait != null ? authored.portrait : Resources.Load<Sprite>("BBSB/BattleArt/" + plan.Monster.ArtId),
-                    authored != null ? authored.spriteReferenceHeight : 4, authored != null ? authored.displayScale : 1));
+                var appearance = MonsterAuthoringRegistry.Find(plan.Monster.Id);
+                var prefab = appearance != null ? appearance.actorPrefab != null ? appearance.actorPrefab :
+                    appearance.visualPrefab != null ? appearance.visualPrefab.gameObject : null : null;
+                monsters.Add(Actor(plan.Monster.Name, hud.monsterArea, i, count,
+                    prefab, appearance != null ? appearance.controller : null,
+                    appearance != null && appearance.portrait != null ? appearance.portrait : Resources.Load<Sprite>("BBSB/BattleArt/" + plan.Monster.ArtId),
+                    appearance != null ? appearance.spriteReferenceHeight : 4, appearance != null ? appearance.displayScale : 1,
+                    appearance != null ? appearance.displayOffset : Vector2.zero));
                 monsterIds.Add(plan.InstanceId);
             }
         }
-        private ActorPrefabView Actor(string name, float x, float y, float height, GameObject prefab,
-            RuntimeAnimatorController controller, Sprite sprite, float reference, float scale)
+        private ActorPrefabView Actor(string name, RectTransform stage, int index, int count, GameObject prefab,
+            RuntimeAnimatorController controller, Sprite sprite, float reference, float scale, Vector2 offset)
         {
-            var root = ui.Rect(name, hud.actors);
-            FiveLaneHudBindings.Place(root, x - .08f, y, x + .08f, y + height);
-            var visual = ui.Rect("Visual", root); visual.anchorMin = visual.anchorMax = new Vector2(.5f, 0);
+            var root = ui.Rect(name, stage);
+            float gap = count > 1 ? .02f : 0;
+            FiveLaneHudBindings.Place(root, (float)index / count + gap, 0, (float)(index + 1) / count - gap, 1);
+            var visual = ui.Rect("Visual", root); visual.anchorMin = visual.anchorMax = visual.pivot = new Vector2(.5f, 0);
             visual.anchoredPosition = Vector2.zero; visual.sizeDelta = new Vector2(512, 512);
-            visual.localScale = Vector3.one * (height * 720 / 512 * scale);
             var actor = visual.gameObject.AddComponent<ActorPrefabView>(); actor.Initialize(prefab, controller, sprite, reference);
+            var placement = new StageActor { Slot = root, Visual = visual, Scale = Mathf.Max(.01f, scale), Offset = offset,
+                Aspect = sprite != null ? sprite.rect.width / sprite.rect.height : 1 };
+            placement.Layout(); stageActors.Add(placement);
             return actor;
-        }
-        private void ValidateBindings()
-        {
-            if (hud.scenery == null || hud.actors == null || hud.tracks == null || hud.song == null || hud.health == null ||
-                hud.enemyHealth == null || hud.beat == null || hud.feedback == null || hud.help == null ||
-                hud.playerFill == null || hud.enemyFill == null || hud.pause == null ||
-                hud.weaponRoots.Length != 5 || hud.inputAreas.Length != 5 || hud.laneLabels.Length != 5 || hud.laneStatus.Length != 5 || hud.laneResults.Length != 5)
-                throw new InvalidOperationException("FiveLaneHudBindings requires all HUD references and five lane entries.");
-            for (int i = 0; i < 5; i++)
-                if (hud.weaponRoots[i] == null || hud.inputAreas[i] == null || hud.laneLabels[i] == null || hud.laneStatus[i] == null || hud.laneResults[i] == null)
-                    throw new InvalidOperationException("FiveLaneHudBindings lane " + i + " is incomplete.");
         }
         public void Refresh(int countdown, bool waitingForHold)
         {
+            foreach (var actor in stageActors) actor.Layout();
             hud.health.text = "HP " + battle.PlayerHealth.ToString("0.#") + " / " + battle.PlayerMaximum;
             hud.enemyHealth.text = "ENEMY " + battle.EnemyHealth.Current.ToString("0.#") + " / " + battle.EnemyHealth.Maximum;
             hud.playerFill.anchorMax = new Vector2((float)(battle.PlayerHealth / battle.PlayerMaximum), 1);
             hud.enemyFill.anchorMax = new Vector2((float)(battle.EnemyHealth.Current / battle.EnemyHealth.Maximum), 1);
-            hud.beat.text = countdown > 0 ? "COUNT IN  " + countdown : "BEAT " + ((int)battle.Beat % 4 + 1) + "   ·   COMBO " + battle.Combo;
+            hud.beat.text = countdown > 0 ? "COUNT IN\n" + countdown : battle.Combo + "\nCOMBO";
             hud.beat.color = battle.Beat % 1 < .18 ? RunUI.Gold : RunUI.TextColor;
             hud.feedback.text = waitingForHold ? "Hold 중이던 버튼을 다시 눌러줘" : battle.IsGroggy ? "GROGGY" :
                 battle.Beat - battle.LastHitBeat < .5 ? "HIT" : "";

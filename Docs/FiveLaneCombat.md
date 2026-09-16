@@ -7,7 +7,7 @@
 1. `codex/roguelike-foundation` 브랜치에서 `Assets/BBSB/Scenes/RunMap.unity`를 연다.
 2. Unity 6000.3.5f2에서 Play → 탐험 시작 → 시작 몬스터 지역 → 시작 방패 선택 → 연주 시작.
 3. 4박 카운트 후 `D / F / Space / J / K`로 검 / 해머 / 선택한 방패 / 활 / 단검을 연주한다. 마우스와 멀티터치는 각 레인의 입력 영역을 사용한다.
-4. 각 무기는 첫 입력을 가장 가까운 반박 격자에 맞춰 시작한다. 정박과 엇박을 직접 선택할 수 있다. 이후에는 그 무기의 노트만 이어진다. 청록 마름모는 Tap, 파란 연결 노트는 Hold이며, 무기의 금빛 판정점에 도착할 때 입력한다.
+4. 각 무기는 첫 입력을 가장 가까운 반박 격자에 맞춰 시작한다. 정박과 엇박을 직접 선택할 수 있다. 이후에는 그 무기의 노트만 이어진다. 레인별 색의 마름모는 Tap, 연결된 노트는 Hold이며, 하단의 원형 판정점에 도착할 때 입력한다.
 5. 붉은 투사체가 주인공 앞에 도착하는 박자에 패링을 맞춘다. 버클러·원형 방패는 첫 누르기, 대형 방패는 1.5박 Hold 후 떼기가 패링이다. 금빛 Hold 끝점은 떼기 입력을 뜻한다. 적 HP 0 → 결과 → 보상 받기 → 탐험으로 이어진다. 내 HP 0 → 게임오버.
 
 `RunBootstrap.Use Five Lane Combat`은 기본으로 켜져 있다. 끄면 이전 Call & Response 프로토타입을 확인할 수 있다. 두 전투의 판정과 무기 효과는 독립적이며 새 전투의 기본 장비는 제스처 종류와 관계없이 선택된다.
@@ -55,11 +55,17 @@
 
 ## 편집
 
-- **Canvas:** 최초 로드 시 `BBSB → Presentation → Create missing Canvas and actor prefabs`가 기존 목록에 새 화면만 추가한다. `Assets/BBSB/Resources/BBSB/Presentation/FiveLaneBattleScreen.prefab`의 `FiveLaneHudBindings`에서 TMP 텍스트·무기 위치·입력 영역·HP 바를 연결한다. 기존 프리팹은 덮어쓰지 않는다. 아직 생성되지 않았어도 런타임 기본 화면으로 실행된다.
+- **Canvas:** 최초 로드 시 `BBSB → Presentation → Create missing Canvas and actor prefabs`가 기존 목록에 새 화면만 추가한다. `Assets/BBSB/Resources/BBSB/Presentation/FiveLaneBattleScreen.prefab`의 `FiveLaneHudBindings`에서 TMP 텍스트·무기 위치·입력 영역·HP 바를 연결한다. 직접 수정한 배치를 유지하고 이전 기본 배치와 누락 슬롯만 보완한다. 아직 생성되지 않았어도 런타임 기본 화면으로 실행된다.
 - **무기:** Project 창 `Create → BBSB → Weapon Phrase`로 만들고 `Assets/BBSB/Resources/BBSB/WeaponPhrases/`에 둔다. `weaponId`를 기존 무기 ID로 지정한다. `beat`, `holdBeats`, `damage`, `effect`, 반복 길이, 미스 쿨타임과 완주 효과를 조절한다. 첫 노트는 beat 0, 노트끼리 겹치지 않아야 하고 마지막 노트/Hold 끝은 반복 길이보다 작아야 한다. 패링할 노트에 `effect = Parry`를 지정하며 첫 노트일 필요는 없다. `parryInput`은 패링 노트들에 적용되며 `KeyDown`은 누르기, `KeyUp`은 해당 Hold 끝에서 떼기다. `KeyUp`이면 모든 패링 노트에 `holdBeats > 0`이 필요하다. 예를 들어 4박 프레이즈의 0 / 1.5 / 3박에 패링을 넣고 `repeat`를 켜면 트레실로 패링을 반복한다. 잘못된 에셋이나 중복 ID는 오류를 남기고 해당 무기의 기본 정의를 사용한다.
 - **캐릭터:** 기존 `PlayerAuthoring`과 `MonsterAuthoring`의 SpriteRenderer/Animator 프리팹 및 초상화를 사용한다. 현재 화면은 기존 2D 아트를 이용한 원근 레인 기반 테스트 구도이며, 후면/숄더뷰 전용 아트와 무기별 정식 애니메이션은 후속 작업이다.
 
-노트 레인의 시작 위치는 `FiveLaneTrackGraphic.LanePoint`에서 정의한다. 판정점은 `weaponRoots`의 실제 위치를 따라가므로 Canvas에서 무기 위치를 옮기면 노트의 도착점도 함께 이동한다. 기본 배치는 16:9 / 16:10 가로 화면을 기준으로 작성했다.
+전투 기본 구도는 **왼쪽 전경의 플레이어와 주변 무기 5개, 중앙 위의 몬스터, 중앙에서 하단으로 펼쳐지는 5개 레인**이다. 적 HP는 상단, 플레이어 HP는 왼쪽 하단, 콤보는 오른쪽, 곡 정보는 오른쪽 하단에 둔다. 기존 캐릭터 리소스를 그대로 사용하며 참고 이미지의 후면 캐릭터나 거대 보스 아트를 새로 만든 것은 아니다.
+
+`FiveLaneHudBindings.playerSlot`과 `monsterArea`가 캐릭터 배치 영역이다. 실제 RectTransform 크기에 맞춰 캐릭터를 매 프레임 균등 확대·축소하므로 16:9, 16:10 및 안전 영역 변경에도 대응한다. 몬스터는 수에 따라 영역을 나눠 선다. 표시용 `weaponRoots`와 입력 판정용 `judgmentPoints`를 분리했다. 무기의 반동 연출이나 배치 변경은 레인 도착점을 움직이지 않으며, 판정점을 옮기려면 `judgmentPoints`를 편집한다. 레인의 먼 쪽 위치는 `FiveLaneTrackGraphic.LanePoint`에 있다.
+
+기존에 생성한 기본 HUD는 에디터의 프리팹 보완 과정에서 새 배치 슬롯을 추가하고, 이전 기본값과 같은 위치만 옮긴다. 직접 수정한 앵커·오프셋·텍스트 스타일은 유지한다. 런타임에도 같은 보완 경로가 있어 프리팹을 새로 만들지 않아도 적용된다. 연결이 빠진 HUD는 원인을 경고로 남기고 해당 실행 인스턴스에서 기본 HUD를 사용한다. 런타임 그래픽은 각 슬롯의 새 자식에 붙여, 기존 Image 컴포넌트와 충돌하지 않게 한다.
+
+화면과 오디오 초기화가 모두 끝나기 전에는 입력과 전투 시간을 진행하지 않는다. 초기화 도중 예외가 발생하면 최초 예외를 한 번 남기고 갱신을 중단하며, 화면에서 재시도하거나 준비 화면으로 돌아갈 수 있다. HP·노트·프레이즈 상태는 같은 전투 객체에 보존한다. 따라서 뒤따르는 `LateUpdate` NullReference가 최초 원인을 덮지 않는다. SpriteRenderer의 이미지 연결만 빠진 경우에는 authoring의 초상화가 있으면 이를 사용한다.
 
 ## 코드와 검증
 
@@ -69,6 +75,7 @@
 - `Runtime/UI/FiveLane*`: TMP Canvas, 이동 노트, 캐릭터, 결과 화면.
 - `RunSession`/`RunPresenter`: 탐험·HP·장비·결과·보상 연결. 기존 전투의 테스트용 경로 유지.
 - `Tests/EditMode/FiveLaneBattleTests.cs`: 독립 레인, 정박/엇박, 반미스 유지, 미스/쿨타임, Hold, 누르기/떼기 패링과 판정 경계, 여러 패링과 트레실로 반복의 박자 유지, 방패 선택 잠금, 그로기, 곡 반복, 큰 프레임, 승패 후 처리, 세션 보존 회귀 검사.
+- `Tests/PlayMode/FiveLanePlaybackTests.cs`: 실제 프레임 갱신, Image가 있는 슬롯, 누락된 HUD 연결의 복구, 초기화 실패 시 정지·준비 복귀·재시도, 1280×720 / 1280×800 / 1220×680에서 플레이어·몬스터·레인·HP 영역 배치 검사. 이 작업 환경에서는 Unity Editor가 없어 실행하지 못했다.
 
 ```sh
 dotnet run --project Tools/CoreChecks/BBSB.CoreChecks.csproj --configuration Release

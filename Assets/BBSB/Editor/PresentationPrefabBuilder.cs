@@ -47,7 +47,11 @@ namespace BBSB.Editor
             if (entries.Count != catalog.screens.Length || Array.Exists(catalog.screens, entry => entry != null && entry.prefab == null))
             { catalog.screens = entries.ToArray(); EditorUtility.SetDirty(catalog); }
             foreach (var entry in catalog.screens)
-                if (entry != null && entry.prefab != null) RepairCollapsedScreen(entry.prefab);
+                if (entry != null && entry.prefab != null)
+                {
+                    RepairCollapsedScreen(entry.prefab);
+                    if (entry.prefab.fiveLane != null) UpgradeBattleLayout(entry.prefab);
+                }
             if (Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath) == null)
             {
                 var asset = ScriptableObject.CreateInstance<PlayerAuthoring>();
@@ -170,6 +174,33 @@ namespace BBSB.Editor
             }
             EditorUtility.SetDirty(root);
             PrefabUtility.SavePrefabAsset(screen.gameObject);
+        }
+        private static void UpgradeBattleLayout(CanvasScreen prefab)
+        {
+            // Adding stage slots requires editable prefab contents, not scene children
+            // parented directly to a persistent prefab asset.
+            string path = AssetDatabase.GetAssetPath(prefab);
+            var contents = PrefabUtility.LoadPrefabContents(path);
+            RectTransform preview = null;
+            try
+            {
+                preview = Rect("Battle layout authoring canvas", null);
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(preview.gameObject, contents.scene);
+                preview.gameObject.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+                preview.localScale = Vector3.one; preview.sizeDelta = new Vector2(1280, 720);
+                var root = (RectTransform)contents.transform; var source = (RectTransform)prefab.transform;
+                root.SetParent(preview, false);
+                root.anchorMin = source.anchorMin; root.anchorMax = source.anchorMax; root.pivot = source.pivot;
+                root.sizeDelta = source.sizeDelta; root.anchoredPosition3D = source.anchoredPosition3D;
+                root.localRotation = source.localRotation; root.localScale = source.localScale;
+                var bindings = contents.GetComponent<CanvasScreen>().fiveLane;
+                if (bindings != null && bindings.EnsureStageLayout()) PrefabUtility.SaveAsPrefabAsset(contents, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+                if (preview != null) UnityEngine.Object.DestroyImmediate(preview.gameObject);
+            }
         }
         private static RectTransform Rect(string name, Transform parent)
         { var r = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>(); if (parent != null) r.SetParent(parent, false); return r; }

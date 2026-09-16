@@ -10,8 +10,9 @@ namespace BBSB.Runtime
     public sealed class FiveLanePlayback : MonoBehaviour
     {
         public FiveLaneBattle Battle { get; private set; }
+        public bool IsInitialized { get; private set; }
         public bool WaitingForHold { get; private set; }
-        public bool CanReceiveInput => Battle != null && !Battle.Finished &&
+        public bool CanReceiveInput => IsInitialized && isActiveAndEnabled && !Battle.Finished &&
             (WaitingForHold || (!Battle.IsPaused && AudioSettings.dspTime >= origin));
         private readonly bool[] pointerHeld = new bool[5], sentHeld = new bool[5];
         private readonly AudioSource[] pulses = new AudioSource[8];
@@ -24,20 +25,40 @@ namespace BBSB.Runtime
         private bool resultShown;
         internal void Bind(FiveLaneBattle battle, RunSession session, RunUI ui, Action finished, Action leave)
         {
-            Battle = battle; onFinish = finished; onLeave = leave;
-            music = new StageMusicPlayer(transform, session.BattleMusic.Music);
-            tick = MakeTick(740); accent = MakeTick(1100);
-            for (int i = 0; i < pulses.Length; i++)
+            if (Battle != null) throw new InvalidOperationException("Five-lane playback is already bound.");
+            Battle = battle ?? throw new ArgumentNullException(nameof(battle));
+            Battle.Pause(); onFinish = finished; onLeave = leave;
+            string stage = "validating the encounter";
+            try
             {
-                var child = new GameObject("Beat " + i); child.transform.SetParent(transform, false);
-                pulses[i] = child.AddComponent<AudioSource>(); pulses[i].playOnAwake = false; pulses[i].volume = music.HasRecording ? .12f : .28f;
+                if (session?.BattleMusic == null || session.BattlePlan == null || ui == null)
+                    throw new InvalidOperationException("Five-lane playback requires a battle plan, music and UI.");
+                stage = "building the battle HUD and actors";
+                view = new FiveLaneBattleView((RectTransform)transform, ui, session, this);
+                view.Refresh(0, false);
+                stage = "preparing the audio clock";
+                music = new StageMusicPlayer(transform, session.BattleMusic.Music);
+                tick = MakeTick(740); accent = MakeTick(1100);
+                for (int i = 0; i < pulses.Length; i++)
+                {
+                    var child = new GameObject("Beat " + i); child.transform.SetParent(transform, false);
+                    pulses[i] = child.AddComponent<AudioSource>(); pulses[i].playOnAwake = false;
+                    pulses[i].volume = music.HasRecording ? .12f : .28f;
+                }
+                // Publish readiness only after the entire view and audio setup succeeds.
+                // A constructor exception must not leave LateUpdate running a partial battle.
+                bool holds = false; foreach (var lane in Battle.Lanes) holds |= lane.Holding;
+                if (holds) WaitingForHold = true;
+                else { Battle.Resume(); ReleaseStaleContacts(); RestartClock(Battle.Beat == 0); }
+                IsInitialized = true;
+                ClearSelection();
             }
-            view = new FiveLaneBattleView((RectTransform)transform, ui, session, this);
-            // Re-entering from preparation preserves the original clock, notes, holds, cooldowns and health.
-            bool holds = false; foreach (var lane in Battle.Lanes) holds |= lane.Holding;
-            if (holds) { Battle.Pause(); WaitingForHold = true; }
-            else { Battle.Resume(); ReleaseStaleContacts(); RestartClock(Battle.Beat == 0); }
-            ClearSelection();
+            catch (Exception error)
+            {
+                Battle.Pause(); WaitingForHold = false; StopAudio();
+                view = null; IsInitialized = false; enabled = false;
+                throw new InvalidOperationException("Five-lane playback failed while " + stage + ".", error);
+            }
         }
         private double Now => Math.Max(Battle.Beat, offsetBeat + Math.Max(0, AudioSettings.dspTime - origin) * Battle.Bpm / 60);
         private bool KeyHeld(int slot)
@@ -55,7 +76,7 @@ namespace BBSB.Runtime
         }
         private void Update()
         {
-            if (Battle == null || resultShown) return;
+            if (!IsInitialized || resultShown) return;
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             { if (Battle.IsPaused && !WaitingForHold) Continue(); else Pause(); return; }
             if (WaitingForHold) { TryResumeHeld(); return; }
@@ -64,7 +85,7 @@ namespace BBSB.Runtime
         }
         private void LateUpdate()
         {
-            if (Battle == null || resultShown) return;
+            if (!IsInitialized || resultShown) return;
             if (!Battle.IsPaused)
             {
                 SchedulePulses();
@@ -77,7 +98,7 @@ namespace BBSB.Runtime
         }
         public void SetPointer(int slot, bool down)
         {
-            if (slot < 0 || slot >= 5 || Battle == null) return;
+            if (slot < 0 || slot >= 5 || !IsInitialized || !isActiveAndEnabled) return;
             pointerHeld[slot] = down;
             if (WaitingForHold) TryResumeHeld(); else if (CanReceiveInput) SyncInput(slot);
         }
@@ -90,7 +111,7 @@ namespace BBSB.Runtime
         }
         public void Pause()
         {
-            if (Battle == null || Battle.Finished || resultShown) return;
+            if (!IsInitialized || Battle.Finished || resultShown) return;
             if (!Battle.IsPaused && AudioSettings.dspTime >= origin) Battle.Advance(Now);
             if (Battle.Finished) return;
             Battle.Pause(); WaitingForHold = false; StopAudio(); CancelPointers();
@@ -98,7 +119,7 @@ namespace BBSB.Runtime
         }
         public void Continue()
         {
-            if (Battle == null || Battle.Finished || !Battle.IsPaused) return;
+            if (!IsInitialized || Battle.Finished || !Battle.IsPaused) return;
             view.HideModal(); ClearSelection();
             foreach (var lane in Battle.Lanes)
                 if (lane.Holding) { WaitingForHold = true; return; }

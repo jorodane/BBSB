@@ -80,66 +80,83 @@ namespace BBSB.Runtime
         {
             if (rendering || ui == null) return;
             rendering = true;
-            if (codex != null) codex.Close();
-            if (authoredScreen != null) { authoredScreen.gameObject.SetActive(false); Destroy(authoredScreen.gameObject); authoredScreen = null; }
-            else if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
-            ClearMenu(); preparation = null;
-            authoredScreen = ui.Prefabs != null ? ui.Prefabs.Create(CurrentScreenKind(), safeArea) : null;
-            screen = authoredScreen != null ? authoredScreen.content : ui.Rect("Run screen", safeArea);
-            if (authoredScreen == null) RunUI.Stretch(screen);
-            body = null;
-            if (screen.GetComponent<CanvasGroup>() == null) screen.gameObject.AddComponent<CanvasGroup>();
-            if (title) { DrawTitle(); rendering = false; return; }
-            if (ActiveFiveLaneBattle != null)
+            try
             {
-                var battle = ActiveFiveLaneBattle; string ticket = Session.StageTicket;
-                screen.gameObject.AddComponent<FiveLanePlayback>().Bind(battle, Session, ui,
-                    () => FinishFiveLaneBattle(ticket, battle), () => LeaveFiveLaneBattle(ticket, battle));
-                rendering = false; return;
-            }
-            if (ActiveRound != null)
-            {
-                string ticket = Session.StageTicket;
-                screen.gameObject.AddComponent<RhythmPlayback>().Bind(ActiveRound, Session, ui,
-                    round => FinishRhythmRound(ticket, round), () => LeaveRhythmRound(ticket), round => ActiveRound = round);
-                rendering = false; return;
-            }
-            // Scenes fill the viewport. HUD controls are siblings layered over the scene.
-            RectTransform page = null;
-            if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Map)
-                DrawMap();
-            else if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Stage && Session.CurrentNode.IsBattle)
-                DrawBattle();
-            else if (completedRound == null && pendingOffer >= 0)
-                DrawReplacement();
-            else
-            {
-                page = ui.Stack(screen, "Page content", 24, 12); RunUI.Stretch(page);
-                page.GetComponent<VerticalLayoutGroup>().padding.top = 116;
-                body = ui.Scroll(page);
-                if (completedRound != null) DrawRoundReport();
+                if (codex != null) codex.Close();
+                if (authoredScreen != null) { authoredScreen.gameObject.SetActive(false); Destroy(authoredScreen.gameObject); authoredScreen = null; }
+                else if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
+                ClearMenu(); preparation = null;
+                authoredScreen = ui.Prefabs != null ? ui.Prefabs.Create(CurrentScreenKind(), safeArea) : null;
+                screen = authoredScreen != null ? authoredScreen.content : ui.Rect("Run screen", safeArea);
+                if (authoredScreen == null) RunUI.Stretch(screen);
+                body = null;
+                if (screen.GetComponent<CanvasGroup>() == null) screen.gameObject.AddComponent<CanvasGroup>();
+                if (title) { DrawTitle(); return; }
+                if (ActiveFiveLaneBattle != null)
+                {
+                    var battle = ActiveFiveLaneBattle; string ticket = Session.StageTicket;
+                    try
+                    {
+                        screen.gameObject.AddComponent<FiveLanePlayback>().Bind(battle, Session, ui,
+                            () => FinishFiveLaneBattle(ticket, battle), () => LeaveFiveLaneBattle(ticket, battle));
+                    }
+                    catch (Exception error)
+                    {
+                        // Preserve the original exception once; the failed playback disables
+                        // itself before any Update, focus callback or audio can advance it.
+                        battle.Pause(); Debug.LogException(error, this);
+                        foreach (Transform child in screen) child.gameObject.SetActive(false);
+                        ui.Modal(screen, "Battle setup error", "BATTLE PAUSED", () => LeaveFiveLaneBattle(ticket, battle), out var errorBody);
+                        ui.Label(errorBody, "전투 화면을 열 수 없어. 다시 시작하거나 준비 화면으로 돌아가줘.", 22, null, 80);
+                        ui.Button(errorBody, "다시 시작", Render, primary: true);
+                        ui.Button(errorBody, "준비 화면으로", () => LeaveFiveLaneBattle(ticket, battle));
+                    }
+                    return;
+                }
+                if (ActiveRound != null)
+                {
+                    string ticket = Session.StageTicket;
+                    screen.gameObject.AddComponent<RhythmPlayback>().Bind(ActiveRound, Session, ui,
+                        round => FinishRhythmRound(ticket, round), () => LeaveRhythmRound(ticket), round => ActiveRound = round);
+                    return;
+                }
+                // Scenes fill the viewport. HUD controls are siblings layered over the scene.
+                RectTransform page = null;
+                if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Map)
+                    DrawMap();
+                else if (completedRound == null && pendingOffer < 0 && Session.Phase == RunPhase.Stage && Session.CurrentNode.IsBattle)
+                    DrawBattle();
+                else if (completedRound == null && pendingOffer >= 0)
+                    DrawReplacement();
                 else
                 {
-                    switch (Session.Phase)
+                    page = ui.Stack(screen, "Page content", 24, 12); RunUI.Stretch(page);
+                    page.GetComponent<VerticalLayoutGroup>().padding.top = 116;
+                    body = ui.Scroll(page);
+                    if (completedRound != null) DrawRoundReport();
+                    else
                     {
-                        case RunPhase.Stage: DrawStage(); break;
-                        case RunPhase.Reward: DrawRewards(); break;
-                        case RunPhase.FieldCleared: DrawFieldCleared(); break;
-                        case RunPhase.GameOver: DrawGameOver(); break;
+                        switch (Session.Phase)
+                        {
+                            case RunPhase.Stage: DrawStage(); break;
+                            case RunPhase.Reward: DrawRewards(); break;
+                            case RunPhase.FieldCleared: DrawFieldCleared(); break;
+                            case RunPhase.GameOver: DrawGameOver(); break;
+                        }
                     }
                 }
+                // The preparation screen owns its header, HP bars and rectangular menu button.
+                if (completedRound != null || pendingOffer >= 0 || Session.Phase != RunPhase.Stage || !Session.CurrentNode.IsBattle)
+                    DrawHud();
+                if (!string.IsNullOrEmpty(notice))
+                {
+                    var toast = ui.Label(page ?? screen, notice, 21, RunUI.Teal, 42, TextAlignmentOptions.Center);
+                    if (page == null)
+                        RunUI.Overlay(toast.rectTransform, new Vector2(.3f, 0), new Vector2(.7f, 0), new Vector2(0, 68), new Vector2(0, 110));
+                }
+                RenderMenu();
             }
-            // The preparation screen owns its header, HP bars and rectangular menu button.
-            if (completedRound != null || pendingOffer >= 0 || Session.Phase != RunPhase.Stage || !Session.CurrentNode.IsBattle)
-                DrawHud();
-            if (!string.IsNullOrEmpty(notice))
-            {
-                var toast = ui.Label(page ?? screen, notice, 21, RunUI.Teal, 42, TextAlignmentOptions.Center);
-                if (page == null)
-                    RunUI.Overlay(toast.rectTransform, new Vector2(.3f, 0), new Vector2(.7f, 0), new Vector2(0, 68), new Vector2(0, 110));
-            }
-            RenderMenu();
-            rendering = false;
+            finally { rendering = false; }
         }
 
         private void Update()
@@ -364,7 +381,8 @@ namespace BBSB.Runtime
             if (Session == null || !Session.UsesFiveLaneCombat || ActiveRound != null || ActiveFiveLaneBattle != null) return false;
             ActiveFiveLaneBattle = Session.StartFiveLaneBattle(WeaponPhraseAuthoring.LoadFor(Session.Weapons));
             if (ActiveFiveLaneBattle == null) return false;
-            completedRound = null; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render(); return true;
+            completedRound = null; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
+            return screen != null && screen.GetComponent<FiveLanePlayback>()?.IsInitialized == true;
         }
         private void FinishFiveLaneBattle(string ticket, FiveLaneBattle battle)
         {

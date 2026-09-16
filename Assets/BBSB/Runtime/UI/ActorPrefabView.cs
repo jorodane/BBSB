@@ -21,6 +21,10 @@ namespace BBSB.Runtime.UI
             var renderers = Instance.GetComponentsInChildren<SpriteRenderer>(true);
             if (renderers.Length > 0)
             {
+                // A reimported/missing sprite reference must not hide an otherwise valid
+                // actor prefab when its authoring asset still supplies a portrait.
+                if (portrait != null && !Array.Exists(renderers, renderer => renderer.sprite != null))
+                { renderers[0].sprite = portrait; referenceHeight = portrait.bounds.size.y; }
                 foreach (var source in renderers)
                 {
                     source.forceRenderingOff = true;

@@ -30,6 +30,22 @@ namespace BBSB.Tests
             finally { Object.DestroyImmediate(host); Object.DestroyImmediate(prefab); Object.DestroyImmediate(sprite); Object.DestroyImmediate(texture); }
         }
         [Test]
+        public void EmptySpriteReferenceUsesThePortraitWithoutEditingThePrefab()
+        {
+            var prefab = new GameObject("Empty sprite prefab", typeof(SpriteRenderer));
+            var host = new GameObject("Host", typeof(RectTransform));
+            var texture = new Texture2D(16, 32); var sprite = Sprite.Create(texture, new Rect(0, 0, 16, 32), Vector2.zero);
+            try
+            {
+                var view = host.AddComponent<ActorPrefabView>(); view.Initialize(prefab, null, sprite);
+                Assert.AreSame(sprite, view.Instance.GetComponent<SpriteRenderer>().sprite);
+                Assert.IsNull(prefab.GetComponent<SpriteRenderer>().sprite);
+                Assert.AreSame(texture, host.GetComponentInChildren<SpriteCanvasGraphic>().mainTexture);
+            }
+            finally { Object.DestroyImmediate(host); Object.DestroyImmediate(prefab); Object.DestroyImmediate(sprite); Object.DestroyImmediate(texture); }
+        }
+
+        [Test]
         public void UIImagePrefabRemainsAnEditableImageHierarchy()
         {
             var prefab = new GameObject("Prefab", typeof(RectTransform));
