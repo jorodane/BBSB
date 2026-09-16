@@ -123,11 +123,20 @@ namespace BBSB.Tests
         {
             Check.Equal(3.0, SteppedNoteTrack.LookAheadBeats);
             Check.Equal(1.5, SteppedNoteTrack.Distance(1.4)); Check.Equal(1.5, SteppedNoteTrack.Distance(1.2));
-            Check.True(Math.Abs(1.25 - SteppedNoteTrack.Distance(1.05)) < .00001);
+            Check.Equal(1.5, SteppedNoteTrack.Distance(1.05));
+            Check.True(Math.Abs(1.25 - SteppedNoteTrack.Distance(1.025)) < .00001);
             Check.Equal(1.0, SteppedNoteTrack.Distance(1)); Check.Equal(.5, SteppedNoteTrack.Distance(.5));
-            Check.True(Math.Abs(.25 - SteppedNoteTrack.Distance(.05)) < .00001);
+            Check.Equal(.5, SteppedNoteTrack.Distance(.05));
+            Check.True(Math.Abs(.25 - SteppedNoteTrack.Distance(.025)) < .00001);
             Check.Equal(0.0, SteppedNoteTrack.Distance(0)); Check.Equal(0.0, SteppedNoteTrack.Distance(-.1));
             Check.True(SteppedNoteTrack.InHorizon(3)); Check.False(SteppedNoteTrack.InHorizon(3.00001));
+            // Incoming attack markers wait too, and cross only just before their impact.
+            Check.Equal(0.0, SteppedNoteTrack.DropProgress(.5));
+            Check.Equal(0.0, SteppedNoteTrack.DropProgress(.2));
+            Check.Equal(0.0, SteppedNoteTrack.DropProgress(.05));
+            Check.Equal(.5, SteppedNoteTrack.DropProgress(.025));
+            Check.Equal(1.0, SteppedNoteTrack.DropProgress(0));
+            Check.Equal(1.0, SteppedNoteTrack.DropProgress(-.1));
         }
         [Test] public void WeaponRewardsFillEmptySlotsThenRequireReplacementAtFive()
         {

@@ -69,14 +69,15 @@ namespace BBSB.Runtime.UI
                     Diamond(vh, p, 9, tint);
                 }
             }
-            // Hostile attacks travel from the enemy stage to the player in the left foreground.
+            // The hostile marker waits at its source, then crosses to the player just
+            // before impact. It must not suggest a continuous half-beat note scroll.
             var source = enemySource != null ? LocalPoint(enemySource, new Vector2(enemySource.rect.center.x, enemySource.rect.yMin)) : Pixel(new Vector2(.625f, .50f));
             var target = playerTarget != null ? LocalPoint(playerTarget, playerTarget.rect.center) : Pixel(new Vector2(.185f, .43f));
             foreach (var attack in battle.Incoming)
             {
                 double delta = attack.Beat - battle.Beat;
                 if (delta > .5 || delta < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
-                float t = Mathf.Clamp01(1 - (float)(delta / .5));
+                float t = (float)SteppedNoteTrack.DropProgress(delta);
                 var p = Vector2.Lerp(source, target, t);
                 Color tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
                 Line(vh, p, p + (source - target).normalized * 23, 5, tint);
