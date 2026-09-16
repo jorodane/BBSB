@@ -131,7 +131,8 @@ namespace BBSB.Tests
                 var battle = playback.Battle;
                 Assert.IsFalse(playback.IsInitialized); Assert.IsFalse(playback.enabled);
                 Assert.IsTrue(battle.IsPaused); Assert.IsFalse(playback.CanReceiveInput);
-                double beat = battle.Beat, health = battle.PlayerHealth;
+                double beat = battle.Beat;
+                decimal health = battle.PlayerHealth;
                 playback.SetPointer(0, true); playback.Pause(); playback.Continue();
                 yield return null; yield return null;
                 Assert.AreEqual(beat, battle.Beat); Assert.AreEqual(health, battle.PlayerHealth);
