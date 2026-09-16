@@ -28,7 +28,7 @@ namespace BBSB.Runtime.UI
                 foreach (var source in renderers)
                 {
                     source.forceRenderingOff = true;
-                    var rect = new GameObject(source.name + " Canvas mesh", typeof(RectTransform)).GetComponent<RectTransform>();
+                    var rect = new GameObject(source.name + " Canvas mesh", typeof(RectTransform), typeof(CanvasRenderer)).GetComponent<RectTransform>();
                     rect.SetParent(transform, false); rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0);
                     rect.pivot = new Vector2(.5f, 0); rect.sizeDelta = new Vector2(512, 512);
                     var graphic = rect.gameObject.AddComponent<SpriteCanvasGraphic>();

@@ -34,7 +34,7 @@ namespace BBSB.Tests
                     }
                 }
             }
-            Check.Equal(52, paths.Count);
+            Check.Equal(WeaponCatalog.All.Count * 4, paths.Count);
         }
 
         [Test]

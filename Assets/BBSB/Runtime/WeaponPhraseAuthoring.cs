@@ -17,6 +17,12 @@ namespace BBSB.Runtime
         public bool repeat = true;
         [Tooltip("Timing of notes marked Parry: keydown, or release at that Hold's end. Any notes can be parries, including repeats.")]
         public ParryInputEdge parryInput;
+        [Min(0), Tooltip("Opening grid in beats; zero allows starting at any instant.")]
+        public float startGridBeats = .5f;
+        [Range(0, 1)] public float holdDamageReduction;
+        public bool releaseEndsPhrase;
+        public bool parryRequired = true;
+        [Min(0)] public float completionCooldownBeats;
         [Min(0)] public int finisherEvery;
         [Min(0)] public float finisherDamage, groggyBeats;
         public Note[] notes = { new Note(), new Note { beat = 1 }, new Note { beat = 2, damage = 12 } };
@@ -26,6 +32,9 @@ namespace BBSB.Runtime
             [Min(0)] public float damage = 8;
             [Tooltip("Mark any desired notes Parry; their positions and count are not restricted.")]
             public PhraseEffect effect;
+            public PhraseNoteCondition condition;
+            [Tooltip("Earlier note index. Used only for a conditional note.")]
+            public int prerequisite = -1;
         }
         public WeaponPhrase Build()
         {
@@ -33,10 +42,12 @@ namespace BBSB.Runtime
             foreach (var note in notes ?? Array.Empty<Note>())
             {
                 if (note == null) throw new ArgumentException("Null phrase note.");
-                result.Add(new WeaponPhraseNote(note.beat, (decimal)note.damage, note.holdBeats, note.effect));
+                result.Add(new WeaponPhraseNote(note.beat, (decimal)note.damage, note.holdBeats, note.effect,
+                    note.condition == PhraseNoteCondition.Always ? -1 : note.prerequisite, note.condition));
             }
             return new WeaponPhrase(weaponId, displayName, hint, lengthBeats, result, missCooldownBeats,
-                repeat, finisherEvery, (decimal)finisherDamage, groggyBeats, parryInput);
+                repeat, finisherEvery, (decimal)finisherDamage, groggyBeats, parryInput, startGridBeats,
+                (decimal)holdDamageReduction, releaseEndsPhrase, parryRequired, completionCooldownBeats);
         }
         public static IReadOnlyList<WeaponPhrase> LoadFor(IReadOnlyList<WeaponState> weapons)
         {

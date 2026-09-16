@@ -343,34 +343,23 @@ namespace BBSB.Runtime
         private void DrawFiveLanePreparation()
         {
             var panel = ui.Stack(screen, "Five lane preparation", 28, 10); RunUI.Stretch(panel);
-            ui.Label(panel, "FIVE WEAPONS / ONE BEAT", 28, RunUI.Gold, 44);
+            ui.Label(panel, "TWO TO START / ONE BEAT", 28, RunUI.Gold, 44);
             ui.Label(panel, Session.BattleMusic.Music.Name + " · " + Session.BattleMusic.Music.Bpm + " BPM", 24, RunUI.Teal, 40);
             ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth +
                 "   ·   ENEMY " + Session.EnemyHealth.Current.ToString("0.#") + " / " + Session.EnemyHealth.Maximum, 22, null, 36);
             var list = ui.Scroll(panel);
-            ui.Label(list, "원하는 무기의 버튼으로 정박 또는 엇박에 시작해.\n박자 표시가 무기에 닿으면 같은 버튼을 누르고, 긴 박자 표시는 끝까지 유지해.", 22, null, 72);
+            ui.Label(list, "단검은 정박마다 눌러줘. 성공하면 다음 정박이 이어져.\n방패는 누르는 순간 방어하고, 최대 2박 동안 유지할 수 있어.", 22, null, 72);
             var names = new System.Collections.Generic.List<string>();
             foreach (var monster in Session.BattlePlan.Monsters) names.Add(monster.Monster.Name);
             ui.Label(list, "MONSTERS  ·  " + string.Join(" / ", names), 20, RunUI.Red, 40);
-            if (Session.CanSelectStartingShield)
-            {
-                ui.Label(list, "시작 방패 선택 · SPACE", 22, RunUI.Gold, 36);
-                var choices = ui.Row(list, 52);
-                foreach (var id in WeaponPhraseCatalog.ShieldIds)
-                {
-                    string selected = id;
-                    ui.Button(choices, WeaponPhraseCatalog.Find(id).Name, () =>
-                    { if (Session.SelectStartingShield(selected)) Render(); }, primary: Session.Weapons[2].DefinitionId == id, height: 52);
-                }
-            }
             string[] keys = { "D", "F", "SPACE", "J", "K" };
             var phrases = WeaponPhraseAuthoring.LoadFor(Session.Weapons);
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < Session.Weapons.Count; i++)
             {
                 var phrase = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Phrase : phrases[i];
                 ui.Label(list, keys[i] + "   " + phrase.Name + "  +" + Session.Weapons[i].Level + "\n" + phrase.Hint, 22, null, 66);
             }
-            ui.Label(list, "방패마다 누르기 또는 떼기 방어가 있어. 금빛 Hold 끝에서는 버튼을 떼어줘.\n해머는 세 번째 완주에 그로기. 반미스는 이어지고, 미스한 무기만 대기해.", 20, RunUI.Muted, 80);
+            ui.Label(list, "최대 3박 앞까지 표시해. 반박마다 한 단계씩 내려와.\n시작 무기는 2개. 보상으로 최대 5개까지 장착할 수 있어.", 20, RunUI.Muted, 80);
             var actions = ui.Row(panel, 64);
             ui.Button(actions, Session.PhraseBattle == null ? "연주 시작" : "연주 이어가기", () => StartFiveLaneBattle(), primary: true, height: 64);
             ui.Button(actions, "메뉴", () => OpenMenu(MenuPage.Home), height: 64);
@@ -562,7 +551,7 @@ namespace BBSB.Runtime
 
         private void PickOffer(int index)
         {
-            if (Session.Offers[index].Content.Kind == RewardKind.Weapon)
+            if (Session.Offers[index].Content.Kind == RewardKind.Weapon && Session.Weapons.Count >= RunRules.WeaponSlots)
             { pendingOffer = index; notice = ""; Render(); return; }
             GrantOffer(index, -1);
         }

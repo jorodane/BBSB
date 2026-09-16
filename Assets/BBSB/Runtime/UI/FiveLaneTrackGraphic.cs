@@ -11,10 +11,9 @@ namespace BBSB.Runtime.UI
         private FiveLaneBattle battle;
         private RectTransform[] targets;
         private RectTransform playerTarget, enemySource;
-        public const double LookAheadBeats = 4;
-        public static Vector2 LanePoint(int lane, float distance) => Vector2.Lerp(
-            new Vector2(.38f + lane * .1375f, .22f),
-            new Vector2(.54f + lane * .035f, .50f), distance);
+        public const double LookAheadBeats = SteppedNoteTrack.LookAheadBeats;
+        public static Vector2 LanePoint(int lane, float distance, int count = 5) =>
+            new Vector2(.655f + (lane - (count - 1) * .5f) * .1375f, Mathf.Lerp(.22f, .42f, distance));
         public void Bind(FiveLaneBattle value, RectTransform[] judgmentTargets = null,
             RectTransform player = null, RectTransform enemies = null)
         { battle = value; targets = judgmentTargets; playerTarget = player; enemySource = enemies; raycastTarget = false; SetVerticesDirty(); }
@@ -28,32 +27,46 @@ namespace BBSB.Runtime.UI
                 var near = Point(slot, 0); var far = Point(slot, 1);
                 Color laneColor = LaneColor(slot);
                 var floor = laneColor; floor.a = .07f;
-                Quad(vh, near - Vector2.right * 38, far - Vector2.right * 10,
-                    far + Vector2.right * 10, near + Vector2.right * 38, floor);
+                Quad(vh, near - Vector2.right * 28, far - Vector2.right * 28,
+                    far + Vector2.right * 28, near + Vector2.right * 28, floor);
                 var edge = laneColor; edge.a = .6f;
                 Line(vh, near, far, 2, edge);
-                for (double tick = Math.Ceiling(battle.Beat); tick <= battle.Beat + LookAheadBeats; tick++)
+                for (int cell = 1; cell <= 6; cell++)
                 {
-                    var p = Position(slot, tick); float width = Mathf.Lerp(28, 10, (float)((tick - battle.Beat) / LookAheadBeats));
-                    Line(vh, p - Vector2.right * width, p + Vector2.right * width, 2, new Color(.8f, .9f, 1, .16f));
+                    var p = Point(slot, cell / 6f);
+                    Line(vh, p - Vector2.right * 26, p + Vector2.right * 26, 2, new Color(.8f, .9f, 1, cell % 2 == 0 ? .3f : .14f));
                 }
-                Ring(vh, near, new Vector2(36, 10), lane.Phase == PhraseLanePhase.Cooldown ? RunUI.Muted : laneColor);
+                float beatPulse = battle.Beat % 1 < .15 ? 1 - (float)(battle.Beat % 1 / .15) : 0;
+                Ring(vh, near, new Vector2(36 + 4 * beatPulse, 10 + 3 * beatPulse),
+                    lane.Phase == PhraseLanePhase.Cooldown ? RunUI.Muted : Color.Lerp(laneColor, Color.white, beatPulse * .6f));
+                if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
+                    foreach (var attack in battle.Incoming)
+                    {
+                        double remaining = attack.Beat - battle.Beat;
+                        if (!SteppedNoteTrack.InHorizon(remaining) || remaining < -battle.HalfMissWindow ||
+                            attack.State == IncomingAttackState.Interrupted || attack.State == IncomingAttackState.Hit) continue;
+                        var p = Position(slot, attack.Beat);
+                        var tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
+                        Line(vh, p + new Vector2(-22, 7), p + new Vector2(0, -5), 4, tint);
+                        Line(vh, p + new Vector2(0, -5), p + new Vector2(22, 7), 4, tint);
+                    }
                 if (lane.Phase != PhraseLanePhase.Playing) continue;
-                // Show the remainder and one repeat. No hidden, pre-authored monster response chart.
-                for (int cycle = 0; cycle < (lane.Phrase.Repeat ? 2 : 1); cycle++)
-                for (int n = cycle == 0 ? lane.NextNote : 0; n < lane.Phrase.Notes.Count; n++)
+                // Only instantiated notes: no speculative repeat, counter or bow shot.
+                for (int n = 0; n < lane.Phrase.Notes.Count; n++)
                 {
+                    if (!lane.IsNoteVisible(n)) continue;
                     var note = lane.Phrase.Notes[n];
-                    double at = lane.StartBeat + cycle * lane.Phrase.LengthBeats + note.Beat;
+                    double at = lane.StartBeat + note.Beat;
                     if (at + note.HoldBeats < battle.Beat - battle.HalfMissWindow || at > battle.Beat + LookAheadBeats) continue;
                     var p = Position(slot, at); Color tint = note.IsHold ? Color.Lerp(laneColor, Color.white, .35f) : laneColor;
                     if (note.IsHold)
                     {
                         Line(vh, Position(slot, Math.Max(battle.Beat, at)), Position(slot, at + note.HoldBeats), 11, tint);
                         bool releaseParry = note.IsParry && lane.Phrase.ParryInput == ParryInputEdge.KeyUp;
-                        Diamond(vh, Position(slot, at + note.HoldBeats), releaseParry ? 11 : 7, releaseParry ? RunUI.Gold : Color.white);
+                        if (SteppedNoteTrack.InHorizon(at + note.HoldBeats - battle.Beat))
+                            Diamond(vh, Position(slot, at + note.HoldBeats), releaseParry ? 11 : 7, releaseParry ? RunUI.Gold : Color.white);
                     }
-                    Diamond(vh, p, 9 + 7 * (1 - Mathf.Clamp01((float)((at - battle.Beat) / LookAheadBeats))), tint);
+                    Diamond(vh, p, 9, tint);
                 }
             }
             // Hostile attacks travel from the enemy stage to the player in the left foreground.
@@ -62,8 +75,8 @@ namespace BBSB.Runtime.UI
             foreach (var attack in battle.Incoming)
             {
                 double delta = attack.Beat - battle.Beat;
-                if (delta > LookAheadBeats || delta < -.35 || attack.State == IncomingAttackState.Interrupted) continue;
-                float t = Mathf.Clamp01(1 - (float)(delta / LookAheadBeats));
+                if (delta > .5 || delta < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
+                float t = Mathf.Clamp01(1 - (float)(delta / .5));
                 var p = Vector2.Lerp(source, target, t);
                 Color tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
                 Line(vh, p, p + (source - target).normalized * 23, 5, tint);
@@ -71,12 +84,12 @@ namespace BBSB.Runtime.UI
             }
         }
         private Vector2 Position(int slot, double at) => Point(slot,
-            Mathf.Clamp01((float)((at - battle.Beat) / LookAheadBeats)));
+            (float)(SteppedNoteTrack.Distance(at - battle.Beat) / LookAheadBeats));
         private Vector2 Point(int slot, float distance)
         {
             Vector2 near = targets != null && slot < targets.Length && targets[slot] != null ?
-                (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(LanePoint(slot, 0));
-            return Vector2.Lerp(near, Pixel(LanePoint(slot, 1)), distance);
+                (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(LanePoint(slot, 0, battle.Lanes.Count));
+            return near + Vector2.up * (rectTransform.rect.height * .20f * distance);
         }
         private Vector2 Pixel(Vector2 normalized)
         { var r = rectTransform.rect; return new Vector2(r.xMin + r.width * normalized.x, r.yMin + r.height * normalized.y); }

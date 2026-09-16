@@ -6,6 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/SteppedNoteTrack.cs" />
     <ProjectReference Include="../Core/BBSB.Core.csproj" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/PlayerMotionTimeline.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/PlayerSquashStretch.cs" />

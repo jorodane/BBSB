@@ -11,6 +11,7 @@ namespace BBSB.Core
             Weapon("shield", "버클러", 45),
             Weapon("round-shield", "원형 방패", 50),
             Weapon("tower-shield", "대형 방패", 60),
+            Weapon("heater-shield", "Heater Shield", 45),
             Weapon("spear", "창", 50),
             Weapon("hammer", "해머", 55),
             Weapon("dagger", "단검", 40),

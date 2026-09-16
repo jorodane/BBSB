@@ -18,6 +18,7 @@ namespace BBSB.Runtime.UI
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
         private readonly List<StageActor> stageActors = new List<StageActor>();
+        private readonly List<TMP_Text> attackLabels = new List<TMP_Text>();
         private RectTransform modal;
         private static readonly string[] Keys = { "D", "F", "SPACE", "J", "K" };
 
@@ -47,6 +48,8 @@ namespace BBSB.Runtime.UI
             }
             hud = authored != null ? authored : FiveLaneHudBindings.CreateDefault(parent, ui.Font);
             hud.EnsureStageLayout();
+            hud.ConfigureLanes(battle.Lanes.Count);
+            hud.help.text = string.Join(" / ", new List<string>(Keys).GetRange(0, battle.Lanes.Count)) + "  ·  Tap / Hold  ·  Esc";
             StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art");
             var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .32f));
             // A prefab slot may already have an Image. Unity permits only one Graphic per
@@ -56,14 +59,14 @@ namespace BBSB.Runtime.UI
             tracks.Bind(battle, hud.judgmentPoints, hud.playerSlot, hud.monsterArea);
             hud.pause.onClick.AddListener(playback.Pause);
             hud.song.text = session.BattleMusic.Music.Name + "\n" + battle.Bpm + " BPM";
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < battle.Lanes.Count; i++)
             {
                 var weaponMesh = ui.Rect("Live weapon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
                 icons[i] = weaponMesh.gameObject.AddComponent<WeaponIconGraphic>();
                 icons[i].FitVisibleArtwork = true; icons[i].Bind(battle.Lanes[i].Weapon);
                 // The old gesture sockets described automatic responses. This screen shows the weapon's phrase instead.
                 foreach (var sockets in icons[i].GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
-                hud.laneLabels[i].text = Keys[i];
+                hud.laneLabels[i].text = Keys[i] + "\n" + battle.Lanes[i].Phrase.Name;
                 var input = hud.inputAreas[i].GetComponent<FiveLaneInputSurface>();
                 if (input == null) input = hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
                 input.Bind(playback, i);
@@ -91,6 +94,12 @@ namespace BBSB.Runtime.UI
                     appearance != null ? appearance.spriteReferenceHeight : 4, appearance != null ? appearance.displayScale : 1,
                     appearance != null ? appearance.displayOffset : Vector2.zero));
                 monsterIds.Add(plan.InstanceId);
+                var cue = ui.Label(hud.actors, "", 20, RunUI.Red);
+                cue.alignment = TextAlignmentOptions.Center;
+                float x0 = Mathf.Lerp(hud.monsterArea.anchorMin.x, hud.monsterArea.anchorMax.x, (float)i / count);
+                float x1 = Mathf.Lerp(hud.monsterArea.anchorMin.x, hud.monsterArea.anchorMax.x, (float)(i + 1) / count);
+                FiveLaneHudBindings.Place(cue.rectTransform, x0, .755f, x1, .81f);
+                attackLabels.Add(cue);
             }
         }
         private ActorPrefabView Actor(string name, RectTransform stage, int index, int count, GameObject prefab,
@@ -120,12 +129,14 @@ namespace BBSB.Runtime.UI
                 battle.Beat - battle.LastHitBeat < .5 ? "HIT" : "";
             hud.feedback.color = battle.IsGroggy ? RunUI.Gold : RunUI.Red;
             int latestSlot = 0;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < battle.Lanes.Count; i++)
             {
                 var lane = battle.Lanes[i];
                 if (lane.LastJudgedBeat > battle.Lanes[latestSlot].LastJudgedBeat) latestSlot = i;
                 hud.laneStatus[i].text = lane.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, lane.ReadyAtBeat - battle.Beat).ToString("0.0") :
-                    lane.Phase == PhraseLanePhase.Ready ? "READY" : lane.WaitingForParryRelease ? "HOLD → UP" : lane.Holding ? "HOLD" :
+                    lane.Phase == PhraseLanePhase.Ready ? (lane.Phrase.StartGridBeats == 1 ? "TAP ON BEAT" : "READY") :
+                    lane.WaitingForParryRelease ? "HOLD → UP" : lane.Holding ?
+                    "HOLD " + Math.Max(0, lane.NextBeat + lane.Phrase.Notes[lane.NextNote].HoldBeats - battle.Beat).ToString("0.0") :
                     "NOTE " + (lane.NextNote + 1) + "/" + lane.Phrase.Notes.Count +
                     (lane.Phrase.FinisherEvery > 0 ? " · " + (lane.CompletedPhrases % lane.Phrase.FinisherEvery + 1) + "/" + lane.Phrase.FinisherEvery : "");
                 hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
@@ -141,23 +152,40 @@ namespace BBSB.Runtime.UI
             if (recentAge < .5 && recent.LastGrade != RhythmGrade.Miss)
                 player.Sample("Base Layer.TapImpact", recentAge, .5f, false);
             else player.Sample("Base Layer.Idle", battle.Beat, 4, true);
+            double nearestAttack = double.PositiveInfinity;
             for (int i = 0; i < monsters.Count; i++)
             {
                 string state = battle.IsGroggy ? "Base Layer.Hit" : "Base Layer.Idle";
                 double age = battle.Beat;
+                double remaining = double.PositiveInfinity;
                 foreach (var attack in battle.Incoming)
                     if (attack.Definition.MonsterId == monsterIds[i] && attack.State == IncomingAttackState.Pending &&
-                        attack.Beat > battle.Beat && attack.Beat - battle.Beat <= 1)
-                    { state = "Base Layer.Attack"; age = 1 - (attack.Beat - battle.Beat); break; }
-                monsters[i].Sample(state, age, 1, state == "Base Layer.Idle");
+                        attack.Beat - battle.Beat >= -battle.HalfMissWindow && attack.Beat - battle.Beat <= 3)
+                    { remaining = Math.Max(0, attack.Beat - battle.Beat); break; }
+                nearestAttack = Math.Min(nearestAttack, remaining);
+                if (remaining <= 1) { state = "Base Layer.Attack"; age = 1 - remaining; }
+                bool animated = monsters[i].Sample(state, age, 1, state == "Base Layer.Idle");
+                attackLabels[i].text = double.IsPositiveInfinity(remaining) ? "" : remaining <= battle.PerfectWindow ? "ATTACK!" : "ATTACK " + remaining.ToString("0.0");
+                if (!animated)
+                {
+                    // Portrait-only enemies still telegraph the impact on the shared beat clock.
+                    float windup = remaining <= 1 ? 1 - (float)remaining : 0;
+                    stageActors[i + 1].Visual.localScale *= 1 + .06f * windup;
+                    stageActors[i + 1].Visual.anchoredPosition += Vector2.up * (12 * windup);
+                    monsters[i].RefreshSprites();
+                }
             }
+            hud.attackCue.text = countdown > 0 ? "" : double.IsPositiveInfinity(nearestAttack) ? "" :
+                nearestAttack <= battle.PerfectWindow ? "PARRY NOW" : "PARRY IN " + nearestAttack.ToString("0.0") + " BEATS";
+            hud.attackCue.color = nearestAttack <= .5 ? RunUI.Gold : RunUI.Red;
+            player.RefreshSprites();
             tracks.Refresh();
         }
         public void ShowPause(Action resume, Action leave)
         {
             HideModal();
             modal = ui.Modal(parent, "Five lane pause", "일시정지", resume, out var content);
-            ui.Label(content, "D · F · Space · J · K 또는 다섯 입력 영역을 사용해.\n파란 긴 박자 표시는 끝까지 유지해. 금빛 Hold 끝에서는 버튼을 떼어 방어해.", 22, null, 100);
+            ui.Label(content, hud.help.text + "\n단검은 정박마다, 방패는 최대 2박 유지.\n빨간 표시가 아래에 닿는 순간 방어해.", 22, null, 100);
             ui.Button(content, "이어하기", resume, primary: true);
             ui.Button(content, "준비 화면으로", leave);
         }
@@ -166,7 +194,7 @@ namespace BBSB.Runtime.UI
             HideModal();
             modal = ui.Modal(parent, "Five lane result", battle.Victory ? "STAGE CLEAR" : "GAME OVER", finish, out var content);
             ui.Label(content, "PERFECT " + battle.PerfectCount + "  ·  HALF " + battle.HalfMissCount + "  ·  MISS " + battle.MissCount, 24, null, 70);
-            ui.Label(content, "피해 " + battle.TotalDamage.ToString("0.#") + "  ·  방어 " + battle.TotalBlocked.ToString("0.#"), 22, null, 60);
+            ui.Label(content, "피해 " + battle.TotalDamage.ToString("0.#") + "  ·  방어 " + (battle.TotalBlocked + battle.TotalReduced).ToString("0.#"), 22, null, 60);
             ui.Button(content, battle.Victory ? "보상 받기" : "결과 보기", finish, primary: true);
         }
         public void HideModal()

@@ -10,6 +10,9 @@ namespace BBSB.Runtime.UI
         public RectTransform scenery, actors, tracks;
         public RectTransform playerSlot, monsterArea;
         public TextMeshProUGUI song, health, enemyHealth, beat, feedback, help;
+        public TextMeshProUGUI attackCue;
+        [Tooltip("Centre the short tracks for the number of equipped weapons. Disable to use custom prefab positions.")]
+        public bool arrangeEquippedLanes = true;
         public RectTransform playerFill, enemyFill;
         public Button pause;
         public RectTransform[] weaponRoots = new RectTransform[5];
@@ -45,6 +48,11 @@ namespace BBSB.Runtime.UI
             if (!TryValidate(out _)) return false;
             bool changed = false;
             var ui = new RunUI(song.font);
+            if (attackCue == null)
+            {
+                attackCue = Text(ui, transform, "", 24, .40f, .82f, .86f, .89f);
+                attackCue.color = RunUI.Red; changed = true;
+            }
             if (playerSlot == null)
             { playerSlot = ui.Rect("Player stage slot", actors); Place(playerSlot, .025f, .15f, .345f, .71f); changed = true; }
             if (monsterArea == null)
@@ -82,6 +90,25 @@ namespace BBSB.Runtime.UI
             }
             stageLayoutVersion = 1;
             return true;
+        }
+        public void ConfigureLanes(int count)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                bool active = i < count;
+                weaponRoots[i].gameObject.SetActive(active); judgmentPoints[i].gameObject.SetActive(active);
+                inputAreas[i].gameObject.SetActive(active); laneLabels[i].gameObject.SetActive(active);
+                laneStatus[i].gameObject.SetActive(active); laneResults[i].gameObject.SetActive(active);
+                if (!active || !arrangeEquippedLanes) continue;
+                float x = FiveLaneTrackGraphic.LanePoint(i, 0, count).x;
+                Place(judgmentPoints[i], x - .035f, .195f, x + .035f, .245f);
+                Place(laneLabels[i].rectTransform, x - .065f, .105f, x + .065f, .175f);
+                laneLabels[i].fontSize = 18;
+                Place(laneStatus[i].rectTransform, x - .065f, .065f, x + .065f, .10f);
+                Place(laneResults[i].rectTransform, x - .065f, .435f, x + .065f, .485f);
+                Place(inputAreas[i], x - .065f, .06f, x + .065f, .49f);
+            }
+            if (arrangeEquippedLanes) Place(feedback.rectTransform, .40f, .49f, .81f, .55f);
         }
         private static Vector2 WeaponPoint(int slot)
         {

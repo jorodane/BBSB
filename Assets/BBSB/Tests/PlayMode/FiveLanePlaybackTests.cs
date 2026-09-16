@@ -23,7 +23,7 @@ namespace BBSB.Tests
             yield return null;
         }
 
-        [UnityTest] public IEnumerator DefaultBootstrapOpensFiveLanesAndWaitsForHeldContactOnResume()
+        [UnityTest] public IEnumerator DefaultBootstrapOpensTwoEquippedLanesAndWaitsForHeldContactOnResume()
         {
             root = new GameObject("Five lane bootstrap"); root.AddComponent<RunBootstrap>();
             yield return null;
@@ -38,15 +38,23 @@ namespace BBSB.Tests
             Assert.IsNotNull(playback);
             Assert.IsTrue(playback.IsInitialized);
             yield return null; // Include a real Update/LateUpdate; constructor-only checks missed the reported failure.
-            Assert.AreEqual(5, playback.GetComponentsInChildren<FiveLaneInputSurface>().Length);
+            Assert.AreEqual(2, playback.GetComponentsInChildren<FiveLaneInputSurface>().Length);
             Assert.IsNotNull(playback.GetComponentInChildren<FiveLaneTrackGraphic>());
+            var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
+            Assert.IsNotNull(hud.attackCue);
+            for (int i = 2; i < 5; i++)
+            {
+                Assert.IsFalse(hud.inputAreas[i].gameObject.activeSelf);
+                Assert.IsFalse(hud.weaponRoots[i].gameObject.activeSelf);
+                Assert.DoesNotThrow(() => playback.SetPointer(i, true));
+            }
             var battle = playback.Battle;
-            battle.Press(3, 0); battle.Advance(.5);
+            battle.Press(1, 0); battle.Advance(.5);
             playback.Pause(); Assert.IsTrue(battle.IsPaused);
             playback.Continue(); Assert.IsTrue(playback.WaitingForHold); Assert.IsTrue(battle.IsPaused);
-            playback.SetPointer(3, true);
+            playback.SetPointer(1, true);
             Assert.IsFalse(playback.WaitingForHold); Assert.IsFalse(battle.IsPaused);
-            Assert.IsTrue(battle.Lanes[3].Holding); Assert.AreEqual(.5, battle.Beat);
+            Assert.IsTrue(battle.Lanes[1].Holding); Assert.AreEqual(.5, battle.Beat);
             Assert.AreSame(battle, presenter.Session.PhraseBattle);
         }
 
@@ -79,7 +87,7 @@ namespace BBSB.Tests
                 Assert.Greater(enemyRect.yMin, heroRect.yMin + size.y * .25f);
                 Assert.Greater(((RectTransform)hero.transform).rect.height * hero.transform.localScale.y, size.y * .40f);
                 Assert.AreEqual(new Vector2(.5f, 0), ((RectTransform)hero.transform).pivot, "Actor feet belong at the stage slot's bottom.");
-                for (int i = 0; i < 5; i++)
+                for (int i = 0; i < playback.Battle.Lanes.Count; i++)
                 {
                     var point = BoundsIn(screen, hud.judgmentPoints[i]);
                     Assert.Greater(point.center.x, heroRect.xMax);
@@ -89,7 +97,7 @@ namespace BBSB.Tests
                 Assert.Less(BoundsIn(screen, hud.health.rectTransform).yMax, heroRect.yMin);
                 Assert.Greater(BoundsIn(screen, hud.enemyFill).yMin, enemyRect.yMax);
             }
-            Assert.AreEqual(5, playback.GetComponentsInChildren<WeaponIconGraphic>().Length);
+            Assert.AreEqual(2, playback.GetComponentsInChildren<WeaponIconGraphic>().Length);
             Assert.AreEqual(1, playback.GetComponentsInChildren<FiveLaneTrackGraphic>().Length);
             LogAssert.NoUnexpectedReceived();
         }
@@ -204,6 +212,14 @@ namespace BBSB.Tests
             bool sprite = actor.GetComponentsInChildren<SpriteCanvasGraphic>().Any(g => g.enabled && g.Source != null && g.Source.sprite != null);
             bool image = actor.GetComponentsInChildren<Image>().Any(g => g.enabled && g.sprite != null);
             Assert.IsTrue(sprite || image, actor.name + " has no visible artwork.");
+            foreach (var graphic in actor.GetComponentsInChildren<SpriteCanvasGraphic>())
+            {
+                Assert.IsNotNull(graphic.canvasRenderer, "Canvas meshes need a live CanvasRenderer.");
+                graphic.Rebuild(CanvasUpdate.PreRender);
+                var mesh = new Mesh();
+                try { graphic.canvasRenderer.GetMesh(mesh); Assert.Greater(mesh.vertexCount, 0, "The sprite must submit geometry to the Canvas."); }
+                finally { Object.DestroyImmediate(mesh); }
+            }
         }
     }
 }

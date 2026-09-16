@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class SpriteCanvasGraphic : MaskableGraphic
     {
         public SpriteRenderer Source { get; private set; }

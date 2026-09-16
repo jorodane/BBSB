@@ -35,7 +35,7 @@ namespace BBSB.Tests
         public void SpritePrefabKeepsNativeRendererAndCreatesNonBlockingCanvasMesh()
         {
             var prefab = new GameObject("Prefab", typeof(SpriteRenderer));
-            var host = new GameObject("Host", typeof(RectTransform));
+            var host = new GameObject("Host", typeof(RectTransform), typeof(Canvas));
             var texture = new Texture2D(16, 32); var sprite = Sprite.Create(texture, new Rect(0, 0, 16, 32), Vector2.zero);
             try
             {
@@ -46,6 +46,11 @@ namespace BBSB.Tests
                 Assert.IsFalse(prefab.GetComponent<SpriteRenderer>().forceRenderingOff);
                 var mesh = host.GetComponentInChildren<SpriteCanvasGraphic>();
                 Assert.AreSame(sprite.texture, mesh.mainTexture); Assert.IsFalse(mesh.raycastTarget);
+                Assert.IsNotNull(mesh.canvasRenderer);
+                mesh.Rebuild(CanvasUpdate.PreRender);
+                var geometry = new Mesh();
+                try { mesh.canvasRenderer.GetMesh(geometry); Assert.Greater(geometry.vertexCount, 0); }
+                finally { Object.DestroyImmediate(geometry); }
                 Assert.IsFalse(host.GetComponent<CanvasGroup>().blocksRaycasts);
                 source.enabled = false; view.RefreshSprites(); Assert.IsFalse(mesh.enabled);
             }

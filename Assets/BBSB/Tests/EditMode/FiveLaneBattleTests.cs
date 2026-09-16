@@ -26,27 +26,32 @@ namespace BBSB.Tests
         [Test] public void FirstInputChoosesHalfBeatPhaseAndNotesContinueOnTheirOwnLane()
         {
             var b = Battle(); Tap(b, 0, .5); Tap(b, 4, 1); Tap(b, 0, 1.5);
-            Check.Equal(.5, b.Lanes[0].StartBeat); Check.Equal(1.0, b.Lanes[4].StartBeat);
+            Check.Equal(.5, b.Lanes[0].StartBeat); Check.Equal(2.0, b.Lanes[4].StartBeat);
             Check.Equal(2, b.Lanes[0].NextNote); Check.Equal(PhraseLanePhase.Ready, b.Lanes[1].Phase);
-            Tap(b, 4, 1.5); Tap(b, 4, 2); Tap(b, 0, 2.5);
+            Tap(b, 4, 2); Tap(b, 0, 2.5);
             Check.Equal(4.5, b.Lanes[0].StartBeat); Check.Equal(3.0, b.Lanes[4].StartBeat);
         }
-        [Test] public void HalfMissKeepsPhraseWhileAMissOnlyCoolsItsOwnWeapon()
+        [Test] public void MissPreservesTheRemainingPatternAndDoesNotAffectOtherWeapons()
         {
             var b = Battle(); Tap(b, 0, 0); Tap(b, 1, 0); Tap(b, 0, 1.20);
             Check.Equal(1, b.HalfMissCount); Check.Equal(PhraseLanePhase.Playing, b.Lanes[0].Phase);
             b.Advance(1.75);
-            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[1].Phase);
+            Check.Equal(PhraseLanePhase.Playing, b.Lanes[1].Phase);
+            Check.Equal(2, b.Lanes[1].NextNote); Check.True(b.Lanes[1].IsNoteVisible(2));
             Check.Equal(PhraseLanePhase.Playing, b.Lanes[0].Phase); Check.Equal(1000m, b.PlayerHealth);
+            Tap(b, 0, 2); Tap(b, 1, 3);
+            Check.Equal(18m, b.Lanes[1].DamageDealt);
+            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[1].Phase); Check.Equal(6.0, b.Lanes[1].ReadyAtBeat);
         }
         [Test] public void InputSpamCannotDamageOrRestartDuringCooldown()
         {
-            var b = Battle(); Tap(b, 0, 0); Tap(b, 0, .5);
-            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[0].Phase);
+            var b = Battle(); Tap(b, 4, 0); Tap(b, 4, .5);
+            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[4].Phase);
             decimal damage = b.TotalDamage;
-            for (double at = .6; at < 2.5; at += .1) Tap(b, 0, at);
+            for (double at = .6; at < 2.49; at += .1) Tap(b, 4, at);
             Check.Equal(damage, b.TotalDamage); Check.Equal(1, b.MissCount);
-            b.Advance(2.5); Tap(b, 0, 2.5); Check.Equal(damage + 8, b.TotalDamage);
+            b.Advance(2.5); Check.Equal(PhraseLanePhase.Ready, b.Lanes[4].Phase);
+            Tap(b, 4, 3); Check.Equal(damage + 6, b.TotalDamage);
         }
         [Test] public void HoldingKeyDoesNotAutomaticallyPlayRepeatedTapNotes()
         {
@@ -103,7 +108,7 @@ namespace BBSB.Tests
         }
         [Test] public void BuiltInShieldsHaveParryNotesAndRoundShieldUsesTwoFastCounters()
         {
-            Check.Equal(3, WeaponPhraseCatalog.ShieldIds.Count);
+            Check.Equal(4, WeaponPhraseCatalog.ShieldIds.Count);
             foreach (string id in WeaponPhraseCatalog.ShieldIds)
             {
                 var phrase = WeaponPhraseCatalog.Find(id);
@@ -225,17 +230,13 @@ namespace BBSB.Tests
             Check.Equal(40m, b.TotalBlocked); Check.Equal(20m, b.TotalDamage);
             Check.Equal(2, b.Lanes[2].CompletedPhrases); Check.Equal(0, b.MissCount);
         }
-        [Test] public void StartingShieldChoiceIsLockedAfterBattleStartsIncludingPause()
+        [Test] public void StarterPairIsFixedAndPauseKeepsTheSameEquipment()
         {
             var run = new RunSession(31, useFiveLaneCombat: true);
-            Check.False(run.SelectStartingShield("tower-shield"));
+            Check.Equal("dagger,heater-shield", string.Join(",", run.Weapons.Select(w => w.DefinitionId)));
             run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id);
-            Check.True(run.CanSelectStartingShield); Check.False(run.SelectStartingShield("sword"));
-            Check.True(run.SelectStartingShield("round-shield")); Check.True(run.SelectStartingShield("tower-shield"));
-            Check.Equal("tower-shield", run.Weapons[2].DefinitionId);
             var b = run.StartFiveLaneBattle(); b.Pause();
-            Check.Equal("tower-shield", b.Lanes[2].Weapon.DefinitionId);
-            Check.False(run.CanSelectStartingShield); Check.False(run.SelectStartingShield("shield"));
+            Check.Equal(2, b.Lanes.Count); Check.Equal("heater-shield", b.Lanes[1].Weapon.DefinitionId);
             Check.True(ReferenceEquals(b, run.StartFiveLaneBattle()));
         }
         [Test] public void ThirdTresilloFinishesAndInterruptsAttacksUntilGroggyEnds()
@@ -250,7 +251,9 @@ namespace BBSB.Tests
         [Test] public void HammerMissResetsThreePhraseProgress()
         {
             var b = Battle(); Hammer(b, 0); b.Advance(4.25);
-            Check.Equal(0, b.Lanes[1].CompletedPhrases); b.Advance(7.5); Hammer(b, 7.5);
+            Check.Equal(0, b.Lanes[1].CompletedPhrases);
+            Tap(b, 1, 5.5); Tap(b, 1, 7); Check.Equal(0, b.Lanes[1].CompletedPhrases);
+            b.Advance(10); Hammer(b, 10);
             Check.Equal(1, b.Lanes[1].CompletedPhrases); Check.False(b.IsGroggy);
         }
         [Test] public void SongLoopsKeepApplyingEnemyAttacksAndBoundHistory()
@@ -286,7 +289,7 @@ namespace BBSB.Tests
             {
                 var phrase = WeaponPhraseCatalog.Find(weapon.Id); Check.Equal(weapon.Id, phrase.WeaponId);
                 Check.True(phrase.Notes.Count > 0); Check.Equal(0.0, phrase.Notes[0].Beat);
-                Check.True(phrase.LengthBeats > phrase.Notes.Last().Beat + phrase.Notes.Last().HoldBeats);
+                Check.True(phrase.LengthBeats >= phrase.Notes.Last().Beat + phrase.Notes.Last().HoldBeats);
             }
         }
         [Test] public void InvalidClockAndLoadoutAreRejectedWithoutMutatingBattle()
@@ -302,10 +305,10 @@ namespace BBSB.Tests
             catch (ArgumentException) { invalid = true; }
             Check.True(invalid);
         }
-        [Test] public void NewSessionUsesFiveWeaponsAndPreservesBattleIdentityOnResume()
+        [Test] public void NewSessionUsesTwoWeaponsAndPreservesBattleIdentityOnResume()
         {
             var run = new RunSession(31, useFiveLaneCombat: true);
-            Check.Equal(string.Join(",", Equipment), string.Join(",", run.Weapons.Select(w => w.DefinitionId)));
+            Check.Equal("dagger,heater-shield", string.Join(",", run.Weapons.Select(w => w.DefinitionId)));
             run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id);
             var b = run.StartFiveLaneBattle(); Check.True(b != null); Check.True(run.StartRhythmRound() == null);
             b.Press(0, 0); b.Release(0, 0); b.Advance(1.25); b.Pause();

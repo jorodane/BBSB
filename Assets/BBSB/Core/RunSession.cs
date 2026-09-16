@@ -59,8 +59,8 @@ namespace BBSB.Core
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
-            // The new foundation exposes Tap, Hold, a parry and the three-phrase finisher immediately.
-            var startingWeapons = UsesFiveLaneCombat ? new[] { "sword", "hammer", "shield", "bow", "dagger" } :
+            // Learn the pulse and guard first; rewards fill the remaining three slots.
+            var startingWeapons = UsesFiveLaneCombat ? new[] { "dagger", "heater-shield" } :
                 new[] { "greatsword", "bell", "spear", "blade", "dagger" };
             foreach (var id in startingWeapons)
                 weapons.Add(new WeaponState(id));
@@ -154,21 +154,6 @@ namespace BBSB.Core
             }
             if (PhraseBattle.Finished) return null;
             PhraseBattle.Resume(); return PhraseBattle;
-        }
-
-        public bool CanSelectStartingShield => UsesFiveLaneCombat && ClearedStages == 0 && Phase == RunPhase.Stage &&
-            CurrentNode != null && CurrentNode.IsBattle && PhraseBattle == null;
-
-        public bool SelectStartingShield(string definitionId)
-        {
-            if (!CanSelectStartingShield) return false;
-            bool valid = false;
-            foreach (var id in WeaponPhraseCatalog.ShieldIds) if (id == definitionId) valid = true;
-            if (!valid) return false;
-            var previous = weapons[2];
-            weapons[2] = new WeaponState(definitionId, previous.Rarity, previous.Level);
-            BattleLoadout = new WeaponLoadout(BattlePlan, Weapons);
-            return true;
         }
 
         private void ApplyPhraseHealth(decimal remaining)
@@ -273,6 +258,8 @@ namespace BBSB.Core
             switch (content.Kind)
             {
                 case RewardKind.Weapon:
+                    if (slot == -1 && weapons.Count < RunRules.WeaponSlots)
+                    { weapons.Add(new WeaponState(content.Id, offer.Rarity)); break; }
                     if (!ValidSlot(slot)) return false;
                     weapons[slot] = new WeaponState(content.Id, offer.Rarity);
                     break;
