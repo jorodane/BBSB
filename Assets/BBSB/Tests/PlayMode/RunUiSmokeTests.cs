@@ -442,8 +442,9 @@ namespace BBSB.Tests
             foreach (var button in header.GetComponentsInChildren<Button>())
             {
                 var label = button.GetComponentInChildren<TextMeshProUGUI>();
-                label.canvasRenderer.cull = false; label.SetVerticesDirty(); label.Rebuild(CanvasUpdate.PreRender);
-                Assert.GreaterOrEqual(label.cachedTextGenerator.characterCountVisible, 2, "Header label disappeared: " + label.text);
+                label.canvasRenderer.cull = false; label.ForceMeshUpdate();
+                int visibleCharacters = label.textInfo.characterInfo.Take(label.textInfo.characterCount).Count(x => x.isVisible);
+                Assert.GreaterOrEqual(visibleCharacters, 2, "Header label disappeared: " + label.text);
             }
             foreach (var icon in arena.GetComponentsInChildren<WeaponIconGraphic>())
             {
