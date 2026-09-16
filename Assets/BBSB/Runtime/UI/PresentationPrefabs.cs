@@ -32,6 +32,9 @@ namespace BBSB.Runtime.UI
                     var result = Instantiate(entry.prefab, parent, false);
                     PrepareText(result.gameObject);
                     var root = (RectTransform)result.transform;
+                    // Screen geometry belongs to the host canvas. Older standalone Canvas prefabs
+                    // serialized a zero driven scale, which collapsed every child at runtime.
+                    root.localScale = Vector3.one;
                     root.anchorMin = Vector2.zero; root.anchorMax = Vector2.one;
                     root.offsetMin = root.offsetMax = Vector2.zero;
                     if (result.content == null) throw new InvalidOperationException(kind + " 화면의 Content 연결이 비어 있어.");

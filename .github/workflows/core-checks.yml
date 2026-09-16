@@ -5,6 +5,7 @@ on:
       - 'Assets/BBSB/Core/**'
       - 'Assets/BBSB/Runtime/**'
       - 'Assets/BBSB/Editor/**'
+      - 'Assets/BBSB/Resources/BBSB/Presentation/**'
       - 'Assets/BBSB/Tests/PlayMode/**'
       - 'Assets/BBSB/Tests/EditMode/**'
       - 'Tools/CoreChecks/**'
@@ -15,6 +16,7 @@ on:
       - 'Assets/BBSB/Core/**'
       - 'Assets/BBSB/Runtime/**'
       - 'Assets/BBSB/Editor/**'
+      - 'Assets/BBSB/Resources/BBSB/Presentation/**'
       - 'Assets/BBSB/Tests/PlayMode/**'
       - 'Assets/BBSB/Tests/EditMode/**'
       - 'Tools/CoreChecks/**'
@@ -33,6 +35,7 @@ jobs:
             Assets/BBSB/Core
             Assets/BBSB/Runtime
             Assets/BBSB/Editor
+            Assets/BBSB/Resources/BBSB/Presentation
             Assets/BBSB/Tests/PlayMode
             Assets/BBSB/Tests/EditMode
             Tools/CoreChecks
@@ -41,3 +44,5 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Run core regression checks
         run: dotnet run --project Tools/CoreChecks/BBSB.CoreChecks.csproj --configuration Release
+      - name: Check serialized UI screen geometry
+        run: python3 Tools/CoreChecks/check_ui_prefabs.py

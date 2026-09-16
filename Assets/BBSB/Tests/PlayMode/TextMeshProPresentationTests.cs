@@ -40,6 +40,79 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void ScreenPrefabsFillTheSafeAreaAtBothLandscapeRatios()
+        {
+            var library = Resources.Load<PresentationPrefabs>(PresentationPrefabs.ResourcePath);
+            Assert.IsNotNull(library);
+            var host = new GameObject("Screen geometry canvas", typeof(RectTransform), typeof(Canvas));
+            var canvas = host.GetComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
+            var hostRect = (RectTransform)host.transform; hostRect.localScale = Vector3.one;
+            var safe = new GameObject("Safe area", typeof(RectTransform)).GetComponent<RectTransform>();
+            safe.SetParent(hostRect, false); safe.anchorMin = new Vector2(.03f, .05f); safe.anchorMax = new Vector2(.97f, .95f);
+            safe.offsetMin = safe.offsetMax = Vector2.zero;
+            try
+            {
+                foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800) })
+                {
+                    hostRect.sizeDelta = size;
+                    foreach (var entry in library.screens)
+                    {
+                        var screen = library.Create(entry.kind, safe);
+                        var rect = (RectTransform)screen.transform;
+                        Assert.AreEqual(Vector3.one, rect.localScale, entry.kind.ToString());
+                        AssertWorldSize(rect, safe.rect.size);
+                        Assert.AreSame(canvas, screen.GetComponent<Canvas>().rootCanvas);
+                        if (entry.kind == RunScreenKind.Title)
+                            foreach (var label in screen.GetComponentsInChildren<TextMeshProUGUI>())
+                            {
+                                var corners = new Vector3[4]; label.rectTransform.GetWorldCorners(corners);
+                                Assert.Greater(Vector3.Distance(corners[0], corners[3]), 1, label.name + " collapsed horizontally");
+                                Assert.Greater(Vector3.Distance(corners[0], corners[1]), 1, label.name + " collapsed vertically");
+                            }
+                        Object.DestroyImmediate(screen.gameObject);
+                    }
+                }
+            }
+            finally { Object.DestroyImmediate(host); }
+        }
+
+        [Test]
+        public void LegacyZeroScaleScreenIsRecoveredWithoutOverwritingItsAuthoredChildren()
+        {
+            var library = ScriptableObject.CreateInstance<PresentationPrefabs>();
+            var host = new GameObject("Screen parent", typeof(RectTransform));
+            var source = new GameObject("Legacy screen", typeof(RectTransform), typeof(CanvasScreen));
+            try
+            {
+                var hostRect = (RectTransform)host.transform; hostRect.sizeDelta = new Vector2(1280, 720);
+                var sourceRect = (RectTransform)source.transform; sourceRect.localScale = Vector3.zero;
+                var template = source.GetComponent<CanvasScreen>();
+                template.content = new GameObject("Authored content", typeof(RectTransform)).GetComponent<RectTransform>();
+                template.content.SetParent(sourceRect, false);
+                template.content.anchorMin = new Vector2(.12f, .15f); template.content.anchorMax = new Vector2(.82f, .9f);
+                template.content.offsetMin = new Vector2(13, 17); template.content.offsetMax = new Vector2(-19, -23);
+                template.content.localScale = new Vector3(.8f, .9f, 1);
+                library.screens = new[] { new PresentationPrefabs.Screen { kind = RunScreenKind.Title, prefab = template } };
+                var screen = library.Create(RunScreenKind.Title, hostRect);
+                AssertWorldSize((RectTransform)screen.transform, hostRect.rect.size);
+                Assert.AreEqual(Vector3.zero, sourceRect.localScale, "The source prefab must stay untouched during instantiation.");
+                Assert.AreEqual(template.content.anchorMin, screen.content.anchorMin);
+                Assert.AreEqual(template.content.anchorMax, screen.content.anchorMax);
+                Assert.AreEqual(template.content.offsetMin, screen.content.offsetMin);
+                Assert.AreEqual(template.content.offsetMax, screen.content.offsetMax);
+                Assert.AreEqual(template.content.localScale, screen.content.localScale);
+            }
+            finally { Object.DestroyImmediate(host); Object.DestroyImmediate(source); Object.DestroyImmediate(library); }
+        }
+
+        private static void AssertWorldSize(RectTransform rect, Vector2 expected)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            Assert.AreEqual(expected.x, Vector3.Distance(corners[0], corners[3]), .1f, rect.name + " visible width");
+            Assert.AreEqual(expected.y, Vector3.Distance(corners[0], corners[1]), .1f, rect.name + " visible height");
+        }
+
+        [Test]
         public void ProjectTmpFontRendersKoreanAndDigits()
         {
             var font = PresentationFonts.Load();

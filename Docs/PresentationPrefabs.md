@@ -2,6 +2,8 @@
 
 Unity 재컴파일 후 기본 프리팹이 없는 경우 한 번 자동 생성한다. 수동 실행은 **BBSB → Presentation → Create missing Canvas and actor prefabs**다. 이미 존재하는 프리팹·설정은 덮어쓰지 않는다. 생성된 `.prefab`, `.asset`, `.meta`는 프로젝트 데이터이므로 Unity 작업 후 Git에 함께 올린다.
 
+기본 화면 배치도 프리팹에 들어 있으므로 처음부터 UI를 다시 구성할 필요는 없다. 화면이 생성됐는데 배경만 보이는 기존 문제는 화면 루트의 Scale이 `(0, 0, 0)`으로 저장된 것이 원인이었다. 기본 화면 13개의 루트를 Scale `(1, 1, 1)`, 기준 크기 `1280×720`으로 복구했다. 생성기는 고정 크기 Canvas 아래에서 프리팹을 만들며, 기존 카탈로그에 남은 0배 Scale 루트도 자동 복구한다. 이 복구는 자식 배치와 텍스트·버튼 연결을 유지한다.
+
 ## UI
 
 **BBSB → Presentation → Open prefab catalog**를 열면 화면과 반복 UI 요소의 참조가 연결되어 있다. 생성 위치는 `Assets/BBSB/Resources/BBSB/Presentation`이다.
@@ -13,6 +15,8 @@ Unity 재컴파일 후 기본 프리팹이 없는 경우 한 번 자동 생성�
 - PrimaryButton / SecondaryButton / TitleText / HeadingText / BodyText / CaptionText / Card: 반복 생성되는 항목의 외형을 수정한다. 버튼에는 Button과 자식 Text, 카드에는 VerticalLayoutGroup을 유지한다. 텍스트 내용·버튼 활성 상태·필요한 행 높이는 데이터가 정하고 폰트·색·버튼 배경·카드 내부 여백은 프리팹이 정한다.
 
 CanvasScreen의 Content는 화면 로직이 사용할 영역이다. 배경과 순수 장식은 Content 밖에 둘 수 있다. 동적으로 생성되는 패턴 그래프·무기 그림·지도 연결선의 내부 배치는 전용 표시 코드가 담당한다. 일시정지·보조 메뉴는 반복 UI 요소 프리팹을 사용하는 기존 동적 화면이다.
+
+실행 시 화면 최상위 RectTransform은 Safe area에 맞춰 늘어나며 Scale은 `(1, 1, 1)`을 사용한다. 화면 안의 배치·크기 조정은 Content와 그 아래 요소에서 한다. Canvas가 화면 해상도에 맞추는 최상위 값과 별개로, 자식의 앵커·여백·Scale은 작성한 설정을 유지한다.
 
 버튼의 게임 동작은 실행 시 AddListener로 연결한다. 프리팹 OnClick에는 같은 게임 동작을 중복 등록하지 않는다. 화면은 재입장마다 새 인스턴스를 사용하여 이전 화면의 이벤트를 재사용하지 않는다. 씬에는 기존 RunBootstrap을 유지한다. 코드 생성 UI는 카탈로그가 없을 때의 호환 경로로 남는다.
 
@@ -41,7 +45,7 @@ SpriteRenderer의 Sprite, Color, Flip X/Y, 자식 Transform, Sorting Layer/Order
 
 Animator는 하나를 사용한다. 루트 모션과 Animation Event는 끄고 노래 시각으로 상태를 샘플링한다. 판정·피해는 Animation Event나 StateMachineBehaviour에서 처리하지 않는다. 자동 Transition 없이 각 상태에 Clip을 연결하는 방식을 사용한다. 일시정지와 피격 정지는 기존 전투 시계를 따른다.
 
-검증 범위: 자동 CoreChecks는 핵심 회귀와 C# 문법을 검사한다. SpriteRenderer 표시·Canvas 배치·프리팹 생성·Animator 상호작용은 Unity Editor/PlayMode에서 별도 확인이 필요하다.
+검증 범위: 자동 CoreChecks는 핵심 회귀와 C# 문법을 검사하고, `python3 Tools/CoreChecks/check_ui_prefabs.py`는 저장된 화면 프리팹의 0배 Scale과 빈 기준 크기를 검사한다. SpriteRenderer 표시·Canvas 배치·프리팹 생성·Animator 상호작용은 Unity Editor/PlayMode에서 별도 확인이 필요하다.
 
 ## TextMeshPro로 편집하기
 
@@ -56,4 +60,4 @@ UI 텍스트와 모든 화면 바인딩은 이제 `TextMeshProUGUI`를 사용한
 
 폰트는 Dynamic / Multi Atlas 방식으로 필요한 글자를 생성한다([Unity 문서](https://docs.unity3d.com/Packages/com.unity.textmeshpro@3.2/manual/FontAssetsDynamicFonts.html)). 다만 `BBSBUI.otf` 자체가 현재 게임 문구의 부분집합이므로, 새로운 한글이 빠져 있다면 기존 `Tools/subset_font.py`로 원본 폰트를 갱신하거나 전체 한글을 포함한 TMP 폰트와 fallback을 지정해야 한다.
 
-검증: Unity Test Runner의 PlayMode `TextMeshProPresentationTests`에서 화면 바인딩, 버튼 텍스트, 한글·숫자 글리프, 사용자 TMP 스타일 유지 여부를 검사한다. 일반 Core checks는 Unity 소스 문법과 코어 로직만 검사하므로, 실제 글꼴 렌더링·줄바꿈은 Unity Game 뷰에서 확인한다.
+검증: Unity Test Runner의 PlayMode `TextMeshProPresentationTests`에서 화면 바인딩, 버튼 텍스트, 한글·숫자 글리프, 사용자 TMP 스타일 유지, 16:9/16:10 Safe area 배치, 기존 0배 Scale 화면의 복구와 자식 배치 보존을 검사한다. 일반 Core checks의 직렬화 검사로 실제 글꼴 렌더링·줄바꿈을 확인할 수는 없으므로 Unity Game 뷰에서 별도로 확인한다.

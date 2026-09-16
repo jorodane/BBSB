@@ -46,6 +46,8 @@ namespace BBSB.Editor
                 { entries.RemoveAll(entry => entry != null && entry.kind == kind); entries.Add(new PresentationPrefabs.Screen { kind = kind, prefab = CreateScreen(kind) }); }
             if (entries.Count != catalog.screens.Length || Array.Exists(catalog.screens, entry => entry != null && entry.prefab == null))
             { catalog.screens = entries.ToArray(); EditorUtility.SetDirty(catalog); }
+            foreach (var entry in catalog.screens)
+                if (entry != null && entry.prefab != null) RepairCollapsedScreen(entry.prefab);
             if (Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath) == null)
             {
                 var asset = ScriptableObject.CreateInstance<PlayerAuthoring>();
@@ -80,7 +82,17 @@ namespace BBSB.Editor
         }
         private static CanvasScreen CreateScreen(RunScreenKind kind)
         {
-            var root = Rect(kind + "Screen", null); root.sizeDelta = new Vector2(1280, 720);
+            // A standalone overlay Canvas drives its RectTransform from the editor's current
+            // display, which may be zero during import. Build beneath a fixed-size Canvas instead.
+            var preview = Rect("Screen prefab authoring canvas", null);
+            preview.gameObject.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            preview.localScale = Vector3.one; preview.sizeDelta = new Vector2(1280, 720);
+            try { return CreateScreenContent(kind, preview); }
+            finally { UnityEngine.Object.DestroyImmediate(preview.gameObject); }
+        }
+        private static CanvasScreen CreateScreenContent(RunScreenKind kind, Transform preview)
+        {
+            var root = Rect(kind + "Screen", preview); root.sizeDelta = new Vector2(1280, 720);
             root.gameObject.AddComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = root.gameObject.AddComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280, 720); scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
@@ -143,7 +155,21 @@ namespace BBSB.Editor
                 b.enemyFill = Bar("Enemy health", hud, .55f, .755f, .85f, .77f);
                 b.menu = Button("Menu", hud, "메뉴"); Place(b.menu, .89f, .87f, .98f, .97f);
             }
-            var prefab = Save(root.gameObject, kind + "Screen").GetComponent<CanvasScreen>(); UnityEngine.Object.DestroyImmediate(root.gameObject); return prefab;
+            return Save(root.gameObject, kind + "Screen").GetComponent<CanvasScreen>();
+        }
+        private static void RepairCollapsedScreen(CanvasScreen screen)
+        {
+            var root = (RectTransform)screen.transform;
+            if (root.localScale != Vector3.zero) return;
+            // Repair only the known invalid root state; retain content, controls and bindings.
+            root.localScale = Vector3.one;
+            if (root.rect.width <= 0 || root.rect.height <= 0)
+            {
+                root.anchorMin = root.anchorMax = root.pivot = new Vector2(.5f, .5f);
+                root.anchoredPosition = Vector2.zero; root.sizeDelta = new Vector2(1280, 720);
+            }
+            EditorUtility.SetDirty(root);
+            PrefabUtility.SavePrefabAsset(screen.gameObject);
         }
         private static RectTransform Rect(string name, Transform parent)
         { var r = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>(); if (parent != null) r.SetParent(parent, false); return r; }
