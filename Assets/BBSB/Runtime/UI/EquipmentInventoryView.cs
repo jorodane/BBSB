@@ -22,6 +22,9 @@ namespace BBSB.Runtime.UI
             grid.spacing = new Vector2(10, 10);
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             size = RunUI.Size((RectTransform)transform, CardHeight, 1);
+            // The viewport controls the width, including when a wider window shrinks.
+            // GridLayoutGroup's previous cell widths must not become the new minimum.
+            size.minWidth = size.preferredWidth = 0;
             var sets = WeaponPhraseAuthoring.LoadSetsFor(session.OwnedWeapons);
             for (int i = 0; i < session.OwnedWeapons.Count; i++)
             {

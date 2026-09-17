@@ -154,6 +154,14 @@ namespace BBSB.Tests
                 cards[0].GetComponentsInChildren<TMP_Text>().Single(t => t.name == "Weapon short description").text);
             var scroll = inventory.GetComponentInParent<ScrollRect>();
             Assert.Greater(scroll.content.rect.height, scroll.viewport.rect.height);
+            var scaler = inventory.GetComponentInParent<CanvasScaler>();
+            var resolution = scaler.referenceResolution;
+            scaler.referenceResolution = resolution * 1.5f;
+            yield return null; yield return null; Canvas.ForceUpdateCanvases();
+            scaler.referenceResolution = resolution;
+            yield return null; yield return null; Canvas.ForceUpdateCanvases();
+            Assert.That(((RectTransform)inventory.transform).rect.width,
+                Is.EqualTo(scroll.viewport.rect.width).Within(.1f), "Cards must shrink with the viewport after resizing.");
             scroll.StopMovement(); scroll.verticalNormalizedPosition = .42f;
             var board = root.GetComponentInChildren<EquipmentPlacementView>();
             Assert.IsNull(board.GetComponentInParent<ScrollRect>());
