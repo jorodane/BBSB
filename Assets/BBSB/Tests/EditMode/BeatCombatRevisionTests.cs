@@ -11,7 +11,7 @@ namespace BBSB.Tests
     public sealed class BeatCombatRevisionTests
     {
         private static FiveLaneBattle Battle(params BeatAttack[] attacks) => new FiveLaneBattle(
-            new[] { new WeaponState("dagger"), new WeaponState("heater-shield") }, 120, 32, attacks, new StageHealth(10000), 100, 100);
+            new[] { new WeaponState("dagger", WeaponAttribute.Dual), new WeaponState("heater-shield", WeaponAttribute.Dual) }, 120, 32, attacks, new StageHealth(10000), 100, 100);
         private static void Tap(FiveLaneBattle b, int slot, double beat) { b.Press(slot, beat); b.Release(slot, beat); }
 
         [Test] public void DaggerCreatesExactlyOneNoteTwoBeatsAfterSuccess()
@@ -77,7 +77,7 @@ namespace BBSB.Tests
         {
             // A hold with no parry distinguishes mitigation from the separate late-parry window.
             var phrase = new WeaponPhrase("heater-shield", "guard", "", 2,
-                new[] { new WeaponPhraseNote(0, 0, 2) }, repeat: false, startGridBeats: 0,
+                new[] { new WeaponPhraseNote(0, 0, 2) }, repeat: false,
                 holdDamageReduction: .5m, releaseEndsPhrase: true, completionCooldownBeats: 2);
             var b = new FiveLaneBattle(new[] { new WeaponState("heater-shield") }, 120, 32,
                 new[] { new BeatAttack("a", .5, 10) }, new StageHealth(100), 100, 100, new[] { phrase });

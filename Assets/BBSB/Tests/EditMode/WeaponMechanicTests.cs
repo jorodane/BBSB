@@ -14,7 +14,7 @@ namespace BBSB.Tests
             new FiveLaneBattle(placements.Select(p => p.Weapon).ToArray(), 120, 32, Array.Empty<BeatAttack>(),
                 new StageHealth(10000), 100, 100, placements: placements,
                 extensions: InputExtensions.Left | InputExtensions.Right);
-        private static WeaponPlacement Item(string id, params int[] slots) => new WeaponPlacement(new WeaponState(id), slots);
+        private static WeaponPlacement Item(string id, params int[] slots) => new WeaponPlacement(new WeaponState(id, WeaponAttribute.Dual), slots);
         private static void Tap(FiveLaneBattle battle, int slot, double beat)
         { battle.Press(slot, beat); battle.Release(slot, beat); }
 
@@ -130,7 +130,7 @@ namespace BBSB.Tests
         {
             var sparse = Battle(Item("dagger", 0), Item("spirit-bell", 2), Item("bow", 4));
             Tap(sparse, 2, 0); Check.Equal(0, sparse.ScheduledStarts.Count);
-            var b = Battle(Item("spirit-bell", 0), Item("staff", 1, 2), Item("spirit-bell", 3));
+            var b = Battle(Item("spirit-bell", 0), Item("staff", 1, 2), new WeaponPlacement(new WeaponState("spirit-bell", WeaponAttribute.Light), 3));
             Tap(b, 0, 0); Tap(b, 3, 0); Check.Equal(1, b.ScheduledStarts.Count);
             b.Advance(1); Check.Equal(0, b.LaneAt(1).StartOffset); Check.Equal(0m, b.TotalDamage);
         }
@@ -139,7 +139,7 @@ namespace BBSB.Tests
         {
             var left = Battle(Item("staff", 5, 0), Item("spirit-bell", 1)); Tap(left, 1, 0); left.Advance(1);
             Check.Equal(1, left.Lanes[0].StartOffset); Check.Equal(0, left.Lanes[0].Slot);
-            var right = Battle(Item("staff", 4, 6), Item("spirit-bell", 3)); Tap(right, 3, 0); right.Advance(1);
+            var right = Battle(Item("staff", 4, 6), new WeaponPlacement(new WeaponState("spirit-bell", WeaponAttribute.Light), 3)); Tap(right, 3, 0); right.Advance(1);
             Check.Equal(0, right.Lanes[0].StartOffset); Check.Equal(4, right.Lanes[0].Slot);
             var loop = Battle(Item("dagger", 0), Item("spirit-bell", 1)); Tap(loop, 0, 0); Tap(loop, 1, 0); loop.Advance(1);
             Check.Equal(ScheduledStartState.Skipped, loop.ScheduledStarts.Single().State);
@@ -181,7 +181,7 @@ namespace BBSB.Tests
 
         [Test] public void NeighborBellsRequireInputAndDoNotCreateAnAutomaticFeedbackLoop()
         {
-            var b = Battle(Item("spirit-bell", 0), Item("spirit-bell", 1)); Tap(b, 0, 0);
+            var b = Battle(Item("spirit-bell", 0), new WeaponPlacement(new WeaponState("spirit-bell", WeaponAttribute.Light), 1)); Tap(b, 0, 0);
             b.Advance(10); Check.Equal(1, b.PerfectCount); Check.Equal(1, b.MissCount);
             Check.Equal(0, b.ScheduledStarts.Count); Check.Equal(0m, b.TotalDamage);
         }

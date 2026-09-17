@@ -46,7 +46,7 @@ namespace BBSB.Runtime.UI
                 artwork.FitVisibleArtwork = true; artwork.Bind(weapon);
                 foreach (var sockets in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
 
-                var name = Caption(ui, card, ContentCatalog.Find(weapon.DefinitionId).Name + " +" + weapon.Level, 21, RunUI.TextColor);
+                var name = Caption(ui, card, weapon.DisplayName + " +" + weapon.Level, 21, RunUI.TextColor);
                 RunUI.Overlay(name.rectTransform, new Vector2(0, 1), Vector2.one, new Vector2(78, -34), new Vector2(-10, -8));
                 var rarity = Caption(ui, card, WeaponRarities.Name(weapon.Rarity) + " · " + weapon.RequiredLanes + "라인", 17,
                     WeaponIconGraphic.RarityColor(weapon.Rarity));
@@ -56,7 +56,7 @@ namespace BBSB.Runtime.UI
                 var binding = Caption(ui, card, placement == null ? "미배치" : string.Join(" + ", keys), 17,
                     placement == null ? RunUI.Muted : RunUI.Teal);
                 RunUI.Overlay(binding.rectTransform, new Vector2(0, 1), Vector2.one, new Vector2(78, -76), new Vector2(-10, -56));
-                var hint = Caption(ui, card, ShortHint(sets[i].Starts[0]), 17, RunUI.Muted);
+                var hint = Caption(ui, card, AttributeHint(weapon, sets[i]), 17, RunUI.Muted);
                 hint.name = "Weapon short description"; hint.textWrappingMode = TextWrappingModes.Normal;
                 hint.maxVisibleLines = 2;
                 RunUI.Overlay(hint.rectTransform, Vector2.zero, new Vector2(1, 0), new Vector2(10, 6), new Vector2(-10, 58));
@@ -74,13 +74,22 @@ namespace BBSB.Runtime.UI
             return text;
         }
 
+        private static string AttributeHint(WeaponState weapon, WeaponPhraseSet set)
+        {
+            if ((weapon.Attribute == WeaponAttribute.Dual || weapon.Attribute == WeaponAttribute.Chaos) &&
+                !ReferenceEquals(set.LightStarts[0], set.DarkStarts[0]))
+                return "빛: " + ShortHint(set.LightStarts[0]) + "\n어둠: " + ShortHint(set.DarkStarts[0]);
+            string hint = weapon.Attribute == WeaponAttribute.Chaos ?
+                set.Chaos.MinimumBeats + "박 유지 후 전환 · 효과 ×" + set.Chaos.EffectMultiplier : WeaponAttributes.Hint(weapon.Attribute);
+            return hint + "\n" + ShortHint(set.For(0, weapon.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light));
+        }
         private static string ShortHint(WeaponPhrase phrase)
         {
-            if (phrase.Repeat && phrase.Notes.Count == 1)
-                return phrase.LengthBeats.ToString("0.##") + "박 간격 · 성공 시 반복";
             // Authored patterns retain their own descriptions instead of inheriting
             // a summary for a different version of that weapon.
             if (!ReferenceEquals(phrase, WeaponPhraseCatalog.Find(phrase.WeaponId))) return phrase.Hint;
+            if (phrase.Repeat && phrase.Notes.Count == 1)
+                return phrase.LengthBeats.ToString("0.##") + "박 간격 · 성공 시 반복";
             switch (phrase.WeaponId)
             {
                 case "staff": return "시작 쪽 반박 2회 입력 → 반대쪽 1박 홀드";

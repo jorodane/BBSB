@@ -17,6 +17,7 @@ namespace BBSB.Core
     [Serializable] public sealed class StartingWeaponBinding
     {
         public string key, weaponId;
+        public WeaponAttribute attribute;
         public int lanes, offset;
         public bool equipped;
     }
@@ -48,7 +49,7 @@ namespace BBSB.Core
             for (int i = 0; i < Character.StartingWeapons.Count; i++)
             {
                 var starter = Character.StartingWeapons[i]; var placement = Equipment.PlacementOf(OwnedWeapons[i]);
-                result.bindings.Add(new StartingWeaponBinding { key = starter.Key, weaponId = starter.WeaponId,
+                result.bindings.Add(new StartingWeaponBinding { key = starter.Key, weaponId = starter.WeaponId, attribute = starter.Attribute,
                     lanes = starter.RequiredLanes, equipped = placement != null, offset = placement?.Offset ?? 0 });
             }
             return result;
@@ -57,7 +58,7 @@ namespace BBSB.Core
         internal static void Populate(WeaponEquipment equipment, RunCharacterDefinition character, StartingLoadoutPreset preset)
         {
             equipment.Reset();
-            foreach (var starter in character.StartingWeapons) equipment.Acquire(new WeaponState(starter.WeaponId));
+            foreach (var starter in character.StartingWeapons) equipment.Acquire(new WeaponState(starter.WeaponId, starter.Attribute));
             var saved = new Dictionary<string, StartingWeaponBinding>(StringComparer.Ordinal);
             var duplicates = new HashSet<string>(StringComparer.Ordinal);
             if (preset != null && preset.characterId == character.Id && preset.bindings != null)
@@ -73,7 +74,7 @@ namespace BBSB.Core
             for (int i = 0; i < character.StartingWeapons.Count; i++)
             {
                 var starter = character.StartingWeapons[i];
-                if (!saved.TryGetValue(starter.Key, out var binding) || binding.weaponId != starter.WeaponId || binding.lanes != starter.RequiredLanes)
+                if (!saved.TryGetValue(starter.Key, out var binding) || binding.weaponId != starter.WeaponId || binding.lanes != starter.RequiredLanes || binding.attribute != starter.Attribute)
                 { useDefault.Add(i); continue; }
                 if (binding.equipped && !TryFreePlacement(equipment, equipment.Owned[i], binding.offset)) useDefault.Add(i);
             }

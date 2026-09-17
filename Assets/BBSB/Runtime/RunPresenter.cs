@@ -389,8 +389,9 @@ namespace BBSB.Runtime
                 var set = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Patterns : sets[i];
                 for (int offset = 0; offset < placement.Slots.Count; offset++)
                 {
-                    var phrase = set.Starts[offset];
-                    ui.Label(list, InputKeys[placement.Slots[offset]] + "   " + phrase.Name + "  +" + Session.Weapons[i].Level + "\n" + phrase.Hint, 22, null, 72);
+                    var weapon = Session.Weapons[i];
+                    var phrase = set.For(offset, weapon.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light);
+                    ui.Label(list, InputKeys[placement.Slots[offset]] + "   " + weapon.DisplayName + "  +" + Session.Weapons[i].Level + "\n" + phrase.Hint, 22, null, 72);
                 }
             }
             ui.Label(list, "장착 " + Session.Weapons.Count + " / " + Session.Equipment.Capacity + "개  ·  사용 라인 " + Session.Equipment.OccupiedLaneCount + " / " + Session.Equipment.AvailableLaneCount + "\n최대 3박 앞까지 표시해. 획득한 무기는 편성에서 원하는 위치에 배치해.", 20, RunUI.Muted, 80);
@@ -577,8 +578,8 @@ namespace BBSB.Runtime
                 int index = i; var offer = Session.Offers[i]; var definition = offer.Content;
                 var card = ui.Card(body, 18);
                 string category = definition.Kind == RewardKind.Weapon ? "무기" : definition.Kind == RewardKind.Item ? "아이템" : "증강";
-                ui.Label(card, category + "  /  " + definition.Name, 28, RunUI.Gold, 44);
-                if (definition.Kind == RewardKind.Weapon) DrawWeaponSummary(card, new WeaponState(definition.Id, offer.Rarity));
+                ui.Label(card, category + "  /  " + (definition.Kind == RewardKind.Weapon && Session.UsesFiveLaneCombat ? WeaponAttributes.Name(offer.Attribute) + " " : "") + definition.Name, 28, RunUI.Gold, 44);
+                if (definition.Kind == RewardKind.Weapon) DrawWeaponSummary(card, new WeaponState(definition.Id, offer.Rarity, attribute: offer.Attribute));
                 else ui.Label(card, definition.Description, 22, RunUI.Muted, 78);
                 bool enabled = !offer.Purchased && (!shop || Session.Gold >= offer.Price);
                 string label = offer.Purchased ? "구매 완료" : shop ? offer.Price + " G  ·  구매" : "선택";
@@ -597,7 +598,8 @@ namespace BBSB.Runtime
 
         private void GrantOffer(int index, int slot)
         {
-            string name = Session.Offers[index].Content.Name;
+            var selected = Session.Offers[index];
+            string name = (selected.Content.Kind == RewardKind.Weapon && Session.UsesFiveLaneCombat ? WeaponAttributes.Name(selected.Attribute) + " " : "") + selected.Content.Name;
             bool success = Session.Phase == RunPhase.Reward ? Session.ChooseReward(index, slot) : Session.Buy(index, slot);
             if (success) { pendingOffer = -1; notice = name + " 획득!"; Render(); }
         }
@@ -616,7 +618,7 @@ namespace BBSB.Runtime
             var columnSize = columns.GetComponent<LayoutElement>();
             columnSize.minHeight = 0; columnSize.preferredHeight = -1; columnSize.flexibleHeight = 1;
             var incoming = ReplacementColumn(columns, "Incoming weapon", "획득할 무기", 1);
-            var candidate = new WeaponState(offer.Content.Id, offer.Rarity);
+            var candidate = new WeaponState(offer.Content.Id, offer.Rarity, attribute: offer.Attribute);
             var incomingCard = ui.Card(incoming, 16); incomingCard.name = "Incoming weapon details";
             ui.Label(incomingCard, WeaponRarities.Name(candidate.Rarity) + " " + offer.Content.Name + " +" + candidate.Level,
                 24, WeaponIconGraphic.RarityColor(candidate.Rarity), 44);
@@ -804,9 +806,11 @@ namespace BBSB.Runtime
             {
                 foreach (var sockets in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
                 var patterns = WeaponPhraseAuthoring.LoadSetsFor(new[] { state })[0];
-                var phrase = patterns.Starts[0];
-                ui.Label(row, phrase.Name + "\n" + phrase.LengthBeats + "박 · Tap / Hold", 23, RunUI.Teal, 100);
-                ui.Label(parent, phrase.Hint, 21, RunUI.Muted, 66);
+                var phrase = patterns.For(0, state.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light);
+                ui.Label(row, state.DisplayName + "\n" + phrase.LengthBeats + "박 · Tap / Hold", 23, RunUI.Teal, 100);
+                ui.Label(parent, WeaponAttributes.Hint(state.Attribute) + "\n" + phrase.Hint, 21, RunUI.Muted, 66);
+                if ((state.Attribute == WeaponAttribute.Dual || state.Attribute == WeaponAttribute.Chaos) && !ReferenceEquals(patterns.LightStarts[0], patterns.DarkStarts[0]))
+                    ui.Label(parent, "어둠 · " + patterns.DarkStarts[0].Hint, 21, RunUI.Muted, 66);
                 for (int offset = 1; offset < patterns.Starts.Count; offset++)
                     ui.Label(parent, "시작 위치 " + (offset + 1) + " · " + patterns.Starts[offset].Name + "\n" + patterns.Starts[offset].Hint, 21, RunUI.Muted, 66);
                 ui.Label(parent, "필요한 라인 " + state.RequiredLanes + "개 · 장착 수 1개", 20, RunUI.Muted, 38);
@@ -860,6 +864,6 @@ namespace BBSB.Runtime
             return WeaponLabel(Session.Weapons[index]);
         }
         private static string WeaponLabel(WeaponState weapon) =>
-            WeaponRarities.Name(weapon.Rarity) + " " + ContentCatalog.Find(weapon.DefinitionId).Name + " +" + weapon.Level;
+            WeaponRarities.Name(weapon.Rarity) + " " + weapon.DisplayName + " +" + weapon.Level;
     }
 }

@@ -47,7 +47,7 @@ namespace BBSB.Runtime.UI
                 baseColors[slot] = !unlocked ? RunUI.Ink : occupant == null ? RunUI.Hex("263348") : RunUI.Hex("36545C");
                 cells[slot] = ui.Background(rect, baseColors[slot]);
                 string label = BattleInputLayout.Key(slot) + "\n" + (!unlocked ? "잠김" : occupant == null ? "비어 있음" :
-                    ContentCatalog.Find(occupant.Weapon.DefinitionId).Name);
+                    occupant.Weapon.DisplayName);
                 var text = ui.Label(rect, label, 21, unlocked ? RunUI.TextColor : RunUI.Muted);
                 text.fontSize = 21; text.alignment = TextAlignmentOptions.Center; text.raycastTarget = false;
                 RunUI.Stretch(text.rectTransform, 4); column++;
@@ -73,7 +73,7 @@ namespace BBSB.Runtime.UI
             if (!CanSelect(inventoryIndex)) return;
             selected = inventoryIndex;
             var weapon = session.OwnedWeapons[selected];
-            status.text = ContentCatalog.Find(weapon.DefinitionId).Name + " · " + weapon.RequiredLanes + "라인의 중심을 놓아줘. 겹치는 무기는 가방으로 돌아가.";
+            status.text = weapon.DisplayName + " · " + weapon.RequiredLanes + "라인의 중심을 놓아줘. 겹치는 무기는 가방으로 돌아가.";
         }
         private bool CanSelect(int index) => session != null && session.CanEditEquipment && index >= 0 && index < session.OwnedWeapons.Count;
         public void BeginWeaponDrag(int index, PointerEventData data, bool fromBoard = false)
@@ -92,7 +92,7 @@ namespace BBSB.Runtime.UI
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)ghost.parent, data.position, data.pressEventCamera, out var local))
                 ghost.anchoredPosition = local;
             ghost.sizeDelta = new Vector2(area.rect.width / 7 * weapon.RequiredLanes - 6, area.rect.height * .65f);
-            ghostLabel.text = ContentCatalog.Find(weapon.DefinitionId).Name + " · " + weapon.RequiredLanes + "라인";
+            ghostLabel.text = weapon.DisplayName + " · " + weapon.RequiredLanes + "라인";
             UpdatePreview(data.position, data.pressEventCamera, dragFromBoard);
         }
         private bool CenterAt(Vector2 screen, Camera camera, out double center)
@@ -129,7 +129,7 @@ namespace BBSB.Runtime.UI
                 PreviewUnequip = true; ghostImage.color = RunUI.Red;
                 unequipImage.color = RunUI.Hex("603D4B"); status.color = RunUI.TextColor;
                 status.text = "놓으면 장착 해제 · 무기는 가방에 남아.";
-                ghostLabel.text = ContentCatalog.Find(session.OwnedWeapons[selected].DefinitionId).Name + " · 장착 해제";
+                ghostLabel.text = session.OwnedWeapons[selected].DisplayName + " · 장착 해제";
                 return;
             }
             if (!CenterAt(screen, camera, out var center))
@@ -141,7 +141,7 @@ namespace BBSB.Runtime.UI
             Color tint = !PreviewValid ? RunUI.Red : replaced > 0 ? RunUI.Gold : RunUI.Teal;
             foreach (int slot in placement.Slots) cells[slot].color = tint;
             tint.a = .78f; ghostImage.color = tint;
-            status.text = !PreviewValid ? "잠긴 라인 또는 장착 한도를 확인해줘. 기존 배치는 유지돼." :
+            status.text = !PreviewValid ? "잠긴 라인·장착 한도·같은 속성의 동일 무기 중복을 확인해줘." :
                 replaced > 0 ? "놓으면 배치돼. 겹치는 무기 " + replaced + "개는 가방으로 돌아가." : "놓으면 이 위치에 배치돼.";
         }
         public void EndWeaponDrag(PointerEventData data)

@@ -13,6 +13,11 @@ source = Path(sys.argv[1])
 font = TTFont(source)
 text = ''.join(p.read_text(encoding='utf-8') for p in (root / 'Assets/BBSB').rglob('*.cs'))
 characters = set(range(0x20, 0x7f)) | set(map(ord, text)) | {0x00d7, 0x00b7, 0x2192}
+# Keep glyphs already shipped in the subset, including text stored in prefabs/assets.
+previous = root / 'Assets/BBSB/Resources/BBSB/Fonts/BBSBUI.otf'
+if previous.exists():
+    with TTFont(previous) as shipped:
+        characters.update(shipped.getBestCmap())
 options = subset.Options()
 options.name_IDs = ['*']
 options.name_legacy = True

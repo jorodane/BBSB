@@ -21,6 +21,7 @@ namespace BBSB.Runtime
         {
             [Tooltip("Stable key within this character. Keep it when reordering; duplicates of a weapon need different keys.")]
             public string key, weaponId;
+            public WeaponAttribute attribute;
             public bool equipped = true;
             [Tooltip("Leftmost physical line: D=0, F=1, Space=2, J=3, K=4. S/L remain locked at run start.")]
             public int defaultOffset;
@@ -31,7 +32,7 @@ namespace BBSB.Runtime
             foreach (var starter in startingWeapons ?? Array.Empty<Starter>())
             {
                 if (starter == null) throw new ArgumentException("Null starting weapon.");
-                entries.Add(new StartingWeaponDefinition(starter.key, starter.weaponId, starter.equipped ? (int?)starter.defaultOffset : null));
+                entries.Add(new StartingWeaponDefinition(starter.key, starter.weaponId, starter.equipped ? (int?)starter.defaultOffset : null, starter.attribute));
             }
             return new RunCharacterDefinition(characterId, entries);
         }

@@ -44,7 +44,7 @@ namespace BBSB.Tests
         [Test] public void StableStarterKeysSurviveReorderingAndDuplicateWeaponTypes()
         {
             var left = new StartingWeaponDefinition("first", "dagger", 0);
-            var right = new StartingWeaponDefinition("second", "dagger", 1);
+            var right = new StartingWeaponDefinition("second", "dagger", 1, WeaponAttribute.Dark);
             var character = new RunCharacterDefinition("twins", new[] { left, right });
             var draft = new StartingLoadout(character); draft.EquipWeaponAtCenter(0, 4); draft.EquipWeaponAtCenter(1, 2);
             var reordered = new RunCharacterDefinition("twins", new[] { right, left });

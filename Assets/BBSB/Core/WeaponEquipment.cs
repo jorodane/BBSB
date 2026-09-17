@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BBSB.Core
 {
@@ -96,7 +97,10 @@ namespace BBSB.Core
             var previous = PlacementOf(placement.Weapon);
             foreach (int slot in placement.Slots)
                 if (!IsAvailable(slot)) return false;
-            return equipped.Count - DisplacedBy(placement).Count + (previous == null ? 1 : 0) <= Capacity;
+            var displaced = DisplacedBy(placement);
+            foreach (var other in placements)
+                if (!ReferenceEquals(other.Weapon, placement.Weapon) && other.Weapon.SameVariant(placement.Weapon) && !displaced.Contains(other)) return false;
+            return equipped.Count - displaced.Count + (previous == null ? 1 : 0) <= Capacity;
         }
         public IReadOnlyList<WeaponPlacement> DisplacedBy(WeaponPlacement placement)
         {
@@ -133,6 +137,7 @@ namespace BBSB.Core
             else
             {
                 var outgoing = a ?? b; var incoming = a == null ? first : second;
+                if (!CanPlace(new WeaponPlacement(incoming, Copy(outgoing.Slots)))) return false;
                 int index = placements.IndexOf(outgoing);
                 placements[index] = new WeaponPlacement(incoming, Copy(outgoing.Slots)); equipped[index] = incoming;
             }

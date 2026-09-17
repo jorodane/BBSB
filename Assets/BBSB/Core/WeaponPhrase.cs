@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    public enum PhraseEffect { Strike, Parry, StartAdjacent }
+    public enum PhraseEffect { Strike, Parry, StartAdjacent, Heal }
     public enum ParryInputEdge { KeyDown, KeyUp }
     public enum PhraseLanePhase { Ready, Playing, Cooldown }
     public enum PhraseNoteCondition { Always, Hit, Parry }
@@ -48,7 +48,6 @@ namespace BBSB.Core
         public int FinisherEvery { get; }
         public decimal FinisherDamage { get; }
         public double GroggyBeats { get; }
-        public double StartGridBeats { get; }
         public decimal HoldDamageReduction { get; }
         public bool ReleaseEndsPhrase { get; }
         public bool ParryRequired { get; }
@@ -57,7 +56,7 @@ namespace BBSB.Core
         public WeaponPhrase(string weaponId, string name, string hint, double lengthBeats,
             IEnumerable<WeaponPhraseNote> notes, double missCooldownBeats = 2, bool repeat = false,
             int finisherEvery = 0, decimal finisherDamage = 0, double groggyBeats = 0,
-            ParryInputEdge parryInput = ParryInputEdge.KeyDown, double startGridBeats = .5,
+            ParryInputEdge parryInput = ParryInputEdge.KeyDown,
             decimal holdDamageReduction = 0, bool releaseEndsPhrase = false, bool parryRequired = true,
             double completionCooldownBeats = 0)
         {
@@ -65,7 +64,7 @@ namespace BBSB.Core
             if (!WeaponPhraseNote.Finite(lengthBeats) || lengthBeats <= 0 || !WeaponPhraseNote.Finite(missCooldownBeats) ||
                 missCooldownBeats <= 0 || finisherEvery < 0 || finisherDamage < 0 ||
                 !WeaponPhraseNote.Finite(groggyBeats) || groggyBeats < 0 ||
-                !WeaponPhraseNote.Finite(startGridBeats) || startGridBeats < 0 || holdDamageReduction < 0 || holdDamageReduction > 1 ||
+                holdDamageReduction < 0 || holdDamageReduction > 1 ||
                 !WeaponPhraseNote.Finite(completionCooldownBeats) || completionCooldownBeats < 0)
                 throw new ArgumentOutOfRangeException(nameof(lengthBeats));
             var copy = new List<WeaponPhraseNote>(notes ?? throw new ArgumentNullException(nameof(notes)));
@@ -90,7 +89,7 @@ namespace BBSB.Core
             FinisherDamage = finisherDamage; GroggyBeats = groggyBeats; Notes = copy.AsReadOnly();
             // Parry placement and frequency belong to the authored notes, including repeated phrases.
             ParryInput = parryInput;
-            StartGridBeats = startGridBeats; HoldDamageReduction = holdDamageReduction;
+            HoldDamageReduction = holdDamageReduction;
             ReleaseEndsPhrase = releaseEndsPhrase; ParryRequired = parryRequired;
             CompletionCooldownBeats = completionCooldownBeats;
         }
@@ -121,9 +120,9 @@ namespace BBSB.Core
                 completionCooldownBeats: 2),
             new WeaponPhrase("bow", "활", "Hold 1박으로 당기기 → 2박 Tap 발사", 4,
                 new[] { Hold(0, 1, 0), new WeaponPhraseNote(2, 28, prerequisite: 0, condition: PhraseNoteCondition.Hit) }),
-            new WeaponPhrase("dagger", "단검", "첫 입력은 정박 / 엇박에 시작 → 성공하면 2박 뒤 다음 노트 · 미스 대기 2박", 2,
+            new WeaponPhrase("dagger", "단검", "속성의 시작 박자에 맞춰 시작 → 성공하면 2박 뒤 다음 노트 · 미스 대기 2박", 2,
                 new[] { Tap(0, 6) }, repeat: true),
-            new WeaponPhrase("dual-swords", "쌍검", "첫 입력은 정박 / 엇박에 시작 → 성공하면 1박 뒤 다음 노트 · 미스 대기 2박", 1,
+            new WeaponPhrase("dual-swords", "쌍검", "속성의 시작 박자에 맞춰 시작 → 성공하면 1박 뒤 다음 노트 · 미스 대기 2박", 1,
                 new[] { Tap(0, 6) }, repeat: true),
             new WeaponPhrase("staff", "봉", "시작한 쪽 Tap 0 / 0.5 → 반대쪽 1박에서 Hold 1박 · 2라인", 2,
                 new[] { Tap(0, 8), Tap(.5, 8), new WeaponPhraseNote(1, 18, 1, laneOffset: 1) }),

@@ -114,16 +114,17 @@ namespace BBSB.Runtime.UI
                     Add(battle, new TrackNote(lane.SlotForNote(i), i, lane.StartBeat, lane.Phrase, state == PhraseNoteState.Locked, lane.ScheduledOrigin));
             }
             if (!lane.CanRepeat) return;
-            double start = lane.StartBeat;
-            // Repeated addition matches the battle's cycle clock, including authored
-            // fractional lengths. The budget also bounds tiny custom phrase lengths.
+            var plan = lane.Cycle;
             for (int cycle = 0; cycle < MaxNotesPerLane && notes.Count - first < MaxNotesPerLane; cycle++)
             {
-                double next = start + lane.Phrase.LengthBeats;
-                if (next <= start || next > battle.Beat + SteppedNoteTrack.LookAheadBeats) break;
-                start = next;
-                for (int i = 0; i < lane.Phrase.Notes.Count && notes.Count - first < MaxNotesPerLane; i++)
-                    Add(battle, new TrackNote(lane.SlotForNote(i), i, start, lane.Phrase, true, lane.ScheduledOrigin));
+                var next = lane.NextCycle(plan);
+                if (next.StartBeat <= plan.StartBeat || next.StartBeat > battle.Beat + SteppedNoteTrack.LookAheadBeats) break;
+                plan = next;
+                for (int i = 0; i < plan.Phrase.Notes.Count && notes.Count - first < MaxNotesPerLane; i++)
+                {
+                    int slot = lane.InputSlots[(lane.StartOffset + plan.Phrase.Notes[i].LaneOffset) % lane.InputSlots.Count];
+                    Add(battle, new TrackNote(slot, i, plan.StartBeat, plan.Phrase, true, lane.ScheduledOrigin));
+                }
             }
         }
         private void Add(FiveLaneBattle battle, TrackNote note)
@@ -144,9 +145,10 @@ namespace BBSB.Runtime.UI
                 if (note.Reservation.State == ScheduledStartState.Skipped) return true;
             }
             var lane = battle.LaneAt(note.Slot);
-            if (lane == null || !ReferenceEquals(note.Phrase, lane.Phrase)) return true;
+            if (lane == null) return true;
+            if (note.CycleStart < lane.StartBeat - .000001) return false;
             if (note.CycleStart > lane.StartBeat + .000001) return !lane.CanRepeat;
-            if (Math.Abs(note.CycleStart - lane.StartBeat) > .000001) return false;
+            if (!ReferenceEquals(note.Phrase, lane.Phrase)) return true;
             var state = lane.NoteStates[note.Index];
             // A voluntary guard release skips the live Hold without a failure.
             // Only its canceled forecasts should break, including unresolved locks

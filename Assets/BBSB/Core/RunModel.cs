@@ -106,17 +106,21 @@ namespace BBSB.Core
     {
         public string DefinitionId { get; }
         public WeaponRarity Rarity { get; }
+        public WeaponAttribute Attribute { get; }
         public int Level { get; internal set; }
         public int RequiredLanes { get; }
+        public string DisplayName => WeaponAttributes.Name(Attribute) + " " + ContentCatalog.Find(DefinitionId).Name;
+        public bool SameVariant(WeaponState other) => other != null && DefinitionId == other.DefinitionId && Attribute == other.Attribute;
         public WeaponState(string definitionId) : this(definitionId, WeaponRarity.Common, 0) { }
         public WeaponState(string definitionId, int level) : this(definitionId, WeaponRarity.Common, level) { }
-        public WeaponState(string definitionId, WeaponRarity rarity, int level = 0, int? requiredLanes = null)
+        public WeaponState(string definitionId, WeaponAttribute attribute) : this(definitionId, WeaponRarity.Common, attribute: attribute) { }
+        public WeaponState(string definitionId, WeaponRarity rarity, int level = 0, int? requiredLanes = null, WeaponAttribute attribute = WeaponAttribute.Light)
         {
             if (level < 0 || level > RunRules.MaximumUpgrade) throw new ArgumentOutOfRangeException(nameof(level));
             int lanes = requiredLanes ?? WeaponCatalog.Find(definitionId).RequiredLanes;
             if (lanes < 1 || lanes > BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(requiredLanes));
-            WeaponRarities.Validate(rarity);
-            DefinitionId = definitionId; Rarity = rarity; Level = level; RequiredLanes = lanes;
+            WeaponRarities.Validate(rarity); WeaponAttributes.Validate(attribute);
+            Attribute = attribute; DefinitionId = definitionId; Rarity = rarity; Level = level; RequiredLanes = lanes;
         }
     }
 
@@ -135,9 +139,14 @@ namespace BBSB.Core
     {
         public ContentDefinition Content { get; }
         public WeaponRarity Rarity { get; }
+        public WeaponAttribute Attribute { get; }
         public int Price { get; internal set; }
         public bool Purchased { get; internal set; }
-        internal Offer(ContentDefinition content, int price, WeaponRarity rarity = WeaponRarity.Common)
-        { WeaponRarities.Validate(rarity); Content = content; Price = price; Rarity = content.Kind == RewardKind.Weapon ? rarity : WeaponRarity.Common; }
+        internal Offer(ContentDefinition content, int price, WeaponRarity rarity = WeaponRarity.Common, WeaponAttribute attribute = WeaponAttribute.Light)
+        {
+            WeaponRarities.Validate(rarity); WeaponAttributes.Validate(attribute); Content = content; Price = price;
+            Rarity = content.Kind == RewardKind.Weapon ? rarity : WeaponRarity.Common;
+            Attribute = content.Kind == RewardKind.Weapon ? attribute : WeaponAttribute.Light;
+        }
     }
 }

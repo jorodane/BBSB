@@ -9,11 +9,12 @@ namespace BBSB.Tests
 {
     public sealed class FiveLaneBattleTests
     {
+        // These legacy phase-selection scenarios now exercise Dual weapons. Light/Dark constraints have dedicated tests.
         private static readonly string[] Equipment = { "sword", "hammer", "shield", "bow", "dual-swords" };
         private static FiveLaneBattle Battle(BeatAttack[] attacks = null, decimal health = 1000, decimal enemy = 10000,
             double bpm = 120, double loop = 32, string shield = "shield", WeaponPhrase shieldPhrase = null)
         {
-            var weapons = Equipment.Select((id, slot) => new WeaponState(slot == 2 ? shield : id)).ToArray();
+            var weapons = Equipment.Select((id, slot) => new WeaponState(slot == 2 ? shield : id, WeaponAttribute.Dual)).ToArray();
             var phrases = shieldPhrase == null ? null : weapons.Select((w, slot) =>
                 slot == 2 ? shieldPhrase : WeaponPhraseCatalog.Find(w.DefinitionId)).ToArray();
             return new FiveLaneBattle(weapons, bpm, loop, attacks ?? Array.Empty<BeatAttack>(),
@@ -50,7 +51,7 @@ namespace BBSB.Tests
         {
             foreach (var phrase in WeaponPhraseCatalog.All)
             {
-                var b = new FiveLaneBattle(new[] { new WeaponState(phrase.WeaponId) }, 72, 32,
+                var b = new FiveLaneBattle(new[] { new WeaponState(phrase.WeaponId, WeaponAttribute.Dual) }, 72, 32,
                     Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100);
                 b.Press(0, .25); // Between both grids, outside the normal timing window.
                 var lane = b.Lanes[0];

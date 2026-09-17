@@ -14,11 +14,11 @@ namespace BBSB.Core
         public int Slot { get; }
         public int StartOffset { get; }
         public double Beat { get; }
-        public WeaponPhrase Phrase => Target.Patterns.Starts[StartOffset];
+        public WeaponPhrase Phrase => Target.Patterns.For(StartOffset, WeaponAttributes.SideAt(Beat));
         public ScheduledStartState State { get; internal set; }
         public int SlotForNote(int index) => Target.InputSlots[(StartOffset + Phrase.Notes[index].LaneOffset) % Target.InputSlots.Count];
         internal ScheduledPhraseStart(PhraseLane target, int slot, double beat)
-        { Target = target; Slot = slot; StartOffset = target.Placement.OffsetOf(slot); Beat = beat; }
+        { Target = target; Slot = slot; StartOffset = target.Placement.OffsetOf(slot); Beat = WeaponAttributes.SnapStart(target.Weapon.Attribute, beat); }
     }
     public sealed class BeatAttack
     {
@@ -54,7 +54,15 @@ namespace BBSB.Core
         public int HoldingSlot { get; internal set; } = -1;
         public int SlotForNote(int index) => InputSlots[(StartOffset + Phrase.Notes[index].LaneOffset) % InputSlots.Count];
         public PhraseLanePhase Phase { get; internal set; }
-        public double StartBeat { get; internal set; }
+        public WeaponRhythmCycle Cycle { get; private set; }
+        public double StartBeat => Cycle.StartBeat;
+        public WeaponBeatSide ActiveSide => Cycle.Side;
+        public bool IsTransition => Cycle.IsTransition;
+        public decimal EffectMultiplier => Weapon.Attribute == WeaponAttribute.Chaos ? Patterns.Chaos.EffectMultiplier : 1m;
+        private readonly int rhythmSeed;
+        private int activationSequence;
+        private int CycleSeed => unchecked(rhythmSeed + activationSequence * 16777619);
+        public WeaponRhythmCycle NextCycle(WeaponRhythmCycle cycle) => cycle.Next(Patterns, Weapon.Attribute, StartOffset, CycleSeed);
         public int NextNote { get; internal set; }
         public bool Holding { get; internal set; }
         public bool WaitingForParryRelease => Holding && Phrase.Notes[NextNote].IsParry && Phrase.ParryInput == ParryInputEdge.KeyUp;
@@ -76,14 +84,20 @@ namespace BBSB.Core
         public bool IsNoteVisible(int index) => Phase == PhraseLanePhase.Playing &&
             (states[index] == PhraseNoteState.Pending || states[index] == PhraseNoteState.Holding);
         public double NextBeat => StartBeat + Phrase.Notes[NextNote].Beat;
-        internal PhraseLane(WeaponState weapon, WeaponPlacement placement, WeaponPhraseSet patterns)
+        internal PhraseLane(WeaponState weapon, WeaponPlacement placement, WeaponPhraseSet patterns, int seed)
         {
-            Weapon = new WeaponState(weapon.DefinitionId, weapon.Rarity, weapon.Level, weapon.RequiredLanes);
-            Placement = placement; Patterns = patterns; SelectStart(0);
+            Weapon = new WeaponState(weapon.DefinitionId, weapon.Rarity, weapon.Level, weapon.RequiredLanes, weapon.Attribute);
+            Placement = placement; Patterns = patterns; rhythmSeed = seed; SelectStart(0, WeaponAttributes.SnapStart(weapon.Attribute, 0));
         }
-        internal void SelectStart(int offset)
+        internal void SelectStart(int offset, double at)
         {
-            StartOffset = offset; Phrase = Patterns.Starts[offset];
+            StartOffset = offset; activationSequence++;
+            var side = WeaponAttributes.SideAt(at);
+            SelectCycle(new WeaponRhythmCycle(Patterns.For(offset, side), side, at, at, 0));
+        }
+        internal void SelectCycle(WeaponRhythmCycle cycle)
+        {
+            Cycle = cycle; Phrase = cycle.Phrase;
             states = new PhraseNoteState[Phrase.Notes.Count]; parried = new bool[states.Length];
             NoteStates = Array.AsReadOnly(states);
         }
@@ -128,6 +142,7 @@ namespace BBSB.Core
         public decimal TotalDamage { get; private set; }
         public decimal TotalBlocked { get; private set; }
         public decimal TotalReduced { get; private set; }
+        public decimal TotalHealed { get; private set; }
         public double LastHitBeat { get; private set; } = double.NegativeInfinity;
         public event Action<decimal> PlayerHealthChanged;
 
@@ -135,7 +150,7 @@ namespace BBSB.Core
             IEnumerable<BeatAttack> attacks, StageHealth enemyHealth, decimal playerHealth, decimal playerMaximum,
             IReadOnlyList<WeaponPhrase> phrases = null, RhythmRules rules = null,
             IReadOnlyList<WeaponPlacement> placements = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null,
-            InputExtensions extensions = InputExtensions.None)
+            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1)
         {
             if (weapons == null || weapons.Count < 1 || weapons.Count > RunRules.WeaponSlots)
                 throw new ArgumentException("Equip between one and five weapons.");
@@ -156,6 +171,8 @@ namespace BBSB.Core
             for (int i = 0; i < weapons.Count; i++)
             {
                 if (weapons[i] == null || !uniqueWeapons.Add(weapons[i])) throw new ArgumentException("Equip distinct item instances.");
+                for (int j = 0; j < i; j++)
+                    if (weapons[i].SameVariant(weapons[j])) throw new ArgumentException("The same weapon and attribute cannot be equipped twice.");
                 var phrase = phrases == null ? WeaponPhraseCatalog.Find(weapons[i].DefinitionId) : phrases[i];
                 if (phrase == null || phrase.WeaponId != weapons[i].DefinitionId) throw new ArgumentException("Phrase does not match its weapon.");
                 WeaponPlacement placement;
@@ -169,8 +186,9 @@ namespace BBSB.Core
                 if (placement == null || !ReferenceEquals(placement.Weapon, weapons[i])) throw new ArgumentException("Placement does not match its item.");
                 var patterns = phraseSets == null ? WeaponPhraseSet.Uniform(weapons[i], phrase) : phraseSets[i];
                 // Revalidate externally supplied sets against the actual equipment footprint.
-                patterns = new WeaponPhraseSet(weapons[i], patterns?.Starts);
-                var lane = new PhraseLane(weapons[i], placement, patterns); lanes.Add(lane);
+                patterns = new WeaponPhraseSet(weapons[i], patterns?.LightStarts, patterns?.DarkStarts,
+                    patterns?.LightTransitions, patterns?.DarkTransitions, patterns?.Chaos);
+                var lane = new PhraseLane(weapons[i], placement, patterns, unchecked(rhythmSeed + i * 486187739)); lanes.Add(lane);
                 foreach (int slot in placement.Slots)
                 {
                     if (!IsInputAvailable(slot)) throw new ArgumentException("This input extension is locked.");
@@ -188,7 +206,7 @@ namespace BBSB.Core
         public static FiveLaneBattle FromPlan(BattlePlan plan, IReadOnlyList<WeaponState> weapons,
             StageHealth enemyHealth, decimal health, decimal maximum, IReadOnlyList<WeaponPhrase> phrases = null,
             IReadOnlyList<WeaponPlacement> placements = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null,
-            InputExtensions extensions = InputExtensions.None)
+            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1)
         {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
             var attacks = new List<BeatAttack>();
@@ -201,7 +219,7 @@ namespace BBSB.Core
                 if (at < length) attacks.Add(new BeatAttack(attack.MonsterId, at, attack.Monster.DamagePerNote * attack.JudgmentWeight));
             }
             return new FiveLaneBattle(weapons, plan.Stage.Music.Bpm, length, attacks, enemyHealth, health, maximum, phrases,
-                placements: placements, phraseSets: phraseSets, extensions: extensions);
+                placements: placements, phraseSets: phraseSets, extensions: extensions, rhythmSeed: rhythmSeed);
         }
 
         public void Pause() { if (!Finished) IsPaused = true; }
@@ -230,8 +248,7 @@ namespace BBSB.Core
             {
                 // A fresh input chooses the phrase's phase; it is not a timing test.
                 // Repeats stay Playing and never receive this opening grace again.
-                double grid = lane.Patterns.Starts[lane.Placement.OffsetOf(slot)].StartGridBeats;
-                BeginActivation(lane, slot, grid == 0 ? Beat : Math.Round(Beat / grid, MidpointRounding.AwayFromZero) * grid);
+                BeginActivation(lane, slot, WeaponAttributes.SnapStart(lane.Weapon.Attribute, Beat));
             }
             // A different occupied line is a distinct input. It cannot hit this line's note
             // or switch the starting variant midway through an activation.
@@ -324,7 +341,7 @@ namespace BBSB.Core
                         // Sample protection at impact, not at the end of the late-parry grace window.
                         attack.ImpactSampled = true;
                         foreach (var lane in lanes) if (lane.Holding)
-                            attack.Reduction = Math.Max(attack.Reduction, lane.Phrase.HoldDamageReduction);
+                            attack.Reduction = Math.Max(attack.Reduction, Math.Min(1m, lane.Phrase.HoldDamageReduction * lane.EffectMultiplier));
                     }
                     if (attack.Beat + HalfMissWindow + Epsilon > Beat) continue;
                     attack.State = IncomingAttackState.Hit; attack.ResolvedBeat = Beat; LastHitBeat = Beat;
@@ -399,7 +416,16 @@ namespace BBSB.Core
                 grade == RhythmGrade.Perfect ? "PERFECT" : "HALF";
             if (grade == RhythmGrade.Perfect) PerfectCount++; else HalfMissCount++;
             Combo++;
-            decimal damage = note.Damage;
+            decimal effectScale = (1m + .25m * lane.Weapon.Level) * (grade == RhythmGrade.Perfect ? 1m : .5m) *
+                lane.EffectMultiplier;
+            decimal damage = note.Effect == PhraseEffect.Heal ? 0 : note.Damage;
+            if (note.Effect == PhraseEffect.Heal)
+            {
+                decimal healed = Math.Min(PlayerMaximum - PlayerHealth, note.Damage * effectScale);
+                PlayerHealth += healed; TotalHealed += healed;
+                if (healed > 0) PlayerHealthChanged?.Invoke(PlayerHealth);
+                lane.Feedback = "HEAL";
+            }
             if (note.Effect == PhraseEffect.StartAdjacent)
             {
                 ScheduleAdjacent(lane, lane.StartBeat + note.Beat + note.HoldBeats + 1);
@@ -419,11 +445,11 @@ namespace BBSB.Core
                 }
                 if (lane.FailedCycle) Cooldown(lane, Beat + lane.Phrase.MissCooldownBeats);
                 else if (lane.Phrase.Repeat)
-                { lane.StartBeat += lane.Phrase.LengthBeats; BeginCycle(lane); }
+                { lane.SelectCycle(lane.NextCycle(lane.Cycle)); BeginCycle(lane); }
                 else
                     Cooldown(lane, Math.Max(Beat, lane.StartBeat + lane.Phrase.LengthBeats) + lane.Phrase.CompletionCooldownBeats);
             }
-            damage *= (1m + .25m * lane.Weapon.Level) * (grade == RhythmGrade.Perfect ? 1m : .5m);
+            damage *= effectScale;
             if (damage > 0) lane.LastDamageBeat = Beat;
             EnemyHealth.Damage(damage); lane.DamageDealt += damage; TotalDamage += damage;
         }
@@ -437,8 +463,9 @@ namespace BBSB.Core
                 if (target == null || ReferenceEquals(target, source)) continue;
                 // Two bells may contact opposite ends of one item. One item still
                 // starts once; the first reservation owns its starting Offset.
-                bool duplicate = scheduledStarts.Exists(x => ReferenceEquals(x.Target, target) && Math.Abs(x.Beat - at) < Epsilon);
-                if (!duplicate) scheduledStarts.Add(new ScheduledPhraseStart(target, slot, at));
+                var reservation = new ScheduledPhraseStart(target, slot, at);
+                bool duplicate = scheduledStarts.Exists(x => ReferenceEquals(x.Target, target) && Math.Abs(x.Beat - reservation.Beat) < Epsilon);
+                if (!duplicate) scheduledStarts.Add(reservation);
             }
         }
         private static void BeginActivation(PhraseLane lane, int slot, double at, ScheduledPhraseStart origin = null)
@@ -447,7 +474,7 @@ namespace BBSB.Core
             // Manual one-shot activations still contribute to authored finishers.
             // Changing variants starts a new streak; a miss already clears it.
             if (offset != lane.StartOffset) lane.CompletedPhrases = 0;
-            lane.SelectStart(offset); lane.StartBeat = at; lane.Holding = false; lane.HoldingSlot = -1; lane.ScheduledOrigin = origin;
+            lane.SelectStart(offset, at); lane.Holding = false; lane.HoldingSlot = -1; lane.ScheduledOrigin = origin;
             BeginCycle(lane);
         }
         private static void StartScheduled(ScheduledPhraseStart start)

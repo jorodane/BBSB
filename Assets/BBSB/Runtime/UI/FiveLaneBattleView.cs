@@ -66,7 +66,7 @@ namespace BBSB.Runtime.UI
             for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
                 var lane = battle.LaneAt(i);
-                hud.laneLabels[i].text = Keys[i] + "\n" + (lane == null ? "비어 있음" : lane.Patterns.Starts[lane.Placement.OffsetOf(i)].Name);
+                hud.laneLabels[i].text = Keys[i] + "\n" + (lane == null ? "비어 있음" : lane.Weapon.DisplayName);
                 hud.laneLabels[i].color = lane == null ? RunUI.Muted : RunUI.TextColor;
                 if (lane == null) continue;
                 var weaponMesh = ui.Rect("Live weapon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
@@ -150,6 +150,8 @@ namespace BBSB.Runtime.UI
                     "NOTE " + (lane.NextNote + 1) + "/" + lane.Phrase.Notes.Count +
                     (lane.Phrase.FinisherEvery > 0 ? " · " + (lane.CompletedPhrases % lane.Phrase.FinisherEvery + 1) + "/" + lane.Phrase.FinisherEvery : "");
                 hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
+                if (lane.Phase == PhraseLanePhase.Playing)
+                    hud.laneStatus[i].text += lane.IsTransition ? " · 전환" : lane.ActiveSide == WeaponBeatSide.Light ? " · 정박" : " · 엇박";
                 foreach (var start in battle.ScheduledStarts)
                     if (start.Slot == i && start.State == ScheduledStartState.Pending)
                     {

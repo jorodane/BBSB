@@ -28,3 +28,5 @@
 `RunScreenKind.RunSetup`을 화면 목록 끝에 추가해 기존 프리팹 enum 값을 유지한다. `PresentationPrefabBuilder`가 없던 `RunSetupScreen.prefab`과 카탈로그 연결을 Unity에서 자동 생성한다. `CanvasScreen.runSetup`의 `RunSetupBindings`에 캐릭터 목록·초상화·이름·설명·보드·무기 목록·시작/뒤로 버튼을 연결하며, 프리팹을 직접 배치해 편집할 수 있다. 에셋이 없는 환경에서는 같은 기본 구성을 런타임에 만든다.
 
 Core 검사는 배치 복원, 인스턴스 분리, 런 초기화, 동일 종류 장비의 Key, 복수 라인, 잘못된 저장값과 장비 정의 변경을 다룬다. PlayMode 검사는 시작 확정/취소, 재시작 복원, 0개 장착 차단, 캐릭터별 JSON 저장을 다룬다. PlayMode 테스트는 실제 사용자 설정을 보존·복원한다. 기존 Call & Response 시험 모드는 원래의 즉시 시작 흐름을 유지한다.
+
+시작 무기의 속성은 `PlayerAuthoring.startingWeapons[].attribute`로 정하며 편성 저장에도 함께 기록한다. 같은 무기 종류라도 속성이 다르면 함께 배치할 수 있다. 기존 저장은 빛 속성으로 해석한다. [무기 속성 규칙](WeaponAttributes.md)을 참고한다.

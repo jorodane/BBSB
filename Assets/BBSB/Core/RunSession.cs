@@ -161,7 +161,7 @@ namespace BBSB.Core
             if (!UsesFiveLaneCombat || Phase != RunPhase.Stage || BattlePlan == null || Health <= 0 || ActiveRhythmRound != null || Weapons.Count == 0) return null;
             if (PhraseBattle == null)
             {
-                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases, Equipment.Placements, phraseSets, Equipment.Extensions);
+                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases, Equipment.Placements, phraseSets, Equipment.Extensions, unchecked(Seed * 397 + ClearedStages));
                 PhraseBattle.PlayerHealthChanged += ApplyPhraseHealth;
             }
             if (PhraseBattle.Finished) return null;
@@ -273,7 +273,8 @@ namespace BBSB.Core
             {
                 var content = ContentCatalog.Pick(kind, rewardRandom);
                 var rarity = kind == RewardKind.Weapon ? WeaponRarities.Roll(rewardRandom) : WeaponRarity.Common;
-                offers.Add(new Offer(content, shop ? DiscountedPrice(content) : 0, rarity));
+                var attribute = UsesFiveLaneCombat && kind == RewardKind.Weapon ? WeaponAttributes.Roll(content.Id, rewardRandom) : WeaponAttribute.Light;
+                offers.Add(new Offer(content, shop ? DiscountedPrice(content) : 0, rarity, attribute));
             }
         }
 
@@ -287,11 +288,11 @@ namespace BBSB.Core
             {
                 case RewardKind.Weapon:
                     if (UsesFiveLaneCombat)
-                    { Equipment.Acquire(new WeaponState(content.Id, offer.Rarity)); break; }
+                    { Equipment.Acquire(new WeaponState(content.Id, offer.Rarity, attribute: offer.Attribute)); break; }
                     if (slot == -1 && weapons.Count < RunRules.WeaponSlots)
-                    { weapons.Add(new WeaponState(content.Id, offer.Rarity)); break; }
+                    { weapons.Add(new WeaponState(content.Id, offer.Rarity, attribute: offer.Attribute)); break; }
                     if (!ValidSlot(slot)) return false;
-                    weapons[slot] = new WeaponState(content.Id, offer.Rarity);
+                    weapons[slot] = new WeaponState(content.Id, offer.Rarity, attribute: offer.Attribute);
                     break;
                 case RewardKind.Item: items.Add(content.Id); break;
                 case RewardKind.Augment:

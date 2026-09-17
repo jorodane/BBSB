@@ -24,7 +24,7 @@ namespace BBSB.Tests
             foreach (double first in new[] { .18, .42 })
             {
                 double interval = id == "dagger" ? 2 : 1, start = first < .25 ? 0 : .5;
-                var battle = Battle(new WeaponState(id), new[] { 4 });
+                var battle = Battle(new WeaponState(id, WeaponAttribute.Dual), new[] { 4 });
                 Tap(battle, 4, first); Check.Equal(6m, battle.TotalDamage); Check.Equal(0, battle.MissCount);
                 Check.Equal(start + interval, battle.LaneAt(4).NextBeat);
                 Tap(battle, 4, start + interval);
@@ -259,8 +259,9 @@ namespace BBSB.Tests
                     int count = run.OwnedWeapons.Count, gold = run.Gold;
                     var bindings = run.Equipment.Placements.ToArray();
                     int index = run.Offers.ToList().FindIndex(o => o.Content.Kind == RewardKind.Weapon);
-                    int price = run.Offers[index].Price;
+                    int price = run.Offers[index].Price; var attribute = run.Offers[index].Attribute;
                     Check.True(run.Buy(index)); Check.Equal(count + 1, run.OwnedWeapons.Count);
+                    Check.Equal(attribute, run.OwnedWeapons[count].Attribute);
                     Check.Equal(gold - price, run.Gold); Check.False(run.Buy(index));
                     Check.True(bindings.SequenceEqual(run.Equipment.Placements)); bought = true;
                 }
