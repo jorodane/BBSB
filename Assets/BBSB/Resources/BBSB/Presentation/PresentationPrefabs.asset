@@ -39,6 +39,10 @@ MonoBehaviour:
     prefab: {fileID: 8690242451514411778, guid: f7d151f51b629424e9003ad99fbd1bd5, type: 3}
   - kind: 12
     prefab: {fileID: 6202623916634014733, guid: 304f4c02236d5384d8faac8fc540fe19, type: 3}
+  - kind: 13
+    prefab: {fileID: 946684874844241066, guid: 7470a2572d1905c479f8184e7ce753a4, type: 3}
+  - kind: 14
+    prefab: {fileID: 3587117017787403064, guid: 12c01a6f493740248b97fddd848cb4c2, type: 3}
   primaryButton: {fileID: 3625300302461289364, guid: b5102f7fd0078794ea0fa4bc50d1bda2, type: 3}
   secondaryButton: {fileID: 536689857977213319, guid: 12ea5c9aaa6397142ab86a5f441b8929, type: 3}
   titleText: {fileID: 3927215030107482051, guid: 8dd4e979b09d90e4c8a353bec0e156a3, type: 3}
@@ -46,3 +50,5 @@ MonoBehaviour:
   bodyText: {fileID: 396124631047399472, guid: e7b377f8b9bd9a94da6b926c155046b0, type: 3}
   captionText: {fileID: 5107774718295643964, guid: 3f5e8db2b33932240b1ec21382cafb36, type: 3}
   card: {fileID: 5247045271501882254, guid: 6e33bf124c176fa4787e274b728ff381, type: 3}
+  defaultFont: {fileID: 11400000, guid: 73ed4cbbcc3ab7c4ebbf0d39987eb52f, type: 2}
+  textMeshProVersion: 1

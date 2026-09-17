@@ -20,16 +20,18 @@ MonoBehaviour:
   mainGesture: 0
   encounterWeight: 1.4
   damagePerNote: 4
-  portrait: {fileID: 21300000, guid: fc5cbf92621189f469bb53616bc6b0e9, type: 3}
+  portrait: {fileID: 21300000, guid: 6bea7d29261a08448bf313e7beecce69, type: 3}
   artId: tap-slime
   patternStrategy: 0
   steadyCallsPerPhase: 3
   usePatternProbabilities: 1
-  useLegacyBodyAnimation: 1
+  useLegacyBodyAnimation: 0
   displayScale: 1
   displayOffset: {x: 0, y: 0}
-  controller: {fileID: 0}
+  controller: {fileID: 9100000, guid: e44ecc72e7655df499b335deee66a044, type: 2}
   visualPrefab: {fileID: 0}
+  actorPrefab: {fileID: 8596395887433939614, guid: 25b4970556e35254ea1fda820b42234f, type: 3}
+  spriteReferenceHeight: 12.54
   motions:
   - situation: 0
     state: Base Layer.Idle
@@ -116,8 +118,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/tap-slime/count-four-tap/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -126,6 +128,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 
   - id: tresillo-call-tap
@@ -171,8 +222,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/tap-slime/tresillo-call-tap/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -181,5 +232,54 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 
