@@ -21,16 +21,18 @@ MonoBehaviour:
   mainGesture: 4
   encounterWeight: 1
   damagePerNote: 4
-  portrait: {fileID: 21300000, guid: 99dd1fd3c55f50343aaa97d44b38c799, type: 3}
+  portrait: {fileID: 21300000, guid: 3a04fcd86c9728b44beee0d273dc4e79, type: 3}
   artId: bubble-spirit
   patternStrategy: 0
   steadyCallsPerPhase: 3
   usePatternProbabilities: 1
-  useLegacyBodyAnimation: 1
+  useLegacyBodyAnimation: 0
   displayScale: 1
   displayOffset: {x: 0, y: 0}
-  controller: {fileID: 0}
+  controller: {fileID: 9100000, guid: eed8a79b1c54bb64396d95cb503fc375, type: 2}
   visualPrefab: {fileID: 0}
+  actorPrefab: {fileID: 8825019024033746349, guid: f753020409a30aa4d9e4903298c42f7c, type: 3}
+  spriteReferenceHeight: 12.54
   motions:
   - situation: 0
     state: Base Layer.Idle
@@ -105,8 +107,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -115,6 +117,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 
   - id: two-bubble-shakes
@@ -153,8 +204,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/two-bubble-shakes/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -163,6 +214,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     - kind: 4
       offsetTick: 8
       durationTicks: 0
@@ -182,8 +282,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/two-bubble-shakes/step-1
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -192,5 +292,54 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 

@@ -20,16 +20,18 @@ MonoBehaviour:
   mainGesture: 2
   encounterWeight: 1
   damagePerNote: 4
-  portrait: {fileID: 21300000, guid: 21966947496103b4fab4a16c8f99d20d, type: 3}
+  portrait: {fileID: 21300000, guid: d507fe8c035758643a542147500320dd, type: 3}
   artId: diving-ray
   patternStrategy: 0
   steadyCallsPerPhase: 3
   usePatternProbabilities: 1
-  useLegacyBodyAnimation: 1
+  useLegacyBodyAnimation: 0
   displayScale: 1
   displayOffset: {x: 0, y: 0}
-  controller: {fileID: 0}
+  controller: {fileID: 9100000, guid: a720e542ffaa8414ca558a37438084cd, type: 2}
   visualPrefab: {fileID: 0}
+  actorPrefab: {fileID: 5954232064550412009, guid: 07e30db0bee4b6245a7932f07980debb, type: 3}
+  spriteReferenceHeight: 12.54
   motions:
   - situation: 0
     state: Base Layer.Idle
@@ -109,8 +111,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -119,6 +121,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     - kind: 0
       offsetTick: 4
       durationTicks: 0
@@ -138,8 +189,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -148,6 +199,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     - kind: 0
       offsetTick: 8
       durationTicks: 0
@@ -167,8 +267,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -177,6 +277,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 
   - id: ray-short-dive
@@ -216,8 +365,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -226,5 +375,54 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 

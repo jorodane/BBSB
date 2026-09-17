@@ -20,16 +20,18 @@ MonoBehaviour:
   mainGesture: 0
   encounterWeight: 1.2
   damagePerNote: 4
-  portrait: {fileID: 21300000, guid: a8f543a9909fe984d9c1d3b7bd21b569, type: 3}
+  portrait: {fileID: 21300000, guid: ce4998577973cc143aeae04a5b9016bc, type: 3}
   artId: tap-slime
   patternStrategy: 0
   steadyCallsPerPhase: 3
   usePatternProbabilities: 1
-  useLegacyBodyAnimation: 1
+  useLegacyBodyAnimation: 0
   displayScale: 1
   displayOffset: {x: 0, y: 0}
-  controller: {fileID: 0}
+  controller: {fileID: 9100000, guid: 7ed1ee4aa329fb542938b1b507b61743, type: 2}
   visualPrefab: {fileID: 0}
+  actorPrefab: {fileID: 9184879797158343439, guid: 80353a0b353d78149bc449d85cf060ef, type: 3}
+  spriteReferenceHeight: 12.54
   motions:
   - situation: 0
     state: Base Layer.Idle
@@ -104,8 +106,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-quick-tap/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -114,6 +116,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     - kind: 0
       offsetTick: 4
       durationTicks: 0
@@ -133,8 +184,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-quick-tap/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -143,6 +194,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     - kind: 0
       offsetTick: 8
       durationTicks: 0
@@ -162,8 +262,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-quick-tap/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -172,6 +272,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 
   - id: drowsy-four-beat-wait
@@ -210,8 +359,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/drowsy-slime/drowsy-four-beat-wait/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -220,5 +369,54 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 

@@ -20,16 +20,18 @@ MonoBehaviour:
   mainGesture: 0
   encounterWeight: 0.6
   damagePerNote: 4
-  portrait: {fileID: 21300000, guid: dc0cdbcdd0bb95942bffb703e7416a3c, type: 3}
+  portrait: {fileID: 21300000, guid: 25177b8ce19ae734ca651700145310fb, type: 3}
   artId: flick-goblin
   patternStrategy: 1
   steadyCallsPerPhase: 3
   usePatternProbabilities: 1
-  useLegacyBodyAnimation: 1
+  useLegacyBodyAnimation: 0
   displayScale: 1
   displayOffset: {x: 0, y: 0}
-  controller: {fileID: 0}
+  controller: {fileID: 9100000, guid: 7e046a06789886c48b74d25ef9c97701, type: 2}
   visualPrefab: {fileID: 0}
+  actorPrefab: {fileID: 7698148893758437455, guid: 6665bc6b61755e94a97d3a492b8e452e, type: 3}
+  spriteReferenceHeight: 12.54
   motions:
   - situation: 0
     state: Base Layer.Idle
@@ -106,8 +108,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -116,6 +118,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 
   - id: seesaw-early-finish
@@ -155,8 +206,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-early-finish/step-0
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -165,6 +216,55 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     - kind: 0
       offsetTick: 2
       durationTicks: 0
@@ -184,8 +284,8 @@ MonoBehaviour:
         resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-early-finish/step-1
         overrideDisplay: 0
         display:
-          monsterId:
-          patternId:
+          monsterId: 
+          patternId: 
           stepIndex: 0
           scale: 1
           sourceOffset: {x: 0, y: 0}
@@ -194,5 +294,54 @@ MonoBehaviour:
           framesPerBeat: 2
           poses: []
         images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
     attackState: 
     recoverState: 
