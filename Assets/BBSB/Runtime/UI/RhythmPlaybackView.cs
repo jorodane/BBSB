@@ -37,7 +37,7 @@ namespace BBSB.Runtime.UI
             if (bindings != null && !bindings.IsValid) throw new InvalidOperationException("전투 HUD의 UI 참조를 모두 연결해줘.");
             if (bindings != null)
             {
-                arena = bindings.arena.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font);
+                arena = bindings.arena.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font, character: PlayerCharacterRegistry.Find(session.CharacterId));
                 bindings.song.text = music.Name + " / " + music.Bpm + " BPM";
                 songProgress = bindings.songFill; healthLabel = bindings.health; healthFill = bindings.healthFill;
                 healthImage = healthFill.GetComponent<Image>(); damageLabel = bindings.damage;
@@ -49,7 +49,7 @@ namespace BBSB.Runtime.UI
             {
             ui.Background(root, RunUI.Ink, true);
             var stage = ui.Rect("Battle arena", root); RunUI.Stretch(stage);
-            arena = stage.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font);
+            arena = stage.gameObject.AddComponent<BattleArenaView>(); arena.Initialize(round, ui.Font, character: PlayerCharacterRegistry.Find(session.CharacterId));
             // HUD is layered over the full battle scene; it never participates in its layout.
             var song = ui.Label(root, music.Name + "  /  " + music.Bpm + " BPM", 25, RunUI.Gold, 40);
             RunUI.Overlay(song.rectTransform, new Vector2(0, 1), new Vector2(.35f, 1), new Vector2(24, -64), new Vector2(0, -24));

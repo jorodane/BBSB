@@ -78,7 +78,7 @@ namespace BBSB.Runtime.UI
                 if (input == null) input = hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
                 input.Bind(playback, i);
             }
-            var hero = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);
+            var hero = PlayerCharacterRegistry.Find(session.CharacterId);
             Sprite heroPortrait = hero != null ? hero.portrait : null;
             if (heroPortrait == null)
                 foreach (var sprite in Resources.LoadAll<Sprite>(PlayerMotionSprites.ResourcePath + "idle"))

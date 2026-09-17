@@ -9,7 +9,32 @@ namespace BBSB.Runtime
     public sealed class PlayerAuthoring : ScriptableObject
     {
         public const string ResourcePath = "BBSB/Player";
+        [Tooltip("Stable character ID used by saved starting layouts. Give each added character a unique ID.")]
+        public string characterId = RunCharacterDefinition.DefaultId;
         public string displayName = "WEAPON MASTER";
+        [TextArea] public string description = "단검과 히터실드로 박자를 만들어.";
+        public Starter[] startingWeapons = {
+            new Starter { key = "dagger", weaponId = "dagger", defaultOffset = 0 },
+            new Starter { key = "heater-shield", weaponId = "heater-shield", defaultOffset = 1 }
+        };
+        [Serializable] public sealed class Starter
+        {
+            [Tooltip("Stable key within this character. Keep it when reordering; duplicates of a weapon need different keys.")]
+            public string key, weaponId;
+            public bool equipped = true;
+            [Tooltip("Leftmost physical line: D=0, F=1, Space=2, J=3, K=4. S/L remain locked at run start.")]
+            public int defaultOffset;
+        }
+        public RunCharacterDefinition BuildCharacter()
+        {
+            var entries = new System.Collections.Generic.List<StartingWeaponDefinition>();
+            foreach (var starter in startingWeapons ?? Array.Empty<Starter>())
+            {
+                if (starter == null) throw new ArgumentException("Null starting weapon.");
+                entries.Add(new StartingWeaponDefinition(starter.key, starter.weaponId, starter.equipped ? (int?)starter.defaultOffset : null));
+            }
+            return new RunCharacterDefinition(characterId, entries);
+        }
         public Sprite portrait;
         public GameObject visualPrefab;
         public RuntimeAnimatorController controller;

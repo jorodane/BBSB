@@ -12,7 +12,7 @@ namespace BBSB.Runtime.UI
     public sealed class EquipmentPlacementView : MonoBehaviour, IPointerClickHandler,
         IBeginDragHandler, IDragHandler, IEndDragHandler
     {
-        private RunSession session;
+        private IEquipmentEditor session;
         private Action changed;
         private readonly Image[] cells = new Image[BattleInputLayout.LaneCount];
         private readonly Color[] baseColors = new Color[BattleInputLayout.LaneCount];
@@ -30,7 +30,7 @@ namespace BBSB.Runtime.UI
         public bool PreviewUnequip { get; private set; }
         private const string Instructions = "이미지를 끌어 배치 · 배치된 무기를 아래로 끌면 장착 해제";
 
-        internal void Bind(RunSession value, RunUI ui, Action onChanged)
+        internal void Bind(IEquipmentEditor value, RunUI ui, Action onChanged)
         {
             session = value; changed = onChanged;
             var root = (RectTransform)transform;
@@ -81,7 +81,7 @@ namespace BBSB.Runtime.UI
             if (data.button != PointerEventData.InputButton.Left || dragPointer.HasValue || !CanSelect(index)) return;
             selected = index; dragPointer = data.pointerId; data.eligibleForClick = false;
             dragFromBoard = fromBoard && session.Equipment.PlacementOf(session.OwnedWeapons[index]) != null;
-            foreach (var scroll in transform.parent.GetComponentsInChildren<ScrollRect>()) scroll.StopMovement();
+            foreach (var scroll in overlayArea.GetComponentsInChildren<ScrollRect>()) scroll.StopMovement();
             MoveWeaponDrag(data);
         }
         public void MoveWeaponDrag(PointerEventData data)

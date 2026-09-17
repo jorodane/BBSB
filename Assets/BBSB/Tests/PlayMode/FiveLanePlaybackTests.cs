@@ -14,12 +14,15 @@ namespace BBSB.Tests
     public sealed class FiveLanePlaybackTests
     {
         private GameObject root;
+        private RunStartPreferenceScope preferences;
+        [SetUp] public void IsolatePreferences() => preferences = new RunStartPreferenceScope();
         private PresentationPrefabs catalog;
         private PresentationPrefabs.Screen[] savedScreens;
         [UnityTearDown] public IEnumerator Cleanup()
         {
             if (catalog != null && savedScreens != null) catalog.screens = savedScreens;
             if (root != null) Object.Destroy(root);
+            preferences.Dispose();
             yield return null;
         }
 
@@ -29,7 +32,7 @@ namespace BBSB.Tests
             yield return null;
             var start = root.GetComponentsInChildren<Button>().First(b =>
                 b.GetComponentInChildren<TMP_Text>() != null && b.GetComponentInChildren<TMP_Text>().text == "탐험 시작");
-            start.onClick.Invoke();
+            start.onClick.Invoke(); Click("편성하고 시작");
             var presenter = root.GetComponent<RunPresenter>();
             Assert.IsTrue(presenter.Session.UsesFiveLaneCombat);
             Assert.IsTrue(presenter.Session.Enter(presenter.Session.Map.Nodes.First(n => presenter.Session.CanEnter(n.Id)).Id));
@@ -217,7 +220,7 @@ namespace BBSB.Tests
         {
             root = new GameObject("Five lane bootstrap"); root.AddComponent<RunBootstrap>();
             yield return null;
-            Click("탐험 시작");
+            Click("탐험 시작"); Click("편성하고 시작");
             var session = root.GetComponent<RunPresenter>().Session;
             Assert.IsTrue(session.Enter(session.Map.Nodes.First(n => session.CanEnter(n.Id)).Id));
         }

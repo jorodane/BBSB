@@ -48,7 +48,7 @@ namespace BBSB.Runtime.UI
                 page = root; pageGroup = root.GetComponent<CanvasGroup>();
                 if (pageGroup == null) pageGroup = root.gameObject.AddComponent<CanvasGroup>();
                 HeroPortrait = bindings.portrait;
-                var player = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);
+                var player = PlayerCharacterRegistry.Find(session.CharacterId);
                 HeroPortrait.sprite = player != null && player.portrait != null ? player.portrait : PlayerIdle();
                 bindings.playerName.text = player != null ? player.displayName : "WEAPON MASTER";
                 bindings.song.text = session.BattleMusic.Music.Name + " / " + session.BattleMusic.Music.Bpm + " BPM";
@@ -82,9 +82,10 @@ namespace BBSB.Runtime.UI
         {
             var header = ui.Rect("Preparation header", page);
             RunUI.Overlay(header, new Vector2(0, 1), Vector2.one, new Vector2(0, -92), Vector2.zero);
-            HeroPortrait = Portrait(header, "Weapon master portrait", Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath)?.portrait ?? Resources.Load<Sprite>(ArtRoot + "player") ?? PlayerIdle(), "W");
+            var player = PlayerCharacterRegistry.Find(session.CharacterId);
+            HeroPortrait = Portrait(header, "Weapon master portrait", player?.portrait ?? Resources.Load<Sprite>(ArtRoot + "player") ?? PlayerIdle(), "W");
             RunUI.Pin((RectTransform)HeroPortrait.transform.parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -2), new Vector2(44, 44));
-            var name = Text(header, "WEAPON MASTER", 20, RunUI.TextColor);
+            var name = Text(header, player != null ? player.displayName : "WEAPON MASTER", 20, RunUI.TextColor);
             Top(name.rectTransform, 0, .26f, 0, 26, 52);
             var epithet = Text(header, "다섯 현의 조종자", 15, RunUI.Muted);
             Top(epithet.rectTransform, 0, .26f, 28, 24, 52);

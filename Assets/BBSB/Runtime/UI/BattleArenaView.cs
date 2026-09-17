@@ -89,10 +89,12 @@ namespace BBSB.Runtime.UI
 
         internal void HideLabels() { labelLayer.gameObject.SetActive(false); heroLabel.gameObject.SetActive(false); }
 
-        public void Initialize(RhythmRound value, TMP_FontAsset font, PlayerMotionDisplay display = null, MonsterAuthoring previewAppearance = null)
+        public void Initialize(RhythmRound value, TMP_FontAsset font, PlayerMotionDisplay display = null, MonsterAuthoring previewAppearance = null,
+            PlayerAuthoring character = null)
         {
             if (round != null) throw new InvalidOperationException("Battle arena is already bound.");
             round = value ?? throw new ArgumentNullException(nameof(value));
+            if (character != null) playerAuthoring = character;
             if (playerAuthoring == null) playerAuthoring = Resources.Load<PlayerAuthoring>(PlayerAuthoring.ResourcePath);
             if (playerAuthoring != null && playerAuthoring.layout != null) playerDisplay = playerAuthoring.layout;
             if (display != null) playerDisplay = display;

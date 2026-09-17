@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace BBSB.Core
 {
     /// <summary>Owns one disposable run and applies incoming damage from its active performance.</summary>
-    public sealed class RunSession
+    public sealed class RunSession : IEquipmentEditor
     {
         private readonly RunRules rules;
         private SeededRandom mapRandom;
@@ -17,6 +17,9 @@ namespace BBSB.Core
         private readonly List<Offer> offers = new List<Offer>();
         private bool claimedService;
         private string startingMapId;
+        private readonly StartingLoadoutPreset startingLoadout;
+        public RunCharacterDefinition Character { get; }
+        public string CharacterId => Character.Id;
         public bool UsesFiveLaneCombat { get; }
         public FiveLaneBattle PhraseBattle { get; private set; }
 
@@ -45,9 +48,12 @@ namespace BBSB.Core
         public IReadOnlyList<string> Visited { get; }
         public IReadOnlyList<Offer> Offers { get; }
 
-        public RunSession(int seed, RunRules rules = null, string mapId = null, bool useFiveLaneCombat = false)
+        public RunSession(int seed, RunRules rules = null, string mapId = null, bool useFiveLaneCombat = false,
+            RunCharacterDefinition character = null, StartingLoadoutPreset startingLoadout = null)
         {
             UsesFiveLaneCombat = useFiveLaneCombat;
+            Character = character ?? RunCharacterDefinition.Default;
+            this.startingLoadout = new StartingLoadout(Character, startingLoadout).Capture();
             this.rules = rules ?? new RunRules();
             legacyWeapons = weapons.AsReadOnly(); Items = items.AsReadOnly(); Augments = augments.AsReadOnly();
             Visited = visited.AsReadOnly(); Offers = offers.AsReadOnly();
@@ -65,16 +71,8 @@ namespace BBSB.Core
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
             Equipment.Reset(); EquipmentCapacityIncreased = false;
-            // Start with two items. Acquisition never automatically adds another input to combat.
-            var startingWeapons = UsesFiveLaneCombat ? new[] { "dagger", "heater-shield" } :
-                new[] { "greatsword", "bell", "spear", "blade", "dagger" };
-            foreach (var id in startingWeapons)
-            {
-                var weapon = new WeaponState(id);
-                if (UsesFiveLaneCombat)
-                { int slot = Equipment.Equipped.Count; Equipment.Acquire(weapon); Equipment.Equip(weapon, slot); }
-                else weapons.Add(weapon);
-            }
+            if (UsesFiveLaneCombat) StartingLoadout.Populate(Equipment, Character, startingLoadout);
+            else foreach (var id in new[] { "greatsword", "bell", "spear", "blade", "dagger" }) weapons.Add(new WeaponState(id));
             CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false;
             Map = MapGenerator.Generate(1, mapRandom); StageCatalog.Assign(Map, Seed, startingMapId); Phase = RunPhase.Map;
         }

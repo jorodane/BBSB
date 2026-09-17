@@ -30,6 +30,7 @@ namespace BBSB.Runtime
         private bool testControls;
         private bool fiveLaneCombat;
         private bool title = true;
+        private bool choosingRun;
         private int selectedMap = -1;
         private int pendingOffer = -1;
         private static readonly string[] InputKeys = { "D", "F", "Space", "J", "K", "S", "L" };
@@ -69,13 +70,29 @@ namespace BBSB.Runtime
 
         private void StartRun()
         {
+            if (!fiveLaneCombat) { LaunchRun(null, null); return; }
+            choosingRun = true; title = false; menuPage = MenuPage.None; notice = ""; Render();
+        }
+
+        private void CancelRunSetup() { choosingRun = false; title = true; Render(); }
+
+        private void LaunchRun(RunCharacterDefinition character, StartingLoadoutPreset layout)
+        {
             int seed = fixedSeed ?? Guid.NewGuid().GetHashCode();
             string mapId = selectedMap < 0 ? null : StageCatalog.Maps[selectedMap].Id;
-            if (Session == null) Session = new RunSession(seed, rules, mapId, fiveLaneCombat); else Session.Restart(seed, mapId);
+            Session = new RunSession(seed, rules, mapId, fiveLaneCombat, character, layout);
+            notice = "";
+            if (fiveLaneCombat)
+            {
+                var preferences = RunStartPreferences.Load(); preferences.Remember(Session.Character, layout);
+                try { preferences.Save(); }
+                catch (PlayerPrefsException error)
+                { Debug.LogWarning("Could not save starting equipment: " + error.Message, this); notice = "시작 편성을 저장하지 못했어."; }
+            }
             ActiveFiveLaneBattle = null;
             ActiveRound = completedRound = null;
 
-            title = false; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
+            choosingRun = title = false; menuPage = MenuPage.None; pendingOffer = -1; Render();
         }
 
         private void Render()
@@ -93,6 +110,11 @@ namespace BBSB.Runtime
                 if (authoredScreen == null) RunUI.Stretch(screen);
                 body = null;
                 if (screen.GetComponent<CanvasGroup>() == null) screen.gameObject.AddComponent<CanvasGroup>();
+                if (choosingRun)
+                {
+                    screen.gameObject.AddComponent<RunSetupView>().Bind(ui, PlayerCharacterRegistry.Load(), RunStartPreferences.Load(), LaunchRun, CancelRunSetup);
+                    return;
+                }
                 if (title) { DrawTitle(); return; }
                 if (ActiveFiveLaneBattle != null)
                 {
@@ -168,6 +190,11 @@ namespace BBSB.Runtime
                 if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) codex.Back();
                 return;
             }
+            if (choosingRun)
+            {
+                if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) CancelRunSetup();
+                return;
+            }
             if (title || ActiveRound != null || ActiveFiveLaneBattle != null || Session == null || Session.Phase == RunPhase.GameOver) return;
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
@@ -179,6 +206,7 @@ namespace BBSB.Runtime
 
         private RunScreenKind CurrentScreenKind()
         {
+            if (choosingRun) return RunScreenKind.RunSetup;
             if (title) return RunScreenKind.Title;
             if (ActiveFiveLaneBattle != null) return RunScreenKind.FiveLaneBattle;
             if (ActiveRound != null) return RunScreenKind.Battle;
@@ -374,7 +402,7 @@ namespace BBSB.Runtime
 
         public bool StartFiveLaneBattle()
         {
-            if (Session == null || !Session.UsesFiveLaneCombat || ActiveRound != null || ActiveFiveLaneBattle != null) return false;
+            if (choosingRun || title || Session == null || !Session.UsesFiveLaneCombat || ActiveRound != null || ActiveFiveLaneBattle != null) return false;
             ActiveFiveLaneBattle = Session.StartFiveLaneBattle(phraseSets: WeaponPhraseAuthoring.LoadSetsFor(Session.Weapons));
             if (ActiveFiveLaneBattle == null) return false;
             completedRound = null; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
@@ -673,7 +701,7 @@ namespace BBSB.Runtime
         private void RenderMenu()
         {
             ClearMenu();
-            if (title || ActiveRound != null || ActiveFiveLaneBattle != null || Session.Phase == RunPhase.GameOver) menuPage = MenuPage.None;
+            if (title || choosingRun || ActiveRound != null || ActiveFiveLaneBattle != null || Session.Phase == RunPhase.GameOver) menuPage = MenuPage.None;
             var group = screen.GetComponent<CanvasGroup>();
             group.interactable = group.blocksRaycasts = menuPage == MenuPage.None;
             if (menuPage == MenuPage.None) return;

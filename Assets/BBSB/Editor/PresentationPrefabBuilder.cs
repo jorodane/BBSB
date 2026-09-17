@@ -41,7 +41,7 @@ namespace BBSB.Editor
             // Add only the new screens to existing catalogs; retain all authored prefab changes.
             var catalog = AssetDatabase.LoadAssetAtPath<PresentationPrefabs>(path);
             var entries = new List<PresentationPrefabs.Screen>(catalog.screens);
-            foreach (var kind in new[] { RunScreenKind.FiveLaneBattle, RunScreenKind.FiveLanePreparation })
+            foreach (var kind in new[] { RunScreenKind.FiveLaneBattle, RunScreenKind.FiveLanePreparation, RunScreenKind.RunSetup })
                 if (!entries.Exists(entry => entry != null && entry.kind == kind && entry.prefab != null))
                 { entries.RemoveAll(entry => entry != null && entry.kind == kind); entries.Add(new PresentationPrefabs.Screen { kind = kind, prefab = CreateScreen(kind) }); }
             if (entries.Count != catalog.screens.Length || Array.Exists(catalog.screens, entry => entry != null && entry.prefab == null))
@@ -106,6 +106,8 @@ namespace BBSB.Editor
             view.content = Rect("Content", root); Stretch(view.content);
             if (kind == RunScreenKind.FiveLaneBattle)
                 view.fiveLane = FiveLaneHudBindings.CreateDefault(view.content, Font);
+            if (kind == RunScreenKind.RunSetup)
+                view.runSetup = RunSetupBindings.CreateDefault(view.content, Font);
             if (kind == RunScreenKind.Title)
             {
                 var bindings = root.gameObject.AddComponent<TitleScreenBindings>(); view.title = bindings;

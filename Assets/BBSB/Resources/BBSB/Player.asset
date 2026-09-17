@@ -12,7 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e45f8d72ce35453fa4c2782cee63b675, type: 3}
   m_Name: Player
   m_EditorClassIdentifier: BBSB.Runtime::BBSB.Runtime.PlayerAuthoring
+  characterId: weapon-master
   displayName: WEAPON MASTER
+  description: 단검과 히터실드로 박자를 만들어.
+  startingWeapons:
+  - key: dagger
+    weaponId: dagger
+    equipped: 1
+    defaultOffset: 0
+  - key: heater-shield
+    weaponId: heater-shield
+    equipped: 1
+    defaultOffset: 1
   portrait: {fileID: 8793639957104055765, guid: 810142f81a473c544a477a0a25ad0bdc, type: 3}
   visualPrefab: {fileID: 8803816029075514268, guid: 1fa80d33597c63d4fa0b761e0d28103d, type: 3}
   controller: {fileID: 0}

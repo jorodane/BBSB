@@ -15,13 +15,15 @@ namespace BBSB.Tests
     public sealed class EquipmentPlacementTests
     {
         private GameObject root;
-        [UnityTearDown] public IEnumerator Cleanup() { if (root != null) Object.Destroy(root); yield return null; }
+        private RunStartPreferenceScope preferences;
+        [SetUp] public void IsolatePreferences() => preferences = new RunStartPreferenceScope();
+        [UnityTearDown] public IEnumerator Cleanup() { if (root != null) Object.Destroy(root); preferences.Dispose(); yield return null; }
         private void Click(string text) => root.GetComponentsInChildren<Button>().First(b =>
             b.GetComponentInChildren<TMP_Text>()?.text == text).onClick.Invoke();
         private IEnumerator OpenInventory()
         {
             root = new GameObject("Equipment bootstrap"); root.AddComponent<RunBootstrap>(); yield return null;
-            Click("탐험 시작");
+            Click("탐험 시작"); Click("편성하고 시작");
             var presenter = root.GetComponent<RunPresenter>();
             Assert.IsTrue(presenter.Session.Enter(presenter.Session.Map.Nodes.First(n => presenter.Session.CanEnter(n.Id)).Id));
             presenter.SendMessage("Render"); Click("무기 편성"); yield return null; Canvas.ForceUpdateCanvases();

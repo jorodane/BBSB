@@ -19,6 +19,7 @@ namespace BBSB.Editor
         {
             DrawDefaultInspector();
             var player = (PlayerAuthoring)target;
+            EditorGUILayout.HelpBox("Resources/BBSB/Characters 안에 Player 에셋을 추가하면 시작 선택창에 표시돼. Character ID는 캐릭터마다 다르게, Starting Weapons의 Key는 같은 무기를 여러 개 줘도 서로 다르게 지정해. 저장된 배치는 이 ID와 Key를 기준으로 복원돼.", MessageType.Info);
             EditorGUILayout.HelpBox("Visual Prefab에 SpriteRenderer 또는 UI Image 외형을 연결해. 동작별 Frames 또는 Animator의 전체 상태 경로를 등록하면 판정 시계에 맞춰 재생해. 조건이 더 구체적인 동작이 우선하며 Punch는 왼손 0 / 오른손 1 / 어퍼 2야. UI Image 기준 높이는 512, SpriteRenderer는 Reference Height 단위야.", MessageType.Info);
             if (player.visualPrefab != null && GUILayout.Button("외형 프리팹 열기")) AssetDatabase.OpenAsset(player.visualPrefab);
             if (player.layout != null && GUILayout.Button("크기 · 위치 · 판정 소켓 표시 설정 열기")) Selection.activeObject = player.layout;
@@ -27,6 +28,7 @@ namespace BBSB.Editor
             {
                 try
                 {
+                    player.BuildCharacter();
                     if (player.visualPrefab != null) ActorPrefabValidation.Validate(player.visualPrefab);
                     foreach (var motion in player.motions)
                         if (motion == null || float.IsNaN(motion.durationBeats) || float.IsInfinity(motion.durationBeats) || motion.durationBeats <= 0)

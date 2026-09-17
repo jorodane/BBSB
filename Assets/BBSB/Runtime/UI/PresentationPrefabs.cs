@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 namespace BBSB.Runtime.UI
 {
-    public enum RunScreenKind { Title, Map, Preparation, Battle, Report, Reward, Replacement, Rest, Upgrade, Shop, FieldCleared, GameOver, Codex, FiveLaneBattle, FiveLanePreparation }
+    public enum RunScreenKind { Title, Map, Preparation, Battle, Report, Reward, Replacement, Rest, Upgrade, Shop, FieldCleared, GameOver, Codex, FiveLaneBattle, FiveLanePreparation, RunSetup }
     [CreateAssetMenu(menuName = "BBSB/Presentation Prefabs")]
     public sealed class PresentationPrefabs : ScriptableObject
     {

@@ -14,11 +14,14 @@ namespace BBSB.Tests
     public sealed class RunUiSmokeTests
     {
         private GameObject root;
+        private RunStartPreferenceScope preferences;
+        [SetUp] public void IsolatePreferences() => preferences = new RunStartPreferenceScope();
 
         [UnityTearDown]
         public IEnumerator TearDown()
         {
             if (root != null) Object.Destroy(root);
+            preferences.Dispose();
             yield return null;
         }
 
@@ -67,7 +70,7 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
-        public IEnumerator BootstrapCreatesKoreanUIAndStartButtonOpensMap()
+        public IEnumerator BootstrapCreatesKoreanUIAndConfirmedSetupOpensMap()
         {
             root = new GameObject("UI smoke test");
             root.AddComponent<RunBootstrap>();
@@ -79,10 +82,13 @@ namespace BBSB.Tests
             Assert.IsTrue(font.HasCharacter('탐'));
             var start = root.GetComponentsInChildren<Button>().Single(x => x.GetComponentInChildren<TextMeshProUGUI>().text == "탐험 시작");
             start.onClick.Invoke();
+            Assert.IsNull(presenter.Session);
+            Assert.IsNotNull(root.GetComponentInChildren<RunSetupView>());
+            Click("편성하고 시작");
             yield return null;
             Canvas.ForceUpdateCanvases();
             Assert.AreEqual(RunPhase.Map, presenter.Session.Phase);
-            Assert.AreEqual(5, presenter.Session.Weapons.Count);
+            Assert.AreEqual(2, presenter.Session.Weapons.Count);
             var connections = root.GetComponentsInChildren<MapConnectionsGraphic>().Single();
             Assert.IsNull(connections.GetComponentInParent<ScrollRect>(), "The map must fit the viewport without scrolling.");
             var renderer = connections.GetComponent<CanvasRenderer>();

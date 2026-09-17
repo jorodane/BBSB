@@ -16,7 +16,7 @@ namespace BBSB.Runtime.UI
         private LayoutElement size;
         private float lastWidth = -1;
 
-        internal void Bind(RunSession session, RunUI ui, EquipmentPlacementView board)
+        internal void Bind(IEquipmentEditor session, RunUI ui, EquipmentPlacementView board)
         {
             grid = gameObject.AddComponent<GridLayoutGroup>();
             grid.spacing = new Vector2(10, 10);
