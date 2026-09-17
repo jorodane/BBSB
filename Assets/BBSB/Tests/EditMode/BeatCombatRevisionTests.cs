@@ -14,14 +14,14 @@ namespace BBSB.Tests
             new[] { new WeaponState("dagger"), new WeaponState("heater-shield") }, 120, 32, attacks, new StageHealth(10000), 100, 100);
         private static void Tap(FiveLaneBattle b, int slot, double beat) { b.Press(slot, beat); b.Release(slot, beat); }
 
-        [Test] public void DaggerCreatesExactlyOneNextBeatOnlyAfterSuccess()
+        [Test] public void DaggerCreatesExactlyOneNoteTwoBeatsAfterSuccess()
         {
             var b = Battle(); var lane = b.Lanes[0];
             Check.False(lane.IsNoteVisible(0)); Tap(b, 0, 1);
-            Check.Equal(2.0, lane.NextBeat); Check.True(lane.IsNoteVisible(0));
+            Check.Equal(3.0, lane.NextBeat); Check.True(lane.IsNoteVisible(0));
             Check.Equal(1, lane.NoteStates.Count); Check.Equal(6m, b.TotalDamage);
-            Tap(b, 0, 2.2); Check.Equal(3.0, lane.NextBeat); Check.Equal(9m, b.TotalDamage);
-            b.Advance(3.25); Check.Equal(PhraseLanePhase.Cooldown, lane.Phase);
+            Tap(b, 0, 3.2); Check.Equal(5.0, lane.NextBeat); Check.Equal(9m, b.TotalDamage);
+            b.Advance(5.25); Check.Equal(PhraseLanePhase.Cooldown, lane.Phase);
             Check.False(lane.IsNoteVisible(0));
             Check.True(Math.Abs(lane.ReadyAtBeat - lane.LastJudgedBeat - 2) < .00001);
             b.Advance(lane.ReadyAtBeat); Check.Equal(PhraseLanePhase.Ready, lane.Phase);
@@ -30,8 +30,8 @@ namespace BBSB.Tests
         {
             var b = Battle(); Tap(b, 0, .42);
             Check.Equal(6m, b.TotalDamage); Check.Equal(0, b.MissCount);
-            Check.Equal(1.5, b.Lanes[0].NextBeat); Tap(b, 0, 1.5); Tap(b, 0, 2.5);
-            Check.Equal(18m, b.TotalDamage); Check.Equal(3.5, b.Lanes[0].NextBeat);
+            Check.Equal(2.5, b.Lanes[0].NextBeat); Tap(b, 0, 2.5); Tap(b, 0, 4.5);
+            Check.Equal(18m, b.TotalDamage); Check.Equal(6.5, b.Lanes[0].NextBeat);
         }
         [Test] public void HeaterOpeningChoosesTheNearestHalfBeatAndEndsItsTwoBeatPattern()
         {
@@ -118,7 +118,10 @@ namespace BBSB.Tests
         }
         [Test] public void MissingARepeatedOpeningStillLeavesUnconditionalLaterNotesPlayable()
         {
-            var b = new FiveLaneBattle(new[] { new WeaponState("sword") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100);
+            var phrase = new WeaponPhrase("sword", "authored repeat", "", 4,
+                WeaponPhraseCatalog.Find("sword").Notes, repeat: true);
+            var b = new FiveLaneBattle(new[] { new WeaponState("sword") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100,
+                new[] { phrase });
             Tap(b, 0, 0); Tap(b, 0, 1); Tap(b, 0, 2); b.Advance(4.25);
             Check.Equal(PhraseNoteState.Missed, b.Lanes[0].NoteStates[0]);
             Check.True(b.Lanes[0].IsNoteVisible(1)); Check.True(b.Lanes[0].IsNoteVisible(2));
@@ -220,12 +223,14 @@ namespace BBSB.Tests
             coarse.Advance(.75);
             Check.Equal(SteppedNoteTrack.Distance(fine.Lanes[0].NextBeat, fine.Beat),
                 SteppedNoteTrack.Distance(coarse.Lanes[0].NextBeat, coarse.Beat));
-            Check.True(fine.Lanes[0].IsNoteVisible(0)); Check.Equal(1.0, fine.Lanes[0].NextBeat);
+            Check.True(fine.Lanes[0].IsNoteVisible(0)); Check.Equal(2.0, fine.Lanes[0].NextBeat);
         }
-        [Test] public void WeaponRewardsFillEmptySlotsThenRequireReplacementAtFive()
+        [Test] public void WeaponRewardsAccumulateWithoutChangingEquippedInputs()
         {
             var run = new RunSession(31, useFiveLaneCombat: true);
-            for (int step = 0, rewards = 0; step < 40 && rewards < 4; step++)
+            Check.True(run.EquipWeapon(1, 4));
+            int rewards = 0;
+            for (int step = 0; step < 40 && rewards < 6; step++)
             {
                 if (run.Phase == RunPhase.FieldCleared) Check.True(run.AdvanceField());
                 var node = run.Map.Nodes.Where(n => run.CanEnter(n.Id)).OrderByDescending(n => n.IsBattle).First();
@@ -233,21 +238,16 @@ namespace BBSB.Tests
                 if (!node.IsBattle) { Check.True(run.LeaveService()); continue; }
                 Check.True(run.ResolveBattle(run.StageTicket, true, 100));
                 int index = run.Offers.ToList().FindIndex(o => o.Content.Kind == RewardKind.Weapon);
-                int count = run.Weapons.Count;
-                if (count < 5)
-                {
-                    Check.True(run.ChooseReward(index)); Check.Equal(count + 1, run.Weapons.Count);
-                    Check.Equal("dagger", run.Weapons[0].DefinitionId); Check.Equal("heater-shield", run.Weapons[1].DefinitionId);
-                }
-                else
-                {
-                    Check.False(run.ChooseReward(index)); Check.Equal(RunPhase.Reward, run.Phase);
-                    Check.True(run.ChooseReward(index, 4)); Check.Equal(5, run.Weapons.Count);
-                }
-                rewards++;
+                int count = run.OwnedWeapons.Count;
+                Check.True(run.ChooseReward(index)); rewards++;
+                Check.Equal(count + 1, run.OwnedWeapons.Count); Check.Equal(2, run.Weapons.Count);
+                Check.Equal("dagger", run.Equipment.At(0).Weapon.DefinitionId);
+                Check.Equal("heater-shield", run.Equipment.At(4).Weapon.DefinitionId);
+                Check.True(run.Equipment.At(1) == null);
             }
-            Check.Equal(5, run.Weapons.Count);
-            run.Restart(31); Check.Equal(2, run.Weapons.Count);
+            Check.Equal(8, run.OwnedWeapons.Count);
+            run.Restart(31); Check.Equal(2, run.Weapons.Count); Check.Equal(2, run.OwnedWeapons.Count);
+            Check.Equal(2, run.Equipment.Capacity); Check.True(run.Equipment.At(4) == null);
         }
     }
 }

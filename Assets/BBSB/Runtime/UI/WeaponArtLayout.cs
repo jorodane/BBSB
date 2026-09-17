@@ -64,6 +64,16 @@ namespace BBSB.Runtime.UI
             if (weapon.IsRanged) return RangedWeaponArtLayout.Sockets(id, rarity, pose);
             string key = id + "/" + WeaponRarities.Key(rarity);
             if (layouts.TryGetValue(key, out var layout)) return layout;
+            if (weapon.Kind == WeaponKind.DualSwords) return layouts["sword/" + WeaponRarities.Key(rarity)];
+            if (weapon.Kind == WeaponKind.Staff || weapon.Kind == WeaponKind.SpiritBell)
+            {
+                var sockets = new WeaponArtSocket[weapon.ActionCountAt(rarity)];
+                for (int i = 0; i < sockets.Length; i++)
+                    sockets[i] = weapon.Kind == WeaponKind.Staff ? new WeaponArtSocket(.5, .563 - .0595 * i, .012, .009) :
+                        i == 0 ? new WeaponArtSocket(.5, .842, .027, .018) :
+                        new WeaponArtSocket(i == 1 ? .314 : .686, .638, .027, .018);
+                return Array.AsReadOnly(sockets);
+            }
             // New shield families share the existing art until their own transparent assets are installed.
             return layouts[weapon.Kind == WeaponKind.Shield ? "shield/" + WeaponRarities.Key(rarity) : key];
         }

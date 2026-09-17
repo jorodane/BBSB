@@ -19,6 +19,13 @@ namespace BBSB.Runtime.UI
         public const double LookAheadBeats = SteppedNoteTrack.LookAheadBeats;
         public static Vector2 LanePoint(int lane, float distance, int count = 5) =>
             new Vector2(.655f + (lane - (count - 1) * .5f) * .1375f, Mathf.Lerp(.22f, .42f, distance));
+        public static Vector2 InputPoint(int slot, float distance, InputExtensions extensions)
+        {
+            int left = (extensions & InputExtensions.Left) != 0 ? 1 : 0;
+            int count = BattleInputLayout.MainLaneCount + left + ((extensions & InputExtensions.Right) != 0 ? 1 : 0);
+            float position = BattleInputLayout.Position(slot) + left;
+            return new Vector2(.415f + position * (.54f / (count - 1)), Mathf.Lerp(.22f, .42f, distance));
+        }
         public void Bind(FiveLaneBattle value, RectTransform[] judgmentTargets = null,
             RectTransform player = null, RectTransform enemies = null)
         { battle = value; targets = judgmentTargets; playerTarget = player; enemySource = enemies; raycastTarget = false; Refresh(); }
@@ -29,9 +36,10 @@ namespace BBSB.Runtime.UI
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (battle == null) return;
-            for (int slot = 0; slot < battle.Lanes.Count; slot++)
+            for (int slot = 0; slot < BattleInputLayout.LaneCount; slot++)
             {
-                var lane = battle.Lanes[slot];
+                var lane = battle.LaneAt(slot);
+                if (lane == null) continue;
                 var near = Point(slot, 0); var far = Point(slot, 1);
                 Color laneColor = LaneColor(slot);
                 var floor = laneColor; floor.a = .07f;
@@ -106,7 +114,7 @@ namespace BBSB.Runtime.UI
         private Vector2 Point(int slot, float distance)
         {
             Vector2 near = targets != null && slot < targets.Length && targets[slot] != null ?
-                (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(LanePoint(slot, 0, battle.Lanes.Count));
+                (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(InputPoint(slot, 0, battle.Extensions));
             return near + Vector2.up * (rectTransform.rect.height * .20f * distance);
         }
         private Vector2 Pixel(Vector2 normalized)

@@ -22,7 +22,10 @@ namespace BBSB.Tests
             graphic.rectTransform.sizeDelta = new Vector2(140, 180);
             try
             {
-                foreach (var weapon in WeaponCatalog.All)
+                // The new dual swords use the repository's paired vector silhouette until
+                // dedicated sprite artwork is authored; validate that path separately below.
+                foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.DualSwords &&
+                    w.Kind != WeaponKind.Staff && w.Kind != WeaponKind.SpiritBell))
                 foreach (var rarity in WeaponRarities.All)
                 {
                     var state = new WeaponState(weapon.Id, rarity, 3);
@@ -46,6 +49,32 @@ namespace BBSB.Tests
                     graphic.rectTransform.localRotation = Quaternion.Euler(0, 0, 37);
                     Assert.AreEqual(graphic.transform.rotation, sockets.transform.rotation);
                     AssertTransparent(sprite.texture);
+                }
+            }
+            finally { Object.DestroyImmediate(canvas); }
+        }
+
+        [UnityTest]
+        public IEnumerator NewWeaponsRemainVisibleWithOrWithoutTheirOptionalArtPack()
+        {
+            var canvas = new GameObject("Dual swords fallback", typeof(Canvas));
+            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var node = new GameObject("Weapon", typeof(RectTransform), typeof(CanvasRenderer));
+            node.transform.SetParent(canvas.transform, false);
+            var graphic = node.AddComponent<WeaponIconGraphic>(); graphic.rectTransform.sizeDelta = new Vector2(140, 180);
+            try
+            {
+                foreach (string id in new[] { "dual-swords", "staff", "spirit-bell" })
+                foreach (var rarity in WeaponRarities.All)
+                {
+                    graphic.Bind(new WeaponState(id, rarity)); yield return null;
+                    Canvas.ForceUpdateCanvases(); graphic.Rebuild(CanvasUpdate.PreRender);
+                    var mesh = graphic.canvasRenderer.GetMesh();
+                    Assert.IsNotNull(mesh); Assert.Greater(mesh.vertexCount, 0);
+                    Assert.AreEqual(WeaponCatalog.Find(id).Kind, graphic.Kind);
+                    Assert.AreEqual(WeaponCatalog.Find(id).ActionCountAt(rarity), graphic.GetComponentInChildren<WeaponSocketGraphic>().SocketCount);
+                    var sprite = WeaponSpriteCache.Get(id, rarity);
+                    if (sprite != null) AssertTransparent(sprite.texture);
                 }
             }
             finally { Object.DestroyImmediate(canvas); }

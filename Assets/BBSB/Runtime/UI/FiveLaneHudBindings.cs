@@ -1,4 +1,5 @@
 using TMPro;
+using BBSB.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,7 +13,7 @@ namespace BBSB.Runtime.UI
         public ShoulderViewPresentation presentation;
         public TextMeshProUGUI song, health, enemyHealth, beat, feedback, help;
         public TextMeshProUGUI attackCue;
-        [Tooltip("Centre the short tracks for the number of equipped weapons. Disable to use custom prefab positions.")]
+        [Tooltip("Place inputs at the five fixed D/F/Space/J/K positions. Disable to use custom prefab positions.")]
         public bool arrangeEquippedLanes = true;
         public RectTransform playerFill, enemyFill;
         public Button pause;
@@ -37,7 +38,7 @@ namespace BBSB.Runtime.UI
         }
         private static bool Complete<T>(T[] entries) where T : Object
         {
-            if (entries == null || entries.Length != 5) return false;
+            if (entries == null || entries.Length != 5 && entries.Length != BattleInputLayout.LaneCount) return false;
             foreach (var entry in entries) if (entry == null) return false;
             return true;
         }
@@ -58,8 +59,8 @@ namespace BBSB.Runtime.UI
             { playerSlot = ui.Rect("Player stage slot", actors); Place(playerSlot, .025f, .15f, .345f, .71f); changed = true; }
             if (monsterArea == null)
             { monsterArea = ui.Rect("Monster stage area", actors); Place(monsterArea, .39f, .50f, .86f, .88f); changed = true; }
-            if (judgmentPoints == null || judgmentPoints.Length != 5)
-            { judgmentPoints = new RectTransform[5]; changed = true; }
+            if (judgmentPoints == null || judgmentPoints.Length != weaponRoots.Length)
+            { judgmentPoints = new RectTransform[weaponRoots.Length]; changed = true; }
             for (int i = 0; i < 5; i++)
                 if (judgmentPoints[i] == null)
                 {
@@ -99,24 +100,53 @@ namespace BBSB.Runtime.UI
             stageLayoutVersion = 2;
             return true;
         }
-        public void ConfigureLanes(int count)
+        public void ConfigureLanes(BBSB.Core.FiveLaneBattle battle)
         {
-            for (int i = 0; i < 5; i++)
+            EnsureExtensionSlots(battle.Extensions);
+            for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
-                bool active = i < count;
+                bool active = battle.LaneAt(i) != null;
                 weaponRoots[i].gameObject.SetActive(active); judgmentPoints[i].gameObject.SetActive(active);
-                inputAreas[i].gameObject.SetActive(active); laneLabels[i].gameObject.SetActive(active);
+                inputAreas[i].gameObject.SetActive(active); laneLabels[i].gameObject.SetActive(battle.IsInputAvailable(i));
                 laneStatus[i].gameObject.SetActive(active); laneResults[i].gameObject.SetActive(active);
-                if (!active || !arrangeEquippedLanes) continue;
-                float x = FiveLaneTrackGraphic.LanePoint(i, 0, count).x;
+                if (!arrangeEquippedLanes) continue;
+                float x = FiveLaneTrackGraphic.InputPoint(i, 0, battle.Extensions).x;
+                float half = battle.Extensions == InputExtensions.None ? .065f : .045f;
                 Place(judgmentPoints[i], x - .035f, .195f, x + .035f, .245f);
-                Place(laneLabels[i].rectTransform, x - .065f, .105f, x + .065f, .175f);
+                Place(laneLabels[i].rectTransform, x - half, .105f, x + half, .175f);
                 laneLabels[i].fontSize = 18;
-                Place(laneStatus[i].rectTransform, x - .065f, .065f, x + .065f, .10f);
-                Place(laneResults[i].rectTransform, x - .065f, .435f, x + .065f, .485f);
-                Place(inputAreas[i], x - .065f, .06f, x + .065f, .49f);
+                Place(laneStatus[i].rectTransform, x - half, .065f, x + half, .10f);
+                Place(laneResults[i].rectTransform, x - half, .435f, x + half, .485f);
+                Place(inputAreas[i], x - half, .06f, x + half, .49f);
             }
             if (arrangeEquippedLanes) Place(feedback.rectTransform, .40f, .49f, .81f, .55f);
+        }
+        private void EnsureExtensionSlots(InputExtensions extensions)
+        {
+            System.Array.Resize(ref weaponRoots, BattleInputLayout.LaneCount);
+            System.Array.Resize(ref judgmentPoints, BattleInputLayout.LaneCount);
+            System.Array.Resize(ref inputAreas, BattleInputLayout.LaneCount);
+            System.Array.Resize(ref laneLabels, BattleInputLayout.LaneCount);
+            System.Array.Resize(ref laneStatus, BattleInputLayout.LaneCount);
+            System.Array.Resize(ref laneResults, BattleInputLayout.LaneCount);
+            var ui = new RunUI(song.font);
+            for (int i = BattleInputLayout.MainLaneCount; i < BattleInputLayout.LaneCount; i++)
+            {
+                float x = FiveLaneTrackGraphic.InputPoint(i, 0, extensions).x;
+                string key = BattleInputLayout.Key(i);
+                if (weaponRoots[i] == null)
+                { weaponRoots[i] = ui.Rect("Weapon " + key, actors); Place(weaponRoots[i], x - .04f, .50f, x + .04f, .62f); }
+                if (judgmentPoints[i] == null)
+                { judgmentPoints[i] = ui.Rect("Judgment point " + key, tracks); Place(judgmentPoints[i], x - .035f, .195f, x + .035f, .245f); }
+                if (inputAreas[i] == null)
+                {
+                    inputAreas[i] = ui.Rect("Input lane " + key, transform); Place(inputAreas[i], x - .045f, .06f, x + .045f, .49f);
+                    ui.Background(inputAreas[i], Color.clear, true);
+                }
+                if (laneLabels[i] == null) laneLabels[i] = Text(ui, transform, key, 18, x - .045f, .105f, x + .045f, .175f);
+                if (laneStatus[i] == null) laneStatus[i] = Text(ui, transform, "", 17, x - .045f, .065f, x + .045f, .10f);
+                if (laneResults[i] == null) laneResults[i] = Text(ui, transform, "", 20, x - .045f, .435f, x + .045f, .485f);
+            }
         }
         private static Vector2 WeaponPoint(int slot)
         {

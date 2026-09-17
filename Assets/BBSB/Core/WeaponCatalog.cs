@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    public enum WeaponKind { Sword, Shield, Spear, Hammer, Dagger, Greatsword, Bell, Blade, Bow, Crossbow, Wand }
+    public enum WeaponKind { Sword, Shield, Spear, Hammer, Dagger, Greatsword, Bell, Blade, Bow, Crossbow, Wand, DualSwords, Staff, SpiritBell }
     public enum WeaponAttackStyle { Slash, Sweep, Guard, ShieldBash, Thrust, Slam, ChargedSlam,
         QuickStab, CounterStab, ChargedSlash, RisingSlash, Resonance, Ward, Returning, Spin,
         ArrowShot, ChargedArrow, ArrowVolley, BoltShot, QuickBolt, DodgeBolt, OrbShot, ChargedOrb, MagicPulse }
@@ -33,6 +33,7 @@ namespace BBSB.Core
         public string Id { get; }
         public string Name => ContentCatalog.Find(Id).Name;
         public WeaponKind Kind { get; }
+        public int RequiredLanes { get; }
         public bool IsRanged => Kind == WeaponKind.Bow || Kind == WeaponKind.Crossbow || Kind == WeaponKind.Wand;
         public IReadOnlyList<WeaponActionDefinition> Actions { get; }
         private readonly IReadOnlyList<WeaponActionDefinition>[] unlocked;
@@ -40,13 +41,16 @@ namespace BBSB.Core
         public string EffectLabel => EffectLabelAt(WeaponRarity.Legendary);
 
         internal WeaponDefinition(string id, WeaponKind kind, params WeaponActionDefinition[] actions)
+            : this(id, kind, 1, actions) { }
+        internal WeaponDefinition(string id, WeaponKind kind, int requiredLanes, params WeaponActionDefinition[] actions)
         {
+            if (requiredLanes < 1 || requiredLanes > BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(requiredLanes));
             if (actions == null || actions.Length != (kind == WeaponKind.Shield ? 2 : 3))
                 throw new ArgumentException("Shields need two actions; other weapons need three.", nameof(actions));
             var kinds = new HashSet<GestureKind>();
             foreach (var action in actions)
                 if (action == null || !kinds.Add(action.Kind)) throw new ArgumentException("Weapon actions must be distinct.", nameof(actions));
-            Id = id; Kind = kind; Actions = Array.AsReadOnly((WeaponActionDefinition[])actions.Clone());
+            Id = id; Kind = kind; RequiredLanes = requiredLanes; Actions = Array.AsReadOnly((WeaponActionDefinition[])actions.Clone());
             unlocked = new IReadOnlyList<WeaponActionDefinition>[actions.Length];
             for (int count = 1; count <= actions.Length; count++)
             { var group = new WeaponActionDefinition[count]; Array.Copy(actions, group, count); unlocked[count - 1] = Array.AsReadOnly(group); }
@@ -79,6 +83,7 @@ namespace BBSB.Core
                 if (action.PerfectBonus > 0) effects.Add("Perfect 추가 " + (action.PerfectBonus * scale).ToString("0.##"));
                 if (action.BuildsCombo) effects.Add("연속 성공 +" + (2 * scale).ToString("0.##") + " · 최대 +" + (6 * scale).ToString("0.##"));
                 if (action.GrantsResonance) effects.Add("2박 안의 다음 공격 +50%");
+                if (effects.Count == 0) effects.Add(action.EffectLabel);
                 labels.Add(action.Kind + " · " + action.Name + ": " + string.Join(" · ", effects));
             }
             return string.Join("\n", labels);
@@ -120,6 +125,18 @@ namespace BBSB.Core
                 new WeaponActionDefinition(GestureKind.Dive, "회피 반격", "끝 박에 떼면 14 피해", WeaponAttackStyle.CounterStab, 14),
                 new WeaponActionDefinition(GestureKind.Tap, "빠른 찌르기", "5 피해 · 연속 성공마다 +2, 최대 +6", WeaponAttackStyle.QuickStab, 5, combo: true),
                 new WeaponActionDefinition(GestureKind.Flick, "회전 찌르기", "12 피해", WeaponAttackStyle.CounterStab, 12)),
+            new WeaponDefinition("dual-swords", WeaponKind.DualSwords,
+                new WeaponActionDefinition(GestureKind.Tap, "교차 베기", "6 피해", WeaponAttackStyle.Slash, 6),
+                new WeaponActionDefinition(GestureKind.Flick, "연속 베기", "12 피해", WeaponAttackStyle.Sweep, 12),
+                new WeaponActionDefinition(GestureKind.Hold, "모아 베기", "유지 완료 시 20 피해", WeaponAttackStyle.ChargedSlash, 20)),
+            new WeaponDefinition("staff", WeaponKind.Staff, 2,
+                new WeaponActionDefinition(GestureKind.Tap, "연속 타격", "8 피해", WeaponAttackStyle.Thrust, 8),
+                new WeaponActionDefinition(GestureKind.Hold, "반대편 모아치기", "유지 완료 시 18 피해", WeaponAttackStyle.ChargedSlam, 18),
+                new WeaponActionDefinition(GestureKind.Flick, "봉 휘두르기", "16 피해", WeaponAttackStyle.Sweep, 16)),
+            new WeaponDefinition("spirit-bell", WeaponKind.SpiritBell,
+                new WeaponActionDefinition(GestureKind.Tap, "신령의 울림", "양옆 무기의 패턴을 1박 뒤 시작", WeaponAttackStyle.Resonance, 0),
+                new WeaponActionDefinition(GestureKind.Shake, "공명 타격", "8 피해", WeaponAttackStyle.Resonance, 8),
+                new WeaponActionDefinition(GestureKind.Hold, "보호 울림", "완료 시 방어막 10", WeaponAttackStyle.Ward, 0, guard: 10)),
             new WeaponDefinition("greatsword", WeaponKind.Greatsword,
                 new WeaponActionDefinition(GestureKind.Hold, "모아 베기", "유지 완료 시 26 피해", WeaponAttackStyle.ChargedSlash, 26),
                 new WeaponActionDefinition(GestureKind.Dive, "올려 베기", "끝 박에 떼면 26 피해 · Perfect 추가 10", WeaponAttackStyle.RisingSlash, 26, perfectBonus: 10),

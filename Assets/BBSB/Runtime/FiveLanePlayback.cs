@@ -14,7 +14,7 @@ namespace BBSB.Runtime
         public bool WaitingForHold { get; private set; }
         public bool CanReceiveInput => IsInitialized && isActiveAndEnabled && !Battle.Finished &&
             (WaitingForHold || (!Battle.IsPaused && AudioSettings.dspTime >= origin));
-        private readonly bool[] pointerHeld = new bool[5], sentHeld = new bool[5];
+        private readonly bool[] pointerHeld = new bool[BattleInputLayout.LaneCount], sentHeld = new bool[BattleInputLayout.LaneCount];
         private readonly AudioSource[] pulses = new AudioSource[8];
         private AudioClip tick, accent;
         private int nextPulse, pulseSource;
@@ -71,7 +71,10 @@ namespace BBSB.Runtime
                 case 1: return keyboard.fKey.isPressed;
                 case 2: return keyboard.spaceKey.isPressed;
                 case 3: return keyboard.jKey.isPressed;
-                default: return keyboard.kKey.isPressed;
+                case 4: return keyboard.kKey.isPressed;
+                case BattleInputLayout.Left: return keyboard.sKey.isPressed;
+                case BattleInputLayout.Right: return keyboard.lKey.isPressed;
+                default: return false;
             }
         }
         private void Update()
@@ -81,7 +84,7 @@ namespace BBSB.Runtime
             { if (Battle.IsPaused && !WaitingForHold) Continue(); else Pause(); return; }
             if (WaitingForHold) { TryResumeHeld(); return; }
             if (!CanReceiveInput) return;
-            for (int i = 0; i < Battle.Lanes.Count; i++) SyncInput(i);
+            for (int i = 0; i < BattleInputLayout.LaneCount; i++) if (Battle.LaneAt(i) != null) SyncInput(i);
         }
         private void LateUpdate()
         {
@@ -98,7 +101,7 @@ namespace BBSB.Runtime
         }
         public void SetPointer(int slot, bool down)
         {
-            if (slot < 0 || !IsInitialized || slot >= Battle.Lanes.Count || !isActiveAndEnabled) return;
+            if (!IsInitialized || Battle.LaneAt(slot) == null || !isActiveAndEnabled) return;
             pointerHeld[slot] = down;
             if (WaitingForHold) TryResumeHeld(); else if (CanReceiveInput) SyncInput(slot);
         }
@@ -127,14 +130,16 @@ namespace BBSB.Runtime
         }
         private void TryResumeHeld()
         {
-            for (int i = 0; i < Battle.Lanes.Count; i++) if (Battle.Lanes[i].Holding && !KeyHeld(i) && !pointerHeld[i]) return;
+            foreach (var lane in Battle.Lanes)
+                if (lane.Holding && !KeyHeld(lane.HoldingSlot) && !pointerHeld[lane.HoldingSlot]) return;
             WaitingForHold = false; Battle.Resume(); ReleaseStaleContacts(); RestartClock(false); ClearSelection();
         }
         private void ReleaseStaleContacts()
         {
-            for (int i = 0; i < Battle.Lanes.Count; i++)
+            for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
-                sentHeld[i] = Battle.Lanes[i].Holding;
+                var lane = Battle.LaneAt(i);
+                sentHeld[i] = lane != null && lane.Holding && lane.HoldingSlot == i;
                 if (!sentHeld[i]) Battle.Release(i, Battle.Beat);
             }
         }

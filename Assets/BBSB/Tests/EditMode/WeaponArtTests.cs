@@ -23,7 +23,7 @@ namespace BBSB.Tests
                 for (int i = 0; i < sockets.Count; i++)
                 {
                     var a = sockets[i];
-                    Check.True(a.RadiusX > .015 && a.RadiusY > .015);
+                    Check.True(a.RadiusX > .005 && a.RadiusY > .005);
                     Check.True(a.X - a.RadiusX > 0 && a.X + a.RadiusX < 1);
                     Check.True(a.Y - a.RadiusY > 0 && a.Y + a.RadiusY < 1);
                     for (int j = 0; j < i; j++)

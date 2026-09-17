@@ -1,5 +1,6 @@
 using TMPro;
 using System;
+using System.Collections.Generic;
 using BBSB.Core;
 using BBSB.Runtime.UI;
 using UnityEngine;
@@ -31,6 +32,7 @@ namespace BBSB.Runtime
         private bool title = true;
         private int selectedMap = -1;
         private int pendingOffer = -1;
+        private static readonly string[] InputKeys = { "D", "F", "Space", "J", "K", "S", "L" };
         private string notice = "";
         private bool rendering;
         private readonly MusicPreview musicPreview = new MusicPreview();
@@ -314,13 +316,13 @@ namespace BBSB.Runtime
                     LeaveButton(); break;
                 case StageKind.Upgrade:
                     Heading("TUNE YOUR WEAPONS", "강화", "무기 한 개의 능력치를 강화해. 단계마다 기본 수치의 25%, 최대 +3까지 올라.");
-                    for (int i = 0; i < Session.Weapons.Count; i++)
+                    for (int i = 0; i < Session.OwnedWeapons.Count; i++)
                     {
-                        int slot = i; var weapon = Session.Weapons[i];
+                        int slot = i; var weapon = Session.OwnedWeapons[i];
                         int nextLevel = Math.Min(RunRules.MaximumUpgrade, weapon.Level + 1);
-                        ui.Button(body, WeaponName(i) + "  →  +" + nextLevel + "\n" +
+                        ui.Button(body, WeaponLabel(weapon) + "  →  +" + nextLevel + "\n" +
                             "능력치 " + (100 + 25 * weapon.Level) + "% → " + (100 + 25 * nextLevel) + "%", () =>
-                        { if (Session.Upgrade(slot)) { notice = WeaponName(slot) + " 강화 완료!"; Render(); } },
+                        { if (Session.Upgrade(slot)) { notice = WeaponLabel(weapon) + " 강화 완료!"; Render(); } },
                             !Session.ServiceClaimed && weapon.Level < RunRules.MaximumUpgrade, height: 76);
                     }
                     LeaveButton(); break;
@@ -343,32 +345,37 @@ namespace BBSB.Runtime
         private void DrawFiveLanePreparation()
         {
             var panel = ui.Stack(screen, "Five lane preparation", 28, 10); RunUI.Stretch(panel);
-            ui.Label(panel, "TWO TO START / ONE BEAT", 28, RunUI.Gold, 44);
+            ui.Label(panel, "CHOOSE YOUR RHYTHM", 28, RunUI.Gold, 44);
             ui.Label(panel, Session.BattleMusic.Music.Name + " · " + Session.BattleMusic.Music.Bpm + " BPM", 24, RunUI.Teal, 40);
             ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth +
                 "   ·   ENEMY " + Session.EnemyHealth.Current.ToString("0.#") + " / " + Session.EnemyHealth.Maximum, 22, null, 36);
             var list = ui.Scroll(panel);
-            ui.Label(list, "단검은 정박마다 눌러줘. 성공하면 다음 정박이 이어져.\n방패는 누르는 순간 방어하고, 최대 2박 동안 유지할 수 있어.", 22, null, 72);
+            ui.Label(list, "단검은 2박마다, 쌍검은 1박마다 이어져.\n방패는 누르는 순간 패리하고, 최대 2박 동안 피해를 줄여줘.", 22, null, 72);
             var names = new System.Collections.Generic.List<string>();
             foreach (var monster in Session.BattlePlan.Monsters) names.Add(monster.Monster.Name);
             ui.Label(list, "MONSTERS  ·  " + string.Join(" / ", names), 20, RunUI.Red, 40);
-            string[] keys = { "D", "F", "SPACE", "J", "K" };
-            var phrases = WeaponPhraseAuthoring.LoadFor(Session.Weapons);
+            var sets = WeaponPhraseAuthoring.LoadSetsFor(Session.Weapons);
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
-                var phrase = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Phrase : phrases[i];
-                ui.Label(list, keys[i] + "   " + phrase.Name + "  +" + Session.Weapons[i].Level + "\n" + phrase.Hint, 22, null, 66);
+                var placement = Session.Equipment.Placements[i];
+                var set = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Patterns : sets[i];
+                for (int offset = 0; offset < placement.Slots.Count; offset++)
+                {
+                    var phrase = set.Starts[offset];
+                    ui.Label(list, InputKeys[placement.Slots[offset]] + "   " + phrase.Name + "  +" + Session.Weapons[i].Level + "\n" + phrase.Hint, 22, null, 72);
+                }
             }
-            ui.Label(list, "최대 3박 앞까지 표시해. 반박마다 한 단계씩 내려와.\n시작 무기는 2개. 보상으로 최대 5개까지 장착할 수 있어.", 20, RunUI.Muted, 80);
+            ui.Label(list, "장착 " + Session.Weapons.Count + " / " + Session.Equipment.Capacity + "개  ·  사용 라인 " + Session.Equipment.OccupiedLaneCount + " / " + Session.Equipment.AvailableLaneCount + "\n최대 3박 앞까지 표시해. 획득한 무기는 편성에서 원하는 위치에 배치해.", 20, RunUI.Muted, 80);
             var actions = ui.Row(panel, 64);
-            ui.Button(actions, Session.PhraseBattle == null ? "연주 시작" : "연주 이어가기", () => StartFiveLaneBattle(), primary: true, height: 64);
+            ui.Button(actions, Session.PhraseBattle == null ? "연주 시작" : "연주 이어가기", () => StartFiveLaneBattle(), Session.Weapons.Count > 0, primary: true, height: 64);
+            ui.Button(actions, "무기 편성", () => OpenMenu(MenuPage.Inventory), height: 64);
             ui.Button(actions, "메뉴", () => OpenMenu(MenuPage.Home), height: 64);
         }
 
         public bool StartFiveLaneBattle()
         {
             if (Session == null || !Session.UsesFiveLaneCombat || ActiveRound != null || ActiveFiveLaneBattle != null) return false;
-            ActiveFiveLaneBattle = Session.StartFiveLaneBattle(WeaponPhraseAuthoring.LoadFor(Session.Weapons));
+            ActiveFiveLaneBattle = Session.StartFiveLaneBattle(phraseSets: WeaponPhraseAuthoring.LoadSetsFor(Session.Weapons));
             if (ActiveFiveLaneBattle == null) return false;
             completedRound = null; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
             var playback = screen != null ? screen.GetComponent<FiveLanePlayback>() : null;
@@ -528,6 +535,9 @@ namespace BBSB.Runtime
         private void DrawRewards()
         {
             Heading("STAGE CLEAR", "다음 박자를 위한 보상", "전투 골드를 획득했어. 아래 보상 중 하나를 선택해.");
+            if (Session.UsesFiveLaneCombat)
+                ui.Label(body, (Session.EquipmentCapacityIncreased ? "장착 한도 +1  ·  " : "장착 한도  ·  ") +
+                    Session.Equipment.Capacity + "개\n획득한 무기는 가방에 보관돼. 원하는 만큼만 편성해.", 24, RunUI.Teal, 84);
             DrawOffers(false);
             ui.Button(body, "보상 건너뛰기", () => { if (Session.SkipReward()) Render(); });
         }
@@ -544,6 +554,7 @@ namespace BBSB.Runtime
                 else ui.Label(card, definition.Description, 22, RunUI.Muted, 78);
                 bool enabled = !offer.Purchased && (!shop || Session.Gold >= offer.Price);
                 string label = offer.Purchased ? "구매 완료" : shop ? offer.Price + " G  ·  구매" : "선택";
+                if (Session.UsesFiveLaneCombat && definition.Kind == RewardKind.Weapon && !offer.Purchased) label += " · 가방에 보관";
                 if (shop && !offer.Purchased && Session.Gold < offer.Price) label += "  ·  골드 부족";
                 ui.Button(card, label, () => PickOffer(index), enabled, !shop, 62);
             }
@@ -551,7 +562,7 @@ namespace BBSB.Runtime
 
         private void PickOffer(int index)
         {
-            if (Session.Offers[index].Content.Kind == RewardKind.Weapon && Session.Weapons.Count >= RunRules.WeaponSlots)
+            if (!Session.UsesFiveLaneCombat && Session.Offers[index].Content.Kind == RewardKind.Weapon && Session.Weapons.Count >= RunRules.WeaponSlots)
             { pendingOffer = index; notice = ""; Render(); return; }
             GrantOffer(index, -1);
         }
@@ -707,6 +718,7 @@ namespace BBSB.Runtime
 
         private void DrawLoadout()
         {
+            if (Session.UsesFiveLaneCombat) { DrawEquipment(); return; }
             ui.Label(body, "장착한 무기  /  5 SLOTS", 27, RunUI.Gold, 46);
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
@@ -714,6 +726,38 @@ namespace BBSB.Runtime
                 var state = Session.Weapons[i];
                 ui.Label(card, (i + 1) + "  " + WeaponName(i), 27, RunUI.TextColor, 44);
                 DrawWeaponSummary(card, state);
+            }
+        }
+
+        private void DrawEquipment()
+        {
+            var equipment = Session.Equipment;
+            bool editable = Session.CanEditEquipment;
+            // Keep the placement board visible while the owned inventory scrolls beneath it.
+            var scroll = body.GetComponentInParent<ScrollRect>();
+            var boardRoot = ui.Rect("Equipment placement board", scroll.transform.parent);
+            RunUI.Size(boardRoot, 178); boardRoot.SetSiblingIndex(scroll.transform.GetSiblingIndex());
+            var board = boardRoot.gameObject.AddComponent<EquipmentPlacementView>();
+            board.Bind(Session, ui, Render);
+            ui.Label(body, "무기 편성  ·  장착 " + Session.Weapons.Count + " / " + equipment.Capacity + "개", 27, RunUI.Gold, 46);
+            ui.Label(body, "사용 라인 " + equipment.OccupiedLaneCount + " / " + equipment.AvailableLaneCount + "  ·  보유 " + Session.OwnedWeapons.Count + "개\n보스 클리어마다 장착 한도 +1. 무기를 끌어 원하는 라인의 중심에 놓아줘.", 21, RunUI.Muted, 76);
+            if (!editable) ui.Label(body, "진행 중인 전투가 끝나면 편성을 변경할 수 있어.", 21, RunUI.Gold, 48);
+            else if (Session.Weapons.Count == 0) ui.Label(body, "전투를 시작하려면 무기를 하나 이상 장착해줘.", 21, RunUI.Gold, 48);
+            ui.Label(body, "보유 무기", 27, RunUI.Gold, 46);
+            for (int i = 0; i < Session.OwnedWeapons.Count; i++)
+            {
+                int index = i; var weapon = Session.OwnedWeapons[i]; var placement = equipment.PlacementOf(weapon);
+                var card = ui.Card(body, 16); card.name = "Owned weapon " + i;
+                ui.Label(card, WeaponLabel(weapon), 25, RunUI.TextColor, 44);
+                var positions = new List<string>();
+                if (placement != null) foreach (int slot in placement.Slots) positions.Add(InputKeys[slot]);
+                ui.Label(card, placement == null ? "미배치" : "배치 · " + string.Join(" + ", positions), 21, RunUI.Teal, 38);
+                DrawWeaponSummary(card, weapon);
+                var actions = ui.Row(card, 60);
+                var handle = ui.Button(actions, "드래그 · 클릭하여 배치", () => board.SelectWeapon(index), editable, height: 60);
+                handle.gameObject.AddComponent<EquipmentDragHandle>().Bind(board, index);
+                if (placement != null)
+                    ui.Button(actions, "장착 해제", () => { if (Session.UnequipWeapon(index)) Render(); }, editable, height: 60);
             }
         }
 
@@ -728,9 +772,13 @@ namespace BBSB.Runtime
             if (Session.UsesFiveLaneCombat)
             {
                 foreach (var sockets in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
-                var phrase = WeaponPhraseAuthoring.LoadFor(new[] { state })[0];
+                var patterns = WeaponPhraseAuthoring.LoadSetsFor(new[] { state })[0];
+                var phrase = patterns.Starts[0];
                 ui.Label(row, phrase.Name + "\n" + phrase.LengthBeats + "박 · Tap / Hold", 23, RunUI.Teal, 100);
                 ui.Label(parent, phrase.Hint, 21, RunUI.Muted, 66);
+                for (int offset = 1; offset < patterns.Starts.Count; offset++)
+                    ui.Label(parent, "시작 위치 " + (offset + 1) + " · " + patterns.Starts[offset].Name + "\n" + patterns.Starts[offset].Hint, 21, RunUI.Muted, 66);
+                ui.Label(parent, "필요한 라인 " + state.RequiredLanes + "개 · 장착 수 1개", 20, RunUI.Muted, 38);
                 ui.Label(parent, "강화 능력치 " + (100 + 25 * state.Level) + "% · 미스 시 " + phrase.MissCooldownBeats + "박 대기", 20, RunUI.Muted, 48);
                 return;
             }
@@ -777,8 +825,9 @@ namespace BBSB.Runtime
 
         private string WeaponName(int index)
         {
-            var weapon = Session.Weapons[index];
-            return WeaponRarities.Name(weapon.Rarity) + " " + ContentCatalog.Find(weapon.DefinitionId).Name + " +" + weapon.Level;
+            return WeaponLabel(Session.Weapons[index]);
         }
+        private static string WeaponLabel(WeaponState weapon) =>
+            WeaponRarities.Name(weapon.Rarity) + " " + ContentCatalog.Find(weapon.DefinitionId).Name + " +" + weapon.Level;
     }
 }

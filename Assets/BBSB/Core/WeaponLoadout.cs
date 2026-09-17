@@ -19,7 +19,7 @@ namespace BBSB.Core
             {
                 if (weapon == null) throw new ArgumentException("A weapon slot cannot be null.", nameof(weapons));
                 WeaponCatalog.Find(weapon.DefinitionId);
-                equipment.Add(new WeaponState(weapon.DefinitionId, weapon.Rarity, weapon.Level));
+                equipment.Add(new WeaponState(weapon.DefinitionId, weapon.Rarity, weapon.Level, weapon.RequiredLanes));
             }
             foreach (var attack in plan.Attacks)
                 if (!patterns.Exists(p => p.MonsterId == attack.MonsterId && p.Pattern.Id == attack.Pattern.Id)) patterns.Add(attack);

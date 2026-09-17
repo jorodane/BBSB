@@ -107,13 +107,16 @@ namespace BBSB.Core
         public string DefinitionId { get; }
         public WeaponRarity Rarity { get; }
         public int Level { get; internal set; }
+        public int RequiredLanes { get; }
         public WeaponState(string definitionId) : this(definitionId, WeaponRarity.Common, 0) { }
         public WeaponState(string definitionId, int level) : this(definitionId, WeaponRarity.Common, level) { }
-        public WeaponState(string definitionId, WeaponRarity rarity, int level = 0)
+        public WeaponState(string definitionId, WeaponRarity rarity, int level = 0, int? requiredLanes = null)
         {
             if (level < 0 || level > RunRules.MaximumUpgrade) throw new ArgumentOutOfRangeException(nameof(level));
+            int lanes = requiredLanes ?? WeaponCatalog.Find(definitionId).RequiredLanes;
+            if (lanes < 1 || lanes > BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(requiredLanes));
             WeaponRarities.Validate(rarity);
-            DefinitionId = definitionId; Rarity = rarity; Level = level;
+            DefinitionId = definitionId; Rarity = rarity; Level = level; RequiredLanes = lanes;
         }
     }
 

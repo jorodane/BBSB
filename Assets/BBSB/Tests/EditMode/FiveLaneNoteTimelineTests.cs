@@ -17,9 +17,9 @@ namespace BBSB.Tests
         private static TrackNote At(FiveLaneNoteTimeline timeline, double beat) =>
             timeline.Notes.Single(note => Math.Abs(note.Beat - beat) < .000001);
 
-        [Test] public void DaggerShowsOneRealNoteAndAssumesSuccessfulRepeatsWithinThreeBeats()
+        [Test] public void DualSwordsShowOneRealNoteAndAssumesSuccessfulRepeatsWithinThreeBeats()
         {
-            var b = Battle("dagger"); var timeline = new FiveLaneNoteTimeline();
+            var b = Battle("dual-swords"); var timeline = new FiveLaneNoteTimeline();
             timeline.Refresh(b); Check.Equal(0, timeline.Notes.Count);
             Tap(b, 0); timeline.Refresh(b);
             Check.Equal(3, timeline.Notes.Count);
@@ -43,7 +43,7 @@ namespace BBSB.Tests
             var real = At(timeline, 2); Check.False(real.IsPreview);
             Check.Equal(forecast.CycleStart, real.CycleStart); Check.Equal(forecast.Index, real.Index);
             Check.True(b.Lanes[0].IsNoteVisible(1)); Check.Equal(0, timeline.Broken.Count);
-            Check.True(At(timeline, 4).IsPreview); // Next draw assumes the current shot will succeed.
+            Check.False(timeline.Notes.Any(n => n.CycleStart > 0)); // The bow has no automatic next draw.
         }
         [Test] public void FailedDrawShattersItsShotOnceAndFragmentsFreezeWithTheBattle()
         {
@@ -60,9 +60,9 @@ namespace BBSB.Tests
             b.Resume(); b.Advance(.75); timeline.Refresh(b); Check.Equal(.5, shard.Progress(b.Beat));
             b.Advance(1); timeline.Refresh(b); Check.Equal(0, timeline.Broken.Count);
         }
-        [Test] public void FailedDaggerBreaksFutureRepeatsWithoutMakingGhostsPlayable()
+        [Test] public void FailedDualSwordsBreakFutureRepeatsWithoutMakingGhostsPlayable()
         {
-            var b = Battle("dagger"); Tap(b, 0);
+            var b = Battle("dual-swords"); Tap(b, 0);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
             Tap(b, .75); timeline.Refresh(b); // Too early for the actual note at 1.
             Check.Equal(0, timeline.Notes.Count);
@@ -75,7 +75,7 @@ namespace BBSB.Tests
         {
             var phrase = new WeaponPhrase("sword", "test", "", 4, new[] {
                 new WeaponPhraseNote(0, 1), new WeaponPhraseNote(1, 2),
-                new WeaponPhraseNote(2, 3, prerequisite: 1, condition: PhraseNoteCondition.Hit), new WeaponPhraseNote(3, 4) });
+                new WeaponPhraseNote(2, 3, prerequisite: 1, condition: PhraseNoteCondition.Hit), new WeaponPhraseNote(3, 4) }, repeat: true);
             var b = Battle("sword", phrase); Tap(b, 0); b.Advance(1.1);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
             Check.True(At(timeline, 2).IsPreview); Check.True(At(timeline, 4).IsPreview); Check.False(At(timeline, 3).IsPreview);
@@ -130,11 +130,11 @@ namespace BBSB.Tests
         }
         [Test] public void SkippedRenderFramesAndFractionalCyclesDoNotDuplicateOrShatterPromotions()
         {
-            var b = Battle("dagger"); Tap(b, 0);
+            var b = Battle("dual-swords"); Tap(b, 0);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
             Tap(b, 1); Tap(b, 2); timeline.Refresh(b);
             Check.Equal(3, timeline.Notes.Count); Check.False(At(timeline, 3).IsPreview); Check.Equal(0, timeline.Broken.Count);
-            var phrase = new WeaponPhrase("dagger", "thirds", "", 1.0 / 3, new[] { new WeaponPhraseNote(0, 1) });
+            var phrase = new WeaponPhrase("dagger", "thirds", "", 1.0 / 3, new[] { new WeaponPhraseNote(0, 1) }, repeat: true);
             var thirds = Battle("dagger", phrase); Tap(thirds, 0); timeline.Refresh(thirds);
             for (int i = 0; i < 60; i++)
             {
@@ -145,7 +145,7 @@ namespace BBSB.Tests
         }
         [Test] public void PreviewBudgetAndBattleRebindKeepThePresentationBounded()
         {
-            var phrase = new WeaponPhrase("dagger", "short", "", .001, new[] { new WeaponPhraseNote(0, 1) });
+            var phrase = new WeaponPhrase("dagger", "short", "", .001, new[] { new WeaponPhraseNote(0, 1) }, repeat: true);
             var b = Battle("dagger", phrase); Tap(b, 0);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
             Check.Equal(FiveLaneNoteTimeline.MaxNotesPerLane, timeline.Notes.Count);

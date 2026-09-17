@@ -96,6 +96,9 @@ namespace BBSB.Runtime.UI
             if (!weapon.IsRanged) pose = RangedWeaponPose.Idle;
             string key = id + "/" + WeaponRarities.Key(rarity) + "/" + (int)pose;
             if (frames.TryGetValue(key, out var bounds)) return bounds;
+            if (weapon.Kind == WeaponKind.DualSwords) return frames["sword/" + WeaponRarities.Key(rarity) + "/0"];
+            if (weapon.Kind == WeaponKind.Staff) return new PreviewRect(.466, .007, .068, .986);
+            if (weapon.Kind == WeaponKind.SpiritBell) return new PreviewRect(.18, .008, .64, .986);
             return frames[weapon.Kind == WeaponKind.Shield ? "shield/" + WeaponRarities.Key(rarity) + "/0" : key];
         }
 

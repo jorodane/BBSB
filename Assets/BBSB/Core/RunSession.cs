@@ -10,6 +10,7 @@ namespace BBSB.Core
         private SeededRandom mapRandom;
         private SeededRandom rewardRandom;
         private readonly List<WeaponState> weapons = new List<WeaponState>();
+        public WeaponEquipment Equipment { get; } = new WeaponEquipment();
         private readonly List<string> items = new List<string>();
         private readonly List<string> augments = new List<string>();
         private readonly List<string> visited = new List<string>();
@@ -24,6 +25,7 @@ namespace BBSB.Core
         public int MaxHealth { get; private set; }
         public int Gold { get; private set; }
         public int ClearedStages { get; private set; }
+        public bool EquipmentCapacityIncreased { get; private set; }
         public RunPhase Phase { get; private set; }
         public FieldMap Map { get; private set; }
         public StageNode CurrentNode { get; private set; }
@@ -34,7 +36,10 @@ namespace BBSB.Core
         public WeaponLoadout BattleLoadout { get; private set; }
         public RhythmRound ActiveRhythmRound { get; private set; }
         public bool ServiceClaimed => claimedService;
-        public IReadOnlyList<WeaponState> Weapons { get; }
+        private readonly IReadOnlyList<WeaponState> legacyWeapons;
+        public IReadOnlyList<WeaponState> Weapons => UsesFiveLaneCombat ? Equipment.Equipped : legacyWeapons;
+        public IReadOnlyList<WeaponState> OwnedWeapons => UsesFiveLaneCombat ? Equipment.Owned : Weapons;
+        public bool CanEditEquipment => UsesFiveLaneCombat && Phase != RunPhase.GameOver && PhraseBattle == null && ActiveRhythmRound == null;
         public IReadOnlyList<string> Items { get; }
         public IReadOnlyList<string> Augments { get; }
         public IReadOnlyList<string> Visited { get; }
@@ -44,7 +49,7 @@ namespace BBSB.Core
         {
             UsesFiveLaneCombat = useFiveLaneCombat;
             this.rules = rules ?? new RunRules();
-            Weapons = weapons.AsReadOnly(); Items = items.AsReadOnly(); Augments = augments.AsReadOnly();
+            legacyWeapons = weapons.AsReadOnly(); Items = items.AsReadOnly(); Augments = augments.AsReadOnly();
             Visited = visited.AsReadOnly(); Offers = offers.AsReadOnly();
             Restart(seed, mapId);
         }
@@ -59,11 +64,17 @@ namespace BBSB.Core
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
-            // Learn the pulse and guard first; rewards fill the remaining three slots.
+            Equipment.Reset(); EquipmentCapacityIncreased = false;
+            // Start with two items. Acquisition never automatically adds another input to combat.
             var startingWeapons = UsesFiveLaneCombat ? new[] { "dagger", "heater-shield" } :
                 new[] { "greatsword", "bell", "spear", "blade", "dagger" };
             foreach (var id in startingWeapons)
-                weapons.Add(new WeaponState(id));
+            {
+                var weapon = new WeaponState(id);
+                if (UsesFiveLaneCombat)
+                { int slot = Equipment.Equipped.Count; Equipment.Acquire(weapon); Equipment.Equip(weapon, slot); }
+                else weapons.Add(weapon);
+            }
             CurrentNode = null; StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false;
             Map = MapGenerator.Generate(1, mapRandom); StageCatalog.Assign(Map, Seed, startingMapId); Phase = RunPhase.Map;
         }
@@ -80,6 +91,7 @@ namespace BBSB.Core
         {
             if (!CanEnter(nodeId)) return false;
             CurrentNode = Map.Find(nodeId); Phase = RunPhase.Stage;
+            EquipmentCapacityIncreased = false;
             CurrentNode.Reveal();
             StageTicket = Guid.NewGuid().ToString("N"); claimedService = false; offers.Clear();
             BattleMusic = CurrentNode.IsBattle
@@ -89,7 +101,8 @@ namespace BBSB.Core
             {
                 decimal maximum = (160 + (Map.Number - 1) * 50 + CurrentNode.Row * 20) *
                     (CurrentNode.Kind == StageKind.Boss ? 2.5m : CurrentNode.Kind == StageKind.Elite ? 1.5m : 1m);
-                EnemyHealth = new StageHealth(maximum); BattleLoadout = new WeaponLoadout(BattlePlan, Weapons);
+                EnemyHealth = new StageHealth(maximum);
+                BattleLoadout = UsesFiveLaneCombat ? null : new WeaponLoadout(BattlePlan, Weapons);
             }
             if (CurrentNode.Kind == StageKind.Shop) GenerateOffers(true);
             return true;
@@ -105,6 +118,7 @@ namespace BBSB.Core
             StopActiveRound();
             Health = remainingPlayerHealth;
             if (!victory || Health == 0) { EndRun(); return true; }
+            EquipmentCapacityIncreased = UsesFiveLaneCombat && CurrentNode.Kind == StageKind.Boss && Equipment.IncreaseCapacity();
             CompleteStage();
             Gold += CurrentNode.Kind == StageKind.Boss ? 60 : CurrentNode.Kind == StageKind.Elite ? 40 : 25;
             GenerateOffers(false); Phase = RunPhase.Reward;
@@ -144,12 +158,12 @@ namespace BBSB.Core
             ActiveRhythmRound.Stop(); ActiveRhythmRound = null;
         }
 
-        public FiveLaneBattle StartFiveLaneBattle(IReadOnlyList<WeaponPhrase> phrases = null)
+        public FiveLaneBattle StartFiveLaneBattle(IReadOnlyList<WeaponPhrase> phrases = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null)
         {
-            if (!UsesFiveLaneCombat || Phase != RunPhase.Stage || BattlePlan == null || Health <= 0 || ActiveRhythmRound != null) return null;
+            if (!UsesFiveLaneCombat || Phase != RunPhase.Stage || BattlePlan == null || Health <= 0 || ActiveRhythmRound != null || Weapons.Count == 0) return null;
             if (PhraseBattle == null)
             {
-                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases);
+                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases, Equipment.Placements, phraseSets, Equipment.Extensions);
                 PhraseBattle.PlayerHealthChanged += ApplyPhraseHealth;
             }
             if (PhraseBattle.Finished) return null;
@@ -173,11 +187,27 @@ namespace BBSB.Core
 
         public bool Upgrade(int slot)
         {
-            if (!IsService(StageKind.Upgrade) || claimedService || !ValidSlot(slot) ||
-                weapons[slot].Level >= RunRules.MaximumUpgrade) return false;
-            weapons[slot].Level++; claimedService = true;
+            if (!IsService(StageKind.Upgrade) || claimedService || slot < 0 || slot >= OwnedWeapons.Count ||
+                OwnedWeapons[slot].Level >= RunRules.MaximumUpgrade) return false;
+            OwnedWeapons[slot].Level++; claimedService = true;
             return true;
         }
+
+        public bool EquipWeapon(int inventoryIndex, params int[] slots) => CanEditEquipment && ValidOwned(inventoryIndex) &&
+            Equipment.Equip(OwnedWeapons[inventoryIndex], slots);
+        public bool EquipWeaponAtCenter(int inventoryIndex, double center) => CanEditEquipment && ValidOwned(inventoryIndex) &&
+            Equipment.EquipCentered(OwnedWeapons[inventoryIndex], center);
+        public bool UnequipWeapon(int inventoryIndex) => CanEditEquipment && ValidOwned(inventoryIndex) &&
+            Equipment.Unequip(OwnedWeapons[inventoryIndex]);
+        public bool SwapWeapons(int first, int second) => CanEditEquipment && ValidOwned(first) && ValidOwned(second) &&
+            Equipment.Swap(OwnedWeapons[first], OwnedWeapons[second]);
+        // Future progression can call this without turning S/L into ordinary equipment slots.
+        public bool UnlockInputExtensions(InputExtensions extensions)
+        {
+            if (!CanEditEquipment) return false;
+            Equipment.Unlock(extensions); return true;
+        }
+        private bool ValidOwned(int index) => index >= 0 && index < OwnedWeapons.Count;
 
         public bool LeaveService()
         {
@@ -258,6 +288,8 @@ namespace BBSB.Core
             switch (content.Kind)
             {
                 case RewardKind.Weapon:
+                    if (UsesFiveLaneCombat)
+                    { Equipment.Acquire(new WeaponState(content.Id, offer.Rarity)); break; }
                     if (slot == -1 && weapons.Count < RunRules.WeaponSlots)
                     { weapons.Add(new WeaponState(content.Id, offer.Rarity)); break; }
                     if (!ValidSlot(slot)) return false;
@@ -286,6 +318,7 @@ namespace BBSB.Core
             // Retain only the reached field/stage count for the result screen. No inventory survives.
             Health = 0; MaxHealth = rules.StartingHealth; Gold = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); offers.Clear();
+            Equipment.Reset(); EquipmentCapacityIncreased = false;
             visited.Clear(); StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false; Phase = RunPhase.GameOver;
         }
     }

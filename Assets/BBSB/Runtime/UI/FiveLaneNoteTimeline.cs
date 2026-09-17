@@ -12,15 +12,19 @@ namespace BBSB.Runtime.UI
         public WeaponPhraseNote Definition { get; }
         public bool IsPreview { get; }
         public bool ReleaseParry { get; }
+        internal WeaponPhrase Phrase { get; }
+        internal ScheduledPhraseStart Reservation { get; }
         public double Beat => CycleStart + Definition.Beat;
         public double EndBeat => Beat + Definition.HoldBeats;
-        internal TrackNote(int slot, int index, double cycleStart, WeaponPhrase phrase, bool preview)
+        internal TrackNote(int slot, int index, double cycleStart, WeaponPhrase phrase, bool preview, ScheduledPhraseStart reservation = null)
         {
             Slot = slot; Index = index; CycleStart = cycleStart; Definition = phrase.Notes[index];
+            Phrase = phrase; Reservation = reservation;
             IsPreview = preview; ReleaseParry = Definition.IsParry && phrase.ParryInput == ParryInputEdge.KeyUp;
         }
-        internal bool SameNote(TrackNote other) => Slot == other.Slot && Index == other.Index &&
-            Math.Abs(CycleStart - other.CycleStart) < .000001;
+        internal bool SamePosition(TrackNote other) => Slot == other.Slot && Index == other.Index &&
+            Math.Abs(CycleStart - other.CycleStart) < .000001 && ReferenceEquals(Phrase, other.Phrase);
+        internal bool SameNote(TrackNote other) => SamePosition(other) && ReferenceEquals(Reservation, other.Reservation);
     }
 
     public readonly struct BrokenTrackNote
@@ -72,7 +76,16 @@ namespace BBSB.Runtime.UI
             previous.Clear(); previous.AddRange(notes); notes.Clear();
             broken.RemoveAll(note => note.Progress(battle.Beat) >= 1);
             confirmed.RemoveAll(note => battle.Beat - note.ConfirmedAt >= .4);
-            for (int slot = 0; slot < battle.Lanes.Count; slot++) Collect(battle, slot);
+            foreach (var lane in battle.Lanes) Collect(battle, lane);
+            foreach (var start in battle.ScheduledStarts)
+                if (start.State == ScheduledStartState.Pending)
+                    for (int i = 0; i < start.Phrase.Notes.Count && i < MaxNotesPerLane; i++)
+                    {
+                        var forecast = new TrackNote(start.SlotForNote(i), i, start.Beat, start.Phrase, true, start);
+                        // An existing loop can already contain this exact note. It wins
+                        // visually; the bell still decides whether to skip at execution.
+                        if (!notes.Exists(note => note.SamePosition(forecast))) Add(battle, forecast);
+                    }
             foreach (var old in previous)
             {
                 if (old.IsPreview)
@@ -90,16 +103,15 @@ namespace BBSB.Runtime.UI
             }
         }
 
-        private void Collect(FiveLaneBattle battle, int slot)
+        private void Collect(FiveLaneBattle battle, PhraseLane lane)
         {
-            var lane = battle.Lanes[slot];
             if (lane.Phase != PhraseLanePhase.Playing) return;
             int first = notes.Count;
             for (int i = 0; i < lane.Phrase.Notes.Count && notes.Count - first < MaxNotesPerLane; i++)
             {
                 var state = lane.NoteStates[i];
                 if (state == PhraseNoteState.Pending || state == PhraseNoteState.Holding || state == PhraseNoteState.Locked)
-                    Add(battle, new TrackNote(slot, i, lane.StartBeat, lane.Phrase, state == PhraseNoteState.Locked));
+                    Add(battle, new TrackNote(lane.SlotForNote(i), i, lane.StartBeat, lane.Phrase, state == PhraseNoteState.Locked, lane.ScheduledOrigin));
             }
             if (!lane.CanRepeat) return;
             double start = lane.StartBeat;
@@ -111,7 +123,7 @@ namespace BBSB.Runtime.UI
                 if (next <= start || next > battle.Beat + SteppedNoteTrack.LookAheadBeats) break;
                 start = next;
                 for (int i = 0; i < lane.Phrase.Notes.Count && notes.Count - first < MaxNotesPerLane; i++)
-                    Add(battle, new TrackNote(slot, i, start, lane.Phrase, true));
+                    Add(battle, new TrackNote(lane.SlotForNote(i), i, start, lane.Phrase, true, lane.ScheduledOrigin));
             }
         }
         private void Add(FiveLaneBattle battle, TrackNote note)
@@ -126,7 +138,13 @@ namespace BBSB.Runtime.UI
         }
         private static bool Canceled(FiveLaneBattle battle, TrackNote note)
         {
-            var lane = battle.Lanes[note.Slot];
+            if (note.Reservation != null)
+            {
+                if (note.Reservation.State == ScheduledStartState.Pending) return false;
+                if (note.Reservation.State == ScheduledStartState.Skipped) return true;
+            }
+            var lane = battle.LaneAt(note.Slot);
+            if (lane == null || !ReferenceEquals(note.Phrase, lane.Phrase)) return true;
             if (note.CycleStart > lane.StartBeat + .000001) return !lane.CanRepeat;
             if (Math.Abs(note.CycleStart - lane.StartBeat) > .000001) return false;
             var state = lane.NoteStates[note.Index];

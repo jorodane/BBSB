@@ -258,6 +258,26 @@ namespace BBSB.Runtime.UI
         {
             float a = rotation * Mathf.Deg2Rad;
             Vector2 up = new Vector2(-Mathf.Sin(a), Mathf.Cos(a)), right = new Vector2(up.y, -up.x);
+            if (kind == WeaponKind.Staff)
+            {
+                Line(vh, p - up * size, p + up * size * 1.4f, size * .2f, Metal);
+                Line(vh, p - up * size, p - up * size * .75f, size * .3f, Edge);
+                Line(vh, p + up * size * 1.15f, p + up * size * 1.4f, size * .3f, Edge);
+                Line(vh, p - up * size * .25f, p + up * size * .4f, size * .1f, Glow); return;
+            }
+            if (kind == WeaponKind.SpiritBell)
+            {
+                Line(vh, p - up * size, p + up * size * .45f, size * .18f, Edge);
+                DrawWeapon(vh, WeaponKind.Bell, p + up * size * .6f, size * .45f, rotation);
+                DrawWeapon(vh, WeaponKind.Bell, p - right * size * .5f, size * .45f, rotation);
+                DrawWeapon(vh, WeaponKind.Bell, p + right * size * .5f, size * .45f, rotation); return;
+            }
+            if (kind == WeaponKind.DualSwords)
+            {
+                DrawWeapon(vh, WeaponKind.Sword, p - right * size * .38f, size * .78f, rotation - 18);
+                DrawWeapon(vh, WeaponKind.Sword, p + right * size * .38f, size * .78f, rotation + 18);
+                return;
+            }
             if (kind == WeaponKind.Shield)
             {
                 Diamond(vh, p, right * size * .8f, up * size * 1.1f, Edge);

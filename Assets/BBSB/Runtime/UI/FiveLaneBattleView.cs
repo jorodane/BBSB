@@ -13,7 +13,7 @@ namespace BBSB.Runtime.UI
         private readonly RectTransform parent;
         private readonly FiveLaneHudBindings hud;
         private readonly FiveLaneTrackGraphic tracks;
-        private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[5];
+        private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[BattleInputLayout.LaneCount];
         private readonly List<ActorPrefabView> monsters = new List<ActorPrefabView>();
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
@@ -21,7 +21,7 @@ namespace BBSB.Runtime.UI
         private readonly List<StageActor> stageActors = new List<StageActor>();
         private readonly List<TMP_Text> attackLabels = new List<TMP_Text>();
         private RectTransform modal;
-        private static readonly string[] Keys = { "D", "F", "SPACE", "J", "K" };
+        private static readonly string[] Keys = { "D", "F", "SPACE", "J", "K", "S", "L" };
 
         private sealed class StageActor
         {
@@ -49,8 +49,10 @@ namespace BBSB.Runtime.UI
             }
             hud = authored != null ? authored : FiveLaneHudBindings.CreateDefault(parent, ui.Font);
             hud.EnsureStageLayout();
-            hud.ConfigureLanes(battle.Lanes.Count);
-            hud.help.text = string.Join(" / ", new List<string>(Keys).GetRange(0, battle.Lanes.Count)) + "  ·  Tap / Hold  ·  Esc";
+            hud.ConfigureLanes(battle);
+            var inputNames = new List<string>();
+            foreach (int slot in BattleInputLayout.DisplayOrder) if (battle.IsInputAvailable(slot)) inputNames.Add(Keys[slot]);
+            hud.help.text = string.Join(" / ", inputNames) + "  ·  Tap / Hold  ·  Esc";
             var presentation = hud.presentation != null ? hud.presentation : Resources.Load<ShoulderViewPresentation>(ShoulderViewPresentation.ResourcePath);
             StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art", presentation);
             var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .16f));
@@ -61,14 +63,17 @@ namespace BBSB.Runtime.UI
             tracks.Bind(battle, hud.judgmentPoints, hud.playerSlot, hud.monsterArea);
             hud.pause.onClick.AddListener(playback.Pause);
             hud.song.text = session.BattleMusic.Music.Name + "\n" + battle.Bpm + " BPM";
-            for (int i = 0; i < battle.Lanes.Count; i++)
+            for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
+                var lane = battle.LaneAt(i);
+                hud.laneLabels[i].text = Keys[i] + "\n" + (lane == null ? "비어 있음" : lane.Patterns.Starts[lane.Placement.OffsetOf(i)].Name);
+                hud.laneLabels[i].color = lane == null ? RunUI.Muted : RunUI.TextColor;
+                if (lane == null) continue;
                 var weaponMesh = ui.Rect("Live weapon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
                 icons[i] = weaponMesh.gameObject.AddComponent<WeaponIconGraphic>();
-                icons[i].FitVisibleArtwork = true; icons[i].Bind(battle.Lanes[i].Weapon);
+                icons[i].FitVisibleArtwork = true; icons[i].Bind(lane.Weapon);
                 // The old gesture sockets described automatic responses. This screen shows the weapon's phrase instead.
                 foreach (var sockets in icons[i].GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
-                hud.laneLabels[i].text = Keys[i] + "\n" + battle.Lanes[i].Phrase.Name;
                 var input = hud.inputAreas[i].GetComponent<FiveLaneInputSurface>();
                 if (input == null) input = hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
                 input.Bind(playback, i);
@@ -134,9 +139,10 @@ namespace BBSB.Runtime.UI
             hud.feedback.text = waitingForHold ? "Hold 중이던 버튼을 다시 눌러줘" : battle.IsGroggy ? "GROGGY" :
                 battle.Beat - battle.LastHitBeat < .5 ? "HIT" : "";
             hud.feedback.color = battle.IsGroggy ? RunUI.Gold : RunUI.Red;
-            for (int i = 0; i < battle.Lanes.Count; i++)
+            for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
-                var lane = battle.Lanes[i];
+                var lane = battle.LaneAt(i);
+                if (lane == null) continue;
                 hud.laneStatus[i].text = lane.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, lane.ReadyAtBeat - battle.Beat).ToString("0.0") :
                     lane.Phase == PhraseLanePhase.Ready ? "READY" :
                     lane.WaitingForParryRelease ? "HOLD → UP" : lane.Holding ?
@@ -144,6 +150,12 @@ namespace BBSB.Runtime.UI
                     "NOTE " + (lane.NextNote + 1) + "/" + lane.Phrase.Notes.Count +
                     (lane.Phrase.FinisherEvery > 0 ? " · " + (lane.CompletedPhrases % lane.Phrase.FinisherEvery + 1) + "/" + lane.Phrase.FinisherEvery : "");
                 hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
+                foreach (var start in battle.ScheduledStarts)
+                    if (start.Slot == i && start.State == ScheduledStartState.Pending)
+                    {
+                        hud.laneStatus[i].text += "\nCHIME " + Math.Max(0, start.Beat - battle.Beat).ToString("0.0");
+                        break;
+                    }
                 hud.laneResults[i].color = lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
                 icons[i].color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 // Beat-driven recoil gives each successful input a readable weapon response.
@@ -186,7 +198,7 @@ namespace BBSB.Runtime.UI
         {
             HideModal();
             modal = ui.Modal(parent, "Five lane pause", "일시정지", resume, out var content);
-            ui.Label(content, hud.help.text + "\n단검은 1박마다, 긴 표시는 끝까지 유지.\n빨간 표시가 아래에 닿는 순간 방어해.", 22, null, 100);
+            ui.Label(content, hud.help.text + "\n단검은 2박마다, 쌍검은 1박마다. 긴 표시는 끝까지 유지.\n빨간 표시가 아래에 닿는 순간 방어해.", 22, null, 100);
             ui.Button(content, "이어하기", resume, primary: true);
             ui.Button(content, "준비 화면으로", leave);
         }

@@ -17,6 +17,8 @@ namespace BBSB.Runtime.UI
             if (!weapon.IsRanged)
             {
                 result = Resources.Load<Sprite>(path);
+                if (result == null && (weapon.Kind == WeaponKind.Staff || weapon.Kind == WeaponKind.SpiritBell))
+                    result = Resources.Load<Sprite>(WeaponArtLayout.ResourcePath(id, WeaponRarity.Common));
                 if (result == null && weapon.Kind == WeaponKind.Shield)
                     result = Resources.Load<Sprite>(WeaponArtLayout.ResourcePath("shield", rarity));
             }

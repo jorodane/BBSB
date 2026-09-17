@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    public enum PhraseEffect { Strike, Parry }
+    public enum PhraseEffect { Strike, Parry, StartAdjacent }
     public enum ParryInputEdge { KeyDown, KeyUp }
     public enum PhraseLanePhase { Ready, Playing, Cooldown }
     public enum PhraseNoteCondition { Always, Hit, Parry }
@@ -18,17 +18,20 @@ namespace BBSB.Core
         public PhraseEffect Effect { get; }
         public int Prerequisite { get; }
         public PhraseNoteCondition Condition { get; }
+        // Relative to the line that started this activation, within its weapon's footprint.
+        public int LaneOffset { get; }
         public bool IsHold => HoldBeats > 0;
         public bool IsParry => Effect == PhraseEffect.Parry;
         public WeaponPhraseNote(double beat, decimal damage, double holdBeats = 0, PhraseEffect effect = PhraseEffect.Strike,
-            int prerequisite = -1, PhraseNoteCondition condition = PhraseNoteCondition.Always)
+            int prerequisite = -1, PhraseNoteCondition condition = PhraseNoteCondition.Always, int laneOffset = 0)
         {
             if (!Finite(beat) || beat < 0 || !Finite(holdBeats) || holdBeats < 0 || damage < 0 ||
                 !Enum.IsDefined(typeof(PhraseEffect), effect) || !Enum.IsDefined(typeof(PhraseNoteCondition), condition) ||
-                (condition == PhraseNoteCondition.Always ? prerequisite != -1 : prerequisite < 0))
+                (condition == PhraseNoteCondition.Always ? prerequisite != -1 : prerequisite < 0) ||
+                laneOffset < 0 || laneOffset >= BattleInputLayout.LaneCount)
                 throw new ArgumentOutOfRangeException(nameof(beat));
             Beat = beat; HoldBeats = holdBeats; Damage = damage; Effect = effect;
-            Prerequisite = prerequisite; Condition = condition;
+            Prerequisite = prerequisite; Condition = condition; LaneOffset = laneOffset;
         }
         internal static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
@@ -52,7 +55,7 @@ namespace BBSB.Core
         public double CompletionCooldownBeats { get; }
         public IReadOnlyList<WeaponPhraseNote> Notes { get; }
         public WeaponPhrase(string weaponId, string name, string hint, double lengthBeats,
-            IEnumerable<WeaponPhraseNote> notes, double missCooldownBeats = 2, bool repeat = true,
+            IEnumerable<WeaponPhraseNote> notes, double missCooldownBeats = 2, bool repeat = false,
             int finisherEvery = 0, decimal finisherDamage = 0, double groggyBeats = 0,
             ParryInputEdge parryInput = ParryInputEdge.KeyDown, double startGridBeats = .5,
             decimal holdDamageReduction = 0, bool releaseEndsPhrase = false, bool parryRequired = true,
@@ -66,7 +69,8 @@ namespace BBSB.Core
                 !WeaponPhraseNote.Finite(completionCooldownBeats) || completionCooldownBeats < 0)
                 throw new ArgumentOutOfRangeException(nameof(lengthBeats));
             var copy = new List<WeaponPhraseNote>(notes ?? throw new ArgumentNullException(nameof(notes)));
-            if (copy.Count == 0 || copy[0] == null || copy[0].Beat != 0) throw new ArgumentException("A phrase starts at beat zero.");
+            if (copy.Count == 0 || copy[0] == null || copy[0].Beat != 0 || copy[0].LaneOffset != 0)
+                throw new ArgumentException("A phrase starts at beat zero on the input line that activates it.");
             if (!Enum.IsDefined(typeof(ParryInputEdge), parryInput))
                 throw new ArgumentOutOfRangeException(nameof(parryInput));
             for (int i = 0; i < copy.Count; i++)
@@ -100,7 +104,7 @@ namespace BBSB.Core
             new WeaponPhraseNote(at, damage, prerequisite: 0, condition: PhraseNoteCondition.Parry);
         private static WeaponPhraseNote Hold(double at, double duration, decimal damage) => new WeaponPhraseNote(at, damage, duration);
         private static readonly WeaponPhrase[] phrases = {
-            new WeaponPhrase("sword", "검", "Tap 0 / 1 / 2 · 4박 반복", 4,
+            new WeaponPhrase("sword", "검", "Tap 0 / 1 / 2 · 4박 패턴", 4,
                 new[] { Tap(0, 8), Tap(1, 8), Tap(2, 12) }),
             new WeaponPhrase("hammer", "트레실로 해머", "Tap 0 / 1.5 / 3 · 세 번째 완주에 그로기", 4,
                 new[] { Tap(0, 6), Tap(1.5, 8), Tap(3, 12) }, 3, finisherEvery: 3, finisherDamage: 38, groggyBeats: 4),
@@ -117,13 +121,19 @@ namespace BBSB.Core
                 completionCooldownBeats: 2),
             new WeaponPhrase("bow", "활", "Hold 1박으로 당기기 → 2박 Tap 발사", 4,
                 new[] { Hold(0, 1, 0), new WeaponPhraseNote(2, 28, prerequisite: 0, condition: PhraseNoteCondition.Hit) }),
-            new WeaponPhrase("dagger", "단검", "First tap starts on beat / offbeat → next note +1 beat · miss cooldown 2 beats", 1,
-                new[] { Tap(0, 6) }),
-            new WeaponPhrase("spear", "창", "Tap 0 / 2 · 4박 반복", 4, new[] { Tap(0, 12), Tap(2, 18) }),
+            new WeaponPhrase("dagger", "단검", "첫 입력은 정박 / 엇박에 시작 → 성공하면 2박 뒤 다음 노트 · 미스 대기 2박", 2,
+                new[] { Tap(0, 6) }, repeat: true),
+            new WeaponPhrase("dual-swords", "쌍검", "첫 입력은 정박 / 엇박에 시작 → 성공하면 1박 뒤 다음 노트 · 미스 대기 2박", 1,
+                new[] { Tap(0, 6) }, repeat: true),
+            new WeaponPhrase("staff", "봉", "시작한 쪽 Tap 0 / 0.5 → 반대쪽 1박에서 Hold 1박 · 2라인", 2,
+                new[] { Tap(0, 8), Tap(.5, 8), new WeaponPhraseNote(1, 18, 1, laneOffset: 1) }),
+            new WeaponPhrase("spirit-bell", "신령 방울", "Tap → 바로 양옆 무기 패턴을 1박 뒤 시작 · 쿨타임 무시 · 진행 중인 패턴 유지", 1,
+                new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.StartAdjacent) }),
+            new WeaponPhrase("spear", "창", "Tap 0 / 2 · 4박 패턴", 4, new[] { Tap(0, 12), Tap(2, 18) }),
             new WeaponPhrase("greatsword", "대검", "Hold 1박 → 2박 Tap", 4, new[] { Hold(0, 1, 18), Tap(2, 20) }),
             new WeaponPhrase("bell", "종", "Tap → 1박에서 Hold 1박", 4, new[] { Tap(0, 8), Hold(1, 1, 16) }),
             new WeaponPhrase("blade", "쌍날검", "Tap 0 / 0.5 / 2 / 2.5", 4, new[] { Tap(0, 6), Tap(.5, 6), Tap(2, 6), Tap(2.5, 10) }),
-            new WeaponPhrase("crossbow", "석궁", "Tap 0 / 1 · 3박 반복", 3, new[] { Tap(0, 10), Tap(1, 14) }),
+            new WeaponPhrase("crossbow", "석궁", "Tap 0 / 1 · 3박 패턴", 3, new[] { Tap(0, 10), Tap(1, 14) }),
             new WeaponPhrase("wand", "마도봉", "Hold 1.5박 → 2.5박 Tap", 4, new[] { Hold(0, 1.5, 10), Tap(2.5, 22) })
         };
         public static IReadOnlyList<WeaponPhrase> All { get; } = Array.AsReadOnly(phrases);

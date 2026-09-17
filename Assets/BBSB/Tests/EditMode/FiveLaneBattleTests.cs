@@ -9,7 +9,7 @@ namespace BBSB.Tests
 {
     public sealed class FiveLaneBattleTests
     {
-        private static readonly string[] Equipment = { "sword", "hammer", "shield", "bow", "dagger" };
+        private static readonly string[] Equipment = { "sword", "hammer", "shield", "bow", "dual-swords" };
         private static FiveLaneBattle Battle(BeatAttack[] attacks = null, decimal health = 1000, decimal enemy = 10000,
             double bpm = 120, double loop = 32, string shield = "shield", WeaponPhrase shieldPhrase = null)
         {
@@ -29,7 +29,7 @@ namespace BBSB.Tests
             Check.Equal(.5, b.Lanes[0].StartBeat); Check.Equal(2.0, b.Lanes[4].StartBeat);
             Check.Equal(2, b.Lanes[0].NextNote); Check.Equal(PhraseLanePhase.Ready, b.Lanes[1].Phase);
             Tap(b, 4, 2); Tap(b, 0, 2.5);
-            Check.Equal(4.5, b.Lanes[0].StartBeat); Check.Equal(3.0, b.Lanes[4].StartBeat);
+            Check.Equal(.5, b.Lanes[0].StartBeat); Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[0].Phase); Check.Equal(3.0, b.Lanes[4].StartBeat);
         }
         [Test] public void OpeningAlwaysSucceedsAndChoosesNearestBeatOrOffbeatAcrossTempos()
         {
@@ -269,7 +269,7 @@ namespace BBSB.Tests
         [Test] public void RepeatingTresilloParriesEveryAuthoredNoteWithoutShiftingItsRhythm()
         {
             var phrase = new WeaponPhrase("shield", "test", "test", 4,
-                new[] { 0.0, 1.5, 3.0 }.Select(at => new WeaponPhraseNote(at, 0, effect: PhraseEffect.Parry)));
+                new[] { 0.0, 1.5, 3.0 }.Select(at => new WeaponPhraseNote(at, 0, effect: PhraseEffect.Parry)), repeat: true);
             var b = Battle(new[] { 0.0, 1.5, 3.0, 4.125, 5.5, 7.0 }.Select(at => new BeatAttack("enemy", at, 10)).ToArray(),
                 shieldPhrase: phrase);
             Tap(b, 2, 0); Tap(b, 2, 1.7); Check.Equal(1, b.HalfMissCount); Tap(b, 2, 3);
@@ -303,7 +303,7 @@ namespace BBSB.Tests
             var phrase = new WeaponPhrase("shield", "test", "test", 5,
                 new[] { new WeaponPhraseNote(0, 3), new WeaponPhraseNote(1, 0, .5, PhraseEffect.Parry),
                     new WeaponPhraseNote(2.5, 0, 1, PhraseEffect.Parry), new WeaponPhraseNote(4, 7) },
-                parryInput: ParryInputEdge.KeyUp);
+                repeat: true, parryInput: ParryInputEdge.KeyUp);
             var b = Battle(new[] { 1.5, 3.5, 6.5, 8.5 }.Select(at => new BeatAttack("enemy", at, 10)).ToArray(), shieldPhrase: phrase);
             for (int cycle = 0; cycle < 2; cycle++)
             {
@@ -335,7 +335,7 @@ namespace BBSB.Tests
         }
         [Test] public void HammerMissResetsThreePhraseProgress()
         {
-            var b = Battle(); Hammer(b, 0); b.Advance(4.25);
+            var b = Battle(); Hammer(b, 0); Tap(b, 1, 4); Tap(b, 1, 4.5);
             Check.Equal(0, b.Lanes[1].CompletedPhrases);
             Tap(b, 1, 5.5); Tap(b, 1, 7); Check.Equal(0, b.Lanes[1].CompletedPhrases);
             b.Advance(10); Hammer(b, 10);
@@ -396,9 +396,9 @@ namespace BBSB.Tests
             Check.Equal("dagger,heater-shield", string.Join(",", run.Weapons.Select(w => w.DefinitionId)));
             run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id);
             var b = run.StartFiveLaneBattle(); Check.True(b != null); Check.True(run.StartRhythmRound() == null);
-            b.Press(0, 0); b.Release(0, 0); b.Advance(1.25); b.Pause();
+            b.Press(0, 0); b.Release(0, 0); b.Advance(2.25); b.Pause();
             var again = run.StartFiveLaneBattle(); Check.True(ReferenceEquals(b, again));
-            Check.Equal(1.25, again.Beat); Check.Equal(PhraseLanePhase.Cooldown, again.Lanes[0].Phase);
+            Check.Equal(2.25, again.Beat); Check.Equal(PhraseLanePhase.Cooldown, again.Lanes[0].Phase);
         }
         [Test] public void SessionDamageAndTicketsCannotLeakIntoTheNextStage()
         {

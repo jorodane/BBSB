@@ -102,6 +102,45 @@ namespace BBSB.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest] public IEnumerator SparseKBindingUsesKForInputHoldResumeAndHudPosition()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>();
+            Assert.IsTrue(presenter.Session.EquipWeapon(0, 2));
+            Assert.IsTrue(presenter.Session.EquipWeapon(1, 4));
+            Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
+            var playback = root.GetComponentInChildren<FiveLanePlayback>();
+            var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
+            Assert.IsFalse(hud.inputAreas[0].gameObject.activeSelf);
+            Assert.IsFalse(hud.inputAreas[1].gameObject.activeSelf);
+            Assert.IsTrue(hud.inputAreas[2].gameObject.activeSelf); Assert.IsTrue(hud.inputAreas[4].gameObject.activeSelf);
+            Assert.IsTrue(hud.laneLabels[4].text.StartsWith("K"));
+            Assert.Greater(hud.judgmentPoints[4].anchorMin.x, hud.judgmentPoints[2].anchorMax.x);
+            var battle = playback.Battle; battle.Press(4, 0); battle.Advance(.5);
+            playback.Pause(); playback.Continue(); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(1, true); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(4, true); Assert.IsFalse(playback.WaitingForHold);
+            Assert.IsTrue(battle.LaneAt(4).Holding); Assert.AreEqual(4, battle.LaneAt(4).HoldingSlot);
+        }
+
+        [UnityTest] public IEnumerator UnlockedRightExtensionBindsLAndResumesItsOwnHoldContact()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
+            run.Equipment.Acquire(new WeaponState("greatsword", WeaponRarity.Common, requiredLanes: 2));
+            Assert.IsTrue(run.UnequipWeapon(0)); Assert.IsTrue(run.UnlockInputExtensions(InputExtensions.Right));
+            Assert.IsTrue(run.EquipWeaponAtCenter(2, 4.5)); Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
+            var playback = root.GetComponentInChildren<FiveLanePlayback>();
+            var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
+            Assert.AreEqual(7, hud.inputAreas.Length); Assert.IsTrue(hud.inputAreas[6].gameObject.activeSelf);
+            Assert.IsFalse(hud.inputAreas[5].gameObject.activeSelf); Assert.IsTrue(hud.laneLabels[6].text.StartsWith("L"));
+            var battle = playback.Battle; battle.Press(6, 0); battle.Advance(.5);
+            playback.Pause(); playback.Continue(); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(4, true); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(6, true); Assert.IsFalse(playback.WaitingForHold); Assert.AreEqual(1, battle.LaneAt(6).StartOffset);
+            Assert.IsTrue(battle.LaneAt(6).Holding); LogAssert.NoUnexpectedReceived();
+        }
+
         [UnityTest] public IEnumerator IncompleteHudRecoversWithTheBuiltInStageInsteadOfLosingActors()
         {
             yield return OpenPreparation();
