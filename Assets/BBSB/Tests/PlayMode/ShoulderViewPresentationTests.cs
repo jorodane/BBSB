@@ -8,12 +8,10 @@ namespace BBSB.Tests
     public sealed class ShoulderViewPresentationTests
     {
         [Test]
-        public void InstalledArtReferencesCoverEveryMapMonsterAndEffect()
+        public void InstalledActorReferencesCoverEveryMonsterAndEffectWithoutRequiringBackdrops()
         {
             var art = Resources.Load<ShoulderViewPresentation>(ShoulderViewPresentation.ResourcePath);
             if (art == null) Assert.Ignore("Install BBSB_ShoulderView_Art.zip to run the native art integration test.");
-            foreach (string map in new[] { "POP", "RNB", "JAZZ", "RAP", "BARD", "CELT", "NEW", "METAL" })
-                Assert.IsNotNull(art.FindStage(map + "-01", map)?.backdrop, map);
             foreach (var monster in Resources.LoadAll<MonsterAuthoring>(MonsterAuthoring.ResourceFolder))
             {
                 if (!monster.includeInEncounters) continue;
@@ -27,6 +25,47 @@ namespace BBSB.Tests
             Assert.IsFalse(hero.useLegacyFrames);
             CheckActor(hero.visualPrefab, hero.controller, hero.portrait, hero.spriteReferenceHeight,
                 new[] { "Idle", "TapImpact", "Guard", "Bow", "Hit" });
+        }
+        [Test]
+        public void LateBackdropsImportIndependentlyAndRetainArtistChanges()
+        {
+            var art = ScriptableObject.CreateInstance<ShoulderViewPresentation>();
+            var first = new Texture2D(2, 2); var second = new Texture2D(2, 2);
+            try
+            {
+                art.installedVersion = 1;
+                Assert.IsFalse(art.ImportStageOnce("POP", null, Color.blue));
+                Assert.IsFalse(art.HasImportedStage("POP"));
+                Assert.IsTrue(art.ImportStageOnce("BARD", first, Color.yellow));
+                Assert.IsNull(art.FindStage("POP-01", "POP"));
+                Assert.AreSame(first, art.FindStage("BARD-06", "BARD").backdrop);
+                var authored = art.stages[0]; authored.backdrop = second; authored.sky = Color.green;
+                Assert.IsFalse(art.ImportStageOnce("BARD", first, Color.red));
+                Assert.AreSame(second, authored.backdrop); Assert.AreEqual(Color.green, authored.sky);
+                Assert.IsTrue(art.ImportStageOnce("POP", first, Color.blue));
+                Assert.AreEqual(2, art.stages.Length); Assert.AreSame(authored, art.stages[0]);
+                art.stages = System.Array.Empty<ShoulderViewPresentation.Stage>();
+                Assert.IsFalse(art.ImportStageOnce("BARD", first, Color.red));
+                Assert.IsEmpty(art.stages, "Reimport must not recreate an intentionally removed stage entry.");
+                Assert.AreEqual(1, art.installedVersion, "Backdrop import must not invalidate actor installation.");
+            }
+            finally { Object.DestroyImmediate(art); Object.DestroyImmediate(first); Object.DestroyImmediate(second); }
+        }
+        [Test]
+        public void ExistingStageOverridesSurviveTheFirstImportOfTrackingMetadata()
+        {
+            var art = ScriptableObject.CreateInstance<ShoulderViewPresentation>();
+            var texture = new Texture2D(2, 2);
+            try
+            {
+                var authored = new ShoulderViewPresentation.Stage { id = "BARD", backdrop = null, sky = Color.green };
+                art.stages = new[] { authored }; art.importedStageIds = null;
+                Assert.IsTrue(art.ImportStageOnce("BARD", texture, Color.red));
+                Assert.AreSame(authored, art.stages[0]); Assert.IsNull(authored.backdrop);
+                Assert.AreEqual(Color.green, authored.sky); Assert.IsTrue(art.HasImportedStage("BARD"));
+                Assert.IsFalse(art.ImportStageOnce("BARD", texture, Color.red)); Assert.AreEqual(1, art.stages.Length);
+            }
+            finally { Object.DestroyImmediate(art); Object.DestroyImmediate(texture); }
         }
         private static void CheckActor(GameObject prefab, RuntimeAnimatorController controller, Sprite portrait, float reference, string[] states)
         {

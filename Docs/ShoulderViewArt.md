@@ -6,7 +6,7 @@
 2. Unity의 임포트와 스크립트 컴파일이 끝날 때까지 기다린다.
 3. 콘솔에 `BBSB shoulder-view art connected`가 표시되면 `RunMap`에서 전투를 시작한다.
 
-Inspector에서 이미지를 하나씩 연결할 필요가 없다. 에디터의 `ShoulderViewAssetInstaller`가 최초 한 번 네이티브 에셋을 생성하고 기존 플레이어·몬스터·전투 화면에 참조를 저장한다. 이미지가 모두 들어온 뒤 자동으로 실행되며, 수동 재시도가 필요한 경우 메뉴 `BBSB > Presentation > Install shoulder-view art`에서 누락 파일을 확인할 수 있다. 이미 설치된 프로젝트에서는 기존 편집 내용을 덮어쓰지 않는다.
+Inspector에서 이미지를 하나씩 연결할 필요가 없다. 에디터의 `ShoulderViewAssetInstaller`가 최초 한 번 네이티브 에셋을 생성하고 기존 플레이어·몬스터·전투 화면에 참조를 저장한다. 캐릭터·투사체·이펙트 60장이 들어오면 배경 유무와 무관하게 연결한다. 수동 재시도가 필요한 경우 메뉴 `BBSB > Presentation > Install shoulder-view art`에서 누락 파일을 확인할 수 있다. 이미 설치된 프로젝트에서는 기존 편집 내용을 덮어쓰지 않는다.
 
 ## 에셋 구조
 
@@ -47,10 +47,12 @@ Inspector에서 이미지를 하나씩 연결할 필요가 없다. 에디터의 
 
 이번 팩은 `POP`, `RNB`, `JAZZ`, `RAP`, `BARD`, `CELT`, `NEW`, `METAL`의 8개 배경이다. 각 맵의 10개 곡에 공통 적용되며 음악·공격 패턴은 그대로다. 개별 곡 전용 배경은 `ShoulderView.asset`의 `Stages`에 `BARD-06`처럼 곡 ID를 추가해서 지정한다. 곡 ID 참조가 맵 ID보다 우선한다.
 
+배경은 선택적으로, 맵별로 따로 설치된다. `Stages` 폴더가 없으면 기존 스테이지 배경을 계속 사용한다. 나중에 `Assets/BBSB/Art/ShoulderView/Stages/<맵 ID>.png`를 추가하거나 이동하면 해당 배경만 자동 연결한다. 이미 설치된 캐릭터·프리팹·클립과 직접 수정한 배경 항목은 보존한다. 설치한 뒤 직접 제거한 배경 항목도 다음 이미지 임포트에서 자동으로 되살리지 않는다.
+
 배경의 하늘과 열린 아치 구멍은 실제 알파 채널이다. 해당 맵의 `sky` 색이 뒤에 표시된다. 캐릭터·투사체·이펙트도 투명 PNG이며 파일 자체를 색상 제거 처리하지 않는다. PNG 바이너리는 Git에 올리지 않는다. Unity가 생성한 프리팹·클립·컨트롤러 및 `.meta`는 일반 텍스트 에셋으로 관리할 수 있다.
 
 ## 검증 범위
 
-CoreChecks는 공격/가드/활 상태 전환, 공격 시점과 패링 시점의 구분, 몬스터별 예고, 엇박 투사체 도착, 일시정지, 임시 노트 확정/파괴를 검사한다. PlayMode의 `ShoulderViewPresentationTests`는 설치된 팩의 모든 맵/투사체/효과 참조와 실제 Animator의 Sprite 전환 및 Canvas 반영을 검사한다. 아트 팩이 없으면 설치 통합 테스트는 건너뛴다.
+CoreChecks는 공격/가드/활 상태 전환, 공격 시점과 패링 시점의 구분, 몬스터별 예고, 엇박 투사체 도착, 일시정지, 임시 노트 확정/파괴를 검사한다. PlayMode의 `ShoulderViewPresentationTests`는 배경 없이 설치된 캐릭터·투사체·효과 참조와 실제 Animator의 Sprite 전환 및 Canvas 반영, 뒤늦은 배경 추가와 사용자 편집 보존을 검사한다. 캐릭터 아트 팩이 없으면 설치 통합 테스트는 건너뛴다.
 
 이 작업 환경에는 Unity Editor가 없어 자동 설치와 실제 인게임 렌더링은 여기에서 실행 검증하지 못했다. CoreChecks 및 이미지 파일 검증 결과와 Unity PlayMode 검증 여부를 구분해서 기록한다.

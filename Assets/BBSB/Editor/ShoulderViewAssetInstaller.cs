@@ -48,8 +48,9 @@ namespace BBSB.Editor
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
             if (EditorApplication.isCompiling || EditorApplication.isUpdating) { Schedule(); return; }
             var existing = AssetDatabase.LoadAssetAtPath<ShoulderViewPresentation>(PresentationPath);
-            if (existing != null && existing.installedVersion >= Version) return;
-            foreach (var path in RequiredImages()) if (!File.Exists(path)) return;
+            if (existing != null && existing.installedVersion >= Version)
+            { if (!HasPendingStage(existing)) return; }
+            else foreach (var path in RequiredActorImages()) if (!File.Exists(path)) return;
             if (!TryInstall(out var problem)) Debug.LogError("BBSB shoulder-view import: " + problem);
         }
 
@@ -62,6 +63,11 @@ namespace BBSB.Editor
 
         public static IEnumerable<string> RequiredImages()
         {
+            foreach (var path in RequiredActorImages()) yield return path;
+            foreach (string id in MapIds) yield return StagePath(id);
+        }
+        public static IEnumerable<string> RequiredActorImages()
+        {
             foreach (string pose in PlayerPoses) yield return ArtRoot + "/Characters/Player/" + pose + ".png";
             foreach (string id in MonsterIds)
             {
@@ -69,7 +75,6 @@ namespace BBSB.Editor
                 yield return ArtRoot + "/Projectiles/" + id + ".png";
             }
             foreach (string effect in Effects) yield return ArtRoot + "/Effects/" + effect + ".png";
-            foreach (string id in MapIds) yield return ArtRoot + "/Stages/" + id + ".png";
         }
 
         public static bool TryInstall(out string problem)
@@ -80,9 +85,9 @@ namespace BBSB.Editor
             var art = AssetDatabase.LoadAssetAtPath<ShoulderViewPresentation>(PresentationPath);
             // Reimporting/replacing a PNG keeps its GUID and updates all existing references.
             // Never rebuild over someone's edited clips, prefabs or presentation settings.
-            if (art != null && art.installedVersion >= Version) return true;
+            if (art != null && art.installedVersion >= Version) return TryInstallStages(art, out problem);
             var missing = new List<string>();
-            foreach (var path in RequiredImages()) if (!File.Exists(path)) missing.Add(path);
+            foreach (var path in RequiredActorImages()) if (!File.Exists(path)) missing.Add(path);
             if (missing.Count > 0)
             { problem = "Copy the ZIP's Assets folder into the project. Missing " + missing.Count + " image(s):\n" + string.Join("\n", missing); return false; }
             var hero = AssetDatabase.LoadAssetAtPath<PlayerAuthoring>("Assets/BBSB/Resources/BBSB/Player.asset");
@@ -97,13 +102,7 @@ namespace BBSB.Editor
             installing = true;
             try
             {
-                foreach (var path in RequiredImages())
-                {
-                    var importer = AssetImporter.GetAtPath(path) as TextureImporter;
-                    if (importer == null) { AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport); importer = AssetImporter.GetAtPath(path) as TextureImporter; }
-                    if (importer == null) throw new InvalidOperationException("Could not import " + path);
-                    if (ConfigureTexture(importer, path)) importer.SaveAndReimport();
-                }
+                foreach (var path in RequiredActorImages()) ImportTexture(path);
                 EnsureFolder(NativeRoot);
                 var playerSprites = Sprites("Characters/Player", PlayerPoses);
                 var playerController = Controller("Player", new[] { "Idle", "TapImpact", "Guard", "Bow", "Hit" }, playerSprites);
@@ -134,14 +133,6 @@ namespace BBSB.Editor
                     EnsureFolder(Path.GetDirectoryName(PresentationPath).Replace('\\', '/'));
                     AssetDatabase.CreateAsset(art, PresentationPath);
                 }
-                art.stages = new ShoulderViewPresentation.Stage[MapIds.Length];
-                for (int i = 0; i < MapIds.Length; i++)
-                {
-                    string path = ArtRoot + "/Stages/" + MapIds[i] + ".png";
-                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-                    if (texture == null) throw new InvalidOperationException("Missing stage texture: " + path);
-                    art.stages[i] = new ShoulderViewPresentation.Stage { id = MapIds[i], backdrop = texture, sky = SkyColors[i] };
-                }
                 art.projectiles = new ShoulderViewPresentation.Projectile[monsters.Count];
                 for (int i = 0; i < monsters.Count; i++) art.projectiles[i] = new ShoulderViewPresentation.Projectile {
                     monster = monsters[i], sprite = Sprite("Projectiles/" + MonsterIds[i]) };
@@ -150,11 +141,56 @@ namespace BBSB.Editor
                 art.noteConfirm = Sprite("Effects/note-confirm"); art.noteShatter = Sprite("Effects/note-shatter");
                 BindScreens(art);
                 art.installedVersion = Version; EditorUtility.SetDirty(art); AssetDatabase.SaveAssets();
-                Debug.Log("BBSB shoulder-view art connected: 13 SpriteRenderer prefabs/Animator controllers, 8 map backdrops, 12 projectiles and 7 effects. Native assets: " + NativeRoot);
+                // Commit actor bindings before touching optional backdrops. Missing or
+                // invalid stage files cannot leave all character prefabs uninstalled.
+                Debug.Log("BBSB shoulder-view art connected: 13 SpriteRenderer prefabs/Animator controllers, 12 projectiles and 7 effects. Native assets: " + NativeRoot);
+                InstallStages(art);
                 return true;
             }
             catch (Exception exception) { problem = exception.ToString(); return false; }
             finally { installing = false; }
+        }
+
+        private static string StagePath(string id) => ArtRoot + "/Stages/" + id + ".png";
+        private static bool HasPendingStage(ShoulderViewPresentation art)
+        {
+            foreach (string id in MapIds) if (!art.HasImportedStage(id) && File.Exists(StagePath(id))) return true;
+            return false;
+        }
+        private static bool TryInstallStages(ShoulderViewPresentation art, out string problem)
+        {
+            problem = null; installing = true;
+            try { InstallStages(art); return true; }
+            catch (Exception exception) { problem = exception.ToString(); return false; }
+            finally { installing = false; }
+        }
+        private static void InstallStages(ShoulderViewPresentation art)
+        {
+            int added = 0;
+            try
+            {
+                for (int i = 0; i < MapIds.Length; i++)
+                {
+                    string path = StagePath(MapIds[i]);
+                    if (art.HasImportedStage(MapIds[i]) || !File.Exists(path)) continue;
+                    ImportTexture(path);
+                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                    if (texture == null) throw new InvalidOperationException("Could not import stage texture: " + path);
+                    if (art.ImportStageOnce(MapIds[i], texture, SkyColors[i])) added++;
+                }
+            }
+            finally
+            {
+                if (added > 0) { EditorUtility.SetDirty(art); AssetDatabase.SaveAssets(); }
+            }
+            if (added > 0) Debug.Log("BBSB shoulder-view backdrops connected: " + added + " newly imported map(s).");
+        }
+        private static void ImportTexture(string path)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null) { AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport); importer = AssetImporter.GetAtPath(path) as TextureImporter; }
+            if (importer == null) throw new InvalidOperationException("Could not import " + path);
+            if (ConfigureTexture(importer, path)) importer.SaveAndReimport();
         }
 
         internal static bool ConfigureTexture(TextureImporter importer, string path)
@@ -279,6 +315,9 @@ namespace BBSB.Editor
         private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
         {
             foreach (string path in imported)
+                if (path.StartsWith(ShoulderViewAssetInstaller.ArtRoot + "/", StringComparison.Ordinal))
+                { ShoulderViewAssetInstaller.Schedule(); return; }
+            foreach (string path in moved)
                 if (path.StartsWith(ShoulderViewAssetInstaller.ArtRoot + "/", StringComparison.Ordinal))
                 { ShoulderViewAssetInstaller.Schedule(); return; }
         }
