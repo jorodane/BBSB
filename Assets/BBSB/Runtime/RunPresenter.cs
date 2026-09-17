@@ -738,27 +738,30 @@ namespace BBSB.Runtime
             var boardRoot = ui.Rect("Equipment placement board", scroll.transform.parent);
             RunUI.Size(boardRoot, 178); boardRoot.SetSiblingIndex(scroll.transform.GetSiblingIndex());
             var board = boardRoot.gameObject.AddComponent<EquipmentPlacementView>();
-            board.Bind(Session, ui, Render);
-            ui.Label(body, "무기 편성  ·  장착 " + Session.Weapons.Count + " / " + equipment.Capacity + "개", 27, RunUI.Gold, 46);
-            ui.Label(body, "사용 라인 " + equipment.OccupiedLaneCount + " / " + equipment.AvailableLaneCount + "  ·  보유 " + Session.OwnedWeapons.Count + "개\n보스 클리어마다 장착 한도 +1. 무기를 끌어 원하는 라인의 중심에 놓아줘.", 21, RunUI.Muted, 76);
-            if (!editable) ui.Label(body, "진행 중인 전투가 끝나면 편성을 변경할 수 있어.", 21, RunUI.Gold, 48);
-            else if (Session.Weapons.Count == 0) ui.Label(body, "전투를 시작하려면 무기를 하나 이상 장착해줘.", 21, RunUI.Gold, 48);
-            ui.Label(body, "보유 무기", 27, RunUI.Gold, 46);
-            for (int i = 0; i < Session.OwnedWeapons.Count; i++)
-            {
-                int index = i; var weapon = Session.OwnedWeapons[i]; var placement = equipment.PlacementOf(weapon);
-                var card = ui.Card(body, 16); card.name = "Owned weapon " + i;
-                ui.Label(card, WeaponLabel(weapon), 25, RunUI.TextColor, 44);
-                var positions = new List<string>();
-                if (placement != null) foreach (int slot in placement.Slots) positions.Add(InputKeys[slot]);
-                ui.Label(card, placement == null ? "미배치" : "배치 · " + string.Join(" + ", positions), 21, RunUI.Teal, 38);
-                DrawWeaponSummary(card, weapon);
-                var actions = ui.Row(card, 60);
-                var handle = ui.Button(actions, "드래그 · 클릭하여 배치", () => board.SelectWeapon(index), editable, height: 60);
-                handle.gameObject.AddComponent<EquipmentDragHandle>().Bind(board, index);
-                if (placement != null)
-                    ui.Button(actions, "장착 해제", () => { if (Session.UnequipWeapon(index)) Render(); }, editable, height: 60);
-            }
+            board.Bind(Session, ui, EquipmentChanged);
+            var capacity = ui.Label(body, "장착 " + Session.Weapons.Count + " / " + equipment.Capacity + "개  ·  " +
+                equipment.OccupiedLaneCount + " / " + equipment.AvailableLaneCount + "라인  ·  보유 " + Session.OwnedWeapons.Count + "개", 21, RunUI.Gold, 30);
+            capacity.fontSize = 21;
+            if (!editable) ui.Label(body, "진행 중인 전투가 끝나면 편성을 변경할 수 있어.", 21, RunUI.Gold, 36);
+            else if (Session.Weapons.Count == 0) ui.Label(body, "전투를 시작하려면 무기를 하나 이상 장착해줘.", 21, RunUI.Gold, 36);
+            var cards = ui.Rect("Owned weapon grid", body);
+            cards.gameObject.AddComponent<EquipmentInventoryView>().Bind(Session, ui, board);
+        }
+
+        private void EquipmentChanged()
+        {
+            var previousScroll = menuBody != null ? menuBody.GetComponentInParent<ScrollRect>() : null;
+            float position = previousScroll != null ? previousScroll.verticalNormalizedPosition : 1;
+            Render();
+            // Binding-only edits should not send the inventory back to its first item.
+            // Resolve the new grid's width before restoring its previous scroll position.
+            if (menuBody == null) return;
+            Canvas.ForceUpdateCanvases();
+            menuBody.GetComponentInChildren<EquipmentInventoryView>()?.RefreshLayout();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(menuBody);
+            Canvas.ForceUpdateCanvases();
+            var nextScroll = menuBody.GetComponentInParent<ScrollRect>();
+            nextScroll.StopMovement(); nextScroll.verticalNormalizedPosition = Mathf.Clamp01(position);
         }
 
         private void DrawWeaponSummary(RectTransform parent, WeaponState state)
@@ -793,7 +796,8 @@ namespace BBSB.Runtime
 
         private void DrawInventory()
         {
-            ui.Label(body, "HP  " + Session.Health.ToString("0.##") + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G", 26, RunUI.Teal, 48);
+            if (!Session.UsesFiveLaneCombat)
+                ui.Label(body, "HP  " + Session.Health.ToString("0.##") + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G", 26, RunUI.Teal, 48);
             DrawLoadout();
             ui.Label(body, "아이템", 27, RunUI.Gold, 45);
             if (Session.Items.Count == 0) ui.Label(body, "아직 아이템이 없어.", 22, RunUI.Muted, 60);
