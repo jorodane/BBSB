@@ -41,6 +41,13 @@ namespace BBSB.Runtime.UI
         public double Progress(double beat) => Math.Max(0, Math.Min(1, (beat - BrokenAt) / LifetimeBeats));
     }
 
+    public readonly struct ConfirmedTrackNote
+    {
+        public TrackNote Note { get; }
+        public double ConfirmedAt { get; }
+        internal ConfirmedTrackNote(TrackNote note, double beat) { Note = note; ConfirmedAt = beat; }
+    }
+
     // Presentation-only projection. Ghost notes never enter the battle's note states,
     // input selection, deadlines, damage, or combo calculation.
     public sealed class FiveLaneNoteTimeline
@@ -49,22 +56,32 @@ namespace BBSB.Runtime.UI
         private readonly List<TrackNote> notes = new List<TrackNote>();
         private readonly List<TrackNote> previous = new List<TrackNote>();
         private readonly List<BrokenTrackNote> broken = new List<BrokenTrackNote>();
+        private readonly List<ConfirmedTrackNote> confirmed = new List<ConfirmedTrackNote>();
         private FiveLaneBattle source;
         public IReadOnlyList<TrackNote> Notes { get; }
         public IReadOnlyList<BrokenTrackNote> Broken { get; }
+        public IReadOnlyList<ConfirmedTrackNote> Confirmed { get; }
         public FiveLaneNoteTimeline()
-        { Notes = notes.AsReadOnly(); Broken = broken.AsReadOnly(); }
+        { Notes = notes.AsReadOnly(); Broken = broken.AsReadOnly(); Confirmed = confirmed.AsReadOnly(); }
 
         public void Refresh(FiveLaneBattle battle)
         {
             if (!ReferenceEquals(source, battle))
-            { source = battle; notes.Clear(); previous.Clear(); broken.Clear(); }
+            { source = battle; notes.Clear(); previous.Clear(); broken.Clear(); confirmed.Clear(); }
             if (battle == null) return;
             previous.Clear(); previous.AddRange(notes); notes.Clear();
             broken.RemoveAll(note => note.Progress(battle.Beat) >= 1);
+            confirmed.RemoveAll(note => battle.Beat - note.ConfirmedAt >= .4);
             for (int slot = 0; slot < battle.Lanes.Count; slot++) Collect(battle, slot);
             foreach (var old in previous)
             {
+                if (old.IsPreview)
+                    foreach (var current in notes)
+                        if (!current.IsPreview && current.SameNote(old))
+                        {
+                            if (confirmed.Count == MaxNotesPerLane * RunRules.WeaponSlots) confirmed.RemoveAt(0);
+                            confirmed.Add(new ConfirmedTrackNote(current, battle.Beat)); break;
+                        }
                 if (old.EndBeat < battle.Beat - battle.HalfMissWindow || Contains(old) || !Canceled(battle, old)) continue;
                 // Only notes the player could actually see become fragments. A preview
                 // promoted to a live note keeps its identity and does not burst.

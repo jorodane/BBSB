@@ -9,6 +9,7 @@ namespace BBSB.Runtime.UI
     {
         public RectTransform scenery, actors, tracks;
         public RectTransform playerSlot, monsterArea;
+        public ShoulderViewPresentation presentation;
         public TextMeshProUGUI song, health, enemyHealth, beat, feedback, help;
         public TextMeshProUGUI attackCue;
         [Tooltip("Centre the short tracks for the number of equipped weapons. Disable to use custom prefab positions.")]
@@ -67,28 +68,35 @@ namespace BBSB.Runtime.UI
                     Place(judgmentPoints[i], point.x - .035f, point.y - .025f, point.x + .035f, point.y + .025f);
                     changed = true;
                 }
-            if (stageLayoutVersion >= 1) return changed;
-            MoveDefault(song.rectTransform, .30f, .93f, .70f, .99f, .72f, .025f, .92f, .09f);
-            MoveDefault(health.rectTransform, .02f, .93f, .28f, .99f, .025f, .085f, .29f, .14f);
-            MoveDefault((RectTransform)playerFill.parent, .02f, .91f, .28f, .925f, .025f, .06f, .29f, .08f);
-            MoveDefault(enemyHealth.rectTransform, .72f, .93f, .90f, .99f, .40f, .93f, .86f, .985f);
-            MoveDefault((RectTransform)enemyFill.parent, .72f, .91f, .90f, .925f, .40f, .90f, .86f, .92f);
-            MoveDefault(beat.rectTransform, .30f, .855f, .70f, .92f, .82f, .54f, .98f, .64f);
-            MoveDefault(feedback.rectTransform, .30f, .785f, .70f, .85f, .48f, .32f, .81f, .40f);
-            MoveDefault(help.rectTransform, .10f, .005f, .90f, .045f, .36f, .01f, .70f, .05f);
-            for (int i = 0; i < 5; i++)
+            if (stageLayoutVersion >= 2) return changed;
+            if (stageLayoutVersion < 1)
             {
-                float oldX = .12f + .19f * i, oldY = .32f + .045f * (2 - Mathf.Abs(i - 2));
-                float x = FiveLaneTrackGraphic.LanePoint(i, 0).x;
-                var weapon = WeaponPoint(i);
-                MoveDefault(weaponRoots[i], oldX - .052f, oldY - .07f, oldX + .052f, oldY + .07f,
-                    weapon.x - .052f, weapon.y - .07f, weapon.x + .052f, weapon.y + .07f);
-                MoveDefault(laneLabels[i].rectTransform, oldX - .09f, .105f, oldX + .09f, .20f, x - .06f, .105f, x + .06f, .17f);
-                MoveDefault(laneStatus[i].rectTransform, oldX - .09f, .05f, oldX + .09f, .10f, x - .06f, .065f, x + .06f, .10f);
-                MoveDefault(laneResults[i].rectTransform, oldX - .09f, .205f, oldX + .09f, .255f, x - .06f, .255f, x + .06f, .30f);
-                MoveDefault(inputAreas[i], i * .2f, .045f, (i + 1) * .2f, .77f, x - .065f, .06f, x + .065f, .48f);
+                MoveDefault(song.rectTransform, .30f, .93f, .70f, .99f, .72f, .025f, .92f, .09f);
+                MoveDefault(health.rectTransform, .02f, .93f, .28f, .99f, .025f, .085f, .29f, .14f);
+                MoveDefault((RectTransform)playerFill.parent, .02f, .91f, .28f, .925f, .025f, .06f, .29f, .08f);
+                MoveDefault(enemyHealth.rectTransform, .72f, .93f, .90f, .99f, .40f, .93f, .86f, .985f);
+                MoveDefault((RectTransform)enemyFill.parent, .72f, .91f, .90f, .925f, .40f, .90f, .86f, .92f);
+                MoveDefault(beat.rectTransform, .30f, .855f, .70f, .92f, .82f, .54f, .98f, .64f);
+                MoveDefault(feedback.rectTransform, .30f, .785f, .70f, .85f, .48f, .32f, .81f, .40f);
+                MoveDefault(help.rectTransform, .10f, .005f, .90f, .045f, .36f, .01f, .70f, .05f);
+                for (int i = 0; i < 5; i++)
+                {
+                    float oldX = .12f + .19f * i, oldY = .32f + .045f * (2 - Mathf.Abs(i - 2));
+                    float x = FiveLaneTrackGraphic.LanePoint(i, 0).x;
+                    var weapon = WeaponPoint(i);
+                    MoveDefault(weaponRoots[i], oldX - .052f, oldY - .07f, oldX + .052f, oldY + .07f,
+                        weapon.x - .052f, weapon.y - .07f, weapon.x + .052f, weapon.y + .07f);
+                    MoveDefault(laneLabels[i].rectTransform, oldX - .09f, .105f, oldX + .09f, .20f, x - .06f, .105f, x + .06f, .17f);
+                    MoveDefault(laneStatus[i].rectTransform, oldX - .09f, .05f, oldX + .09f, .10f, x - .06f, .065f, x + .06f, .10f);
+                    MoveDefault(laneResults[i].rectTransform, oldX - .09f, .205f, oldX + .09f, .255f, x - .06f, .255f, x + .06f, .30f);
+                    MoveDefault(inputAreas[i], i * .2f, .045f, (i + 1) * .2f, .77f, x - .065f, .06f, x + .065f, .48f);
+                }
             }
-            stageLayoutVersion = 1;
+            MoveDefault(playerSlot, .025f, .15f, .345f, .71f, .015f, .15f, .385f, .80f);
+            MoveDefault(monsterArea, .39f, .50f, .86f, .88f, .43f, .50f, .91f, .86f);
+            // Keep the global countdown clear of per-enemy attack labels.
+            MoveDefault(attackCue.rectTransform, .40f, .82f, .86f, .89f, .015f, .82f, .38f, .88f);
+            stageLayoutVersion = 2;
             return true;
         }
         public void ConfigureLanes(int count)
@@ -134,6 +142,7 @@ namespace BBSB.Runtime.UI
             var ui = new RunUI(font);
             var root = ui.Rect("Five lane HUD", parent); RunUI.Stretch(root);
             var b = root.gameObject.AddComponent<FiveLaneHudBindings>();
+            b.presentation = Resources.Load<ShoulderViewPresentation>(ShoulderViewPresentation.ResourcePath);
             b.scenery = ui.Rect("Scenery", root); RunUI.Stretch(b.scenery);
             ui.Background(b.scenery, RunUI.Ink);
             b.actors = ui.Rect("Actors", root); RunUI.Stretch(b.actors);

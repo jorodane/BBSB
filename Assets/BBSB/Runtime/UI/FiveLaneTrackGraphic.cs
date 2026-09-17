@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BBSB.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,17 +13,22 @@ namespace BBSB.Runtime.UI
         private readonly FiveLaneNoteTimeline noteTimeline = new FiveLaneNoteTimeline();
         private RectTransform[] targets;
         private RectTransform playerTarget, enemySource;
+        public FiveLaneNoteTimeline NoteTimeline => noteTimeline;
+        public ISet<string> SpriteProjectiles { get; set; }
+        public bool SpriteNoteShatter { get; set; }
         public const double LookAheadBeats = SteppedNoteTrack.LookAheadBeats;
         public static Vector2 LanePoint(int lane, float distance, int count = 5) =>
             new Vector2(.655f + (lane - (count - 1) * .5f) * .1375f, Mathf.Lerp(.22f, .42f, distance));
         public void Bind(FiveLaneBattle value, RectTransform[] judgmentTargets = null,
             RectTransform player = null, RectTransform enemies = null)
-        { battle = value; targets = judgmentTargets; playerTarget = player; enemySource = enemies; raycastTarget = false; SetVerticesDirty(); }
-        public void Refresh() { SetVerticesDirty(); }
+        { battle = value; targets = judgmentTargets; playerTarget = player; enemySource = enemies; raycastTarget = false; Refresh(); }
+        public void Refresh() { noteTimeline.Refresh(battle); SetVerticesDirty(); }
+        public Vector3 NoteWorldPosition(int slot, double at) => rectTransform.TransformPoint(Position(slot, at));
+        public Vector3 BrokenWorldPosition(BrokenTrackNote note) => rectTransform.TransformPoint(
+            Point(note.Note.Slot, (float)(note.HeadDistance / LookAheadBeats)));
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (battle == null) return;
-            noteTimeline.Refresh(battle);
             for (int slot = 0; slot < battle.Lanes.Count; slot++)
             {
                 var lane = battle.Lanes[slot];
@@ -77,7 +83,7 @@ namespace BBSB.Runtime.UI
                     NoteHead(vh, p, 9, tint, shown.IsPreview);
                 }
                 foreach (var broken in noteTimeline.Broken)
-                    if (broken.Note.Slot == slot) DrawBroken(vh, broken, laneColor);
+                    if (broken.Note.Slot == slot && !(SpriteNoteShatter && broken.Note.IsPreview)) DrawBroken(vh, broken, laneColor);
             }
             // The hostile marker uses the same musical rotation during its final beat.
             // Its impact stays exact even when scheduled between whole beats.
@@ -85,6 +91,7 @@ namespace BBSB.Runtime.UI
             var target = playerTarget != null ? LocalPoint(playerTarget, playerTarget.rect.center) : Pixel(new Vector2(.185f, .43f));
             foreach (var attack in battle.Incoming)
             {
+                if (SpriteProjectiles != null && SpriteProjectiles.Contains(attack.Definition.MonsterId)) continue;
                 double delta = attack.Beat - battle.Beat;
                 if (delta > 1 || delta < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
                 float t = (float)SteppedNoteTrack.ImpactProgress(attack.Beat, battle.Beat);

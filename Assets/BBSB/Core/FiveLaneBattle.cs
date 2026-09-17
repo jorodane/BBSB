@@ -20,6 +20,7 @@ namespace BBSB.Core
         public BeatAttack Definition { get; }
         public double Beat { get; }
         public IncomingAttackState State { get; internal set; }
+        public double ResolvedBeat { get; internal set; } = double.NegativeInfinity;
         internal bool ImpactSampled;
         internal decimal Reduction;
         internal IncomingBeatAttack(BeatAttack definition, double beat) { Definition = definition; Beat = beat; }
@@ -40,6 +41,7 @@ namespace BBSB.Core
         public RhythmGrade LastGrade { get; internal set; }
         public string Feedback { get; internal set; } = "READY";
         public decimal DamageDealt { get; internal set; }
+        public double LastDamageBeat { get; internal set; } = double.NegativeInfinity;
         public int Activations { get; internal set; }
         internal RhythmGrade HoldGrade;
         internal bool FailedCycle;
@@ -243,7 +245,7 @@ namespace BBSB.Core
                             attack.Reduction = Math.Max(attack.Reduction, lane.Phrase.HoldDamageReduction);
                     }
                     if (attack.Beat + HalfMissWindow + Epsilon > Beat) continue;
-                    attack.State = IncomingAttackState.Hit; LastHitBeat = Beat;
+                    attack.State = IncomingAttackState.Hit; attack.ResolvedBeat = Beat; LastHitBeat = Beat;
                     decimal reduced = attack.Definition.Damage * attack.Reduction;
                     TotalReduced += reduced;
                     PlayerHealth = Math.Max(0, PlayerHealth - (attack.Definition.Damage - reduced));
@@ -272,7 +274,7 @@ namespace BBSB.Core
             // The configured key edge blocks simultaneous impacts only, never the whole Hold interval.
             foreach (var attack in incoming)
                 if (attack.State == IncomingAttackState.Pending && Math.Abs(attack.Beat - target.Beat) < Epsilon)
-                { attack.State = IncomingAttackState.Blocked; TotalBlocked += attack.Definition.Damage; }
+                { attack.State = IncomingAttackState.Blocked; attack.ResolvedBeat = Beat; TotalBlocked += attack.Definition.Damage; }
             return true;
         }
         private double Deadline(PhraseLane lane)
@@ -290,7 +292,7 @@ namespace BBSB.Core
             {
                 double at = schedule[nextAttack].Beat + cycle * loopBeats;
                 var attack = new IncomingBeatAttack(schedule[nextAttack], at);
-                if (at < GroggyUntilBeat) attack.State = IncomingAttackState.Interrupted;
+                if (at < GroggyUntilBeat) { attack.State = IncomingAttackState.Interrupted; attack.ResolvedBeat = Beat; }
                 incoming.Add(attack);
                 if (++nextAttack == schedule.Count) { nextAttack = 0; cycle++; }
             }
@@ -324,7 +326,7 @@ namespace BBSB.Core
                     damage += lane.Phrase.FinisherDamage; GroggyUntilBeat = Math.Max(GroggyUntilBeat, Beat + lane.Phrase.GroggyBeats);
                     foreach (var attack in incoming)
                         if (attack.State == IncomingAttackState.Pending && attack.Beat >= Beat - HalfMissWindow && attack.Beat < GroggyUntilBeat)
-                            attack.State = IncomingAttackState.Interrupted;
+                        { attack.State = IncomingAttackState.Interrupted; attack.ResolvedBeat = Beat; }
                     lane.Feedback = "GROGGY!";
                 }
                 if (lane.FailedCycle) Cooldown(lane, Beat + lane.Phrase.MissCooldownBeats);
@@ -334,6 +336,7 @@ namespace BBSB.Core
                     Cooldown(lane, Math.Max(Beat, lane.StartBeat + lane.Phrase.LengthBeats) + lane.Phrase.CompletionCooldownBeats);
             }
             damage *= (1m + .25m * lane.Weapon.Level) * (grade == RhythmGrade.Perfect ? 1m : .5m);
+            if (damage > 0) lane.LastDamageBeat = Beat;
             EnemyHealth.Damage(damage); lane.DamageDealt += damage; TotalDamage += damage;
         }
         private static void BeginCycle(PhraseLane lane)

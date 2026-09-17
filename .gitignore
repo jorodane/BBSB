@@ -9,6 +9,8 @@
 /Assets/BBSB/Resources/BBSB/StageAssets.meta
 /StageAssetSources/
 /BBSB_Stage_Assets*.zip
+# Shoulder-view image sources are delivered as a copy-in art ZIP. Native assets remain editable.
+/Assets/BBSB/Art/ShoulderView/**/*.png
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/

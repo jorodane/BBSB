@@ -17,6 +17,7 @@ namespace BBSB.Runtime.UI
         private readonly List<ActorPrefabView> monsters = new List<ActorPrefabView>();
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
+        private readonly FiveLaneEffectsView effects;
         private readonly List<StageActor> stageActors = new List<StageActor>();
         private readonly List<TMP_Text> attackLabels = new List<TMP_Text>();
         private RectTransform modal;
@@ -50,8 +51,9 @@ namespace BBSB.Runtime.UI
             hud.EnsureStageLayout();
             hud.ConfigureLanes(battle.Lanes.Count);
             hud.help.text = string.Join(" / ", new List<string>(Keys).GetRange(0, battle.Lanes.Count)) + "  ·  Tap / Hold  ·  Esc";
-            StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art");
-            var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .32f));
+            var presentation = hud.presentation != null ? hud.presentation : Resources.Load<ShoulderViewPresentation>(ShoulderViewPresentation.ResourcePath);
+            StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art", presentation);
+            var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .16f));
             // A prefab slot may already have an Image. Unity permits only one Graphic per
             // object, so runtime meshes get their own children instead of AddComponent failing.
             var trackMesh = ui.Rect("Live note tracks", hud.tracks); RunUI.Stretch(trackMesh);
@@ -82,6 +84,8 @@ namespace BBSB.Runtime.UI
                 hero != null ? hero.spriteReferenceHeight : 4, hero != null ? hero.displayScale : 1,
                 hero != null ? hero.displayOffset : Vector2.zero);
             int count = session.BattlePlan.Monsters.Count;
+            var species = new List<string>();
+            var enemySlots = new List<RectTransform>();
             for (int i = 0; i < count; i++)
             {
                 var plan = session.BattlePlan.Monsters[i];
@@ -94,13 +98,15 @@ namespace BBSB.Runtime.UI
                     appearance != null ? appearance.spriteReferenceHeight : 4, appearance != null ? appearance.displayScale : 1,
                     appearance != null ? appearance.displayOffset : Vector2.zero));
                 monsterIds.Add(plan.InstanceId);
+                species.Add(plan.Monster.Id); enemySlots.Add(stageActors[i + 1].Slot);
                 var cue = ui.Label(hud.actors, "", 20, RunUI.Red);
                 cue.alignment = TextAlignmentOptions.Center;
                 float x0 = Mathf.Lerp(hud.monsterArea.anchorMin.x, hud.monsterArea.anchorMax.x, (float)i / count);
                 float x1 = Mathf.Lerp(hud.monsterArea.anchorMin.x, hud.monsterArea.anchorMax.x, (float)(i + 1) / count);
-                FiveLaneHudBindings.Place(cue.rectTransform, x0, .755f, x1, .81f);
+                FiveLaneHudBindings.Place(cue.rectTransform, x0, .85f, x1, .89f);
                 attackLabels.Add(cue);
             }
+            effects = new FiveLaneEffectsView(presentation, battle, ui, hud, tracks, enemySlots, monsterIds, species);
         }
         private ActorPrefabView Actor(string name, RectTransform stage, int index, int count, GameObject prefab,
             RuntimeAnimatorController controller, Sprite sprite, float reference, float scale, Vector2 offset)
@@ -128,11 +134,9 @@ namespace BBSB.Runtime.UI
             hud.feedback.text = waitingForHold ? "Hold 중이던 버튼을 다시 눌러줘" : battle.IsGroggy ? "GROGGY" :
                 battle.Beat - battle.LastHitBeat < .5 ? "HIT" : "";
             hud.feedback.color = battle.IsGroggy ? RunUI.Gold : RunUI.Red;
-            int latestSlot = 0;
             for (int i = 0; i < battle.Lanes.Count; i++)
             {
                 var lane = battle.Lanes[i];
-                if (lane.LastJudgedBeat > battle.Lanes[latestSlot].LastJudgedBeat) latestSlot = i;
                 hud.laneStatus[i].text = lane.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, lane.ReadyAtBeat - battle.Beat).ToString("0.0") :
                     lane.Phase == PhraseLanePhase.Ready ? "READY" :
                     lane.WaitingForParryRelease ? "HOLD → UP" : lane.Holding ?
@@ -148,23 +152,19 @@ namespace BBSB.Runtime.UI
                 hud.weaponRoots[i].localScale = Vector3.one * (1 + pulse * .18f);
                 hud.weaponRoots[i].localRotation = Quaternion.Euler(0, 0, pulse * (i % 2 == 0 ? -24 : 24));
             }
-            var recent = battle.Lanes[latestSlot]; double recentAge = battle.Beat - recent.LastJudgedBeat;
-            if (recentAge < .5 && recent.LastGrade != RhythmGrade.Miss)
-                player.Sample("Base Layer.TapImpact", recentAge, .5f, false);
-            else player.Sample("Base Layer.Idle", battle.Beat, 4, true);
+            var heroFrame = FiveLaneArtTimeline.Player(battle);
+            player.Sample(heroFrame.State, heroFrame.Age, heroFrame.Duration, heroFrame.Loop);
             double nearestAttack = double.PositiveInfinity;
             for (int i = 0; i < monsters.Count; i++)
             {
-                string state = battle.IsGroggy ? "Base Layer.Hit" : "Base Layer.Idle";
-                double age = battle.Beat;
                 double remaining = double.PositiveInfinity;
                 foreach (var attack in battle.Incoming)
                     if (attack.Definition.MonsterId == monsterIds[i] && attack.State == IncomingAttackState.Pending &&
                         attack.Beat - battle.Beat >= -battle.HalfMissWindow && attack.Beat - battle.Beat <= 3)
                     { remaining = Math.Max(0, attack.Beat - battle.Beat); break; }
                 nearestAttack = Math.Min(nearestAttack, remaining);
-                if (remaining <= 1) { state = "Base Layer.Attack"; age = 1 - remaining; }
-                bool animated = monsters[i].Sample(state, age, 1, state == "Base Layer.Idle");
+                var frame = FiveLaneArtTimeline.Monster(battle, monsterIds[i]);
+                bool animated = monsters[i].Sample(frame.State, frame.Age, frame.Duration, frame.Loop);
                 attackLabels[i].text = double.IsPositiveInfinity(remaining) ? "" : remaining <= battle.PerfectWindow ? "ATTACK!" : "ATTACK " + remaining.ToString("0.0");
                 if (!animated)
                 {
@@ -180,6 +180,7 @@ namespace BBSB.Runtime.UI
             hud.attackCue.color = nearestAttack <= .5 ? RunUI.Gold : RunUI.Red;
             player.RefreshSprites();
             tracks.Refresh();
+            effects.Refresh();
         }
         public void ShowPause(Action resume, Action leave)
         {
