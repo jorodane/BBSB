@@ -17,6 +17,20 @@ namespace BBSB.Tests
         private static TrackNote At(FiveLaneNoteTimeline timeline, double beat) =>
             timeline.Notes.Single(note => Math.Abs(note.Beat - beat) < .000001);
 
+        [Test] public void ShieldHoldMarkersMatchTheirAuthoredParryEdges()
+        {
+            foreach (var edge in new[] { ParryInputEdge.KeyDown, ParryInputEdge.KeyUp, ParryInputEdge.Both })
+            {
+                var phrase = new WeaponPhrase("tower-shield", "edges", "", 2,
+                    new[] { new WeaponPhraseNote(0, 0, 1.5, PhraseEffect.Parry) }, parryInput: edge);
+                var b = Battle("tower-shield", phrase); b.Press(0, 0);
+                var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
+                var note = At(timeline, 0);
+                Check.Equal(edge != ParryInputEdge.KeyUp, note.PressParry);
+                Check.Equal(edge != ParryInputEdge.KeyDown, note.ReleaseParry);
+                Check.Equal(1.5, note.EndBeat); Check.False(note.IsPreview);
+            }
+        }
         [Test] public void DualSwordsShowOneRealNoteAndAssumesSuccessfulRepeatsWithinThreeBeats()
         {
             var b = Battle("dual-swords"); var timeline = new FiveLaneNoteTimeline();

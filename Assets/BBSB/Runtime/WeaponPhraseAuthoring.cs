@@ -28,7 +28,7 @@ namespace BBSB.Runtime
         [Min(.5f)] public float lengthBeats = 4;
         [Min(.25f)] public float missCooldownBeats = 2;
         public bool repeat;
-        [Tooltip("Timing of notes marked Parry: keydown, or release at that Hold's end. Any notes can be parries, including repeats.")]
+        [Tooltip("Timing of Parry notes: KeyDown, KeyUp at the Hold end, or Both. KeyUp/Both require Hold notes. Any notes can be parries, including repeats.")]
         public ParryInputEdge parryInput;
         [Range(0, 1)] public float holdDamageReduction;
         public bool releaseEndsPhrase;

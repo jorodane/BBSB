@@ -52,10 +52,50 @@ namespace BBSB.Tests
             var b = Battle(new BeatAttack("a", 0, 10), new BeatAttack("b", 1, 10), new BeatAttack("c", 2.5, 10));
             b.Press(1, 0); Check.True(b.Lanes[1].Holding); Check.Equal(10m, b.TotalBlocked);
             b.Advance(1.3); Check.Equal(95m, b.PlayerHealth); Check.Equal(5m, b.TotalReduced);
-            b.Advance(2); Check.False(b.Lanes[1].Holding); Check.Equal(4.0, b.Lanes[1].ReadyAtBeat);
+            b.Advance(2); Check.False(b.Lanes[1].Holding); Check.Equal(2.0, b.Lanes[1].ReadyAtBeat);
+            Check.Equal(PhraseLanePhase.Ready, b.Lanes[1].Phase);
             b.Advance(2.8); Check.Equal(85m, b.PlayerHealth);
             b.Advance(4); b.Press(1, 4); Check.False(b.Lanes[1].Holding); // Still held: no new keydown.
             b.Release(1, 4); b.Press(1, 4); Check.True(b.Lanes[1].Holding);
+        }
+        [Test] public void HeaterCanParrySuccessiveHalfBeatAttacksAndOnlyTheNextUnparriedUseHasCooldown()
+        {
+            foreach (double delay in new[] { 0.0, .2 })
+            {
+                var b = Battle(new[] { 1.0, 1.5, 2.0, 2.5 }.Select(at => new BeatAttack("a", at, 10)).ToArray());
+                var lane = b.Lanes[1];
+                foreach (double at in new[] { 1.0, 1.5, 2.0, 2.5 })
+                {
+                    b.Press(1, at + delay);
+                    Check.True(lane.Holding); Check.Equal(at + delay, lane.ReadyAtBeat);
+                    b.Release(1, at + delay + .01);
+                    Check.Equal(PhraseLanePhase.Ready, lane.Phase); Check.False(lane.Holding);
+                }
+                Check.Equal(40m, b.TotalBlocked); Check.Equal(100m, b.PlayerHealth); Check.Equal(0, b.MissCount);
+                // An accepted opening without an attack must not inherit the previous refund.
+                b.Press(1, 3); b.Release(1, 3.1);
+                Check.Equal(PhraseLanePhase.Cooldown, lane.Phase); Check.Equal(5.1, lane.ReadyAtBeat);
+            }
+        }
+        [Test] public void ParryRecoveryLeavesOtherWeaponsCooldownsUntouched()
+        {
+            var b = new FiveLaneBattle(new[] { new WeaponState("heater-shield"), new WeaponState("round-shield"),
+                new WeaponState("dagger") }, 120, 32, new[] { new BeatAttack("a", 1, 10) }, new StageHealth(100), 100, 100);
+            Tap(b, 2, 0); Tap(b, 1, .1); Tap(b, 2, .5);
+            double otherShieldReady = b.Lanes[1].ReadyAtBeat, daggerReady = b.Lanes[2].ReadyAtBeat;
+            b.Press(0, 1); b.Release(0, 1.01);
+            Check.Equal(PhraseLanePhase.Ready, b.Lanes[0].Phase); Check.Equal(10m, b.TotalBlocked);
+            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[1].Phase); Check.Equal(otherShieldReady, b.Lanes[1].ReadyAtBeat);
+            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[2].Phase); Check.Equal(daggerReady, b.Lanes[2].ReadyAtBeat);
+        }
+        [Test] public void AuthoredParryOnAnOffensiveWeaponDoesNotRecoverItsCooldown()
+        {
+            var phrase = new WeaponPhrase("sword", "parry strike", "", 1,
+                new[] { new WeaponPhraseNote(0, 3, effect: PhraseEffect.Parry) }, completionCooldownBeats: 2);
+            var b = new FiveLaneBattle(new[] { new WeaponState("sword") }, 120, 32,
+                new[] { new BeatAttack("a", 1, 10) }, new StageHealth(100), 100, 100, new[] { phrase });
+            Tap(b, 0, 1); Check.Equal(10m, b.TotalBlocked); Check.Equal(3m, b.TotalDamage);
+            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[0].Phase); Check.Equal(4.0, b.Lanes[0].ReadyAtBeat);
         }
         [Test] public void HeaterCanGuardWithoutAParryAndEarlyReleaseStartsTwoBeatCooldown()
         {
@@ -114,7 +154,7 @@ namespace BBSB.Tests
             b.Advance(1.25); Check.Equal(PhraseNoteState.Missed, b.Lanes[0].NoteStates[1]);
             Check.True(b.Lanes[0].IsNoteVisible(2)); Check.True(b.Lanes[0].IsNoteVisible(3));
             Tap(b, 0, 1.5); Tap(b, 0, 2); Check.Equal(14m, b.TotalDamage);
-            Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[0].Phase);
+            Check.Equal(PhraseLanePhase.Ready, b.Lanes[0].Phase); Check.Equal(2.0, b.Lanes[0].ReadyAtBeat);
         }
         [Test] public void MissingARepeatedOpeningStillLeavesUnconditionalLaterNotesPlayable()
         {

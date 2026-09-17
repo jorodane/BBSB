@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace BBSB.Core
 {
     public enum PhraseEffect { Strike, Parry, StartAdjacent, Heal }
-    public enum ParryInputEdge { KeyDown, KeyUp }
+    // Keep existing serialized values; Both adds a parry at each end of a Hold.
+    public enum ParryInputEdge { KeyDown = 0, KeyUp = 1, Both = 2 }
     public enum PhraseLanePhase { Ready, Playing, Cooldown }
     public enum PhraseNoteCondition { Always, Hit, Parry }
     public enum PhraseNoteState { Locked, Pending, Holding, Hit, Missed, Skipped }
@@ -45,6 +46,8 @@ namespace BBSB.Core
         public double MissCooldownBeats { get; }
         public bool Repeat { get; }
         public ParryInputEdge ParryInput { get; }
+        public bool ParriesOnKeyDown => ParryInput != ParryInputEdge.KeyUp;
+        public bool ParriesOnKeyUp => ParryInput != ParryInputEdge.KeyDown;
         public int FinisherEvery { get; }
         public decimal FinisherDamage { get; }
         public double GroggyBeats { get; }
@@ -78,7 +81,7 @@ namespace BBSB.Core
                 if (note == null || note.Beat >= lengthBeats || note.Beat + note.HoldBeats > lengthBeats ||
                     (i > 0 && note.Beat <= copy[i - 1].Beat + copy[i - 1].HoldBeats))
                     throw new ArgumentException("Notes must be ordered, separated, and contained within the phrase.");
-                if (note.IsParry && parryInput == ParryInputEdge.KeyUp && !note.IsHold)
+                if (note.IsParry && parryInput != ParryInputEdge.KeyDown && !note.IsHold)
                     throw new ArgumentException("A release parry needs a Hold note.", nameof(notes));
                 if (note.Condition != PhraseNoteCondition.Always && (note.Prerequisite >= i ||
                     (note.Condition == PhraseNoteCondition.Parry && !copy[note.Prerequisite].IsParry)))
@@ -107,14 +110,14 @@ namespace BBSB.Core
                 new[] { Tap(0, 8), Tap(1, 8), Tap(2, 12) }),
             new WeaponPhrase("hammer", "트레실로 해머", "Tap 0 / 1.5 / 3 · 세 번째 완주에 그로기", 4,
                 new[] { Tap(0, 6), Tap(1.5, 8), Tap(3, 12) }, 3, finisherEvery: 3, finisherDamage: 38, groggyBeats: 4),
-            new WeaponPhrase("shield", "버클러", "첫 Tap 방어 성공 → 1 / 1.5 / 2 반격", 2.5,
+            new WeaponPhrase("shield", "버클러", "첫 Tap 방어 성공 → 1 / 1.5 / 2 반격 · 패링 시 쿨타임 회복", 2.5,
                 new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.Parry), Counter(1, 5), Counter(1.5, 5), Counter(2, 9) }, 2, false),
-            new WeaponPhrase("round-shield", "원형 방패", "첫 Tap 방어 성공 → 0.5 / 1.5 빠른 반격", 2,
+            new WeaponPhrase("round-shield", "원형 방패", "첫 Tap 방어 성공 → 0.5 / 1.5 빠른 반격 · 패링 시 쿨타임 회복", 2,
                 new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.Parry), Counter(.5, 6), Counter(1.5, 10) }, 1.5, false),
-            new WeaponPhrase("tower-shield", "대형 방패", "Hold 1.5박 후 떼기 방어 → 2.5박 강타", 3,
+            new WeaponPhrase("tower-shield", "대형 방패", "시작·1.5박 떼기 패링 → 2.5박 강타 · 패링 시 쿨타임 회복", 3,
                 new[] { new WeaponPhraseNote(0, 0, 1.5, PhraseEffect.Parry), Counter(2.5, 30) }, 3, false,
-                parryInput: ParryInputEdge.KeyUp),
-            new WeaponPhrase("heater-shield", "Heater Shield", "Hold 2 beats · press to parry · guard 50% · cooldown 2 beats", 2,
+                parryInput: ParryInputEdge.Both),
+            new WeaponPhrase("heater-shield", "Heater Shield", "Hold 2 beats · press to parry · guard 50% · cooldown 2 beats, reset on parry", 2,
                 new[] { new WeaponPhraseNote(0, 0, 2, PhraseEffect.Parry) }, repeat: false,
                 holdDamageReduction: .5m, releaseEndsPhrase: true, parryRequired: false,
                 completionCooldownBeats: 2),

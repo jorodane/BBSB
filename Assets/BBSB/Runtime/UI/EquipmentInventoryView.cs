@@ -94,7 +94,7 @@ namespace BBSB.Runtime.UI
             {
                 case "staff": return "시작 쪽 반박 2회 입력 → 반대쪽 1박 홀드";
                 case "spirit-bell": return "양옆 무기 1박 뒤 시작 · 쿨타임 무시";
-                case "heater-shield": return "시작 패링 · 2박 방어 · 피해 50% 감소";
+                case "heater-shield": return "시작 패링 · 2박/50% 방어 · 패링 시 쿨타임 회복";
                 case "bow": return "1박 당기기 → 2박에 발사";
                 default: return phrase.Hint;
             }

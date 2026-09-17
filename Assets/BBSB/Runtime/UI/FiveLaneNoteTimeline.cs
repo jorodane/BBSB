@@ -11,6 +11,7 @@ namespace BBSB.Runtime.UI
         public double CycleStart { get; }
         public WeaponPhraseNote Definition { get; }
         public bool IsPreview { get; }
+        public bool PressParry { get; }
         public bool ReleaseParry { get; }
         internal WeaponPhrase Phrase { get; }
         internal ScheduledPhraseStart Reservation { get; }
@@ -20,7 +21,9 @@ namespace BBSB.Runtime.UI
         {
             Slot = slot; Index = index; CycleStart = cycleStart; Definition = phrase.Notes[index];
             Phrase = phrase; Reservation = reservation;
-            IsPreview = preview; ReleaseParry = Definition.IsParry && phrase.ParryInput == ParryInputEdge.KeyUp;
+            IsPreview = preview;
+            PressParry = Definition.IsParry && phrase.ParriesOnKeyDown;
+            ReleaseParry = Definition.IsParry && phrase.ParriesOnKeyUp;
         }
         internal bool SamePosition(TrackNote other) => Slot == other.Slot && Index == other.Index &&
             Math.Abs(CycleStart - other.CycleStart) < .000001 && ReferenceEquals(Phrase, other.Phrase);

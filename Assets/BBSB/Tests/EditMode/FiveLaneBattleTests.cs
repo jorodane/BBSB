@@ -197,16 +197,30 @@ namespace BBSB.Tests
             Tap(b, 2, 2.5); Tap(b, 2, 3.5); b.Advance(4);
             Check.Equal(16m, b.TotalDamage); Check.Equal(PhraseLanePhase.Ready, b.Lanes[2].Phase);
         }
-        [Test] public void TowerShieldBlocksOnlyAtTimedReleaseAndUnlocksHeavyCounter()
+        [Test] public void TowerShieldParriesAtBothPressAndTimedReleaseBeforeItsHeavyCounter()
         {
             var b = Battle(new[] { new BeatAttack("a", 0, 5), new BeatAttack("a", 1.5, 10),
                 new BeatAttack("a", 2.5, 7) }, shield: "tower-shield");
-            b.Press(2, 0); Check.Equal(0m, b.TotalBlocked);
+            b.Press(2, 0); Check.Equal(5m, b.TotalBlocked); Check.False(b.Lanes[2].IsNoteVisible(1));
             b.Advance(1.5); Check.True(b.Lanes[2].WaitingForParryRelease); Check.Equal(0, b.PerfectCount);
-            Check.Equal(995m, b.PlayerHealth); b.Release(2, 1.5);
-            Check.Equal(10m, b.TotalBlocked); Check.Equal("PARRY", b.Lanes[2].Feedback);
+            Check.Equal(1000m, b.PlayerHealth); b.Release(2, 1.5);
+            Check.Equal(15m, b.TotalBlocked); Check.Equal("PARRY", b.Lanes[2].Feedback);
+            Check.True(b.Lanes[2].IsNoteVisible(1)); Check.Equal(PhraseLanePhase.Playing, b.Lanes[2].Phase);
             Tap(b, 2, 2.5); b.Advance(2.75);
-            Check.Equal(30m, b.TotalDamage); Check.Equal(988m, b.PlayerHealth);
+            Check.Equal(30m, b.TotalDamage); Check.Equal(993m, b.PlayerHealth);
+            Check.Equal(PhraseLanePhase.Ready, b.Lanes[2].Phase);
+        }
+        [Test] public void TowerOpeningParryRecoversCooldownEvenIfItsReleaseIsMissed()
+        {
+            foreach (bool releaseEarly in new[] { false, true })
+            {
+                var b = Battle(new[] { new BeatAttack("a", 0, 5), new BeatAttack("a", 1.5, 10) }, shield: "tower-shield");
+                b.Press(2, 0); if (releaseEarly) b.Release(2, 1);
+                b.Advance(1.75);
+                Check.Equal(5m, b.TotalBlocked); Check.Equal(990m, b.PlayerHealth);
+                Check.Equal(1, b.MissCount); Check.Equal(PhraseLanePhase.Ready, b.Lanes[2].Phase);
+                Check.False(b.Lanes[2].IsNoteVisible(1)); Check.Equal(0m, b.TotalDamage);
+            }
         }
         [Test] public void TowerShieldCannotAutoParryOrParryByReleasingEarly()
         {
@@ -247,12 +261,13 @@ namespace BBSB.Tests
         }
         [Test] public void ReleaseParryRequiresAHoldAtEveryParryNote()
         {
+            foreach (var edge in new[] { ParryInputEdge.KeyUp, ParryInputEdge.Both })
             foreach (var notes in new[] {
                 new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.Parry) },
                 new[] { new WeaponPhraseNote(0, 0, 1, PhraseEffect.Parry), new WeaponPhraseNote(2, 0, effect: PhraseEffect.Parry) } })
             {
                 bool rejected = false;
-                try { new WeaponPhrase("shield", "test", "test", 4, notes, parryInput: ParryInputEdge.KeyUp); }
+                try { new WeaponPhrase("shield", "test", "test", 4, notes, parryInput: edge); }
                 catch (ArgumentException) { rejected = true; }
                 Check.True(rejected);
             }
@@ -287,7 +302,19 @@ namespace BBSB.Tests
             var b = Battle(new[] { new BeatAttack("enemy", 0, 10), new BeatAttack("enemy", 1, 10) }, shieldPhrase: phrase);
             Tap(b, 2, 0); Tap(b, 2, 1); b.Advance(1.3);
             Check.Equal(10m, b.TotalBlocked); Check.Equal(990m, b.PlayerHealth);
-            Check.Equal(1, b.MissCount); Check.Equal(PhraseLanePhase.Cooldown, b.Lanes[2].Phase);
+            Check.Equal(1, b.MissCount); Check.Equal(PhraseLanePhase.Ready, b.Lanes[2].Phase);
+        }
+        [Test] public void BothEdgeParryCanStartALaterHoldWithoutATargetAndParryAtItsEnd()
+        {
+            var phrase = new WeaponPhrase("shield", "both", "", 3,
+                new[] { new WeaponPhraseNote(0, 3), new WeaponPhraseNote(1, 0, 1, PhraseEffect.Parry) },
+                parryInput: ParryInputEdge.Both);
+            var b = Battle(new[] { new BeatAttack("a", 2, 10) }, shieldPhrase: phrase);
+            Tap(b, 2, 0); b.Press(2, 1);
+            Check.Equal(0, b.MissCount); Check.True(b.Lanes[2].WaitingForParryRelease);
+            b.Release(2, 2);
+            Check.Equal(10m, b.TotalBlocked); Check.Equal(1000m, b.PlayerHealth);
+            Check.Equal(2, b.PerfectCount); Check.Equal(PhraseLanePhase.Ready, b.Lanes[2].Phase);
         }
         [Test] public void LaterRequiredParryStillFailsWithoutAnAttackAndKeepsRemainingNotes()
         {

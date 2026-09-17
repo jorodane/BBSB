@@ -88,7 +88,8 @@ namespace BBSB.Runtime.UI
                             NoteHead(vh, tail, shown.ReleaseParry ? 11 : 7, endTint, shown.IsPreview);
                         }
                     }
-                    NoteHead(vh, p, 9, tint, shown.IsPreview);
+                    var headTint = shown.PressParry ? RunUI.Gold : tint; headTint.a = tint.a;
+                    NoteHead(vh, p, shown.PressParry ? 11 : 9, headTint, shown.IsPreview);
                 }
                 foreach (var broken in noteTimeline.Broken)
                     if (broken.Note.Slot == slot && !(SpriteNoteShatter && broken.Note.IsPreview)) DrawBroken(vh, broken, laneColor);

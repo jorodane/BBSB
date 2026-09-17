@@ -65,7 +65,7 @@ namespace BBSB.Core
         public WeaponRhythmCycle NextCycle(WeaponRhythmCycle cycle) => cycle.Next(Patterns, Weapon.Attribute, StartOffset, CycleSeed);
         public int NextNote { get; internal set; }
         public bool Holding { get; internal set; }
-        public bool WaitingForParryRelease => Holding && Phrase.Notes[NextNote].IsParry && Phrase.ParryInput == ParryInputEdge.KeyUp;
+        public bool WaitingForParryRelease => Holding && Phrase.Notes[NextNote].IsParry && Phrase.ParriesOnKeyUp;
         public bool InputHeld { get; internal set; }
         public int CompletedPhrases { get; internal set; }
         public double ReadyAtBeat { get; internal set; }
@@ -77,6 +77,7 @@ namespace BBSB.Core
         public int Activations { get; internal set; }
         internal RhythmGrade HoldGrade;
         internal bool FailedCycle;
+        internal bool ParryRecoveredCooldown;
         internal PhraseNoteState[] states;
         internal bool[] parried;
         public IReadOnlyList<PhraseNoteState> NoteStates { get; private set; }
@@ -255,15 +256,18 @@ namespace BBSB.Core
             if (slot != lane.SlotForNote(lane.NextNote)) return;
             double error = Math.Abs(Beat - lane.NextBeat);
             var note = lane.Phrase.Notes[lane.NextNote];
-            bool pressParry = note.IsParry && lane.Phrase.ParryInput == ParryInputEdge.KeyDown;
+            bool pressParry = note.IsParry && lane.Phrase.ParriesOnKeyDown;
             if (!starting && error > HalfMissWindow + Epsilon) { Miss(lane); return; }
             var grade = starting || error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
             if (pressParry)
             {
                 // Entry grace accepts the note, but only an actual timed parry blocks
                 // damage and unlocks counters. It must not retime the chosen phase.
-                bool parried = TryParry(out var parryGrade);
-                if (!starting && !parried && lane.Phrase.ParryRequired) { Miss(lane); lane.Feedback = "NO PARRY"; return; }
+                bool parried = TryParry(lane, out var parryGrade);
+                // A Both hold may begin without a target; its release still requires
+                // the authored timed parry, just like a release-only hold.
+                if (!starting && !parried && lane.Phrase.ParryRequired && !lane.Phrase.ParriesOnKeyUp)
+                { Miss(lane); lane.Feedback = "NO PARRY"; return; }
                 lane.parried[lane.NextNote] = parried;
                 if (!starting && parried && parryGrade == RhythmGrade.HalfMiss) grade = RhythmGrade.HalfMiss;
                 lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Feedback = parried ? "PARRY" : "GUARD";
@@ -289,7 +293,7 @@ namespace BBSB.Core
             if (lane.WaitingForParryRelease)
             {
                 double error = Math.Abs(Beat - lane.NextBeat - lane.Phrase.Notes[lane.NextNote].HoldBeats);
-                if (error > HalfMissWindow + Epsilon || !TryParry(out var parryGrade))
+                if (error > HalfMissWindow + Epsilon || !TryParry(lane, out var parryGrade))
                 { Miss(lane); lane.Feedback = "NO PARRY"; return; }
                 var grade = error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
                 if (parryGrade == RhythmGrade.HalfMiss || lane.HoldGrade == RhythmGrade.HalfMiss) grade = RhythmGrade.HalfMiss;
@@ -362,7 +366,7 @@ namespace BBSB.Core
             if (slot < 0 || slot >= BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(slot));
             if (!WeaponPhraseNote.Finite(atBeat) || atBeat < Beat - Epsilon) throw new ArgumentOutOfRangeException(nameof(atBeat));
         }
-        private bool TryParry(out RhythmGrade grade)
+        private bool TryParry(PhraseLane lane, out RhythmGrade grade)
         {
             IncomingBeatAttack target = null; double nearest = double.PositiveInfinity;
             foreach (var attack in incoming)
@@ -375,6 +379,12 @@ namespace BBSB.Core
             foreach (var attack in incoming)
                 if (attack.State == IncomingAttackState.Pending && Math.Abs(attack.Beat - target.Beat) < Epsilon)
                 { attack.State = IncomingAttackState.Blocked; attack.ResolvedBeat = Beat; TotalBlocked += attack.Definition.Damage; }
+            if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
+            {
+                // Keep the active hold/counters playable. Their completion must not
+                // reapply the cooldown that this real parry has already recovered.
+                lane.ParryRecoveredCooldown = true; lane.ReadyAtBeat = Beat;
+            }
             return true;
         }
         private double Deadline(PhraseLane lane)
@@ -411,7 +421,7 @@ namespace BBSB.Core
             lane.states[lane.NextNote] = PhraseNoteState.Hit;
             lane.Holding = false; lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Activations++;
             lane.Feedback = note.IsParry ?
-                (note.IsHold && lane.Phrase.ParryInput == ParryInputEdge.KeyDown ? "HOLD OK" :
+                (note.IsHold && !lane.Phrase.ParriesOnKeyUp ? "HOLD OK" :
                     lane.parried[lane.NextNote] ? "PARRY" : "OK") :
                 grade == RhythmGrade.Perfect ? "PERFECT" : "HALF";
             if (grade == RhythmGrade.Perfect) PerfectCount++; else HalfMissCount++;
@@ -488,6 +498,7 @@ namespace BBSB.Core
         private static void BeginCycle(PhraseLane lane)
         {
             lane.Phase = PhraseLanePhase.Playing; lane.NextNote = 0; lane.FailedCycle = false;
+            lane.ParryRecoveredCooldown = false;
             for (int i = 0; i < lane.states.Length; i++)
             {
                 lane.states[i] = lane.Phrase.Notes[i].Condition == PhraseNoteCondition.Always ? PhraseNoteState.Pending : PhraseNoteState.Locked;
@@ -511,7 +522,11 @@ namespace BBSB.Core
                 if (lane.states[i] == PhraseNoteState.Pending) { lane.NextNote = i; return true; }
             return false;
         }
-        private static void Cooldown(PhraseLane lane, double until)
-        { lane.Holding = false; lane.Phase = PhraseLanePhase.Cooldown; lane.ReadyAtBeat = until; }
+        private void Cooldown(PhraseLane lane, double until)
+        {
+            lane.Holding = false;
+            lane.ReadyAtBeat = lane.ParryRecoveredCooldown ? Beat : until;
+            lane.Phase = lane.ParryRecoveredCooldown ? PhraseLanePhase.Ready : PhraseLanePhase.Cooldown;
+        }
     }
 }

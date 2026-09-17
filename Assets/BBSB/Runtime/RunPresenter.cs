@@ -425,7 +425,7 @@ namespace BBSB.Runtime
         {
             if (Session.UsesFiveLaneCombat)
             {
-                ui.Label(body, "붉은 공격이 도착하는 박자에 방패로 방어해. 버클러·원형 방패는 첫 누르기, 대형 방패는 Hold 끝에서 떼기로 방어할 수 있어.", 23, RunUI.Muted, 110);
+                ui.Label(body, "붉은 공격이 도착할 때 패링하면 방패 쿨타임이 회복돼. 버클러·원형 방패·히터실드는 누를 때, 대형 방패는 누를 때와 Hold 끝에서 뗄 때 패링해.", 23, RunUI.Muted, 110);
                 foreach (var monster in Session.BattlePlan.Monsters)
                     ui.Label(body, monster.Monster.Name + " · 공격 " + monster.Attacks.Count + "묶음", 24, RunUI.Gold, 50);
                 return;
