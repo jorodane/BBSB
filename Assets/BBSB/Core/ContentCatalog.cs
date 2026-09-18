@@ -6,7 +6,10 @@ namespace BBSB.Core
     // Item/economy data; weapon actions and effects live in WeaponCatalog.
     public static class ContentCatalog
     {
-        private static readonly ContentDefinition[] definitions = {
+        private static readonly ContentDefinition[] definitions = Build();
+        private static ContentDefinition[] Build()
+        {
+            var result = new List<ContentDefinition> {
             Weapon("sword", "한손검", 45),
             Weapon("shield", "버클러", 45),
             Weapon("round-shield", "원형 방패", 50),
@@ -28,7 +31,10 @@ namespace BBSB.Core
             new ContentDefinition("vitality", "생명의 박동", "최대 체력 +20, 현재 체력도 20 회복. 중첩 가능.", RewardKind.Augment, 65),
             new ContentDefinition("recovery", "깊은 호흡", "휴식할 때마다 추가로 체력 10 회복. 중첩 가능.", RewardKind.Augment, 55),
             new ContentDefinition("bargain", "흥정의 리듬", "상점 가격 20% 할인. 추가 획득마다 20%, 최대 60%.", RewardKind.Augment, 55)
-        };
+            };
+            foreach (var entry in WeaponExpansion.All) result.Add(Weapon(entry.Definition.Id, entry.Name, entry.Price));
+            return result.ToArray();
+        }
 
         private static ContentDefinition Weapon(string id, string name, int price)
         {

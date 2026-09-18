@@ -43,7 +43,8 @@ namespace BBSB.Runtime
             [Range(0, 6), Tooltip("Line offset relative to the input that started the pattern; wraps within this weapon's selected lines. The first note must use zero.")]
             public int laneOffset;
             [Min(0)] public float beat, holdBeats;
-            [Min(0), Tooltip("Effect amount: damage for Strike/Parry, health restored for Heal.")] public float damage = 8;
+            [Min(0), Tooltip("Effect amount: damage, healing, cooldown beats removed, or an EmpowerAdjacent bonus fraction (0.5 = +50%).")] public float damage = 8;
+            [Min(.01f), Tooltip("EmpowerAdjacent duration in beats; one next damaging note, strongest bonus wins.")] public float effectDurationBeats = 2;
             [Tooltip("Mark any desired notes Parry; their positions and count are not restricted.")]
             public PhraseEffect effect;
             public PhraseNoteCondition condition;
@@ -57,7 +58,7 @@ namespace BBSB.Runtime
             {
                 if (note == null) throw new ArgumentException("Null phrase note.");
                 result.Add(new WeaponPhraseNote(note.beat, (decimal)note.damage, note.holdBeats, note.effect,
-                    note.condition == PhraseNoteCondition.Always ? -1 : note.prerequisite, note.condition, note.laneOffset));
+                    note.condition == PhraseNoteCondition.Always ? -1 : note.prerequisite, note.condition, note.laneOffset, note.effectDurationBeats));
             }
             return new WeaponPhrase(weaponId, displayName, hint, lengthBeats, result, missCooldownBeats,
                 repeat, finisherEvery, (decimal)finisherDamage, groggyBeats, parryInput,
@@ -140,7 +141,7 @@ namespace BBSB.Runtime
                         }
                         return phrase;
                     }
-                    return transition ? null : WeaponPhraseCatalog.Find(item.DefinitionId);
+                    return WeaponPhraseCatalog.Default(item.DefinitionId, offset, side, transition);
                 }
             }
             return result.AsReadOnly();

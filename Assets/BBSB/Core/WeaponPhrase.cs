@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    public enum PhraseEffect { Strike, Parry, StartAdjacent, Heal }
+    public enum PhraseEffect { Strike, Parry, StartAdjacent, Heal, ReduceAdjacentCooldown, EmpowerAdjacent }
     // Keep existing serialized values; Both adds a parry at each end of a Hold.
     public enum ParryInputEdge { KeyDown = 0, KeyUp = 1, Both = 2 }
     public enum PhraseLanePhase { Ready, Playing, Cooldown }
@@ -17,6 +17,7 @@ namespace BBSB.Core
         public double HoldBeats { get; }
         public decimal Damage { get; }
         public PhraseEffect Effect { get; }
+        public double EffectDurationBeats { get; }
         public int Prerequisite { get; }
         public PhraseNoteCondition Condition { get; }
         // Relative to the line that started this activation, within its weapon's footprint.
@@ -24,14 +25,15 @@ namespace BBSB.Core
         public bool IsHold => HoldBeats > 0;
         public bool IsParry => Effect == PhraseEffect.Parry;
         public WeaponPhraseNote(double beat, decimal damage, double holdBeats = 0, PhraseEffect effect = PhraseEffect.Strike,
-            int prerequisite = -1, PhraseNoteCondition condition = PhraseNoteCondition.Always, int laneOffset = 0)
+            int prerequisite = -1, PhraseNoteCondition condition = PhraseNoteCondition.Always, int laneOffset = 0,
+            double effectDurationBeats = 2)
         {
             if (!Finite(beat) || beat < 0 || !Finite(holdBeats) || holdBeats < 0 || damage < 0 ||
                 !Enum.IsDefined(typeof(PhraseEffect), effect) || !Enum.IsDefined(typeof(PhraseNoteCondition), condition) ||
                 (condition == PhraseNoteCondition.Always ? prerequisite != -1 : prerequisite < 0) ||
-                laneOffset < 0 || laneOffset >= BattleInputLayout.LaneCount)
+                laneOffset < 0 || laneOffset >= BattleInputLayout.LaneCount || !Finite(effectDurationBeats) || effectDurationBeats <= 0)
                 throw new ArgumentOutOfRangeException(nameof(beat));
-            Beat = beat; HoldBeats = holdBeats; Damage = damage; Effect = effect;
+            Beat = beat; HoldBeats = holdBeats; Damage = damage; Effect = effect; EffectDurationBeats = effectDurationBeats;
             Prerequisite = prerequisite; Condition = condition; LaneOffset = laneOffset;
         }
         internal static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -105,7 +107,10 @@ namespace BBSB.Core
         private static WeaponPhraseNote Counter(double at, decimal damage) =>
             new WeaponPhraseNote(at, damage, prerequisite: 0, condition: PhraseNoteCondition.Parry);
         private static WeaponPhraseNote Hold(double at, double duration, decimal damage) => new WeaponPhraseNote(at, damage, duration);
-        private static readonly WeaponPhrase[] phrases = {
+        private static readonly WeaponPhrase[] phrases = Build();
+        private static WeaponPhrase[] Build()
+        {
+            var result = new List<WeaponPhrase> {
             new WeaponPhrase("sword", "검", "Tap 0 / 1 / 2 · 4박 패턴", 4,
                 new[] { Tap(0, 8), Tap(1, 8), Tap(2, 12) }),
             new WeaponPhrase("hammer", "트레실로 해머", "Tap 0 / 1.5 / 3 · 세 번째 완주에 그로기", 4,
@@ -137,8 +142,17 @@ namespace BBSB.Core
             new WeaponPhrase("blade", "쌍날검", "Tap 0 / 0.5 / 2 / 2.5", 4, new[] { Tap(0, 6), Tap(.5, 6), Tap(2, 6), Tap(2.5, 10) }),
             new WeaponPhrase("crossbow", "석궁", "Tap 0 / 1 · 3박 패턴", 3, new[] { Tap(0, 10), Tap(1, 14) }),
             new WeaponPhrase("wand", "마도봉", "Hold 1.5박 → 2.5박 Tap", 4, new[] { Hold(0, 1.5, 10), Tap(2.5, 22) })
-        };
+            };
+            foreach (var entry in WeaponExpansion.All)
+                result.Add(WeaponExpansion.Pattern(entry.Definition.Id, 0, WeaponBeatSide.Light));
+            return result.ToArray();
+        }
         public static IReadOnlyList<WeaponPhrase> All { get; } = Array.AsReadOnly(phrases);
+        public static WeaponPhrase Default(string weaponId, int offset, WeaponBeatSide side, bool transition = false)
+        {
+            var expanded = WeaponExpansion.Pattern(weaponId, offset, side, transition);
+            return expanded ?? (transition ? null : Find(weaponId));
+        }
         public static WeaponPhrase Find(string weaponId)
         {
             foreach (var phrase in phrases) if (phrase.WeaponId == weaponId) return phrase;

@@ -76,8 +76,9 @@ namespace BBSB.Runtime.UI
 
         private static string AttributeHint(WeaponState weapon, WeaponPhraseSet set)
         {
-            if ((weapon.Attribute == WeaponAttribute.Dual || weapon.Attribute == WeaponAttribute.Chaos) &&
-                !ReferenceEquals(set.LightStarts[0], set.DarkStarts[0]))
+            if (weapon.Attribute == WeaponAttribute.Chaos)
+                return set.Chaos.MinimumBeats + "박 유지 후 전환 · 효과 ×" + set.Chaos.EffectMultiplier + "\n" + ShortHint(set.LightStarts[0]);
+            if (weapon.Attribute == WeaponAttribute.Dual && set.LightStarts[0].Hint != set.DarkStarts[0].Hint)
                 return "빛: " + ShortHint(set.LightStarts[0]) + "\n어둠: " + ShortHint(set.DarkStarts[0]);
             string hint = weapon.Attribute == WeaponAttribute.Chaos ?
                 set.Chaos.MinimumBeats + "박 유지 후 전환 · 효과 ×" + set.Chaos.EffectMultiplier : WeaponAttributes.Hint(weapon.Attribute);

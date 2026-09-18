@@ -80,8 +80,16 @@ namespace BBSB.Core
         public static WeaponPhraseSet Uniform(WeaponState weapon, WeaponPhrase phrase = null)
         {
             var starts = new WeaponPhrase[weapon.RequiredLanes];
-            for (int i = 0; i < starts.Length; i++) starts[i] = phrase ?? WeaponPhraseCatalog.Find(weapon.DefinitionId);
-            return new WeaponPhraseSet(weapon, starts);
+            var dark = new WeaponPhrase[starts.Length];
+            var lightBridges = new WeaponPhrase[starts.Length]; var darkBridges = new WeaponPhrase[starts.Length];
+            for (int i = 0; i < starts.Length; i++)
+            {
+                starts[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light);
+                dark[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark);
+                lightBridges[i] = WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light, true);
+                darkBridges[i] = WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark, true);
+            }
+            return new WeaponPhraseSet(weapon, starts, dark, lightBridges, darkBridges);
         }
     }
 

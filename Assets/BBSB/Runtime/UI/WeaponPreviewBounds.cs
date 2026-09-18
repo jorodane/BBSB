@@ -99,7 +99,7 @@ namespace BBSB.Runtime.UI
             if (weapon.Kind == WeaponKind.DualSwords) return frames["sword/" + WeaponRarities.Key(rarity) + "/0"];
             if (weapon.Kind == WeaponKind.Staff) return new PreviewRect(.466, .007, .068, .986);
             if (weapon.Kind == WeaponKind.SpiritBell) return new PreviewRect(.18, .008, .64, .986);
-            return frames[weapon.Kind == WeaponKind.Shield ? "shield/" + WeaponRarities.Key(rarity) + "/0" : key];
+            return frames[WeaponArtLayout.FallbackId(id) + "/" + WeaponRarities.Key(rarity) + "/0"];
         }
 
         // Return the original canvas in target coordinates, so authored sockets retain their alignment.

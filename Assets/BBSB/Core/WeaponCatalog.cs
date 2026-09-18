@@ -34,6 +34,8 @@ namespace BBSB.Core
         public string Name => ContentCatalog.Find(Id).Name;
         public WeaponKind Kind { get; }
         public int RequiredLanes { get; }
+        public WeaponAttribute? ExclusiveAttribute { get; }
+        public WeaponAttribute DefaultAttribute => ExclusiveAttribute ?? WeaponAttribute.Light;
         public bool IsRanged => Kind == WeaponKind.Bow || Kind == WeaponKind.Crossbow || Kind == WeaponKind.Wand;
         public IReadOnlyList<WeaponActionDefinition> Actions { get; }
         private readonly IReadOnlyList<WeaponActionDefinition>[] unlocked;
@@ -43,6 +45,9 @@ namespace BBSB.Core
         internal WeaponDefinition(string id, WeaponKind kind, params WeaponActionDefinition[] actions)
             : this(id, kind, 1, actions) { }
         internal WeaponDefinition(string id, WeaponKind kind, int requiredLanes, params WeaponActionDefinition[] actions)
+            : this(id, kind, requiredLanes, null, actions) { }
+        internal WeaponDefinition(string id, WeaponKind kind, int requiredLanes, WeaponAttribute? exclusiveAttribute,
+            params WeaponActionDefinition[] actions)
         {
             if (requiredLanes < 1 || requiredLanes > BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(requiredLanes));
             if (actions == null || actions.Length != (kind == WeaponKind.Shield ? 2 : 3))
@@ -50,6 +55,8 @@ namespace BBSB.Core
             var kinds = new HashSet<GestureKind>();
             foreach (var action in actions)
                 if (action == null || !kinds.Add(action.Kind)) throw new ArgumentException("Weapon actions must be distinct.", nameof(actions));
+            if (exclusiveAttribute.HasValue) WeaponAttributes.Validate(exclusiveAttribute.Value);
+            ExclusiveAttribute = exclusiveAttribute;
             Id = id; Kind = kind; RequiredLanes = requiredLanes; Actions = Array.AsReadOnly((WeaponActionDefinition[])actions.Clone());
             unlocked = new IReadOnlyList<WeaponActionDefinition>[actions.Length];
             for (int count = 1; count <= actions.Length; count++)
@@ -96,7 +103,10 @@ namespace BBSB.Core
     // Weapons have action capabilities, never a beat pattern or a required sustain length.
     public static class WeaponCatalog
     {
-        private static readonly WeaponDefinition[] weapons = {
+        private static readonly WeaponDefinition[] weapons = Build();
+        private static WeaponDefinition[] Build()
+        {
+            var result = new List<WeaponDefinition> {
             new WeaponDefinition("sword", WeaponKind.Sword,
                 new WeaponActionDefinition(GestureKind.Tap, "베기", "12 피해", WeaponAttackStyle.Slash, 12),
                 new WeaponActionDefinition(GestureKind.Flick, "회전 베기", "18 피해", WeaponAttackStyle.Sweep, 18),
@@ -161,7 +171,10 @@ namespace BBSB.Core
                 new WeaponActionDefinition(GestureKind.Shake, "마력탄", "18 피해", WeaponAttackStyle.OrbShot, 18),
                 new WeaponActionDefinition(GestureKind.Hold, "집중 마력탄", "유지 완료 시 28 피해", WeaponAttackStyle.ChargedOrb, 28),
                 new WeaponActionDefinition(GestureKind.Tap, "마력 파동", "12 피해", WeaponAttackStyle.MagicPulse, 12))
-        };
+            };
+            foreach (var entry in WeaponExpansion.All) result.Add(entry.Definition);
+            return result.ToArray();
+        }
         public static IReadOnlyList<WeaponDefinition> All { get; } = Array.AsReadOnly(weapons);
         public static WeaponDefinition Find(string id)
         {

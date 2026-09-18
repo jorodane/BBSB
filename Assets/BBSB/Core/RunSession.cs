@@ -273,7 +273,8 @@ namespace BBSB.Core
             {
                 var content = ContentCatalog.Pick(kind, rewardRandom);
                 var rarity = kind == RewardKind.Weapon ? WeaponRarities.Roll(rewardRandom) : WeaponRarity.Common;
-                var attribute = UsesFiveLaneCombat && kind == RewardKind.Weapon ? WeaponAttributes.Roll(content.Id, rewardRandom) : WeaponAttribute.Light;
+                var attribute = kind == RewardKind.Weapon ?
+                    (UsesFiveLaneCombat ? WeaponAttributes.Roll(content.Id, rewardRandom) : WeaponCatalog.Find(content.Id).DefaultAttribute) : WeaponAttribute.Light;
                 offers.Add(new Offer(content, shop ? DiscountedPrice(content) : 0, rarity, attribute));
             }
         }

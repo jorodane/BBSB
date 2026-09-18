@@ -114,13 +114,17 @@ namespace BBSB.Core
         public WeaponState(string definitionId) : this(definitionId, WeaponRarity.Common, 0) { }
         public WeaponState(string definitionId, int level) : this(definitionId, WeaponRarity.Common, level) { }
         public WeaponState(string definitionId, WeaponAttribute attribute) : this(definitionId, WeaponRarity.Common, attribute: attribute) { }
-        public WeaponState(string definitionId, WeaponRarity rarity, int level = 0, int? requiredLanes = null, WeaponAttribute attribute = WeaponAttribute.Light)
+        public WeaponState(string definitionId, WeaponRarity rarity, int level = 0, int? requiredLanes = null, WeaponAttribute? attribute = null)
         {
             if (level < 0 || level > RunRules.MaximumUpgrade) throw new ArgumentOutOfRangeException(nameof(level));
-            int lanes = requiredLanes ?? WeaponCatalog.Find(definitionId).RequiredLanes;
+            var definition = WeaponCatalog.Find(definitionId);
+            int lanes = requiredLanes ?? definition.RequiredLanes;
             if (lanes < 1 || lanes > BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(requiredLanes));
-            WeaponRarities.Validate(rarity); WeaponAttributes.Validate(attribute);
-            Attribute = attribute; DefinitionId = definitionId; Rarity = rarity; Level = level; RequiredLanes = lanes;
+            var selectedAttribute = attribute ?? definition.DefaultAttribute;
+            WeaponRarities.Validate(rarity); WeaponAttributes.Validate(selectedAttribute);
+            if (definition.ExclusiveAttribute.HasValue && definition.ExclusiveAttribute.Value != selectedAttribute)
+                throw new ArgumentException("This weapon has an exclusive attribute.", nameof(attribute));
+            Attribute = selectedAttribute; DefinitionId = definitionId; Rarity = rarity; Level = level; RequiredLanes = lanes;
         }
     }
 

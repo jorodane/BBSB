@@ -56,6 +56,22 @@ namespace BBSB.Runtime.UI
         };
         public static string ResourcePath(string id, WeaponRarity rarity)
         { WeaponCatalog.Find(id); return Root + id + "/" + WeaponRarities.Key(rarity); }
+        public static string FallbackId(string id)
+        {
+            switch (WeaponCatalog.Find(id).Kind)
+            {
+                case WeaponKind.Shield: return "shield";
+                case WeaponKind.Spear: return "spear";
+                case WeaponKind.Hammer: return "hammer";
+                case WeaponKind.Dagger: return "dagger";
+                case WeaponKind.Greatsword: return "greatsword";
+                case WeaponKind.Bell: return "bell";
+                case WeaponKind.Blade: return "blade";
+                case WeaponKind.Staff: return "staff";
+                case WeaponKind.SpiritBell: return "spirit-bell";
+                default: return "sword";
+            }
+        }
         public static IReadOnlyList<WeaponArtSocket> Sockets(string id, WeaponRarity rarity)
             => Sockets(id, rarity, RangedWeaponPose.Idle);
         public static IReadOnlyList<WeaponArtSocket> Sockets(string id, WeaponRarity rarity, RangedWeaponPose pose)
@@ -75,7 +91,7 @@ namespace BBSB.Runtime.UI
                 return Array.AsReadOnly(sockets);
             }
             // New shield families share the existing art until their own transparent assets are installed.
-            return layouts[weapon.Kind == WeaponKind.Shield ? "shield/" + WeaponRarities.Key(rarity) : key];
+            return layouts[FallbackId(id) + "/" + WeaponRarities.Key(rarity)];
         }
     }
 }

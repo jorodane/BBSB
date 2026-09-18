@@ -73,6 +73,8 @@ namespace BBSB.Core
         public RhythmGrade LastGrade { get; internal set; }
         public string Feedback { get; internal set; } = "READY";
         public decimal DamageDealt { get; internal set; }
+        public decimal PendingDamageMultiplier { get; internal set; } = 1m;
+        public double DamageBoostUntilBeat { get; internal set; } = double.NegativeInfinity;
         public double LastDamageBeat { get; internal set; } = double.NegativeInfinity;
         public int Activations { get; internal set; }
         internal RhythmGrade HoldGrade;
@@ -185,7 +187,7 @@ namespace BBSB.Core
                 }
                 else placement = placements[i];
                 if (placement == null || !ReferenceEquals(placement.Weapon, weapons[i])) throw new ArgumentException("Placement does not match its item.");
-                var patterns = phraseSets == null ? WeaponPhraseSet.Uniform(weapons[i], phrase) : phraseSets[i];
+                var patterns = phraseSets == null ? WeaponPhraseSet.Uniform(weapons[i], phrases == null ? null : phrase) : phraseSets[i];
                 // Revalidate externally supplied sets against the actual equipment footprint.
                 patterns = new WeaponPhraseSet(weapons[i], patterns?.LightStarts, patterns?.DarkStarts,
                     patterns?.LightTransitions, patterns?.DarkTransitions, patterns?.Chaos);
@@ -428,7 +430,7 @@ namespace BBSB.Core
             Combo++;
             decimal effectScale = (1m + .25m * lane.Weapon.Level) * (grade == RhythmGrade.Perfect ? 1m : .5m) *
                 lane.EffectMultiplier;
-            decimal damage = note.Effect == PhraseEffect.Heal ? 0 : note.Damage;
+            decimal damage = note.Effect == PhraseEffect.Strike || note.IsParry ? note.Damage : 0;
             if (note.Effect == PhraseEffect.Heal)
             {
                 decimal healed = Math.Min(PlayerMaximum - PlayerHealth, note.Damage * effectScale);
@@ -440,6 +442,11 @@ namespace BBSB.Core
             {
                 ScheduleAdjacent(lane, lane.StartBeat + note.Beat + note.HoldBeats + 1);
                 lane.Feedback = "CHIME +1";
+            }
+            if (note.Effect == PhraseEffect.ReduceAdjacentCooldown || note.Effect == PhraseEffect.EmpowerAdjacent)
+            {
+                ApplyAdjacentSupport(lane, note, effectScale);
+                lane.Feedback = note.Effect == PhraseEffect.ReduceAdjacentCooldown ? "RECOVER" : "EMPOWER";
             }
             ResolveDependencies(lane);
             if (!SelectNext(lane))
@@ -460,8 +467,38 @@ namespace BBSB.Core
                     Cooldown(lane, Math.Max(Beat, lane.StartBeat + lane.Phrase.LengthBeats) + lane.Phrase.CompletionCooldownBeats);
             }
             damage *= effectScale;
+            if (damage > 0)
+            {
+                if (Beat < lane.DamageBoostUntilBeat) damage *= lane.PendingDamageMultiplier;
+                lane.PendingDamageMultiplier = 1m; lane.DamageBoostUntilBeat = double.NegativeInfinity;
+            }
             if (damage > 0) lane.LastDamageBeat = Beat;
             EnemyHealth.Damage(damage); lane.DamageDealt += damage; TotalDamage += damage;
+        }
+        private void ApplyAdjacentSupport(PhraseLane source, WeaponPhraseNote note, decimal effectScale)
+        {
+            var affected = new HashSet<PhraseLane>();
+            foreach (int position in new[] { source.Placement.Offset - 1, source.Placement.Offset + source.InputSlots.Count })
+            {
+                if (position < -1 || position > BattleInputLayout.MainLaneCount) continue;
+                var target = LaneAt(BattleInputLayout.SlotAtPosition(position));
+                if (target == null || ReferenceEquals(target, source) || !affected.Add(target)) continue;
+                if (note.Effect == PhraseEffect.ReduceAdjacentCooldown)
+                {
+                    // Never restart or retime an active pattern or invent player contact.
+                    if (target.Phase != PhraseLanePhase.Cooldown) continue;
+                    target.ReadyAtBeat = Math.Max(Beat, target.ReadyAtBeat - (double)(note.Damage * effectScale));
+                    if (target.ReadyAtBeat <= Beat) { target.Phase = PhraseLanePhase.Ready; target.Feedback = "READY"; }
+                }
+                else
+                {
+                    // One charge per weapon, even for multi-line neighbors. Reapplication
+                    // refreshes duration and keeps the stronger value; it never multiplies stacks.
+                    decimal old = Beat < target.DamageBoostUntilBeat ? target.PendingDamageMultiplier : 1m;
+                    target.PendingDamageMultiplier = Math.Max(old, 1m + note.Damage * effectScale);
+                    target.DamageBoostUntilBeat = Math.Max(target.DamageBoostUntilBeat, Beat + note.EffectDurationBeats);
+                }
+            }
         }
         private void ScheduleAdjacent(PhraseLane source, double at)
         {

@@ -24,6 +24,8 @@
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponFormation.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponTrailHistory.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponArtLayout.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponAttributeArtLayout.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponAttributeArtBounds.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponPreviewBounds.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/PreparationLayout.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponSocketPulse.cs" />

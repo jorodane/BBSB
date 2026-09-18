@@ -86,7 +86,7 @@ namespace BBSB.Runtime.UI
                     icons[slot].rectTransform.anchorMin = icons[slot].rectTransform.anchorMax = Vector2.zero;
                 }
                 var icon = icons[slot]; icon.gameObject.SetActive(true);
-                if (boundIds[slot] != state.DefinitionId || icon.Rarity != state.Rarity)
+                if (boundIds[slot] != state.DefinitionId || icon.Rarity != state.Rarity || icon.Attribute != state.Attribute)
                 { icon.Bind(state); boundIds[slot] = state.DefinitionId; }
                 var activation = active[slot];
                 var ranged = weapon.IsRanged ? RangedWeaponTimeline.Evaluate(combat, slot, seconds, beatSeconds) : default;
@@ -148,9 +148,10 @@ namespace BBSB.Runtime.UI
                 formationFrames[i] = new WeaponMotionFrame(new BattlePathPoint(frame.Position.X * aspect,
                     frame.Position.Y), frame.Rotation, frame.Scale);
                 var state = combat.Loadout.Equipment[i]; var weapon = WeaponCatalog.Find(state.DefinitionId);
-                var sprite = WeaponSpriteCache.Get(state.DefinitionId, state.Rarity);
+                var sprite = WeaponSpriteCache.Get(state.DefinitionId, state.Rarity, attribute: state.Attribute);
                 double sourceAspect = sprite != null ? sprite.rect.width / sprite.rect.height : 1;
-                var bounds = sprite != null ? WeaponPreviewBounds.Get(state.DefinitionId, state.Rarity)
+                var bounds = sprite != null ? (WeaponSpriteCache.HasAttributeArtwork(state.DefinitionId) ?
+                    WeaponAttributeArtLayout.Bounds(state.DefinitionId, state.Attribute) : WeaponPreviewBounds.Get(state.DefinitionId, state.Rarity))
                     : new PreviewRect(0, 0, 1, 1);
                 formationExtents[i] = WeaponFormation.HalfExtents(bounds, sourceAspect,
                     WeaponSize(weapon.Kind, weapon.IsRanged, frame.Scale) / r.height, frame.Rotation);

@@ -18,6 +18,8 @@ namespace BBSB.Runtime.UI
         }
         public WeaponKind Kind { get; private set; }
         public WeaponRarity Rarity { get; private set; }
+        public WeaponAttribute Attribute { get; private set; }
+        public bool HasAttributeArtwork { get; private set; }
         public RangedWeaponPose Pose { get; private set; }
         public bool HasArtwork => artwork != null;
         public override Texture mainTexture => artwork != null ? artwork.texture : base.mainTexture;
@@ -31,8 +33,9 @@ namespace BBSB.Runtime.UI
         {
             var definition = WeaponCatalog.Find(state.DefinitionId);
             definitionId = state.DefinitionId; Pose = RangedWeaponPose.Idle;
-            Kind = definition.Kind; Rarity = state.Rarity;
-            artwork = WeaponSpriteCache.Get(definitionId, Rarity); raycastTarget = false;
+            Kind = definition.Kind; Rarity = state.Rarity; Attribute = state.Attribute;
+            HasAttributeArtwork = WeaponSpriteCache.HasAttributeArtwork(definitionId);
+            artwork = WeaponSpriteCache.Get(definitionId, Rarity, attribute: Attribute); raycastTarget = false;
             if (sockets == null)
             {
                 var child = new GameObject("Action sockets", typeof(RectTransform), typeof(CanvasRenderer));
@@ -48,7 +51,7 @@ namespace BBSB.Runtime.UI
         internal void SetPose(RangedWeaponPose pose)
         {
             if (Pose == pose) return;
-            Pose = pose; artwork = WeaponSpriteCache.Get(definitionId, Rarity, pose);
+            Pose = pose; artwork = WeaponSpriteCache.Get(definitionId, Rarity, pose, Attribute);
             sockets.SetPose(pose); SetAllDirty();
         }
         internal void SetActivity(WeaponBattle combat, int slot, double seconds)
@@ -62,13 +65,15 @@ namespace BBSB.Runtime.UI
                 float aspect = artwork != null ? artwork.rect.width / artwork.rect.height : 1;
                 if (FitVisibleArtwork && artwork != null)
                 {
-                    var fitted = WeaponPreviewBounds.Fit(WeaponPreviewBounds.Get(definitionId, Rarity, Pose), aspect, rect.width, rect.height);
+                    var fitted = WeaponPreviewBounds.Fit(ArtworkBounds, aspect, rect.width, rect.height);
                     return new Rect(rect.xMin + (float)fitted.X, rect.yMin + (float)fitted.Y, (float)fitted.Width, (float)fitted.Height);
                 }
                 float height = Mathf.Min(rect.height, rect.width / aspect), width = height * aspect;
                 return new Rect(rect.center.x - width * .5f, rect.center.y - height * .5f, width, height);
             }
         }
+        private PreviewRect ArtworkBounds => HasAttributeArtwork ? WeaponAttributeArtLayout.Bounds(definitionId, Attribute, Pose) :
+            WeaponPreviewBounds.Get(definitionId, Rarity, Pose);
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); var rect = ArtworkRect;
@@ -77,7 +82,7 @@ namespace BBSB.Runtime.UI
                 var uv = UnityEngine.Sprites.DataUtility.GetOuterUV(artwork);
                 if (FitVisibleArtwork)
                 {
-                    var bounds = WeaponPreviewBounds.Get(definitionId, Rarity, Pose);
+                    var bounds = ArtworkBounds;
                     // Crop only the preview mesh/UVs; source pixels and combat framing stay intact.
                     rect = new Rect(rect.xMin + (float)bounds.X * rect.width, rect.yMin + (float)bounds.Y * rect.height,
                         (float)bounds.Width * rect.width, (float)bounds.Height * rect.height);

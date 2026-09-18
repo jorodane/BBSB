@@ -1,5 +1,29 @@
 # 등급별 무기 이미지
 
+## 속성 이미지와 13종 무기 확장 팩
+
+`BBSB_AttributeWeapons_13Expansion_20260918.zip`의 `Assets` 폴더를 프로젝트에 합치면 최신 코드가 자동으로 사용한다. 새 경로는 `Assets/BBSB/Resources/BBSB/WeaponAttributeArt/<weapon-id>.png`다. 별도 프리팹 배선이나 배경색 제거가 필요 없다. 신규 13종의 패턴·배치·지원 효과·보상은 [WeaponExpansion.md](WeaponExpansion.md)에 있다.
+
+이번 팩은 **30개 PNG, 111개 무기·속성 조합, 모션을 포함한 135개 스프라이트 영역**이다.
+
+- 일반 24종: 한 PNG 안의 좌상 빛, 우상 어둠, 좌하 이면, 우하 혼돈.
+- 활·석궁·마도봉 3종: 가로 빛·어둠·이면·혼돈, 세로 대기·준비·발사. 기존 전투와 5라인 전투 모두 모션을 선택한다.
+- 양면 지팡이·일식 거울·혼돈의 진자: 전용 속성의 독립 PNG.
+
+빛은 백색·금색·태양, 어둠은 남색·보라·초승달, 이면은 두 재질과 일식 장식, 혼돈은 비대칭 파편·분홍·청록으로 구분한다. 등급은 이름·테두리·기존 행동 수로 표시하며 속성 그림 자체를 등급마다 반복 제작하지 않는다. 비반복 무기의 혼돈 그림도 향후 에셋 정의용으로 포함하지만 **현재 혼돈 획득 대상은 단검·쌍검·혼돈의 진자**다.
+
+속성 팩이 있으면 우선 사용하고, 없으면 기존 등급 그림 → 공통 그림 → 같은 계열 그림/코드 실루엣으로 표시한다. 도감·편성·보상·상점·전투의 `WeaponIconGraphic`이 동일한 선택 경로를 사용한다. 새 패턴은 이미지 파일 유무와 독립적으로 실행된다.
+
+PNG 원본은 편집·리사이즈·알파 변환 없이 전달한다. `WeaponAttributeArtBounds.cs`와 `weapon-attribute-art-manifest.json`은 실제 비어 있는 칸 경계와 그림 범위를 기록하고, Unity가 그 영역을 스프라이트로 선택한다. 표시 범위 측정은 기존 미리보기 도구와 같은 알파 8/255 이상 및 2px 여백 기준이며, 미세한 알파 잔여물을 원본에서 삭제하지 않는다. 배경과 내부 빈 구멍의 검사는 실제 알파 0을 확인한다. 임포터는 최대 2048px, NPOT 원본 크기, RGBA32, 밉맵 없음으로 설정한다.
+
+검증 명령:
+
+```bash
+python Tools/validate_attribute_weapon_art.py /path/to/unzipped-pack
+```
+
+검사는 30개 원본 해시, 실제 투명 픽셀과 불투명 본체, 135개 영역의 잘림 여부, 미리보기 범위, 내부 구멍 샘플을 확인한다. Unity Test Runner의 `InstalledAttributePackUsesTheCorrectVariantAndPoseInEveryUiIcon`은 팩 설치 후 속성·모션·아이콘 연결을 확인한다. PNG가 없는 환경에서는 이 팩 전용 검사만 생략한다. Unity Editor에서의 실제 임포트·PlayMode 실행은 별도 확인이 필요하다.
+
 ## 설치
 
 1. `codex/roguelike-foundation`의 최신 코드를 받는다.

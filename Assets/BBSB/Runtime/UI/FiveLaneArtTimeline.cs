@@ -22,6 +22,16 @@ namespace BBSB.Runtime.UI
         public static bool Guarding(PhraseLane lane) => lane.Holding &&
             (lane.Phrase.HoldDamageReduction > 0 || lane.Phrase.Notes[lane.NextNote].IsParry);
 
+        public static RangedWeaponPose Weapon(PhraseLane lane, double beat)
+        {
+            if (lane == null || !WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged) return RangedWeaponPose.Idle;
+            if (Recent(beat, lane.LastDamageBeat, .18)) return RangedWeaponPose.Release;
+            if (lane.Phase != PhraseLanePhase.Playing) return RangedWeaponPose.Idle;
+            if (lane.Holding || lane.Weapon.DefinitionId == "bow" && lane.NextNote > 0 ||
+                lane.NextBeat >= beat && lane.NextBeat - beat <= .3) return RangedWeaponPose.Prepare;
+            return RangedWeaponPose.Idle;
+        }
+
         public static FiveLaneActorFrame Player(FiveLaneBattle battle)
         {
             if (Recent(battle.Beat, battle.LastHitBeat, .4)) return new FiveLaneActorFrame("Hit", battle.Beat - battle.LastHitBeat, .4f);

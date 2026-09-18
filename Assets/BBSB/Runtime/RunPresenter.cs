@@ -809,7 +809,7 @@ namespace BBSB.Runtime
                 var phrase = patterns.For(0, state.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light);
                 ui.Label(row, state.DisplayName + "\n" + phrase.LengthBeats + "박 · Tap / Hold", 23, RunUI.Teal, 100);
                 ui.Label(parent, WeaponAttributes.Hint(state.Attribute) + "\n" + phrase.Hint, 21, RunUI.Muted, 66);
-                if ((state.Attribute == WeaponAttribute.Dual || state.Attribute == WeaponAttribute.Chaos) && !ReferenceEquals(patterns.LightStarts[0], patterns.DarkStarts[0]))
+                if ((state.Attribute == WeaponAttribute.Dual || state.Attribute == WeaponAttribute.Chaos) && patterns.LightStarts[0].Hint != patterns.DarkStarts[0].Hint)
                     ui.Label(parent, "어둠 · " + patterns.DarkStarts[0].Hint, 21, RunUI.Muted, 66);
                 for (int offset = 1; offset < patterns.Starts.Count; offset++)
                     ui.Label(parent, "시작 위치 " + (offset + 1) + " · " + patterns.Starts[offset].Name + "\n" + patterns.Starts[offset].Hint, 21, RunUI.Muted, 66);

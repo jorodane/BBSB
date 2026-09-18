@@ -51,7 +51,8 @@ namespace BBSB.Tests
         {
             foreach (var phrase in WeaponPhraseCatalog.All)
             {
-                var b = new FiveLaneBattle(new[] { new WeaponState(phrase.WeaponId, WeaponAttribute.Dual) }, 72, 32,
+                var attribute = WeaponCatalog.Find(phrase.WeaponId).ExclusiveAttribute ?? WeaponAttribute.Dual;
+                var b = new FiveLaneBattle(new[] { new WeaponState(phrase.WeaponId, attribute) }, 72, 32,
                     Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100);
                 b.Press(0, .25); // Between both grids, outside the normal timing window.
                 var lane = b.Lanes[0];

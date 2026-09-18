@@ -202,8 +202,10 @@ namespace BBSB.Tests
             {
                 var random = new SeededRandom(98); var attributes = new System.Collections.Generic.HashSet<WeaponAttribute>();
                 for (int i = 0; i < 128; i++) attributes.Add(WeaponAttributes.Roll(phrase.WeaponId, random));
-                Check.Equal(phrase.Repeat ? 4 : 3, attributes.Count);
-                Check.Equal(phrase.Repeat, attributes.Contains(WeaponAttribute.Chaos));
+                var exclusive = WeaponCatalog.Find(phrase.WeaponId).ExclusiveAttribute;
+                Check.Equal(exclusive.HasValue ? 1 : phrase.Repeat ? 4 : 3, attributes.Count);
+                Check.Equal(exclusive.HasValue ? exclusive == WeaponAttribute.Chaos : phrase.Repeat,
+                    attributes.Contains(WeaponAttribute.Chaos));
             }
         }
         [Test] public void ChaosScalesHealingAndGuardWithoutChangingTheirTiming()

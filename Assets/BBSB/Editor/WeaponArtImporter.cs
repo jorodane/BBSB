@@ -7,16 +7,17 @@ namespace BBSB.Editor
 {
     public sealed class WeaponArtImporter : AssetPostprocessor
     {
-        private bool IsWeapon => assetPath.StartsWith("Assets/BBSB/Resources/" + WeaponArtLayout.Root,
-            StringComparison.Ordinal) && assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+        private bool IsAttributeAtlas => assetPath.StartsWith("Assets/BBSB/Resources/" + WeaponAttributeArtLayout.Root, StringComparison.Ordinal);
+        private bool IsWeapon => (IsAttributeAtlas || assetPath.StartsWith("Assets/BBSB/Resources/" + WeaponArtLayout.Root,
+            StringComparison.Ordinal)) && assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
         private void OnPreprocessTexture()
         {
             if (!IsWeapon) return;
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
             importer.alphaSource = TextureImporterAlphaSource.FromInput; importer.alphaIsTransparency = true;
-            bool atlas = assetPath.Contains("/bow/") || assetPath.Contains("/crossbow/") || assetPath.Contains("/wand/");
-            int limit = atlas ? 1024 : 512;
+            bool atlas = IsAttributeAtlas || assetPath.Contains("/bow/") || assetPath.Contains("/crossbow/") || assetPath.Contains("/wand/");
+            int limit = IsAttributeAtlas ? 2048 : atlas ? 1024 : 512;
             if (atlas) importer.npotScale = TextureImporterNPOTScale.None;
             importer.mipmapEnabled = false; importer.maxTextureSize = limit;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
@@ -36,6 +37,6 @@ namespace BBSB.Editor
                 if (pixel.a == 0) { transparent = true; break; }
             if (!transparent) Debug.LogError("Weapon artwork must be a PNG with real alpha transparency: " + assetPath);
         }
-        public override uint GetVersion() => 2;
+        public override uint GetVersion() => 3;
     }
 }

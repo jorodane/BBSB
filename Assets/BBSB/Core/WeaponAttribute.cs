@@ -39,6 +39,7 @@ namespace BBSB.Core
             ((long)Math.Floor(beat * 2 + .5) & 1) == 0 ? WeaponBeatSide.Light : WeaponBeatSide.Dark;
         public static WeaponBeatSide Opposite(WeaponBeatSide side) => side == WeaponBeatSide.Light ? WeaponBeatSide.Dark : WeaponBeatSide.Light;
         public static WeaponAttribute Roll(string weaponId, SeededRandom random) =>
+            WeaponCatalog.Find(weaponId).ExclusiveAttribute ??
             (WeaponAttribute)random.Next(WeaponPhraseCatalog.Find(weaponId).Repeat ? 4 : 3);
     }
 

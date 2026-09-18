@@ -152,6 +152,8 @@ namespace BBSB.Runtime.UI
                 hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
                 if (lane.Phase == PhraseLanePhase.Playing)
                     hud.laneStatus[i].text += lane.IsTransition ? " · 전환" : lane.ActiveSide == WeaponBeatSide.Light ? " · 정박" : " · 엇박";
+                if (lane.PendingDamageMultiplier > 1 && battle.Beat < lane.DamageBoostUntilBeat)
+                    hud.laneStatus[i].text += "\nATK x" + lane.PendingDamageMultiplier.ToString("0.##");
                 foreach (var start in battle.ScheduledStarts)
                     if (start.Slot == i && start.State == ScheduledStartState.Pending)
                     {
@@ -160,6 +162,7 @@ namespace BBSB.Runtime.UI
                     }
                 hud.laneResults[i].color = lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
                 icons[i].color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
+                icons[i].SetPose(FiveLaneArtTimeline.Weapon(lane, battle.Beat));
                 // Beat-driven recoil gives each successful input a readable weapon response.
                 double age = battle.Beat - lane.LastJudgedBeat;
                 float pulse = age >= 0 && age < .4 && lane.LastGrade != RhythmGrade.Miss ? 1 - (float)(age / .4) : 0;

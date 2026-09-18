@@ -21,7 +21,7 @@ namespace BBSB.Runtime.UI
         internal void Bind(WeaponIconGraphic icon, WeaponDefinition weapon, WeaponRarity grade)
         {
             owner = icon; definition = weapon; rarity = grade;
-            layout = WeaponArtLayout.Sockets(weapon.Id, rarity);
+            layout = owner.HasAttributeArtwork ? WeaponAttributeArtLayout.Sockets(weapon.Id, rarity) : WeaponArtLayout.Sockets(weapon.Id, rarity);
             for (int i = 0; i < pulses.Length; i++) pulses[i] = 0;
             raycastTarget = false;
             for (int i = 0; i < icons.Length; i++)
@@ -36,7 +36,7 @@ namespace BBSB.Runtime.UI
             RefreshSymbols(); SetVerticesDirty();
         }
         internal void SetPose(RangedWeaponPose pose)
-        { layout = WeaponArtLayout.Sockets(definition.Id, rarity, pose); RefreshSymbols(); SetVerticesDirty(); }
+        { layout = owner.HasAttributeArtwork ? WeaponAttributeArtLayout.Sockets(definition.Id, rarity) : WeaponArtLayout.Sockets(definition.Id, rarity, pose); RefreshSymbols(); SetVerticesDirty(); }
         internal void SetActivity(WeaponBattle combat, int slot, double seconds)
         {
             for (int i = 0; i < pulses.Length; i++) pulses[i] = 0;
@@ -54,7 +54,7 @@ namespace BBSB.Runtime.UI
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (owner == null || definition == null) return;
-            var rect = owner.ArtworkRect;
+            var rect = owner.HasAttributeArtwork ? GetPixelAdjustedRect() : owner.ArtworkRect;
             for (int i = 0; i < SocketCount; i++)
             {
                 var socket = layout[i];
@@ -72,7 +72,7 @@ namespace BBSB.Runtime.UI
         private void RefreshSymbols()
         {
             if (owner == null || definition == null) return;
-            var rect = owner.ArtworkRect;
+            var rect = owner.HasAttributeArtwork ? GetPixelAdjustedRect() : owner.ArtworkRect;
             for (int i = 0; i < SocketCount; i++)
             {
                 if (icons[i] == null) continue;

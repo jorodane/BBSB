@@ -73,7 +73,9 @@ namespace BBSB.Tests
                 { "hammer", new[] { 26m, 36m, 20m } }, { "dagger", new[] { 14m, 5m, 12m } }, { "greatsword", new[] { 26m, 36m, 18m } },
                 { "bell", new[] { 8m, 0m, 8m } }, { "blade", new[] { 16m, 12m, 20m } },
                 { "bow", new[] { 10m, 30m, 18m } }, { "crossbow", new[] { 22m, 12m, 26m } }, { "wand", new[] { 18m, 28m, 12m } } };
-            Check.Equal(17, WeaponCatalog.All.Count);
+            Check.Equal(30, WeaponCatalog.All.Count);
+            foreach (var entry in WeaponExpansion.All)
+                damageTable.Add(entry.Definition.Id, entry.Definition.Actions.Select(a => a.Damage).ToArray());
             foreach (var weapon in WeaponCatalog.All)
             {
                 bool shield = weapon.Kind == WeaponKind.Shield;
