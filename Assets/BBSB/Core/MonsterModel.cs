@@ -32,6 +32,7 @@ namespace BBSB.Core
         // Beat distance from the final Call to the first Response; no additional ScheduledCall.
         // A species may count visually through its attack (for example the seven-beat walking doll).
         public int SilentWaitTicks { get; }
+        public bool IsHook { get; }
         public double ParticipationChance { get; }
         public decimal JudgmentWeight => WeightFor(Pattern.CueLeadTicks + (decimal)ResponseTicks, Pattern.Steps.Count);
         // Fixed precision keeps repeated health subtraction and accumulated damage identical.
@@ -42,7 +43,7 @@ namespace BBSB.Core
         public static MonsterPatternDefinition FromPhrase(string id, string name, string description,
             int responseOriginTicks, IEnumerable<PatternStep> steps, IEnumerable<CallSignal> calls,
             int responseTicks, int restTicks, double participationChance, int cueAlignmentTicks = 1,
-            int silentWaitTicks = 0)
+            int silentWaitTicks = 0, bool isHook = false)
         {
             if (steps == null) throw new ArgumentNullException(nameof(steps));
             var source = new List<PatternStep>(steps);
@@ -56,12 +57,12 @@ namespace BBSB.Core
             foreach (var step in source)
                 normalized.Add(new PatternStep(step.Kind, step.OffsetTick - first, step.DurationTicks));
             return new MonsterPatternDefinition(name, description, new RhythmPattern(id, (int)lead, normalized),
-                calls, responseTicks - first, restTicks, participationChance, cueAlignmentTicks, silentWaitTicks);
+                calls, responseTicks - first, restTicks, participationChance, cueAlignmentTicks, silentWaitTicks, isHook);
         }
 
         public MonsterPatternDefinition(string name, string description, RhythmPattern pattern,
             IEnumerable<CallSignal> call, int responseTicks, int restTicks, double participationChance, int cueAlignmentTicks = 1,
-            int silentWaitTicks = 0)
+            int silentWaitTicks = 0, bool isHook = false)
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A pattern needs a name.");
             if (pattern == null || call == null) throw new ArgumentNullException(pattern == null ? nameof(pattern) : nameof(call));
@@ -83,7 +84,7 @@ namespace BBSB.Core
             if (!InputCompatibility.IsPlayable(pattern)) throw new ArgumentException("The monster's pattern contains conflicting touch requirements.");
             Id = pattern.Id; Name = name; Description = description ?? ""; Pattern = pattern; Call = signals.AsReadOnly();
             ResponseTicks = responseTicks; RestTicks = restTicks; ParticipationChance = participationChance;
-            CueAlignmentTicks = cueAlignmentTicks; SilentWaitTicks = silentWaitTicks;
+            CueAlignmentTicks = cueAlignmentTicks; SilentWaitTicks = silentWaitTicks; IsHook = isHook;
         }
     }
 

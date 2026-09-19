@@ -15,10 +15,11 @@ namespace BBSB.Core
 
         public void Validate(IReadOnlyList<MonsterPatternDefinition> patterns)
         {
-            if (patterns.Count != 2) throw new ArgumentException("A beat-shift loop needs a steady Tap and a two-Tap transition.");
+            if (patterns.Count < 2) throw new ArgumentException("A beat-shift loop needs a steady Tap and a two-Tap transition.");
             int steady = 0, shift = 0;
             foreach (var pattern in patterns)
             {
+                if (patterns.Count > 2 && !IsCadence(pattern)) continue;
                 if (pattern.Pattern.CueLeadTicks != 4 || pattern.ResponseTicks != 4 || pattern.RestTicks != 0 ||
                     pattern.SilentWaitTicks != 0 || pattern.CueAlignmentTicks != 2 || pattern.Call.Count != 1)
                     throw new ArgumentException("Linked beat cues need a one-beat lead, half-beat alignment and no per-pattern rest.");
@@ -31,13 +32,29 @@ namespace BBSB.Core
             if (steady != 1 || shift != 1) throw new ArgumentException("A beat-shift loop needs both pattern types.");
         }
 
-        public IReadOnlyList<PatternChain> Candidates(MusicStage stage, MonsterDefinition monster) => Candidates(stage, monster, null);
+        private static bool IsCadence(MonsterPatternDefinition p) => p.Pattern.CueLeadTicks == 4 &&
+            p.ResponseTicks == 4 && p.RestTicks == 0 && p.SilentWaitTicks == 0 && p.CueAlignmentTicks == 2 && p.Call.Count == 1 &&
+            p.Pattern.Steps[0].Kind == GestureKind.Tap && (p.Pattern.Steps.Count == 1 ||
+            p.Pattern.Steps.Count == 2 && p.Pattern.Steps[1].Kind == GestureKind.Tap && p.Pattern.Steps[1].OffsetTick == 2);
+        private static MonsterPatternDefinition Cadence(MonsterDefinition monster, int steps)
+        {
+            foreach (var pattern in monster.Patterns) if (IsCadence(pattern) && pattern.Pattern.Steps.Count == steps) return pattern;
+            throw new ArgumentException("Missing beat-shift cadence.");
+        }
+        public IReadOnlyList<PatternChain> Candidates(MusicStage stage, MonsterDefinition monster)
+        {
+            var result = new List<PatternChain>(Candidates(stage, monster, null));
+            foreach (var pattern in monster.Patterns) if (!IsCadence(pattern))
+                foreach (var placement in BattlePlanner.Candidates(stage, pattern))
+                    result.Add(new PatternChain(pattern.Id, monster, new[] { placement }, pattern.RestTicks));
+            return result;
+        }
 
         private IReadOnlyList<PatternChain> Candidates(MusicStage stage, MonsterDefinition monster, int? seed)
         {
             var result = new List<PatternChain>();
-            var steady = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 1 ? 0 : 1];
-            var shift = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 2 ? 0 : 1];
+            var steady = Cadence(monster, 1);
+            var shift = Cadence(monster, 2);
             var steadyAt = Index(stage, steady); var shiftAt = Index(stage, shift);
             // One uninterrupted run per available span. Every next Call coincides with the
             // previous final Tap; extending the run never inserts a new count-in or rest.
@@ -81,7 +98,7 @@ namespace BBSB.Core
         {
             var candidates = Candidates(stage, monster, UsePatternProbabilities ? (int?)seed : null);
             var result = new List<PatternChain>();
-            var steady = monster.Patterns[monster.Patterns[0].Pattern.Steps.Count == 1 ? 0 : 1];
+            var steady = Cadence(monster, 1);
             var random = new SeededRandom(BattlePlanner.Hash(seed, "beat-shift-entry"));
             long callAfter = 0;
             foreach (var candidate in candidates)
@@ -95,9 +112,17 @@ namespace BBSB.Core
             // As with independent patterns, a playable species gets one fallback phrase.
             if (result.Count == 0)
             {
-                var fallback = Candidates(stage, monster);
+                var fallback = Candidates(stage, monster, null);
                 if (fallback.Count > 0) result.Add(fallback[0]);
             }
+            // Independent signatures compete as whole phrases with the cadence;
+            // the old linked sequence still cannot be cut into isolated taps.
+            if (monster.Patterns.Count > 2)
+                foreach (var placement in IndependentPatternPlanner.Instance.Propose(stage, instanceId, monster, seed).Placements)
+                {
+                    var pattern = monster.FindPattern(placement.Pattern);
+                    if (!IsCadence(pattern)) result.Add(new PatternChain(pattern.Id, monster, new[] { placement }, pattern.RestTicks));
+                }
             return new MonsterProposal(instanceId, monster, result);
         }
 

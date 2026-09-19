@@ -63,10 +63,16 @@ namespace BBSB.Runtime.UI
                     foreach (var attack in battle.Incoming)
                     {
                         double remaining = attack.Beat - battle.Beat;
-                        if (!SteppedNoteTrack.InHorizon(remaining) || remaining < -battle.HalfMissWindow ||
+                        if (remaining > LookAheadBeats || attack.EndBeat - battle.Beat < -battle.HalfMissWindow ||
                             attack.State == IncomingAttackState.Interrupted || attack.State == IncomingAttackState.Hit) continue;
-                        var p = Position(slot, attack.Beat);
+                        var p = Position(slot, attack.Definition.IsHold ? Math.Max(battle.Beat, attack.Beat) : attack.Beat);
                         var tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
+                        if (attack.Definition.IsHold)
+                        {
+                            var head = Position(slot, Math.Max(battle.Beat, attack.Beat));
+                            var tail = Position(slot, Math.Min(battle.Beat + LookAheadBeats, attack.EndBeat));
+                            Line(vh, head + Vector2.right * 22, tail + Vector2.right * 22, 5, tint);
+                        }
                         Line(vh, p + new Vector2(-22, 7), p + new Vector2(0, -5), 4, tint);
                         Line(vh, p + new Vector2(0, -5), p + new Vector2(22, 7), 4, tint);
                     }
@@ -75,14 +81,14 @@ namespace BBSB.Runtime.UI
                     if (shown.Slot != slot) continue;
                     var note = shown.Definition;
                     double at = shown.Beat;
-                    var p = Position(slot, at); Color tint = note.IsHold ? Color.Lerp(laneColor, Color.white, .35f) : laneColor;
+                    var p = Position(slot, at); Color tint = shown.IsHold ? Color.Lerp(laneColor, Color.white, .35f) : laneColor;
                     if (shown.IsPreview) { tint = Color.Lerp(tint, Color.white, .3f); tint.a = .45f; }
-                    if (note.IsHold)
+                    if (shown.IsHold)
                     {
                         var head = Position(slot, Math.Max(battle.Beat, at)); var tail = Position(slot, shown.EndBeat);
                         if (shown.IsPreview) DashedLine(vh, head, tail, tint);
                         else Line(vh, head, tail, 11, tint);
-                        if (SteppedNoteTrack.InHorizon(at + note.HoldBeats - battle.Beat))
+                        if (SteppedNoteTrack.InHorizon(shown.EndBeat - battle.Beat))
                         {
                             var endTint = shown.ReleaseParry ? RunUI.Gold : Color.white; endTint.a = tint.a;
                             NoteHead(vh, tail, shown.ReleaseParry ? 11 : 7, endTint, shown.IsPreview);
@@ -102,7 +108,7 @@ namespace BBSB.Runtime.UI
             {
                 if (SpriteProjectiles != null && SpriteProjectiles.Contains(attack.Definition.MonsterId)) continue;
                 double delta = attack.Beat - battle.Beat;
-                if (delta > 1 || delta < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
+                if (delta > 1 || attack.EndBeat - battle.Beat < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
                 float t = (float)SteppedNoteTrack.ImpactProgress(attack.Beat, battle.Beat);
                 var p = Vector2.Lerp(source, target, t);
                 Color tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
@@ -139,7 +145,7 @@ namespace BBSB.Runtime.UI
             tint.a = (1 - progress) * (broken.Note.IsPreview ? .7f : 1);
             var head = Point(broken.Note.Slot, (float)(broken.HeadDistance / LookAheadBeats));
             Fragments(vh, head, 9, progress, tint);
-            if (!broken.Note.Definition.IsHold) return;
+            if (!broken.Note.IsHold) return;
             var tail = Point(broken.Note.Slot, (float)(broken.TailDistance / LookAheadBeats));
             if (broken.TailVisible) Fragments(vh, tail, 7, progress, tint);
             float length = Vector2.Distance(head, tail);

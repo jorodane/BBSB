@@ -12,13 +12,14 @@ namespace BBSB.Tests
     public sealed class MonsterAttackTests
     {
         [Test]
-        public void EveryCatalogStepHasAUniqueImageFolderAndARealCallBeforeItsResponse()
+        public void EveryCatalogStepHasAnImageAndARealCallBeforeItsResponse()
         {
-            Check.Equal(24, MonsterAttackCatalog.All.Select(x => x.PatternId).Distinct().Count());
+            Check.Equal(60, MonsterAttackCatalog.All.Select(x => x.PatternId).Distinct().Count());
             int expected = 0;
             foreach (var monster in MonsterCatalog.All) foreach (var pattern in monster.Patterns) expected += pattern.Pattern.Steps.Count;
             Check.Equal(expected, MonsterAttackCatalog.All.Count);
-            Check.Equal(MonsterAttackCatalog.All.Count, MonsterAttackCatalog.All.Select(x => x.ResourceFolder).Distinct().Count());
+            Check.Equal(MonsterAttackCatalog.All.Count, MonsterAttackCatalog.All.Select(x => x.MonsterId + "/" + x.PatternId + "/" + x.StepIndex).Distinct().Count());
+            Check.True(MonsterAttackCatalog.All.All(x => !string.IsNullOrWhiteSpace(x.ResourceFolder)));
             foreach (double bpm in new[] { 90.0, 120.0, 168.0, 240.0 })
             foreach (var pattern in MonsterCatalog.All.SelectMany(x => x.Patterns))
             {
@@ -322,7 +323,7 @@ namespace BBSB.Tests
             var monster = MonsterCatalog.All.Single(m => m.Patterns.Any(p => p.Id == patternId));
             var pattern = monster.Patterns.Single(p => p.Id == patternId);
             var slots = new List<SlotTemplate>();
-            for (int tick = 0; tick < 16; tick += 2)
+            for (int tick = 0; tick < 32; tick += 2)
             {
                 slots.Add(new SlotTemplate(GestureKind.Tap, tick)); slots.Add(new SlotTemplate(GestureKind.Flick, tick));
                 slots.Add(new SlotTemplate(GestureKind.Shake, tick));

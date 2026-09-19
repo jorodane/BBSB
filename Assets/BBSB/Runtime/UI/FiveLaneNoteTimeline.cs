@@ -15,19 +15,26 @@ namespace BBSB.Runtime.UI
         public bool ReleaseParry { get; }
         internal WeaponPhrase Phrase { get; }
         internal ScheduledPhraseStart Reservation { get; }
-        public double Beat => CycleStart + Definition.Beat;
-        public double EndBeat => Beat + Definition.HoldBeats;
-        internal TrackNote(int slot, int index, double cycleStart, WeaponPhrase phrase, bool preview, ScheduledPhraseStart reservation = null)
+        private readonly double timingShift;
+        public double Beat => CycleStart + Definition.Beat + timingShift;
+        private readonly double extendedEnd;
+        public double EndBeat => Math.Max(Beat + Definition.HoldBeats, extendedEnd);
+        public bool IsHold => EndBeat > Beat;
+        internal TrackNote(int slot, int index, double cycleStart, WeaponPhrase phrase, bool preview, ScheduledPhraseStart reservation = null,
+            double extendedEnd = double.NegativeInfinity, bool sustainedGuard = false, double timingShift = 0)
         {
             Slot = slot; Index = index; CycleStart = cycleStart; Definition = phrase.Notes[index];
             Phrase = phrase; Reservation = reservation;
+            this.extendedEnd = extendedEnd;
+            this.timingShift = timingShift;
             IsPreview = preview;
             PressParry = Definition.IsParry && phrase.ParriesOnKeyDown;
-            ReleaseParry = Definition.IsParry && phrase.ParriesOnKeyUp;
+            ReleaseParry = Definition.IsParry && phrase.ParriesOnKeyUp && !sustainedGuard;
         }
         internal bool SamePosition(TrackNote other) => Slot == other.Slot && Index == other.Index &&
-            Math.Abs(CycleStart - other.CycleStart) < .000001 && ReferenceEquals(Phrase, other.Phrase);
-        internal bool SameNote(TrackNote other) => SamePosition(other) && ReferenceEquals(Reservation, other.Reservation);
+            Math.Abs(Beat - other.Beat) < .000001 && ReferenceEquals(Phrase, other.Phrase);
+        internal bool SameNote(TrackNote other) => Slot == other.Slot && Index == other.Index &&
+            Math.Abs(CycleStart - other.CycleStart) < .000001 && ReferenceEquals(Phrase, other.Phrase) && ReferenceEquals(Reservation, other.Reservation);
     }
 
     public readonly struct BrokenTrackNote
@@ -114,7 +121,11 @@ namespace BBSB.Runtime.UI
             {
                 var state = lane.NoteStates[i];
                 if (state == PhraseNoteState.Pending || state == PhraseNoteState.Holding || state == PhraseNoteState.Locked)
-                    Add(battle, new TrackNote(lane.SlotForNote(i), i, lane.StartBeat, lane.Phrase, state == PhraseNoteState.Locked, lane.ScheduledOrigin));
+                    Add(battle, new TrackNote(lane.SlotForNote(i), i, lane.StartBeat,
+                        lane.Phrase, state == PhraseNoteState.Locked, lane.ScheduledOrigin,
+                        lane.Holding && i == lane.NextNote ? lane.HoldEndBeat : double.NegativeInfinity,
+                        lane.Holding && i == lane.NextNote && lane.SustainingGuard,
+                        lane.NoteBeat(i) - lane.StartBeat - lane.Phrase.Notes[i].Beat));
             }
             if (!lane.CanRepeat) return;
             var plan = lane.Cycle;

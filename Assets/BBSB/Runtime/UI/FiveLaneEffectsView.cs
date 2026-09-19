@@ -51,7 +51,13 @@ namespace BBSB.Runtime.UI
                 int index = instances.IndexOf(attack.Definition.MonsterId);
                 if (index < 0) continue;
                 double remaining = attack.Beat - battle.Beat;
-                if (attack.State == IncomingAttackState.Pending && remaining <= 1 && remaining >= -battle.HalfMissWindow)
+                if (attack.Definition.IsHold && attack.State == IncomingAttackState.Pending &&
+                    battle.Beat >= attack.Beat && battle.Beat <= attack.EndBeat)
+                {
+                    float pulse = (float)((battle.Beat - attack.Beat) % .5 / .5);
+                    Draw(projectiles[index], target, .20f + .035f * (1 - pulse), .65f + .3f * (1 - pulse));
+                }
+                else if (attack.State == IncomingAttackState.Pending && remaining <= 1 && remaining >= -battle.HalfMissWindow)
                 {
                     Vector2 source = At(enemies[index], .5f, .46f);
                     float t = FiveLaneArtTimeline.ProjectileProgress(attack.Beat, battle.Beat);
@@ -60,6 +66,8 @@ namespace BBSB.Runtime.UI
                 }
                 else if (attack.State == IncomingAttackState.Blocked && FiveLaneArtTimeline.Recent(battle.Beat, attack.ResolvedBeat, .45))
                     Burst(art.parry, target, attack.ResolvedBeat, .27f, .45);
+                if (attack.Definition.IsHold && FiveLaneArtTimeline.Recent(battle.Beat, attack.LastParryBeat, .45))
+                    Burst(art.parry, target, attack.LastParryBeat, .27f, .45);
             }
             if (FiveLaneArtTimeline.Recent(battle.Beat, battle.LastHitBeat, .4))
                 Burst(art.impact, target, battle.LastHitBeat, .2f, .4);

@@ -125,7 +125,7 @@ namespace BBSB.Editor
             {
                 Field("steadyCallsPerPhase", "전환 전 최소 기본 Call 횟수");
                 Field("usePatternProbabilities", "패턴 확률을 반복과 전환에 적용");
-                EditorGUILayout.HelpBox("Beat Shift는 Tap 전용 정박 ↔ 엇박 반복 방식이야. Hold 등 일반 패턴은 Independent로 설정해. 확률 적용 시 기본 패턴 확률은 연속 구간 진입에, 전환 패턴 확률은 최소 반복 후 매 Call의 전환 시도에 사용돼. 구간 안의 기본 박자는 빠지지 않아.", MessageType.Info);
+                EditorGUILayout.HelpBox("Beat Shift의 기본 Tap 두 패턴은 정박 ↔ 엇박을 이어가. 추가한 일반·후크 패턴은 별도 프레이즈로 배치돼. 확률 적용 시 기본 패턴 확률은 연속 구간 진입에, 전환 패턴 확률은 최소 반복 후 전환 시도에 사용돼.", MessageType.Info);
             }
             var patterns = serializedObject.FindProperty("patterns");
             EditorGUILayout.HelpBox("타임라인과 마커 설정의 시각은 첫 Call을 0박으로 센 공통 박자야. 아래 구간 설정은 Response 영역의 시작과 길이를 정해. 첫 입력 앞에 빈 박자를 둘 수 있고, Call은 실제 첫 입력 전에 끝나면 돼.", MessageType.Info);
@@ -156,6 +156,7 @@ namespace BBSB.Editor
                 Beats(pattern, "responseTicks", "Response 구간 길이", 1); Beats(pattern, "restTicks", "이후 휴식");
                 Beats(pattern, "cueAlignmentTicks", "Call 시작 정렬 단위", 1); Beats(pattern, "silentWaitTicks", "마지막 Call → 첫 입력 대기 (없으면 0)");
                 Field(pattern, "participationChance", "패턴 참여 확률");
+                Field(pattern, "isHook", "후크 패턴");
                 Field(pattern, "attackState", "이 패턴의 Attack 상태 (선택)"); Field(pattern, "recoverState", "이 패턴의 Recover 상태 (선택)");
             }
             DrawPatternTimeline(pattern);

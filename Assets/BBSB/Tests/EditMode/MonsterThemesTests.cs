@@ -11,20 +11,20 @@ namespace BBSB.Tests
     public sealed class MonsterThemesTests
     {
         [Test]
-        public void EveryMonsterHasTwoReachablePatternsAndMostThemesUseTap()
+        public void EveryMonsterHasThreeBasesAndTwoReachableSignaturePatterns()
         {
             Check.Equal(12, MonsterCatalog.All.Count);
             Check.Equal(8, MonsterCatalog.All.Count(x => x.MainGesture == GestureKind.Tap));
             foreach (var monster in MonsterCatalog.All)
             {
-                Check.Equal(2, monster.Patterns.Count);
+                Check.True(monster.Patterns.Count >= 5);
+                Check.True(monster.Patterns.Count(x => !x.IsHook && x.ResponseTicks <= 16) >= 3, monster.Id + " needs three short bases.");
+                Check.True(monster.Patterns.Count(x => x.IsHook) >= 2);
                 foreach (var pattern in monster.Patterns)
-                    Check.True(MusicCatalog.All.Any(music => BattlePlanner.Propose(MusicStage.Generate(music), monster.Id, monster, 17)
+                    Check.True(StageCatalog.All.Any(stage => BattlePlanner.Propose(MusicStage.Generate(stage.Music), monster.Id, monster, 17)
                         .Placements.Any(x => x.Pattern == pattern.Pattern)), monster.Id + "/" + pattern.Id + " is unreachable.");
-                if (monster.Id != "spark-bat" && monster.Id != "iron-turtle")
-                    Check.True(monster.Patterns.All(x => x.Pattern.Steps.All(step => step.Kind == monster.MainGesture)));
-                if (monster.Id == "iron-turtle")
-                    Check.True(monster.Patterns.All(x => x.Pattern.Steps[0].Kind == GestureKind.Hold));
+                Check.True(monster.Patterns.Count(x => x.Pattern.Steps.Any(s => s.Kind == GestureKind.Tap) &&
+                    x.Pattern.Steps.Any(s => s.Kind == GestureKind.Hold)) >= 3);
             }
             var mixed = MonsterCatalog.All.Single(x => x.Id == "spark-bat");
             Check.True(mixed.Patterns.SelectMany(x => x.Pattern.Steps).Select(x => x.Kind).Distinct().Count() > 1);
@@ -46,6 +46,30 @@ namespace BBSB.Tests
         }
 
         [Test]
+        public void SeesawAddsMixedSignaturesWithoutReplacingItsLinkedCadence()
+        {
+            var monster = MonsterCatalog.BuiltIn.Single(x => x.Id == "seesaw-goblin");
+            var stage = MusicStage.Generate(StageCatalog.All.First().Music);
+            var candidates = monster.PatternPlanner.Candidates(stage, monster);
+            Check.True(candidates.Any(x => x.Placements.Count > 1));
+            foreach (var pattern in monster.Patterns.Skip(2))
+                Check.True(candidates.Any(x => x.Placements.Count == 1 && x.Placements[0].Pattern == pattern.Pattern));
+        }
+
+        [Test]
+        public void GeneratedMusicHooksUseLongSignaturesWhenTheScoreSupportsThem()
+        {
+            var stage = MusicStage.Generate(StageCatalog.All.First().Music);
+            var plan = BattlePlanner.Generate(stage, StageKind.Monster, 27);
+            foreach (var section in stage.Music.Sections.Where(x => x.IsHook))
+                Check.True(plan.Attacks.Any(x => x.Pattern.IsHook &&
+                    x.ResponseStartTick >= section.StartBar * stage.Music.TicksPerBar &&
+                    x.PhraseEndTick <= (section.StartBar + section.BarCount) * stage.Music.TicksPerBar));
+            foreach (var left in plan.Attacks) foreach (var right in plan.Attacks)
+                if (!ReferenceEquals(left, right)) Check.False(BattlePlanner.Conflicts(left, right, out _, plan.CallOverlapTicks));
+        }
+
+        [Test]
         public void PatternProposalsAreIndependentOfSiblingOrderAndPresence()
         {
             var stage = Fixture(); var source = MonsterCatalog.All.Single(x => x.Id == "tap-slime");
@@ -64,7 +88,7 @@ namespace BBSB.Tests
         public void SelfOverlapRemovesOneWholeCalledPatternEvenWhenBothInputsAreTap()
         {
             var stage = Fixture(); var monster = MonsterCatalog.All.Single(x => x.Id == "tap-slime");
-            var placements = monster.Patterns.Select(x => At(stage, x, 28)).ToArray();
+            var placements = monster.Patterns.Take(2).Select(x => At(stage, x, 28)).ToArray();
             Check.False(InputCompatibility.Conflict(placements[0], placements[1], out _));
             var proposal = new MonsterProposal("one-slime", monster, placements);
             var plan = BattlePlanner.Resolve(stage, new[] { proposal }, 41);
@@ -125,11 +149,13 @@ namespace BBSB.Tests
         {
             var stage = Fixture(); var monster = MonsterCatalog.All.Single(x => x.Id == "offbeat-goblin");
             var proposal = BattlePlanner.Propose(stage, monster.Id, monster, 32);
-            Check.Equal(2, proposal.Placements.Select(x => x.Pattern.Id).Distinct().Count());
+            Check.Equal(5, proposal.Placements.Select(x => x.Pattern.Id).Distinct().Count());
             foreach (var placement in proposal.Placements)
             {
                 Check.Equal(0, placement.CueStartTick % 4);
-                foreach (var step in placement.Pattern.Steps) Check.Equal(2, (placement.StartTick + step.OffsetTick) % 4);
+                Check.Equal(2, placement.StartTick % 4);
+                if (monster.Patterns.Take(2).Any(x => x.Pattern == placement.Pattern))
+                    foreach (var step in placement.Pattern.Steps) Check.Equal(2, (placement.StartTick + step.OffsetTick) % 4);
             }
         }
 

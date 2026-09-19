@@ -43,9 +43,13 @@ namespace BBSB.Core
             var hooks = new List<MusicSection>(); bool missing = false;
             foreach (var section in plan.Stage.Music.Sections)
                 if (section.IsHook) { hooks.Add(section); missing |= !Covers(plan, section); }
-            if (!missing) return plan;
+            bool hasSignatures = false;
+            foreach (var owner in plan.Monsters) foreach (var pattern in owner.Monster.Patterns) hasSignatures |= pattern.IsHook;
+            if (hooks.Count == 0 || !missing && !hasSignatures) return plan;
             var choices = new List<List<List<PlannedAttack>>>();
             var random = new SeededRandom(seed);
+            var acceptedById = new Dictionary<string, PlannedAttack>();
+            foreach (var attack in plan.Attacks) acceptedById[attack.Id] = attack;
             foreach (var hook in hooks)
             {
                 var options = new List<List<PlannedAttack>>();
@@ -56,11 +60,23 @@ namespace BBSB.Core
                         var bundle = new List<PlannedAttack>();
                         foreach (var placement in chain.Placements)
                             bundle.Add(new PlannedAttack(owner.InstanceId, owner.Monster, placement, chain));
+                        // Reuse a whole already accepted bundle when it matches, so
+                        // reserving a signature does not withdraw and duplicate itself.
+                        var existingBundle = new List<PlannedAttack>();
+                        foreach (var proposed in bundle)
+                            if (acceptedById.TryGetValue(proposed.Id, out var accepted)) existingBundle.Add(accepted);
+                        if (existingBundle.Count == bundle.Count) bundle = existingBundle;
                         options.Add(bundle);
                     }
+                // Prefer each species' longer signature when this score can fit it;
+                // short hooks and older authored monsters retain the existing fallback.
                 random.Shuffle(options);
                 // Prefer the beginning of a hook, but retain alternate placements for dependency/rest conflicts.
-                options.Sort((a, b) => a[0].ResponseStartTick.CompareTo(b[0].ResponseStartTick));
+                options.Sort((a, b) =>
+                {
+                    int signature = b.Exists(x => x.Pattern.IsHook).CompareTo(a.Exists(x => x.Pattern.IsHook));
+                    return signature != 0 ? signature : a[0].ResponseStartTick.CompareTo(b[0].ResponseStartTick);
+                });
                 choices.Add(options);
             }
             var reserved = new List<PlannedAttack>();
@@ -73,6 +89,7 @@ namespace BBSB.Core
             var grid = BattlePlanner.BeatGrid(plan.Stage);
             foreach (var existing in attacks) foreach (var required in reserved)
             {
+                if (ReferenceEquals(existing, required)) continue;
                 if (!BattlePlanner.Conflicts(existing, required, out int tick, plan.CallOverlapTicks)) continue;
                 // Linked Calls and Responses are never cut into independently playable fragments.
                 foreach (var member in attacks)
@@ -82,7 +99,8 @@ namespace BBSB.Core
                             BattlePlanner.CountOccupied(reserved.FindAll(x => x.MonsterId == required.MonsterId), grid)));
                 break;
             }
-            attacks.RemoveAll(x => removed.Contains(x)); attacks.AddRange(reserved);
+            attacks.RemoveAll(x => removed.Contains(x));
+            foreach (var required in reserved) if (!attacks.Contains(required)) attacks.Add(required);
             var fills = new List<PlannedAttack>();
             foreach (var fill in plan.GapFills) if (!removed.Contains(fill)) fills.Add(fill);
             var owners = new List<MonsterPlan>();

@@ -32,7 +32,7 @@ namespace BBSB.Tests
         {
             var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "rapid-drive"));
             var monster = MonsterCatalog.All.Single(x => x.Id == "seesaw-goblin");
-            var chain = monster.PatternPlanner.Candidates(stage, monster).Single(x => x.CallStartTick == 16);
+            var chain = monster.PatternPlanner.Candidates(stage, monster).Single(x => x.CallStartTick == 16 && x.Placements.Count > 1);
             var round = new RhythmRound(BattlePlanner.Resolve(stage,
                 new[] { new MonsterProposal(monster.Id, monster, new System.Collections.Generic.List<PatternChain> { chain }) }, 1));
             Check.True(round.Plan.Attacks.Count > 1);

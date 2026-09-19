@@ -56,7 +56,10 @@ namespace BBSB.Runtime.UI
             foreach (var attack in battle.Incoming)
             {
                 if (attack.Definition.MonsterId != instanceId || attack.State == IncomingAttackState.Interrupted ||
-                    attack.Beat < battle.Beat - .35 || attack.Beat > battle.Beat + 1) continue;
+                    attack.EndBeat < battle.Beat - .35 || attack.Beat > battle.Beat + 1) continue;
+                if (attack.Definition.IsHold && attack.Beat <= battle.Beat && attack.EndBeat >= battle.Beat &&
+                    attack.State == IncomingAttackState.Pending)
+                    return new FiveLaneActorFrame("Attack", battle.Beat - attack.Beat, 1, true);
                 if (nearest == null || attack.Beat < nearest.Beat) nearest = attack;
             }
             if (nearest == null) return new FiveLaneActorFrame("Idle", battle.Beat, 4, true);

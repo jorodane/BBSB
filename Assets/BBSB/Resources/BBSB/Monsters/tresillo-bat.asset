@@ -681,3 +681,1078 @@ MonoBehaviour:
           m_RotationOrder: 4
     attackState: 
     recoverState: 
+  - id: harpy-feather-draft
+    displayName: 깃과 바람
+    description: 깃털 두 발 뒤 한 박짜리 돌풍을 보낸다.
+    cueLeadTicks: 4
+    responseTicks: 16
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 0
+    participationChance: 0.24
+    calls:
+    - offsetTick: 0
+      label: 깃과 바람
+      sound: 0
+      motion: 0
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 6
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 6
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 12
+      durationTicks: 4
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 12
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: harpy-tresillo-gale
+    displayName: 세 갈래 폭풍
+    description: 트레실로 깃털이 모여 지속 돌풍을 만들고 마지막 깃이 날아든다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 세 갈래 폭풍
+      sound: 1
+      motion: 1
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 1
+      motion: 1
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 6
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 6
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 12
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 12
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 16
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 16
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 28
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 28
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: harpy-wing-refrain
+    displayName: 날갯짓 후렴
+    description: 두 번의 긴 날갯바람 사이에 간격이 다른 깃털을 흩뿌린다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 날갯짓 후렴
+      sound: 3
+      motion: 2
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 3
+      motion: 2
+      animatorState: ''
+    steps:
+    - kind: 1
+      offsetTick: 0
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 10
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 10
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 16
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 16
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 22
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 2
+        reaction: 2
+        callIndex: 0
+        spawnOffsetTicks: 22
+        rushTicks: 2
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/tresillo-bat/tresillo-taps/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''

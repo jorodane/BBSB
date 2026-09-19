@@ -122,6 +122,7 @@ namespace BBSB.Runtime
             [Min(0)] public int restTicks = 4;
             [Min(1)] public int cueAlignmentTicks = 1;
             [Min(0)] public int silentWaitTicks;
+            public bool isHook;
             public double participationChance = .25;
             public Call[] calls = { new Call() };
             public Step[] steps = { new Step() };
@@ -162,7 +163,7 @@ namespace BBSB.Runtime
                 }
                 definitions.Add(MonsterPatternDefinition.FromPhrase(pattern.id, pattern.displayName, pattern.description,
                     pattern.cueLeadTicks, steps, calls, pattern.responseTicks,
-                    pattern.restTicks, pattern.participationChance, pattern.cueAlignmentTicks, pattern.silentWaitTicks));
+                    pattern.restTicks, pattern.participationChance, pattern.cueAlignmentTicks, pattern.silentWaitTicks, pattern.isHook));
             }
             var situations = new HashSet<MonsterAnimationSituation>();
             if (motions != null) foreach (var motion in motions)

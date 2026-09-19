@@ -103,3 +103,7 @@ Esc / II / 포커스 상실 시 모든 시간과 판정을 동결한다. Hold를
 `dotnet run --project Tools/CoreChecks/BBSB.CoreChecks.csproj --configuration Release`와 GitHub Core checks로 엔진 비의존 코드를 컴파일하고 회귀 검사를 실행한다. 첫 입력 보정·쿨타임 재시작·후속 판정, 단검 연쇄, 조건부·반복 예고의 확정과 파괴, 확정된 일반·반격 패턴 유지, 히터실드 피해·종료·일시정지, 정박 단위 곡선 이동과 반박 도착 시각, 보유·장착 분리, 보스별 한도 증가, 중심 스냅, 겹침 교체의 원자성, 무기 참조 유지, S/L 제한, 시작 Offset별 패턴과 기존 패링/그로기를 검사한다.
 
 PlayMode 검사에는 실제 CanvasRenderer의 메시 생성, 기본 장비 2개, Space/K의 비연속 배치, L 입력의 홀드 복귀, 드래그 중심과 잠긴 확장 라인 거부, 초기화 복구, 여러 화면 비율의 캐릭터 배치를 포함한다. GitHub의 C# 구문 검사는 Unity API 컴파일이나 PlayMode 실행을 대신하지 않는다. 이 작업 환경에는 Unity Editor가 없으므로 Unity에서의 실행 확인은 별도로 필요하다.
+
+## 몬스터의 긴 프레이즈와 홀드 방어
+
+12종 × 5패턴, 반 박마다 분배되는 홀드 피해, 중간 진입과 방어 연장은 [MonsterPatternExpansion.md](MonsterPatternExpansion.md)를 참고해.

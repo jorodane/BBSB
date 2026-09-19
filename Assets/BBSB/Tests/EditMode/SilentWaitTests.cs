@@ -17,7 +17,7 @@ namespace BBSB.Tests
             foreach (var monster in monsters)
             {
                 var wait = monster.Patterns.Single(x => x.SilentWaitTicks > 0);
-                var quick = monster.Patterns.Single(x => x.SilentWaitTicks == 0);
+                var quick = monster.Patterns.Take(2).Single(x => x.SilentWaitTicks == 0);
                 Check.Equal(monster.Id == "drowsy-slime" ? 16 : 28, wait.SilentWaitTicks);
                 Check.Equal(wait.SilentWaitTicks, wait.Pattern.CueLeadTicks);
                 Check.Equal(1, wait.Call.Count); Check.Equal(0, wait.Call[0].OffsetTick);

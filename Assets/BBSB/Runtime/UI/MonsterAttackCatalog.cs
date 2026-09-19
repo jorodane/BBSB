@@ -138,7 +138,16 @@ namespace BBSB.Runtime.UI
                     case "two-bubble-shakes": values.Add(D(MonsterAttackMotion.Lob, MonsterAttackShape.Membrane, MonsterAttackReaction.Push, delay: offset, height: .52, arc: .15)); break;
                     case "counted-flick": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Thread, MonsterAttackReaction.Withdraw, height: .07, rush: 2, stretch: true)); break;
                     case "offbeat-flick": values.Add(D(MonsterAttackMotion.WaitRush, MonsterAttackShape.Thread, MonsterAttackReaction.Withdraw, height: .07, rush: 1, stretch: true)); break;
-                    default: throw new InvalidOperationException("Author the new monster attack's image slots: " + pattern.Id);
+                    default:
+                        // New signatures reuse the species' uploaded projectile art.
+                        var source = values.Find(x => x.MonsterId == monster.Id);
+                        if (source == null) throw new InvalidOperationException("Missing species artwork: " + monster.Id);
+                        bool held = pattern.Pattern.Steps[i].Kind == GestureKind.Hold;
+                        values.Add(new MonsterAttackDefinition(monster.Id, pattern.Id, i,
+                            held ? MonsterAttackMotion.Extend : source.Motion, source.Shape, source.Reaction,
+                            offset: offset, height: source.Height, arc: source.Arc, rush: Math.Min(2, pattern.Pattern.CueLeadTicks),
+                            stretch: held || source.Stretch, grounded: source.Grounded, resourceFolder: source.ResourceFolder));
+                        break;
                 }
             }
             return values.AsReadOnly();

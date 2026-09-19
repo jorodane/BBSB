@@ -15,7 +15,7 @@ namespace BBSB.Tests
         {
             var monster = MonsterCatalog.All.Single(x => x.Id == "clock-spirit");
             foreach (double bpm in new[] { 80.0, 120, 200 })
-                foreach (var pattern in monster.Patterns)
+                foreach (var pattern in monster.Patterns.Take(2))
                 {
                     var preview = new MonsterPreview(monster, pattern, bpm);
                     decimal weight = pattern.SilentWaitTicks > 0 ? 4m : 1m;
@@ -206,14 +206,19 @@ namespace BBSB.Tests
         [Test]
         public void PerfectRoundsKeepTheActiveRunAliveEvenAtOneHealth()
         {
-            RunSession run = null;
-            RhythmRound round = null;
-            for (int seed = 0; seed < 100; seed++)
+            // This tests run-health ownership using a deterministic Tap-only fixture.
+            // The production roster now deliberately mixes Hold into every species.
+            var roster = MonsterCatalog.All;
+            var source = MonsterCatalog.BuiltIn.Single(x => x.Id == "tap-slime");
+            RunSession run;
+            try
             {
-                run = BattleSession(1, seed); round = run.StartRhythmRound();
-                if (round.Notes.Count > 1 && round.Notes.All(x => x.Step.Kind == GestureKind.Tap)) break;
-                run.Abandon();
+                MonsterCatalog.SetRoster(new[] { new MonsterDefinition(source.Id, source.Name, source.Description,
+                    source.MainGesture, source.Patterns.Take(2)) });
+                run = BattleSession(1);
             }
+            finally { MonsterCatalog.SetRoster(roster); }
+            var round = run.StartRhythmRound();
             Check.True(round.Notes.Count > 1 && round.Notes.All(x => x.Step.Kind == GestureKind.Tap));
             var plan = run.BattlePlan;
             for (int performance = 0; performance < 2; performance++)

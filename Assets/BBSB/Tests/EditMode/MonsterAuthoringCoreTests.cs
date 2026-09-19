@@ -101,7 +101,7 @@ namespace BBSB.Tests
             var source = MonsterCatalog.BuiltIn.Single(x => x.Id == "seesaw-goblin");
             MonsterDefinition WithChance(double chance)
             {
-                var patterns = source.Patterns.Select(p => new MonsterPatternDefinition(p.Name, p.Description, p.Pattern, p.Call,
+                var patterns = source.Patterns.Take(2).Select(p => new MonsterPatternDefinition(p.Name, p.Description, p.Pattern, p.Call,
                     p.ResponseTicks, p.RestTicks, p.Pattern.Steps.Count == 2 ? chance : 1, p.CueAlignmentTicks)).ToArray();
                 return new MonsterDefinition(source.Id, source.Name, "", source.MainGesture, patterns,
                     patternPlanner: new BeatShiftPlanner(3, true));

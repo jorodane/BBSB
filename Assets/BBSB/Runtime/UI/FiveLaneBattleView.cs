@@ -146,7 +146,7 @@ namespace BBSB.Runtime.UI
                 hud.laneStatus[i].text = lane.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, lane.ReadyAtBeat - battle.Beat).ToString("0.0") :
                     lane.Phase == PhraseLanePhase.Ready ? "READY" :
                     lane.WaitingForParryRelease ? "HOLD → UP" : lane.Holding ?
-                    "HOLD " + Math.Max(0, lane.NextBeat + lane.Phrase.Notes[lane.NextNote].HoldBeats - battle.Beat).ToString("0.0") :
+                    (lane.SustainingGuard ? "GUARD " : "HOLD ") + Math.Max(0, lane.HoldEndBeat - battle.Beat).ToString("0.0") :
                     "NOTE " + (lane.NextNote + 1) + "/" + lane.Phrase.Notes.Count +
                     (lane.Phrase.FinisherEvery > 0 ? " · " + (lane.CompletedPhrases % lane.Phrase.FinisherEvery + 1) + "/" + lane.Phrase.FinisherEvery : "");
                 hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
@@ -176,9 +176,12 @@ namespace BBSB.Runtime.UI
             {
                 double remaining = double.PositiveInfinity;
                 foreach (var attack in battle.Incoming)
-                    if (attack.Definition.MonsterId == monsterIds[i] && attack.State == IncomingAttackState.Pending &&
-                        attack.Beat - battle.Beat >= -battle.HalfMissWindow && attack.Beat - battle.Beat <= 3)
-                    { remaining = Math.Max(0, attack.Beat - battle.Beat); break; }
+                {
+                    if (attack.Definition.MonsterId != monsterIds[i] || attack.State != IncomingAttackState.Pending) continue;
+                    double cue = attack.Definition.IsHold && attack.Beat <= battle.Beat ? attack.NextImpactBeat : attack.Beat;
+                    if (cue - battle.Beat >= -battle.HalfMissWindow && cue - battle.Beat <= 3)
+                        remaining = Math.Min(remaining, Math.Max(0, cue - battle.Beat));
+                }
                 nearestAttack = Math.Min(nearestAttack, remaining);
                 var frame = FiveLaneArtTimeline.Monster(battle, monsterIds[i]);
                 bool animated = monsters[i].Sample(frame.State, frame.Age, frame.Duration, frame.Loop);
@@ -203,7 +206,7 @@ namespace BBSB.Runtime.UI
         {
             HideModal();
             modal = ui.Modal(parent, "Five lane pause", "일시정지", resume, out var content);
-            ui.Label(content, hud.help.text + "\n단검은 2박마다, 쌍검은 1박마다. 긴 표시는 끝까지 유지.\n빨간 표시가 아래에 닿는 순간 방어해.", 22, null, 100);
+            ui.Label(content, hud.help.text + "\n긴 공격은 0.5박마다 피해. 방어 버튼을 끝까지 유지해.\n중간부터 방어해도 남은 홀드를 막을 수 있어.", 22, null, 100);
             ui.Button(content, "이어하기", resume, primary: true);
             ui.Button(content, "준비 화면으로", leave);
         }

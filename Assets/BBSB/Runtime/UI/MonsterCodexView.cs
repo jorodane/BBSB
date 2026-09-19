@@ -146,7 +146,7 @@ namespace BBSB.Runtime.UI
 
         private void Choice(RectTransform list, MonsterPatternDefinition variant)
         {
-            string name = variant == null ? "평상시" : variant.Name;
+            string name = variant == null ? "평상시" : (variant.IsHook ? "후크 · " : "기본 · ") + variant.Name;
             var button = ui.Button(list, name, () => SelectPattern(variant), height: 100);
             button.gameObject.name = variant == null ? "Codex idle" : "Codex pattern " + variant.Id;
             var label = button.GetComponentInChildren<TextMeshProUGUI>(); label.alignment = TextAlignmentOptions.Left; Fit(label, 18);
@@ -154,6 +154,7 @@ namespace BBSB.Runtime.UI
             var icon = ui.Rect("Pattern icon", button.transform);
             RunUI.Pin(icon, new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(10, 0), new Vector2(76, 76));
             var sprite = variant == null ? Portrait(selected) : sprites.Get(IconRoot + "Patterns", variant.Id) ??
+                sprites.Get(IconRoot + "Patterns", MonsterPatternExpansion.ArtPatternId(selected.Id, variant.Id)) ??
                 sprites.Get(MonsterAttackDefinition.ResourceRoot + selected.Id + "/" + variant.Id + "/step-0", "contact") ?? Portrait(selected);
             SetIcon(icon, sprite, variant == null ? "평" : variant.Pattern.Steps[0].Kind.ToString());
             choices.Add((button.GetComponent<Image>(), variant));

@@ -44,7 +44,7 @@ namespace BBSB.Core
             combined = values.AsReadOnly();
         }
 
-        public static IReadOnlyList<MonsterDefinition> BuiltIn { get; } = Array.AsReadOnly(new[]
+        public static IReadOnlyList<MonsterDefinition> BuiltIn { get; } = MonsterPatternExpansion.Build(new[]
         {
             new MonsterDefinition("tap-slime", "젤리 슬라임 소녀", "둥글고 탄력 있는 실루엣을 가진 명랑한 종족이다.", GestureKind.Tap, new[]
             {

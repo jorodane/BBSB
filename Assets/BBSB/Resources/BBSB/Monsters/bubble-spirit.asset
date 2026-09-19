@@ -343,3 +343,1330 @@ MonoBehaviour:
           m_RotationOrder: 4
     attackState: 
     recoverState: 
+  - id: jellyfish-pulse
+    displayName: 우산막 맥동
+    description: 작은 막 사이에 한 박짜리 촉수 압박이 이어진다.
+    cueLeadTicks: 4
+    responseTicks: 16
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 0
+    participationChance: 0.24
+    calls:
+    - offsetTick: 0
+      label: 우산막 맥동
+      sound: 0
+      motion: 1
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 4
+      durationTicks: 4
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 10
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 10
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: jellyfish-tide
+    displayName: 촉수의 조수
+    description: 두 번의 긴 막 압박 사이로 작은 기포가 반 박 어긋나 도착한다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 촉수의 조수
+      sound: 1
+      motion: 2
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 1
+      motion: 2
+      animatorState: ''
+    steps:
+    - kind: 1
+      offsetTick: 0
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 10
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 10
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 14
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 14
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 16
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 16
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 26
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 26
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 30
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 30
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: jellyfish-bloom
+    displayName: 해파리 개화
+    description: 작은 기포 둘 뒤 네 박 동안 우산막을 펼치고 기포 셋을 남긴다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 해파리 개화
+      sound: 3
+      motion: 3
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 3
+      motion: 3
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 2
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 2
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 4
+      durationTicks: 16
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 22
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 22
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 24
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 24
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 28
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 1
+        shape: 10
+        reaction: 5
+        callIndex: 0
+        spawnOffsetTicks: 28
+        rushTicks: 2
+        height: 0.6
+        arc: 0.15
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/bubble-spirit/one-beat-shake/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''

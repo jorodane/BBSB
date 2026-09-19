@@ -34,6 +34,13 @@ namespace BBSB.Runtime.UI
             // Existing single-Call art can demonstrate newly authored multi-Call rhythms too.
             var call = Get(folder, "call-" + frame.CallIndex, animation) ?? Get(folder, "call-0", animation);
             var attack = Get(folder, "attack", animation); var recover = Get(folder, "recover", animation);
+            if (call == null && attack == null && recover == null)
+            {
+                folder = MonsterAttackDefinition.ResourceRoot + monster.Monster.Id + "/" +
+                    MonsterPatternExpansion.ArtPatternId(monster.Monster.Id, frame.Attack.Pattern.Id) + "/body";
+                call = Get(folder, "call-" + frame.CallIndex, animation) ?? Get(folder, "call-0", animation);
+                attack = Get(folder, "attack", animation); recover = Get(folder, "recover", animation);
+            }
             authoredPose = call != null || attack != null || recover != null;
             Sprite Pose(MonsterBodyPose pose) => pose == MonsterBodyPose.Call ? call ?? idle :
                 pose == MonsterBodyPose.Attack ? attack ?? call ?? idle : pose == MonsterBodyPose.Recover ? recover ?? idle : idle;

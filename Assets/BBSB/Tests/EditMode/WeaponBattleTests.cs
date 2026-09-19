@@ -513,7 +513,7 @@ namespace BBSB.Tests
         public void SiblingPatternsAllUseTheSameEquippedWeaponsAndRemainStableInPractice()
         {
             var stage = Stage(); var monster = MonsterCatalog.All.Single(m => m.Id == "tap-slime");
-            var choices = monster.Patterns.Select((p, i) => stage.FindPlacements(p.Pattern).Single(x => x.StartTick == 16 + i * 32));
+            var choices = monster.Patterns.Take(2).Select((p, i) => stage.FindPlacements(p.Pattern).Single(x => x.StartTick == 16 + i * 32));
             var plan = BattlePlanner.Resolve(stage, new[] { new MonsterProposal("slime", monster, choices) }, 1);
             var loadout = Loadout(plan, "sword", "spear", "hammer", "sword", "spear");
             Check.Equal(2, loadout.Patterns.Count);

@@ -426,3 +426,1162 @@ MonoBehaviour:
           m_RotationOrder: 4
     attackState: 
     recoverState: 
+  - id: lamia-veil-snap
+    displayName: 장막과 꼬리 끝
+    description: 꼬리 끝을 튕긴 뒤 장막으로 압박하고 다시 짧게 친다.
+    cueLeadTicks: 4
+    responseTicks: 16
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 0
+    participationChance: 0.24
+    calls:
+    - offsetTick: 0
+      label: 장막과 꼬리 끝
+      sound: 0
+      motion: 0
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 4
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 2
+        height: 0.22
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 14
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 14
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: lamia-curtain-refrain
+    displayName: 긴 장막 후렴
+    description: 긴 장막 두 번 사이에 꼬리 끝을 두 차례 튕긴다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 긴 장막 후렴
+      sound: 1
+      motion: 1
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 1
+      motion: 1
+      animatorState: ''
+    steps:
+    - kind: 1
+      offsetTick: 0
+      durationTicks: 16
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.22
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 18
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 18
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 22
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 22
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 24
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 24
+        rushTicks: 2
+        height: 0.22
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: lamia-coiling-dance
+    displayName: 감아 도는 춤
+    description: 두 번의 지속 장막을 짧고 긴 꼬리 박자로 잇는다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 감아 도는 춤
+      sound: 2
+      motion: 2
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 2
+      motion: 2
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 4
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 2
+        height: 0.22
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 14
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 14
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 18
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 18
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 20
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 20
+        rushTicks: 2
+        height: 0.22
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-short-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 30
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 0
+        shape: 9
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 30
+        rushTicks: 2
+        height: 0.25
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/diving-ray/ray-deep-dive/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''

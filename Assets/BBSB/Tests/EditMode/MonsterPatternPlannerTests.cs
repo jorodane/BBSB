@@ -230,7 +230,12 @@ namespace BBSB.Tests
         private static MusicStage SplitStage() => Stage(new[] { new MusicSection("INTRO", 0, 1, 1, false),
             new MusicSection("A", 1, 6, 1), new MusicSection("BREAK", 7, 1, 1, false), new MusicSection("B", 8, 8, 1) });
 
-        private static MonsterDefinition Seesaw() => MonsterCatalog.All.Single(x => x.Id == "seesaw-goblin");
+        private static MonsterDefinition Seesaw()
+        {
+            var source = MonsterCatalog.All.Single(x => x.Id == "seesaw-goblin");
+            return new MonsterDefinition(source.Id, source.Name, source.Description, source.MainGesture,
+                source.Patterns.Take(2), patternPlanner: new BeatShiftPlanner());
+        }
         private static PatternChain At(MusicStage stage, MonsterDefinition monster, int call)
             => monster.PatternPlanner.Candidates(stage, monster).Single(x => x.CallStartTick == call);
         private static BattlePlan Resolve(MusicStage stage, MonsterDefinition monster, PatternChain chain)

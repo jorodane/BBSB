@@ -345,3 +345,1582 @@ MonoBehaviour:
           m_RotationOrder: 4
     attackState: 
     recoverState: 
+  - id: neko-tail-embrace
+    displayName: 붙잡는 두 꼬리
+    description: 첫 꼬리 반 박 뒤 다른 꼬리가 한 박 동안 감싼다.
+    cueLeadTicks: 4
+    responseTicks: 12
+    restTicks: 4
+    cueAlignmentTicks: 2
+    silentWaitTicks: 0
+    isHook: 0
+    participationChance: 0.24
+    calls:
+    - offsetTick: 0
+      label: 붙잡는 두 꼬리
+      sound: 1
+      motion: 0
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 2
+      durationTicks: 4
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 2
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 8
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 8
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: neko-crossed-ribbon
+    displayName: 엇갈린 꼬리춤
+    description: 반 박 꼬리와 긴 감싸기를 번갈아 정박과 엇박으로 보낸다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 2
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 엇갈린 꼬리춤
+      sound: 2
+      motion: 2
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 2
+      motion: 2
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 2
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 2
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 4
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 14
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 14
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 18
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 18
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 20
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 20
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 30
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 30
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: neko-rush-and-wrap
+    displayName: 먼저 달려 감싸기
+    description: 정박 달리기에서 반 박을 당긴 뒤 긴 감싸기와 엇박 꼬리로 마친다.
+    cueLeadTicks: 16
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 2
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 먼저 달려 감싸기
+      sound: 4
+      motion: 3
+      animatorState: ''
+    - offsetTick: 12
+      label: 이어서!
+      sound: 4
+      motion: 3
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 4
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 8
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 8
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 10
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 10
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 12
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 12
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 22
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 22
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 26
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 26
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 30
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 6
+        reaction: 4
+        callIndex: 0
+        spawnOffsetTicks: 30
+        rushTicks: 1
+        height: 0.14
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/seesaw-goblin/seesaw-steady-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''

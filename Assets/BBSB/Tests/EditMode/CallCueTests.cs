@@ -128,7 +128,7 @@ namespace BBSB.Tests
         {
             var monster = MonsterCatalog.All.Single(x => x.Id == "iron-turtle");
             var stage = MusicStage.Generate(MusicCatalog.All.Single(x => x.Id == "steady-pulse"));
-            foreach (var pattern in monster.Patterns)
+            foreach (var pattern in monster.Patterns.Take(2))
             {
                 var placement = stage.FindPlacements(pattern.Pattern).First(x => x.StartTick >= 32);
                 var plan = BattlePlanner.Resolve(stage,

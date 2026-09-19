@@ -350,3 +350,1246 @@ MonoBehaviour:
           m_RotationOrder: 4
     attackState: 
     recoverState: 
+  - id: foxfire-lingering
+    displayName: 남아 있는 불씨
+    description: 엇박의 불씨가 잠시 머무른 뒤 꼬리불이 뒤따른다.
+    cueLeadTicks: 6
+    responseTicks: 16
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 0
+    participationChance: 0.24
+    calls:
+    - offsetTick: 0
+      label: 남아 있는 불씨
+      sound: 1
+      motion: 2
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 4
+      durationTicks: 4
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 10
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 10
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: foxfire-procession
+    displayName: 여우불 행렬
+    description: 엇박 불씨 세 발 뒤 긴 불길을 끌고 마지막 꼬리를 튕긴다.
+    cueLeadTicks: 10
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 여우불 행렬
+      sound: 3
+      motion: 3
+      animatorState: ''
+    - offsetTick: 6
+      label: 이어서!
+      sound: 3
+      motion: 3
+      animatorState: ''
+    steps:
+    - kind: 0
+      offsetTick: 0
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 4
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 4
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 10
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 10
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 14
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 14
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 26
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 26
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 30
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 30
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''
+  - id: foxfire-coiling
+    displayName: 꼬리를 감는 불길
+    description: 두 차례의 지속 불길 사이에서 짧은 불씨가 박자를 비튼다.
+    cueLeadTicks: 10
+    responseTicks: 32
+    restTicks: 4
+    cueAlignmentTicks: 4
+    silentWaitTicks: 0
+    isHook: 1
+    participationChance: 0.13
+    calls:
+    - offsetTick: 0
+      label: 꼬리를 감는 불길
+      sound: 4
+      motion: 4
+      animatorState: ''
+    - offsetTick: 6
+      label: 이어서!
+      sound: 4
+      motion: 4
+      animatorState: ''
+    steps:
+    - kind: 1
+      offsetTick: 0
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 0
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 10
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 10
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 14
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 14
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 1
+      offsetTick: 18
+      durationTicks: 8
+      attack:
+        enabled: 1
+        motion: 5
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 18
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 1
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    - kind: 0
+      offsetTick: 30
+      durationTicks: 0
+      attack:
+        enabled: 1
+        motion: 3
+        shape: 3
+        reaction: 3
+        callIndex: 0
+        spawnOffsetTicks: 30
+        rushTicks: 1
+        height: 0.3
+        arc: 0.18
+        stretch: 0
+        grounded: 0
+        landsAfterMiss: 0
+        resourceFolder: BBSB/BattleArt/MonsterAttacks/offbeat-goblin/offbeat-single-tap/step-0
+        overrideDisplay: 0
+        display:
+          monsterId: null
+          patternId: null
+          stepIndex: 0
+          scale: 1
+          sourceOffset:
+            x: 0
+            y: 0
+          targetOffset:
+            x: 0
+            y: 0
+          imageOffset:
+            x: 0
+            y: 0
+          framesPerBeat: 2
+          poses: []
+        images: []
+        customTrajectory: 0
+        progressCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        heightCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+    attackState: ''
+    recoverState: ''

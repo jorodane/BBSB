@@ -91,26 +91,30 @@ namespace BBSB.Core
             var beatGrid = BeatGrid(stage);
             var random = new SeededRandom(tieSeed);
             var withdrawals = new List<PlanWithdrawal>();
-            while (true)
+            // Removing a phrase never changes whether two surviving phrases conflict.
+            // Compute those pairs once; retain the original scan order for equal ticks.
+            var conflicts = new List<(int leftOwner, int rightOwner, PlannedAttack left, PlannedAttack right, int tick, int order)>();
+            for (int a = 0; a < active.Count; a++) for (int b = a; b < active.Count; b++)
+                for (int x = 0; x < active[a].Count; x++) for (int y = a == b ? x + 1 : 0; y < active[b].Count; y++)
+                    if (Conflicts(active[a][x], active[b][y], out int tick, callOverlapTicks))
+                        conflicts.Add((a, b, active[a][x], active[b][y], tick, conflicts.Count));
+            conflicts.Sort((a, b) => a.tick != b.tick ? a.tick.CompareTo(b.tick) : a.order.CompareTo(b.order));
+            var retired = new HashSet<PlannedAttack>();
+            foreach (var conflict in conflicts)
             {
-                // Resolve the earliest gesture or physical conflict; stable instance ordering breaks search ties.
-                int firstOwner = -1, secondOwner = -1, firstAttack = -1, secondAttack = -1, earliest = int.MaxValue;
-                for (int a = 0; a < active.Count; a++) for (int b = a; b < active.Count; b++)
-                    for (int x = 0; x < active[a].Count; x++) for (int y = a == b ? x + 1 : 0; y < active[b].Count; y++)
-                        if (Conflicts(active[a][x], active[b][y], out int tick, callOverlapTicks) && tick < earliest)
-                        { firstOwner = a; secondOwner = b; firstAttack = x; secondAttack = y; earliest = tick; }
-                if (firstOwner < 0) break;
+                if (retired.Contains(conflict.left) || retired.Contains(conflict.right)) continue;
+                int firstOwner = conflict.leftOwner, secondOwner = conflict.rightOwner;
                 int leftCount = CountOccupied(active[firstOwner], beatGrid), rightCount = CountOccupied(active[secondOwner], beatGrid);
                 bool leftYields = leftCount == rightCount ? random.Next(2) == 0 : leftCount > rightCount;
                 int loser = leftYields ? firstOwner : secondOwner, winner = leftYields ? secondOwner : firstOwner;
-                int index = leftYields ? firstAttack : secondAttack;
-                var lost = active[loser][index];
+                var lost = leftYields ? conflict.left : conflict.right;
                 var removed = lost.Chain == null ? new List<PlannedAttack> { lost } : active[loser].FindAll(x => ReferenceEquals(x.Chain, lost.Chain));
                 foreach (var attack in removed)
                 {
-                    withdrawals.Add(new PlanWithdrawal(attack, proposals[winner].InstanceId, earliest,
+                    withdrawals.Add(new PlanWithdrawal(attack, proposals[winner].InstanceId, conflict.tick,
                         leftYields ? leftCount : rightCount, leftYields ? rightCount : leftCount));
                     active[loser].Remove(attack); // Dependent phase changes and their following Calls leave together.
+                    retired.Add(attack);
                 }
             }
             var monsters = new List<MonsterPlan>();
