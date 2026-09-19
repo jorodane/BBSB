@@ -43,6 +43,8 @@ MonoBehaviour:
     prefab: {fileID: 946684874844241066, guid: 7470a2572d1905c479f8184e7ce753a4, type: 3}
   - kind: 14
     prefab: {fileID: 3587117017787403064, guid: 12c01a6f493740248b97fddd848cb4c2, type: 3}
+  - kind: 15
+    prefab: {fileID: 2269289956848764376, guid: ea01f9af78eb89a4eb744a2741673fb1, type: 3}
   primaryButton: {fileID: 3625300302461289364, guid: b5102f7fd0078794ea0fa4bc50d1bda2, type: 3}
   secondaryButton: {fileID: 536689857977213319, guid: 12ea5c9aaa6397142ab86a5f441b8929, type: 3}
   titleText: {fileID: 3927215030107482051, guid: 8dd4e979b09d90e4c8a353bec0e156a3, type: 3}
