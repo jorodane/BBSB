@@ -6,6 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../../Assets/BBSB/Runtime/AssemblyInfo.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/SteppedNoteTrack.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/FiveLaneNoteTimeline.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/FiveLaneArtTimeline.cs" />
