@@ -56,7 +56,7 @@ namespace BBSB.Runtime.UI
                     Line(vh, p - Vector2.right * halfWidth, p + Vector2.right * halfWidth,
                         wholeBeat ? 3 : 1, new Color(.8f, .9f, 1, wholeBeat ? .6f : .18f));
                 }
-                float beatPulse = battle.Beat % 1 < .15 ? 1 - (float)(battle.Beat % 1 / .15) : 0;
+                float beatPulse = (float)SteppedNoteTrack.BeatPulse(battle.Beat, battle.Bpm);
                 Ring(vh, near, new Vector2(36 + 4 * beatPulse, 10 + 3 * beatPulse),
                     lane.Phase == PhraseLanePhase.Cooldown ? RunUI.Muted : Color.Lerp(laneColor, Color.white, beatPulse * .6f));
                 if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
@@ -109,7 +109,7 @@ namespace BBSB.Runtime.UI
                 if (SpriteProjectiles != null && SpriteProjectiles.Contains(attack.Definition.MonsterId)) continue;
                 double delta = attack.Beat - battle.Beat;
                 if (delta > 1 || attack.EndBeat - battle.Beat < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
-                float t = (float)SteppedNoteTrack.ImpactProgress(attack.Beat, battle.Beat);
+                float t = (float)SteppedNoteTrack.ImpactProgress(attack.Beat, battle.Beat, battle.Bpm);
                 var p = Vector2.Lerp(source, target, t);
                 Color tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
                 Line(vh, p, p + (source - target).normalized * 23, 5, tint);
@@ -117,7 +117,7 @@ namespace BBSB.Runtime.UI
             }
         }
         private Vector2 Position(int slot, double at) => Point(slot,
-            (float)(SteppedNoteTrack.Distance(at, battle.Beat) / LookAheadBeats));
+            (float)(SteppedNoteTrack.Distance(at, battle.Beat, battle.Bpm) / LookAheadBeats));
         private Vector2 Point(int slot, float distance)
         {
             Vector2 near = targets != null && slot < targets.Length && targets[slot] != null ?

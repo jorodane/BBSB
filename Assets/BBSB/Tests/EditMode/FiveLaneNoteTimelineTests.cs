@@ -74,6 +74,16 @@ namespace BBSB.Tests
             b.Resume(); b.Advance(.75); timeline.Refresh(b); Check.Equal(.5, shard.Progress(b.Beat));
             b.Advance(1); timeline.Refresh(b); Check.Equal(0, timeline.Broken.Count);
         }
+        [Test] public void ShatteredNotesKeepTheirPositionAtTheActualSongTempo()
+        {
+            var b = new FiveLaneBattle(new[] { new WeaponState("bow") }, 60, 32,
+                Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100);
+            b.Press(0, 0); var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
+            b.Release(0, .85); timeline.Refresh(b);
+            var shard = timeline.Broken.Single(note => note.Note.Beat == 2);
+            Check.Equal(SteppedNoteTrack.Distance(2, .85, 60), shard.HeadDistance);
+            Check.True(Math.Abs(shard.HeadDistance - SteppedNoteTrack.Distance(2, .85, 120)) > .1);
+        }
         [Test] public void FailedDualSwordsBreakFutureRepeatsWithoutMakingGhostsPlayable()
         {
             var b = Battle("dual-swords"); Tap(b, 0);
