@@ -45,11 +45,11 @@ namespace BBSB.Runtime.UI
         public double HeadDistance { get; }
         public double TailDistance { get; }
         public bool TailVisible { get; }
-        internal BrokenTrackNote(TrackNote note, double beat, double bpm)
+        internal BrokenTrackNote(TrackNote note, double beat)
         {
             Note = note; BrokenAt = beat;
-            HeadDistance = SteppedNoteTrack.Distance(note.Beat, beat, bpm);
-            TailDistance = SteppedNoteTrack.Distance(note.EndBeat, beat, bpm);
+            HeadDistance = SteppedNoteTrack.Distance(note.Beat, beat);
+            TailDistance = SteppedNoteTrack.Distance(note.EndBeat, beat);
             TailVisible = SteppedNoteTrack.InHorizon(note.EndBeat - beat);
         }
         public double Progress(double beat) => Math.Max(0, Math.Min(1, (beat - BrokenAt) / LifetimeBeats));
@@ -109,7 +109,7 @@ namespace BBSB.Runtime.UI
                 // Only notes the player could actually see become fragments. A preview
                 // promoted to a live note keeps its identity and does not burst.
                 if (broken.Count == MaxNotesPerLane * RunRules.WeaponSlots) broken.RemoveAt(0);
-                broken.Add(new BrokenTrackNote(old, battle.Beat, battle.Bpm));
+                broken.Add(new BrokenTrackNote(old, battle.Beat));
             }
         }
 
