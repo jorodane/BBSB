@@ -23,7 +23,7 @@ namespace BBSB.Runtime
             public string key, weaponId;
             public WeaponAttribute attribute;
             public bool equipped = true;
-            [Tooltip("Leftmost physical line: D=0, F=1, Space=2, J=3, K=4. S/L remain locked at run start.")]
+            [Tooltip("Leftmost physical line: S=-1, D=0, F=1, Space=2, J=3, K=4, L=5. All are available at run start; S/L require multi-line weapons.")]
             public int defaultOffset;
         }
         public RunCharacterDefinition BuildCharacter()

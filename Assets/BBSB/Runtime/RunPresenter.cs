@@ -563,12 +563,14 @@ namespace BBSB.Runtime
 
         private void DrawRewards()
         {
-            Heading("STAGE CLEAR", "다음 박자를 위한 보상", "전투 골드를 획득했어. 아래 보상 중 하나를 선택해.");
-            if (Session.UsesFiveLaneCombat)
+            bool bossWeapon = Session.IsBossWeaponReward;
+            Heading(bossWeapon ? "BOSS CLEAR" : "STAGE CLEAR", bossWeapon ? "다음 합주에 더할 무기" : "다음 박자를 위한 보상",
+                bossWeapon ? "무기 3개 중 하나를 골라줘. 선택한 무기와 함께 다음 필드로 이어가." : "전투 골드를 획득했어. 아래 보상 중 하나를 선택해.");
+            if (bossWeapon)
                 ui.Label(body, (Session.EquipmentCapacityIncreased ? "장착 한도 +1  ·  " : "장착 한도  ·  ") +
                     Session.Equipment.Capacity + "개\n획득한 무기는 가방에 보관돼. 원하는 만큼만 편성해.", 24, RunUI.Teal, 84);
             DrawOffers(false);
-            ui.Button(body, "보상 건너뛰기", () => { if (Session.SkipReward()) Render(); });
+            if (!bossWeapon) ui.Button(body, "보상 건너뛰기", () => { if (Session.SkipReward()) Render(); });
         }
 
         private void DrawOffers(bool shop)
@@ -591,6 +593,7 @@ namespace BBSB.Runtime
 
         private void PickOffer(int index)
         {
+            if (index < 0 || index >= Session.Offers.Count) return;
             if (!Session.UsesFiveLaneCombat && Session.Offers[index].Content.Kind == RewardKind.Weapon && Session.Weapons.Count >= RunRules.WeaponSlots)
             { pendingOffer = index; notice = ""; Render(); return; }
             GrantOffer(index, -1);
@@ -598,6 +601,7 @@ namespace BBSB.Runtime
 
         private void GrantOffer(int index, int slot)
         {
+            if (index < 0 || index >= Session.Offers.Count) return;
             var selected = Session.Offers[index];
             string name = (selected.Content.Kind == RewardKind.Weapon && Session.UsesFiveLaneCombat ? WeaponAttributes.Name(selected.Attribute) + " " : "") + selected.Content.Name;
             bool success = Session.Phase == RunPhase.Reward ? Session.ChooseReward(index, slot) : Session.Buy(index, slot);
@@ -654,6 +658,11 @@ namespace BBSB.Runtime
             var card = ui.Card(body);
             ui.Label(card, Session.Map.Theme.Name + " · FIELD " + Session.Map.Number.ToString("00") + "  COMPLETE", 36, RunUI.Gold, 120);
             ui.Label(card, "새로운 갈림길이 기다리고 있어.", 26, RunUI.Teal, 85);
+            if (Session.UsesFiveLaneCombat)
+            {
+                ui.Label(card, "새 무기는 가방에 있어. 편성을 확인하고 다음 필드로 출발해.", 24, RunUI.Muted, 64);
+                ui.Button(card, "무기 편성", () => OpenMenu(MenuPage.Inventory), height: 72);
+            }
             ui.Button(card, "다음 필드로", () => { if (Session.AdvanceField()) { notice = ""; Render(); } }, primary: true, height: 82);
         }
 

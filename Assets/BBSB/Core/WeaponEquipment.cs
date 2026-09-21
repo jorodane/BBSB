@@ -62,7 +62,7 @@ namespace BBSB.Core
         internal WeaponEquipment()
         { Owned = owned.AsReadOnly(); Equipped = equipped.AsReadOnly(); Placements = placements.AsReadOnly(); Reset(); }
         internal void Reset()
-        { owned.Clear(); equipped.Clear(); placements.Clear(); Capacity = 2; Extensions = InputExtensions.None; }
+        { owned.Clear(); equipped.Clear(); placements.Clear(); Capacity = 2; Extensions = InputExtensions.All; }
         internal void Unlock(InputExtensions extensions)
         { BattleInputLayout.Validate(extensions); Extensions |= extensions; }
         internal void Acquire(WeaponState weapon)

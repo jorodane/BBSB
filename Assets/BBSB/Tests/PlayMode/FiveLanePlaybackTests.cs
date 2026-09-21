@@ -131,7 +131,7 @@ namespace BBSB.Tests
             yield return OpenPreparation();
             var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
             run.Equipment.Acquire(new WeaponState("greatsword", WeaponRarity.Common, requiredLanes: 2));
-            Assert.IsTrue(run.UnequipWeapon(0)); Assert.IsTrue(run.UnlockInputExtensions(InputExtensions.Right));
+            Assert.IsTrue(run.UnequipWeapon(0)); Assert.AreEqual(InputExtensions.All, run.Equipment.Extensions);
             Assert.IsTrue(run.EquipWeaponAtCenter(2, 4.5)); Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
             var playback = root.GetComponentInChildren<FiveLanePlayback>();
             var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();

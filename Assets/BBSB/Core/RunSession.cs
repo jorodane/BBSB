@@ -39,6 +39,7 @@ namespace BBSB.Core
         public WeaponLoadout BattleLoadout { get; private set; }
         public RhythmRound ActiveRhythmRound { get; private set; }
         public bool ServiceClaimed => claimedService;
+        public bool IsBossWeaponReward => UsesFiveLaneCombat && Phase == RunPhase.Reward && CurrentNode?.Kind == StageKind.Boss;
         private readonly IReadOnlyList<WeaponState> legacyWeapons;
         public IReadOnlyList<WeaponState> Weapons => UsesFiveLaneCombat ? Equipment.Equipped : legacyWeapons;
         public IReadOnlyList<WeaponState> OwnedWeapons => UsesFiveLaneCombat ? Equipment.Owned : Weapons;
@@ -199,7 +200,7 @@ namespace BBSB.Core
             Equipment.Unequip(OwnedWeapons[inventoryIndex]);
         public bool SwapWeapons(int first, int second) => CanEditEquipment && ValidOwned(first) && ValidOwned(second) &&
             Equipment.Swap(OwnedWeapons[first], OwnedWeapons[second]);
-        // Future progression can call this without turning S/L into ordinary equipment slots.
+        // Compatibility for authored callers; standard runs already have both sides available.
         public bool UnlockInputExtensions(InputExtensions extensions)
         {
             if (!CanEditEquipment) return false;
@@ -223,7 +224,7 @@ namespace BBSB.Core
 
         public bool SkipReward()
         {
-            if (Phase != RunPhase.Reward) return false;
+            if (Phase != RunPhase.Reward || IsBossWeaponReward) return false;
             FinishReward(); return true;
         }
 
@@ -269,14 +270,42 @@ namespace BBSB.Core
         private void GenerateOffers(bool shop)
         {
             offers.Clear();
+            if (UsesFiveLaneCombat && !shop && CurrentNode.Kind == StageKind.Boss)
+            {
+                // Prefer new weapon types so each boss introduces another instrument.
+                // Three distinct types remain available even after the whole catalog is owned.
+                var ownedIds = new HashSet<string>();
+                foreach (var weapon in Equipment.Owned) ownedIds.Add(weapon.DefinitionId);
+                var pool = new List<string>();
+                foreach (var weapon in WeaponCatalog.All)
+                    if (!ownedIds.Contains(weapon.Id)) pool.Add(weapon.Id);
+                if (pool.Count < 3)
+                {
+                    var fallback = new List<string>();
+                    foreach (var weapon in WeaponCatalog.All)
+                        if (ownedIds.Contains(weapon.Id)) fallback.Add(weapon.Id);
+                    rewardRandom.Shuffle(fallback);
+                    foreach (string id in fallback)
+                    { if (pool.Count == 3) break; pool.Add(id); }
+                }
+                rewardRandom.Shuffle(pool);
+                for (int i = 0; i < 3; i++) AddOffer(ContentCatalog.Find(pool[i]), false);
+                return;
+            }
             foreach (RewardKind kind in Enum.GetValues(typeof(RewardKind)))
             {
-                var content = ContentCatalog.Pick(kind, rewardRandom);
-                var rarity = kind == RewardKind.Weapon ? WeaponRarities.Roll(rewardRandom) : WeaponRarity.Common;
-                var attribute = kind == RewardKind.Weapon ?
-                    (UsesFiveLaneCombat ? WeaponAttributes.Roll(content.Id, rewardRandom) : WeaponCatalog.Find(content.Id).DefaultAttribute) : WeaponAttribute.Light;
-                offers.Add(new Offer(content, shop ? DiscountedPrice(content) : 0, rarity, attribute));
+                if (UsesFiveLaneCombat && kind == RewardKind.Weapon) continue;
+                AddOffer(ContentCatalog.Pick(kind, rewardRandom), shop);
             }
+        }
+
+        private void AddOffer(ContentDefinition content, bool shop)
+        {
+            bool weapon = content.Kind == RewardKind.Weapon;
+            var rarity = weapon ? WeaponRarities.Roll(rewardRandom) : WeaponRarity.Common;
+            var attribute = weapon ?
+                (UsesFiveLaneCombat ? WeaponAttributes.Roll(content.Id, rewardRandom) : WeaponCatalog.Find(content.Id).DefaultAttribute) : WeaponAttribute.Light;
+            offers.Add(new Offer(content, shop ? DiscountedPrice(content) : 0, rarity, attribute));
         }
 
         private int DiscountedPrice(ContentDefinition content)
@@ -289,7 +318,10 @@ namespace BBSB.Core
             {
                 case RewardKind.Weapon:
                     if (UsesFiveLaneCombat)
-                    { Equipment.Acquire(new WeaponState(content.Id, offer.Rarity, attribute: offer.Attribute)); break; }
+                    {
+                        if (!IsBossWeaponReward) return false;
+                        Equipment.Acquire(new WeaponState(content.Id, offer.Rarity, attribute: offer.Attribute)); break;
+                    }
                     if (slot == -1 && weapons.Count < RunRules.WeaponSlots)
                     { weapons.Add(new WeaponState(content.Id, offer.Rarity, attribute: offer.Attribute)); break; }
                     if (!ValidSlot(slot)) return false;

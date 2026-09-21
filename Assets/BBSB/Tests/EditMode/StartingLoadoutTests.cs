@@ -26,7 +26,7 @@ namespace BBSB.Tests
             run.UnlockInputExtensions(InputExtensions.Left | InputExtensions.Right); run.EquipWeaponAtCenter(0, 3);
             run.Abandon(); run.Restart(22);
             Check.Equal(2, run.OwnedWeapons.Count); Check.Equal(2, run.Equipment.Capacity);
-            Check.Equal(InputExtensions.None, run.Equipment.Extensions);
+            Check.Equal(InputExtensions.All, run.Equipment.Extensions);
             Check.Equal(0, run.Equipment.At(2).Weapon.Level);
             Check.False(ReferenceEquals(firstItem, run.Equipment.At(2).Weapon));
             Check.Equal(0, run.ClearedStages); Check.Equal(100m, run.Health); Check.Equal(60, run.Gold);
@@ -64,7 +64,7 @@ namespace BBSB.Tests
             Check.Equal(0, run.Equipment.At(3).OffsetOf(3)); Check.Equal(1, run.Equipment.At(4).OffsetOf(4));
             Check.Equal("spirit-bell", run.Equipment.At(2).Weapon.DefinitionId);
         }
-        [Test] public void InvalidSavedPositionsCannotUnlockLinesOrOverwriteAnotherBinding()
+        [Test] public void InvalidSingleLineSavedPositionsCannotUseEdgesOrOverwriteAnotherBinding()
         {
             foreach (int invalid in new[] { -1, 5, int.MinValue, int.MaxValue, 4 })
             {
@@ -73,7 +73,7 @@ namespace BBSB.Tests
                 var draft = new StartingLoadout(RunCharacterDefinition.Default, preset);
                 Check.Equal("dagger", draft.Equipment.At(4).Weapon.DefinitionId);
                 Check.Equal("heater-shield", draft.Equipment.At(1).Weapon.DefinitionId);
-                Check.Equal(InputExtensions.None, draft.Equipment.Extensions);
+                Check.Equal(InputExtensions.All, draft.Equipment.Extensions);
                 Check.Equal(2, draft.Equipment.Equipped.Count);
             }
         }
@@ -104,12 +104,12 @@ namespace BBSB.Tests
         }
         [Test] public void CharacterDefinitionsRejectAmbiguousKeysAndInvalidDefaultFootprints()
         {
-            bool duplicate = false, locked = false;
+            bool duplicate = false, outside = false;
             try { new RunCharacterDefinition("bad", new[] { new StartingWeaponDefinition("same", "dagger", 0), new StartingWeaponDefinition("same", "bow", 1) }); }
             catch (ArgumentException) { duplicate = true; }
-            try { new RunCharacterDefinition("bad", new[] { new StartingWeaponDefinition("staff", "staff", 4) }); }
-            catch (ArgumentException) { locked = true; }
-            Check.True(duplicate && locked);
+            try { new RunCharacterDefinition("bad", new[] { new StartingWeaponDefinition("staff", "staff", 5) }); }
+            catch (ArgumentException) { outside = true; }
+            Check.True(duplicate && outside);
         }
     }
 }

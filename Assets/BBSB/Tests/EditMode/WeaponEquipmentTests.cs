@@ -116,18 +116,16 @@ namespace BBSB.Tests
             bool rejected = false; try { new WeaponPlacement(Multi(), 0, 4); } catch (ArgumentException) { rejected = true; }
             Check.True(rejected);
         }
-        [Test] public void LockedExtensionsAndOutOfBoundsDropsNeverDisplaceExistingBindings()
+        [Test] public void BothEdgeLinesAreAvailableImmediatelyAndOutOfBoundsDropsPreserveBindings()
         {
             var run = new RunSession(31, useFiveLaneCombat: true); var wide = Multi(); run.Equipment.Acquire(wide);
             Check.True(run.EquipWeapon(1, 4)); var before = run.Equipment.At(4);
-            Check.False(run.EquipWeaponAtCenter(2, 4.5)); Check.True(ReferenceEquals(before, run.Equipment.At(4)));
-            Check.False(run.EquipWeaponAtCenter(2, -.5)); Check.Equal(2, run.Weapons.Count);
             foreach (double center in new[] { -2, 6, double.NaN, double.PositiveInfinity, double.MaxValue })
             { Check.False(run.EquipWeaponAtCenter(2, center)); Check.True(ReferenceEquals(before, run.Equipment.At(4))); }
-            Check.True(run.UnlockInputExtensions(InputExtensions.Right));
-            Check.False(run.EquipWeaponAtCenter(2, -.5)); // Right unlock cannot open S.
             Check.True(run.EquipWeaponAtCenter(2, 4.5)); Check.Equal(2, run.Weapons.Count);
             Check.True(ReferenceEquals(wide, run.Equipment.At(4).Weapon)); Check.True(run.Equipment.PlacementOf(run.OwnedWeapons[1]) == null);
+            Check.True(run.EquipWeaponAtCenter(2, -.5)); Check.True(ReferenceEquals(wide, run.Equipment.At(BattleInputLayout.Left).Weapon));
+            Check.Equal(InputExtensions.All, run.Equipment.Extensions);
         }
         [Test] public void ExtensionsNeverAcceptSingleLineItemsEvenWhenBothAreUnlocked()
         {
@@ -153,10 +151,11 @@ namespace BBSB.Tests
                     if (node.Kind == StageKind.Boss) bosses++;
                     Check.Equal(Math.Min(5, 2 + bosses), run.Equipment.Capacity);
                     Check.Equal(node.Kind == StageKind.Boss && before < 5, run.EquipmentCapacityIncreased);
-                    Check.False(run.ResolveBattle(ticket, true, 100)); Check.True(run.SkipReward());
+                    Check.False(run.ResolveBattle(ticket, true, 100));
+                    Check.True(run.IsBossWeaponReward ? run.ChooseReward(0) : run.SkipReward());
                 }
                 else { Check.True(run.LeaveService()); Check.Equal(before, run.Equipment.Capacity); }
-                Check.Equal(2, run.Weapons.Count); Check.Equal(InputExtensions.None, run.Equipment.Extensions);
+                Check.Equal(2, run.Weapons.Count); Check.Equal(InputExtensions.All, run.Equipment.Extensions);
             }
             Check.Equal(5, bosses); Check.Equal(5, run.Equipment.Capacity);
             run.Restart(31); Check.Equal(2, run.Equipment.Capacity);
@@ -243,7 +242,7 @@ namespace BBSB.Tests
             run.Abandon(); Check.Equal(0, run.OwnedWeapons.Count); Check.Equal(0, run.Equipment.Placements.Count);
             run.Restart(31); Check.Equal(2, run.OwnedWeapons.Count); Check.False(run.OwnedWeapons.Contains(extra));
         }
-        [Test] public void ShopAcquisitionAndUnequippedUpgradesDoNotRequireOrChangeBindings()
+        [Test] public void ShopItemsAndUnequippedUpgradesDoNotRequireOrChangeBindings()
         {
             var run = new RunSession(31, new RunRules(startingGold: 10000), useFiveLaneCombat: true);
             bool bought = false, upgraded = false;
@@ -253,15 +252,17 @@ namespace BBSB.Tests
                 var node = run.Map.Nodes.Where(n => run.CanEnter(n.Id))
                     .OrderByDescending(n => !bought && n.Kind == StageKind.Shop || !upgraded && n.Kind == StageKind.Upgrade).First();
                 Check.True(run.Enter(node.Id));
-                if (node.IsBattle) { run.ResolveBattle(run.StageTicket, true, 100); run.SkipReward(); continue; }
+                if (node.IsBattle) { run.ResolveBattle(run.StageTicket, true, 100);
+                    Check.True(run.IsBossWeaponReward ? run.ChooseReward(0) : run.SkipReward()); continue; }
                 if (node.Kind == StageKind.Shop && !bought)
                 {
                     int count = run.OwnedWeapons.Count, gold = run.Gold;
                     var bindings = run.Equipment.Placements.ToArray();
-                    int index = run.Offers.ToList().FindIndex(o => o.Content.Kind == RewardKind.Weapon);
-                    int price = run.Offers[index].Price; var attribute = run.Offers[index].Attribute;
-                    Check.True(run.Buy(index)); Check.Equal(count + 1, run.OwnedWeapons.Count);
-                    Check.Equal(attribute, run.OwnedWeapons[count].Attribute);
+                    int index = run.Offers.ToList().FindIndex(o => o.Content.Kind == RewardKind.Item);
+                    int price = run.Offers[index].Price, itemCount = run.Items.Count;
+                    Check.True(run.Offers.All(o => o.Content.Kind != RewardKind.Weapon));
+                    Check.True(run.Buy(index)); Check.Equal(count, run.OwnedWeapons.Count);
+                    Check.Equal(itemCount + 1, run.Items.Count);
                     Check.Equal(gold - price, run.Gold); Check.False(run.Buy(index));
                     Check.True(bindings.SequenceEqual(run.Equipment.Placements)); bought = true;
                 }

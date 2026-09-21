@@ -60,7 +60,7 @@ namespace BBSB.Tests
             Assert.IsNull(run.Equipment.PlacementOf(first)); Assert.IsNull(run.Equipment.PlacementOf(second));
             LogAssert.NoUnexpectedReceived();
         }
-        [UnityTest] public IEnumerator LockedKlDropIsCanceledThenUnlockedKlUsesTheSameCenteredPlacement()
+        [UnityTest] public IEnumerator OutOfBoundsDropIsCanceledAndKlIsAvailableFromTheStart()
         {
             yield return OpenInventory();
             var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
@@ -68,10 +68,10 @@ namespace BBSB.Tests
             Assert.IsTrue(run.UnequipWeapon(0)); Assert.IsTrue(run.EquipWeaponAtCenter(2, 3.5));
             presenter.SendMessage("Render"); yield return null; Canvas.ForceUpdateCanvases();
             var board = root.GetComponentInChildren<EquipmentPlacementView>(); var before = run.Equipment.PlacementOf(wide);
-            var data = new PointerEventData(EventSystem.current) { pointerId = 8, button = PointerEventData.InputButton.Left, position = At(board, 4.5) };
+            var data = new PointerEventData(EventSystem.current) { pointerId = 8, button = PointerEventData.InputButton.Left, position = At(board, 5.5) };
             board.BeginWeaponDrag(2, data); Assert.IsFalse(board.PreviewValid); board.EndWeaponDrag(data);
             Assert.AreSame(before, run.Equipment.PlacementOf(wide));
-            Assert.IsTrue(run.UnlockInputExtensions(InputExtensions.Right));
+            Assert.AreEqual(InputExtensions.All, run.Equipment.Extensions);
             presenter.SendMessage("Render"); yield return null; Canvas.ForceUpdateCanvases();
             board = root.GetComponentInChildren<EquipmentPlacementView>(); data.position = At(board, 4.5);
             board.BeginWeaponDrag(2, data); Assert.IsTrue(board.PreviewValid); CollectionAssert.AreEqual(new[] { 4, 6 }, board.Preview.Slots);
@@ -152,7 +152,7 @@ namespace BBSB.Tests
                 Assert.LessOrEqual(hint.rectTransform.rect.height, 56); Assert.AreEqual(2, hint.maxVisibleLines);
                 Assert.AreEqual(TextOverflowModes.Ellipsis, hint.overflowMode);
             }
-            Assert.AreEqual("2박 간격 · 성공 시 반복",
+            StringAssert.Contains("8박 연주",
                 cards[0].GetComponentsInChildren<TMP_Text>().Single(t => t.name == "Weapon short description").text);
             var scroll = inventory.GetComponentInParent<ScrollRect>();
             Assert.Greater(scroll.content.rect.height, scroll.viewport.rect.height);

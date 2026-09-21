@@ -82,7 +82,7 @@ namespace BBSB.Core
             {
                 var starter = character.StartingWeapons[i];
                 if (!starter.DefaultOffset.HasValue || TryFreePlacement(equipment, equipment.Owned[i], starter.DefaultOffset.Value)) continue;
-                for (int offset = 0; offset < BattleInputLayout.MainLaneCount; offset++)
+                for (int offset = -1; offset <= BattleInputLayout.MainLaneCount; offset++)
                     if (TryFreePlacement(equipment, equipment.Owned[i], offset)) break;
             }
         }

@@ -26,6 +26,40 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator BossWeaponChoiceHasThreeCardsThenOffersEquipmentAndTheNextField()
+        {
+            root = new GameObject("Boss progression UI smoke test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 31, false, true);
+            Click("탐험 시작"); yield return null;
+            Assert.AreEqual(7, root.GetComponentInChildren<RunSetupView>().Draft.Equipment.AvailableLaneCount);
+            Click("편성하고 시작"); yield return null;
+            var run = presenter.Session;
+            for (int step = 0; step < 24 && !run.IsBossWeaponReward; step++)
+            {
+                if (run.Phase == RunPhase.Map) Assert.IsTrue(run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id));
+                else if (run.Phase == RunPhase.Reward) Assert.IsTrue(run.SkipReward());
+                else if (run.CurrentNode.IsBattle) Assert.IsTrue(run.ResolveBattle(run.StageTicket, true, run.Health));
+                else Assert.IsTrue(run.LeaveService());
+            }
+            Assert.IsTrue(run.IsBossWeaponReward);
+            presenter.SendMessage("Render"); yield return null; Canvas.ForceUpdateCanvases();
+            var choices = root.GetComponentsInChildren<Button>().Where(b =>
+                b.GetComponentInChildren<TMP_Text>()?.text == "선택 · 가방에 보관").ToArray();
+            Assert.AreEqual(3, choices.Length);
+            Assert.IsFalse(root.GetComponentsInChildren<Button>().Any(b => b.GetComponentInChildren<TMP_Text>()?.text == "보상 건너뛰기"));
+            var offer = run.Offers[1]; choices[1].onClick.Invoke(); choices[1].onClick.Invoke();
+            yield return null;
+            Assert.AreEqual(RunPhase.FieldCleared, run.Phase); Assert.AreEqual(3, run.OwnedWeapons.Count);
+            Assert.AreEqual(offer.Content.Id, run.OwnedWeapons[2].DefinitionId);
+            Assert.IsTrue(root.GetComponentsInChildren<Button>().Any(b => b.GetComponentInChildren<TMP_Text>()?.text == "무기 편성"));
+            Click("다음 필드로"); yield return null;
+            Assert.AreEqual(2, run.Map.Number); Assert.AreEqual(RunPhase.Map, run.Phase);
+            Assert.AreEqual(3, run.OwnedWeapons.Count); Assert.AreEqual(7, run.Equipment.AvailableLaneCount);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator CodexOpensBeforeARunAndReturnsToTheRunMenu()
         {
             root = new GameObject("Codex UI smoke test");
@@ -213,7 +247,7 @@ namespace BBSB.Tests
             for (int step = 0; step < 200 && (run.BattlePlan == null || run.BattlePlan.Monsters.Count < 3); step++)
             {
                 if (run.Phase == RunPhase.Map) Assert.IsTrue(run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id));
-                else if (run.Phase == RunPhase.Reward) Assert.IsTrue(run.SkipReward());
+                else if (run.Phase == RunPhase.Reward) Assert.IsTrue(run.IsBossWeaponReward ? run.ChooseReward(0) : run.SkipReward());
                 else if (run.Phase == RunPhase.FieldCleared) Assert.IsTrue(run.AdvanceField());
                 else if (run.CurrentNode.IsBattle) Assert.IsTrue(run.ResolveBattle(run.StageTicket, true, run.Health));
                 else Assert.IsTrue(run.LeaveService());

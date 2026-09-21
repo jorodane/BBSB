@@ -267,7 +267,7 @@ namespace BBSB.Tests
                 SteppedNoteTrack.Distance(coarse.Lanes[0].NextBeat, coarse.Beat));
             Check.True(fine.Lanes[0].IsNoteVisible(0)); Check.Equal(2.0, fine.Lanes[0].NextBeat);
         }
-        [Test] public void WeaponRewardsAccumulateWithoutChangingEquippedInputs()
+        [Test] public void BossWeaponRewardsAccumulateWithoutChangingEquippedInputs()
         {
             var run = new RunSession(31, useFiveLaneCombat: true);
             Check.True(run.EquipWeapon(1, 4));
@@ -279,6 +279,8 @@ namespace BBSB.Tests
                 Check.True(run.Enter(node.Id));
                 if (!node.IsBattle) { Check.True(run.LeaveService()); continue; }
                 Check.True(run.ResolveBattle(run.StageTicket, true, 100));
+                if (!run.IsBossWeaponReward)
+                { Check.True(run.Offers.All(o => o.Content.Kind != RewardKind.Weapon)); Check.True(run.SkipReward()); continue; }
                 int index = run.Offers.ToList().FindIndex(o => o.Content.Kind == RewardKind.Weapon);
                 int count = run.OwnedWeapons.Count;
                 Check.True(run.ChooseReward(index)); rewards++;

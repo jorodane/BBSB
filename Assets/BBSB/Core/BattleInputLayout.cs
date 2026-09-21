@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    [Flags] public enum InputExtensions { None = 0, Left = 1, Right = 2 }
+    [Flags] public enum InputExtensions { None = 0, Left = 1, Right = 2, All = Left | Right }
 
     public static class BattleInputLayout
     {

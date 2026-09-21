@@ -46,7 +46,8 @@ namespace BBSB.Runtime.UI
                 bool unlocked = session.Equipment.IsAvailable(slot);
                 baseColors[slot] = !unlocked ? RunUI.Ink : occupant == null ? RunUI.Hex("263348") : RunUI.Hex("36545C");
                 cells[slot] = ui.Background(rect, baseColors[slot]);
-                string label = BattleInputLayout.Key(slot) + "\n" + (!unlocked ? "잠김" : occupant == null ? "비어 있음" :
+                string empty = slot == BattleInputLayout.Left || slot == BattleInputLayout.Right ? "복수 라인용" : "비어 있음";
+                string label = BattleInputLayout.Key(slot) + "\n" + (!unlocked ? "잠김" : occupant == null ? empty :
                     occupant.Weapon.DisplayName);
                 var text = ui.Label(rect, label, 21, unlocked ? RunUI.TextColor : RunUI.Muted);
                 text.fontSize = 21; text.alignment = TextAlignmentOptions.Center; text.raycastTarget = false;
