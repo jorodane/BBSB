@@ -12,7 +12,7 @@ namespace BBSB.Tests
     {
         private static FiveLaneBattle Battle(string weapon, WeaponPhrase phrase = null, params BeatAttack[] attacks) =>
             new FiveLaneBattle(new[] { new WeaponState(weapon) }, 120, 32, attacks, new StageHealth(10000), 100, 100,
-                phrase == null ? null : new[] { phrase });
+                new[] { phrase ?? ShortWeaponPhrases.Find(weapon) });
         private static void Tap(FiveLaneBattle battle, double beat) { battle.Press(0, beat); battle.Release(0, beat); }
         private static TrackNote At(FiveLaneNoteTimeline timeline, double beat) =>
             timeline.Notes.Single(note => Math.Abs(note.Beat - beat) < .000001);

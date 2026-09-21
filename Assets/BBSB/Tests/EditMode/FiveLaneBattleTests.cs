@@ -15,8 +15,8 @@ namespace BBSB.Tests
             double bpm = 120, double loop = 32, string shield = "shield", WeaponPhrase shieldPhrase = null)
         {
             var weapons = Equipment.Select((id, slot) => new WeaponState(slot == 2 ? shield : id, WeaponAttribute.Dual)).ToArray();
-            var phrases = shieldPhrase == null ? null : weapons.Select((w, slot) =>
-                slot == 2 ? shieldPhrase : WeaponPhraseCatalog.Find(w.DefinitionId)).ToArray();
+            var phrases = weapons.Select((w, slot) =>
+                slot == 2 && shieldPhrase != null ? shieldPhrase : ShortWeaponPhrases.Find(w.DefinitionId)).ToArray();
             return new FiveLaneBattle(weapons, bpm, loop, attacks ?? Array.Empty<BeatAttack>(),
                 new StageHealth(enemy), health, health, phrases);
         }
@@ -427,7 +427,8 @@ namespace BBSB.Tests
             var b = run.StartFiveLaneBattle(); Check.True(b != null); Check.True(run.StartRhythmRound() == null);
             b.Press(0, 0); b.Release(0, 0); b.Advance(2.25); b.Pause();
             var again = run.StartFiveLaneBattle(); Check.True(ReferenceEquals(b, again));
-            Check.Equal(2.25, again.Beat); Check.Equal(PhraseLanePhase.Cooldown, again.Lanes[0].Phase);
+            Check.Equal(2.25, again.Beat); Check.Equal(PhraseLanePhase.Playing, again.Lanes[0].Phase);
+            Check.Equal(1, again.MissCount); Check.Equal(4.0, again.Lanes[0].NextBeat);
         }
         [Test] public void SessionDamageAndTicketsCannotLeakIntoTheNextStage()
         {

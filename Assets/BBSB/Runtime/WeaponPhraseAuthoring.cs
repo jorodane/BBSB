@@ -28,6 +28,8 @@ namespace BBSB.Runtime
         [Min(.5f)] public float lengthBeats = 4;
         [Min(.25f)] public float missCooldownBeats = 2;
         public bool repeat;
+        [Min(0), Tooltip("Base cycles per activation; zero repeats indefinitely. Chaos bridges do not count.")]
+        public int maximumCycles;
         [Tooltip("Timing of Parry notes: KeyDown, KeyUp at the Hold end, or Both. KeyUp/Both require Hold notes. Any notes can be parries, including repeats.")]
         public ParryInputEdge parryInput;
         [Range(0, 1)] public float holdDamageReduction;
@@ -62,7 +64,7 @@ namespace BBSB.Runtime
             }
             return new WeaponPhrase(weaponId, displayName, hint, lengthBeats, result, missCooldownBeats,
                 repeat, finisherEvery, (decimal)finisherDamage, groggyBeats, parryInput,
-                (decimal)holdDamageReduction, releaseEndsPhrase, parryRequired, completionCooldownBeats);
+                (decimal)holdDamageReduction, releaseEndsPhrase, parryRequired, completionCooldownBeats, maximumCycles);
         }
         private ChaosRules BuildChaosRules() => new ChaosRules(chaosMinimumBeats, (decimal)chaosTransitionChance, (decimal)chaosEffectMultiplier);
         public static IReadOnlyList<WeaponPhrase> LoadFor(IReadOnlyList<WeaponState> weapons)
@@ -141,7 +143,7 @@ namespace BBSB.Runtime
                         }
                         return phrase;
                     }
-                    return WeaponPhraseCatalog.Default(item.DefinitionId, offset, side, transition);
+                    return WeaponPhraseCatalog.Default(item.DefinitionId, offset, side, transition, item.Attribute);
                 }
             }
             return result.AsReadOnly();

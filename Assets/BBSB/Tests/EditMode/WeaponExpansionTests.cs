@@ -12,7 +12,7 @@ namespace BBSB.Tests
     {
         private static void Tap(FiveLaneBattle b, int slot, double beat) { b.Press(slot, beat); b.Release(slot, beat); }
         private static FiveLaneBattle Battle(params WeaponState[] weapons) => new FiveLaneBattle(weapons, 120, 64,
-            Array.Empty<BeatAttack>(), new StageHealth(100000), 30, 100);
+            Array.Empty<BeatAttack>(), new StageHealth(100000), 30, 100, phraseSets: weapons.Select(ShortWeaponPhrases.Set).ToArray());
         private static void PlayCurrent(FiveLaneBattle b, PhraseLane lane)
         {
             var phrase = lane.Phrase; double start = lane.StartBeat;
@@ -57,7 +57,8 @@ namespace BBSB.Tests
                 for (int offset = 0; offset < entry.Definition.RequiredLanes; offset++)
                 foreach (double at in new[] { .1, .49 })
                 {
-                    var b = Battle(new WeaponState(entry.Definition.Id, attribute));
+                    var b = new FiveLaneBattle(new[] { new WeaponState(entry.Definition.Id, attribute) }, 120, 64,
+                        Array.Empty<BeatAttack>(), new StageHealth(100000), 30, 100);
                     b.Press(offset, at); var lane = b.Lanes[0];
                     double end = lane.StartBeat + lane.Phrase.Notes[0].HoldBeats;
                     b.Release(offset, Math.Max(at, end));
@@ -180,7 +181,7 @@ namespace BBSB.Tests
 
         [Test] public void ChaosPendulumMaintainsSixBeatsThenBridgesAcrossThreeLinesAndSwitchesSide()
         {
-            var weapon = new WeaponState("chaos-pendulum"); var normal = WeaponPhraseSet.Uniform(weapon);
+            var weapon = new WeaponState("chaos-pendulum"); var normal = ShortWeaponPhrases.Set(weapon);
             var set = new WeaponPhraseSet(weapon, normal.LightStarts, normal.DarkStarts, normal.LightTransitions,
                 normal.DarkTransitions, new ChaosRules(transitionChance: 1));
             var b = new FiveLaneBattle(new[] { weapon }, 120, 64, Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100, phraseSets: new[] { set });

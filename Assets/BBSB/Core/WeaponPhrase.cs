@@ -47,6 +47,8 @@ namespace BBSB.Core
         public double LengthBeats { get; }
         public double MissCooldownBeats { get; }
         public bool Repeat { get; }
+        // Zero preserves unlimited repetition for authored patterns. Bridges do not consume a base cycle.
+        public int MaximumCycles { get; }
         public ParryInputEdge ParryInput { get; }
         public bool ParriesOnKeyDown => ParryInput != ParryInputEdge.KeyUp;
         public bool ParriesOnKeyUp => ParryInput != ParryInputEdge.KeyDown;
@@ -63,11 +65,11 @@ namespace BBSB.Core
             int finisherEvery = 0, decimal finisherDamage = 0, double groggyBeats = 0,
             ParryInputEdge parryInput = ParryInputEdge.KeyDown,
             decimal holdDamageReduction = 0, bool releaseEndsPhrase = false, bool parryRequired = true,
-            double completionCooldownBeats = 0)
+            double completionCooldownBeats = 0, int maximumCycles = 0)
         {
             WeaponCatalog.Find(weaponId);
             if (!WeaponPhraseNote.Finite(lengthBeats) || lengthBeats <= 0 || !WeaponPhraseNote.Finite(missCooldownBeats) ||
-                missCooldownBeats <= 0 || finisherEvery < 0 || finisherDamage < 0 ||
+                missCooldownBeats <= 0 || maximumCycles < 0 || (maximumCycles > 0 && !repeat) || finisherEvery < 0 || finisherDamage < 0 ||
                 !WeaponPhraseNote.Finite(groggyBeats) || groggyBeats < 0 ||
                 holdDamageReduction < 0 || holdDamageReduction > 1 ||
                 !WeaponPhraseNote.Finite(completionCooldownBeats) || completionCooldownBeats < 0)
@@ -96,25 +98,19 @@ namespace BBSB.Core
             ParryInput = parryInput;
             HoldDamageReduction = holdDamageReduction;
             ReleaseEndsPhrase = releaseEndsPhrase; ParryRequired = parryRequired;
-            CompletionCooldownBeats = completionCooldownBeats;
+            CompletionCooldownBeats = completionCooldownBeats; MaximumCycles = maximumCycles;
         }
     }
 
     public static class WeaponPhraseCatalog
     {
         public static IReadOnlyList<string> ShieldIds { get; } = Array.AsReadOnly(new[] { "shield", "round-shield", "tower-shield", "heater-shield" });
-        private static WeaponPhraseNote Tap(double at, decimal damage) => new WeaponPhraseNote(at, damage);
         private static WeaponPhraseNote Counter(double at, decimal damage) =>
             new WeaponPhraseNote(at, damage, prerequisite: 0, condition: PhraseNoteCondition.Parry);
-        private static WeaponPhraseNote Hold(double at, double duration, decimal damage) => new WeaponPhraseNote(at, damage, duration);
         private static readonly WeaponPhrase[] phrases = Build();
         private static WeaponPhrase[] Build()
         {
             var result = new List<WeaponPhrase> {
-            new WeaponPhrase("sword", "검", "Tap 0 / 1 / 2 · 4박 패턴", 4,
-                new[] { Tap(0, 8), Tap(1, 8), Tap(2, 12) }),
-            new WeaponPhrase("hammer", "트레실로 해머", "Tap 0 / 1.5 / 3 · 세 번째 완주에 그로기", 4,
-                new[] { Tap(0, 6), Tap(1.5, 8), Tap(3, 12) }, 3, finisherEvery: 3, finisherDamage: 38, groggyBeats: 4),
             new WeaponPhrase("shield", "버클러", "첫 Tap 방어 성공 → 1 / 1.5 / 2 반격 · 패링 시 쿨타임 회복", 2.5,
                 new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.Parry), Counter(1, 5), Counter(1.5, 5), Counter(2, 9) }, 2, false),
             new WeaponPhrase("round-shield", "원형 방패", "첫 Tap 방어 성공 → 0.5 / 1.5 빠른 반격 · 패링 시 쿨타임 회복", 2,
@@ -126,31 +122,16 @@ namespace BBSB.Core
                 new[] { new WeaponPhraseNote(0, 0, 2, PhraseEffect.Parry) }, repeat: false,
                 holdDamageReduction: .5m, releaseEndsPhrase: true, parryRequired: false,
                 completionCooldownBeats: 2),
-            new WeaponPhrase("bow", "활", "Hold 1박으로 당기기 → 2박 Tap 발사", 4,
-                new[] { Hold(0, 1, 0), new WeaponPhraseNote(2, 28, prerequisite: 0, condition: PhraseNoteCondition.Hit) }),
-            new WeaponPhrase("dagger", "단검", "속성의 시작 박자에 맞춰 시작 → 성공하면 2박 뒤 다음 노트 · 미스 대기 2박", 2,
-                new[] { Tap(0, 6) }, repeat: true),
-            new WeaponPhrase("dual-swords", "쌍검", "속성의 시작 박자에 맞춰 시작 → 성공하면 1박 뒤 다음 노트 · 미스 대기 2박", 1,
-                new[] { Tap(0, 6) }, repeat: true),
-            new WeaponPhrase("staff", "봉", "시작한 쪽 Tap 0 / 0.5 → 반대쪽 1박에서 Hold 1박 · 2라인", 2,
-                new[] { Tap(0, 8), Tap(.5, 8), new WeaponPhraseNote(1, 18, 1, laneOffset: 1) }),
-            new WeaponPhrase("spirit-bell", "신령 방울", "Tap → 바로 양옆 무기 패턴을 1박 뒤 시작 · 쿨타임 무시 · 진행 중인 패턴 유지", 1,
-                new[] { new WeaponPhraseNote(0, 0, effect: PhraseEffect.StartAdjacent) }),
-            new WeaponPhrase("spear", "창", "Tap 0 / 2 · 4박 패턴", 4, new[] { Tap(0, 12), Tap(2, 18) }),
-            new WeaponPhrase("greatsword", "대검", "Hold 1박 → 2박 Tap", 4, new[] { Hold(0, 1, 18), Tap(2, 20) }),
-            new WeaponPhrase("bell", "종", "Tap → 1박에서 Hold 1박", 4, new[] { Tap(0, 8), Hold(1, 1, 16) }),
-            new WeaponPhrase("blade", "쌍날검", "Tap 0 / 0.5 / 2 / 2.5", 4, new[] { Tap(0, 6), Tap(.5, 6), Tap(2, 6), Tap(2.5, 10) }),
-            new WeaponPhrase("crossbow", "석궁", "Tap 0 / 1 · 3박 패턴", 3, new[] { Tap(0, 10), Tap(1, 14) }),
-            new WeaponPhrase("wand", "마도봉", "Hold 1.5박 → 2.5박 Tap", 4, new[] { Hold(0, 1.5, 10), Tap(2.5, 22) })
             };
-            foreach (var entry in WeaponExpansion.All)
-                result.Add(WeaponExpansion.Pattern(entry.Definition.Id, 0, WeaponBeatSide.Light));
+            foreach (var weapon in WeaponCatalog.All)
+                if (weapon.Kind != WeaponKind.Shield)
+                    result.Add(LongWeaponPatterns.Pattern(weapon.Id, 0, WeaponBeatSide.Light));
             return result.ToArray();
         }
         public static IReadOnlyList<WeaponPhrase> All { get; } = Array.AsReadOnly(phrases);
-        public static WeaponPhrase Default(string weaponId, int offset, WeaponBeatSide side, bool transition = false)
+        public static WeaponPhrase Default(string weaponId, int offset, WeaponBeatSide side, bool transition = false, WeaponAttribute? attribute = null)
         {
-            var expanded = WeaponExpansion.Pattern(weaponId, offset, side, transition);
+            var expanded = LongWeaponPatterns.Pattern(weaponId, offset, side, transition, attribute);
             return expanded ?? (transition ? null : Find(weaponId));
         }
         public static WeaponPhrase Find(string weaponId)

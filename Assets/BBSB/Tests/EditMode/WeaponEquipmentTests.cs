@@ -16,7 +16,7 @@ namespace BBSB.Tests
             InputExtensions extensions = InputExtensions.None, params BeatAttack[] attacks) => new FiveLaneBattle(
                 new[] { weapon }, 120, 32, attacks, new StageHealth(10000), 100, 100,
                 placements: new[] { new WeaponPlacement(weapon, slots) },
-                phraseSets: patterns == null ? null : new[] { patterns }, extensions: extensions);
+                phraseSets: new[] { patterns ?? ShortWeaponPhrases.Set(weapon) }, extensions: extensions);
 
         [Test] public void DaggerAndDualSwordsKeepDifferentCadencesAndTheSameOpeningGrace()
         {

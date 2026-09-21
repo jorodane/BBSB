@@ -13,11 +13,11 @@ namespace BBSB.Tests
         private static void Tap(FiveLaneBattle b, double at, int slot = 0) { b.Press(slot, at); b.Release(slot, at); }
         private static FiveLaneBattle Battle(WeaponState weapon, WeaponPhraseSet patterns = null, int seed = 1) =>
             new FiveLaneBattle(new[] { weapon }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100000), 30, 50,
-                phraseSets: patterns == null ? null : new[] { patterns }, rhythmSeed: seed);
+                phraseSets: new[] { patterns ?? ShortWeaponPhrases.Set(weapon) }, rhythmSeed: seed);
         private static FiveLaneBattle Chaos(string id = "dagger", decimal chance = 1, int seed = 1)
         {
             var weapon = new WeaponState(id, WeaponAttribute.Chaos);
-            return Battle(weapon, new WeaponPhraseSet(weapon, new[] { WeaponPhraseCatalog.Find(id) },
+            return Battle(weapon, new WeaponPhraseSet(weapon, new[] { ShortWeaponPhrases.Find(id) },
                 chaos: new ChaosRules(transitionChance: chance)), seed);
         }
         [Test] public void OpeningAlwaysSucceedsOnTheNearestAllowedAttributeGrid()
@@ -69,7 +69,7 @@ namespace BBSB.Tests
         {
             var weapon = new WeaponState("dagger", WeaponAttribute.Dual);
             var heal = new WeaponPhrase("dagger", "heal", "", 2, new[] { new WeaponPhraseNote(0, 16, effect: PhraseEffect.Heal) }, repeat: true);
-            var set = new WeaponPhraseSet(weapon, new[] { heal }, new[] { WeaponPhraseCatalog.Find("dagger") });
+            var set = new WeaponPhraseSet(weapon, new[] { heal }, new[] { ShortWeaponPhrases.Find("dagger") });
             var b = Battle(weapon, set); Tap(b, .1); Tap(b, 2.1);
             Check.Equal(50m, b.PlayerHealth); Check.Equal(20m, b.TotalHealed); Check.Equal(0m, b.TotalDamage);
             Tap(b, 3.5); Check.Equal(1, b.MissCount); b.Advance(5.5); Tap(b, 5.5);
@@ -164,7 +164,7 @@ namespace BBSB.Tests
             Check.True(equipment.Equip(a, 0)); Check.True(equipment.Equip(b, 1));
             var p = new WeaponPhrase("dual-swords", "identical", "", 2, new[] { new WeaponPhraseNote(0, 6) }, repeat: true);
             var battle = new FiveLaneBattle(equipment.Equipped, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100,
-                new[] { WeaponPhraseCatalog.Find("dagger"), p });
+                new[] { ShortWeaponPhrases.Find("dagger"), p });
             Tap(battle, 0, 0); Tap(battle, 0, 1); Check.Equal(12m, battle.TotalDamage);
             Reject(() => new FiveLaneBattle(new[] { a, new WeaponState("dagger") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100));
         }
@@ -191,20 +191,20 @@ namespace BBSB.Tests
         }
         [Test] public void ChaosRejectsNonRepeatingBasesAndBridgesThatCannotSwitchPhase()
         {
-            Reject(() => WeaponPhraseSet.Uniform(new WeaponState("bow", WeaponAttribute.Chaos)));
-            var weapon = new WeaponState("dagger", WeaponAttribute.Chaos); var normal = WeaponPhraseCatalog.Find("dagger");
+            Reject(() => WeaponPhraseSet.Uniform(new WeaponState("shield", WeaponAttribute.Chaos)));
+            var weapon = new WeaponState("dagger", WeaponAttribute.Chaos); var normal = ShortWeaponPhrases.Find("dagger");
             Reject(() => new WeaponPhraseSet(weapon, new[] { normal }, lightTransitions: new[] { normal }));
             Reject(() => new ChaosRules(minimumBeats: 5)); Reject(() => new ChaosRules(effectMultiplier: 1));
         }
-        [Test] public void AttributeRollsOnlyOfferChaosForRepeatingWeaponTypes()
+        [Test] public void AttributeRollsOfferChaosForAllNonShieldNonExclusiveWeapons()
         {
             foreach (var phrase in WeaponPhraseCatalog.All)
             {
                 var random = new SeededRandom(98); var attributes = new System.Collections.Generic.HashSet<WeaponAttribute>();
                 for (int i = 0; i < 128; i++) attributes.Add(WeaponAttributes.Roll(phrase.WeaponId, random));
                 var exclusive = WeaponCatalog.Find(phrase.WeaponId).ExclusiveAttribute;
-                Check.Equal(exclusive.HasValue ? 1 : phrase.Repeat ? 4 : 3, attributes.Count);
-                Check.Equal(exclusive.HasValue ? exclusive == WeaponAttribute.Chaos : phrase.Repeat,
+                Check.Equal(exclusive.HasValue ? 1 : WeaponAttributes.SupportsChaos(phrase.WeaponId) ? 4 : 3, attributes.Count);
+                Check.Equal(exclusive.HasValue ? exclusive == WeaponAttribute.Chaos : WeaponAttributes.SupportsChaos(phrase.WeaponId),
                     attributes.Contains(WeaponAttribute.Chaos));
             }
         }
@@ -226,7 +226,7 @@ namespace BBSB.Tests
         [Test] public void AnAuthoredChaosBridgeOverridesOnlyItsOwnStartingOffset()
         {
             var weapon = new WeaponState("dagger", WeaponRarity.Common, requiredLanes: 2, attribute: WeaponAttribute.Chaos);
-            var normal = WeaponPhraseCatalog.Find("dagger");
+            var normal = ShortWeaponPhrases.Find("dagger");
             var custom = new WeaponPhrase("dagger", "bridge", "", 2.5,
                 new[] { new WeaponPhraseNote(0, 2), new WeaponPhraseNote(.5, 3, laneOffset: 1), new WeaponPhraseNote(2, 4) }, repeat: true);
             var patterns = new WeaponPhraseSet(weapon, new[] { normal, normal }, lightTransitions: new[] { custom, null });

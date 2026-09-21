@@ -22,12 +22,20 @@ namespace BBSB.Runtime.UI
         public static bool Guarding(PhraseLane lane) => lane.Holding &&
             (lane.Phrase.HoldDamageReduction > 0 || lane.Phrase.Notes[lane.NextNote].IsParry);
 
+        private static bool BowDrawn(PhraseLane lane)
+        {
+            if (lane.Weapon.DefinitionId != "bow" || lane.Phase != PhraseLanePhase.Playing) return false;
+            if (lane.Holding) return true;
+            var next = lane.Phrase.Notes[lane.NextNote];
+            return next.Condition == PhraseNoteCondition.Hit && next.Prerequisite >= 0 &&
+                lane.Phrase.Notes[next.Prerequisite].IsHold && lane.NoteStates[next.Prerequisite] == PhraseNoteState.Hit;
+        }
         public static RangedWeaponPose Weapon(PhraseLane lane, double beat)
         {
             if (lane == null || !WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged) return RangedWeaponPose.Idle;
             if (Recent(beat, lane.LastDamageBeat, .18)) return RangedWeaponPose.Release;
             if (lane.Phase != PhraseLanePhase.Playing) return RangedWeaponPose.Idle;
-            if (lane.Holding || lane.Weapon.DefinitionId == "bow" && lane.NextNote > 0 ||
+            if (lane.Holding || BowDrawn(lane) ||
                 lane.NextBeat >= beat && lane.NextBeat - beat <= .3) return RangedWeaponPose.Prepare;
             return RangedWeaponPose.Idle;
         }
@@ -44,7 +52,7 @@ namespace BBSB.Runtime.UI
                 if (incoming.State == IncomingAttackState.Blocked && Recent(battle.Beat, incoming.ResolvedBeat, .4))
                     return new FiveLaneActorFrame("Guard", battle.Beat - incoming.ResolvedBeat, .4f);
             foreach (var lane in battle.Lanes)
-                if (lane.Weapon.DefinitionId == "bow" && lane.Phase == PhraseLanePhase.Playing && (lane.Holding || lane.NextNote > 0))
+                if (BowDrawn(lane))
                     return new FiveLaneActorFrame("Bow", battle.Beat - lane.StartBeat, 2, true);
             return new FiveLaneActorFrame("Idle", battle.Beat, 4, true);
         }

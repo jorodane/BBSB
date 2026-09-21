@@ -124,8 +124,7 @@ namespace BBSB.Tests
                     foreach (WeaponAttribute attribute in System.Enum.GetValues(typeof(WeaponAttribute)))
                     {
                         if (weapon.ExclusiveAttribute.HasValue && weapon.ExclusiveAttribute != attribute) continue;
-                        // Non-repeating Chaos art is supplied for future authored patterns;
-                        // requesting a sprite does not opt that variant into the reward pool.
+                        // Attribute atlases also cover newly available two-section Chaos weapons.
                         graphic.Bind(new WeaponState(weapon.Id, attribute));
                         int poses = weapon.IsRanged ? 3 : 1;
                         for (int p = 0; p < poses; p++)

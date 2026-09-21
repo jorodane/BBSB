@@ -131,6 +131,7 @@ namespace BBSB.Runtime.UI
             var plan = lane.Cycle;
             for (int cycle = 0; cycle < MaxNotesPerLane && notes.Count - first < MaxNotesPerLane; cycle++)
             {
+                if (!plan.CanContinue) break;
                 var next = lane.NextCycle(plan);
                 if (next.StartBeat <= plan.StartBeat || next.StartBeat > battle.Beat + SteppedNoteTrack.LookAheadBeats) break;
                 plan = next;

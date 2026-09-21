@@ -152,6 +152,8 @@ namespace BBSB.Runtime.UI
                 hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
                 if (lane.Phase == PhraseLanePhase.Playing)
                     hud.laneStatus[i].text += lane.IsTransition ? " · 전환" : lane.ActiveSide == WeaponBeatSide.Light ? " · 정박" : " · 엇박";
+                if (lane.Phase == PhraseLanePhase.Playing && lane.Patterns.RandomizeChaosSections)
+                    hud.laneStatus[i].text += " · " + (lane.Cycle.BaseIndex + 1) + "/2";
                 if (lane.PendingDamageMultiplier > 1 && battle.Beat < lane.DamageBoostUntilBeat)
                     hud.laneStatus[i].text += "\nATK x" + lane.PendingDamageMultiplier.ToString("0.##");
                 foreach (var start in battle.ScheduledStarts)

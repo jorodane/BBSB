@@ -27,10 +27,12 @@ namespace BBSB.Tests
                 var set = WeaponPhraseAuthoring.BuildSetsFor(new[] { weapon }, new[] { leftLight, rightDark })[0];
                 Assert.AreEqual(PhraseEffect.Heal, set.For(0, WeaponBeatSide.Light).Notes[0].Effect);
                 Assert.AreEqual(30m, set.For(1, WeaponBeatSide.Dark).Notes[0].Damage);
-                Assert.AreSame(WeaponPhraseCatalog.Find("staff"), set.For(0, WeaponBeatSide.Dark));
-                Assert.AreSame(WeaponPhraseCatalog.Find("staff"), set.For(1, WeaponBeatSide.Light));
+                Assert.AreEqual(8, set.For(0, WeaponBeatSide.Dark).LengthBeats);
+                Assert.AreEqual(18m, set.For(0, WeaponBeatSide.Dark).Notes[2].Damage);
+                Assert.AreEqual(1, set.For(1, WeaponBeatSide.Light).Notes[2].LaneOffset);
                 var ordinary = WeaponPhraseAuthoring.BuildSetsFor(new[] { new WeaponState("staff") }, new[] { leftLight, rightDark })[0];
-                Assert.AreSame(WeaponPhraseCatalog.Find("staff"), ordinary.Starts[0]);
+                Assert.AreEqual(8, ordinary.Starts[0].LengthBeats);
+                Assert.AreEqual(PhraseEffect.Strike, ordinary.Starts[0].Notes[0].Effect);
             }
             finally { Object.DestroyImmediate(leftLight); Object.DestroyImmediate(rightDark); }
         }
@@ -46,6 +48,26 @@ namespace BBSB.Tests
                 Assert.AreEqual(PhraseEffect.Heal, set.For(0, WeaponBeatSide.Dark).Notes[0].Effect);
             }
             finally { Object.DestroyImmediate(common); Object.DestroyImmediate(exact); }
+        }
+        [Test] public void ChaosAuthoringPreservesTwoSectionsAndDefaultInfiniteTransitions()
+        {
+            var authored = Asset("sword", WeaponBeatSide.Light, 0, PhraseEffect.Heal, 4);
+            authored.attribute = WeaponAttribute.Chaos; authored.bothSides = true;
+            authored.repeat = true; authored.maximumCycles = 2; authored.lengthBeats = 8;
+            authored.completionCooldownBeats = 6;
+            try
+            {
+                var set = WeaponPhraseAuthoring.BuildSetsFor(new[] { new WeaponState("sword", WeaponAttribute.Chaos) }, new[] { authored })[0];
+                Assert.IsTrue(set.RandomizeChaosSections);
+                Assert.AreEqual(2, set.LightStarts[0].MaximumCycles);
+                Assert.AreEqual(6, set.DarkStarts[0].CompletionCooldownBeats);
+                Assert.AreEqual(PhraseEffect.Heal, set.DarkStarts[0].Notes[0].Effect);
+                var defaults = WeaponPhraseAuthoring.BuildSetsFor(new[] { new WeaponState("dagger", WeaponAttribute.Chaos) }, Array.Empty<WeaponPhraseAuthoring>())[0];
+                Assert.IsFalse(defaults.RandomizeChaosSections);
+                Assert.AreEqual(0, defaults.LightStarts[0].MaximumCycles);
+                Assert.AreEqual(4.5, defaults.LightTransitions[0].LengthBeats);
+            }
+            finally { Object.DestroyImmediate(authored); }
         }
         [Test] public void PlayerAssetAndJsonPreferencesPreserveWeaponAttributes()
         {

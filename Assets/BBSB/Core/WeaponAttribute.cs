@@ -21,10 +21,10 @@ namespace BBSB.Core
             Validate(attribute);
             switch (attribute)
             {
-                case WeaponAttribute.Light: return "정박 시작";
-                case WeaponAttribute.Dark: return "엇박 시작";
+                case WeaponAttribute.Light: return "정박 중심 패턴";
+                case WeaponAttribute.Dark: return "엇박 중심 패턴";
                 case WeaponAttribute.Dual: return "시작 박자에 따라 빛 / 어둠 효과";
-                default: return "6박 유지 후 박자 전환 · 효과 증가";
+                default: return "반복형은 박자 전환 · 그 외 두 구간 무작위 박자 · 효과 증가";
             }
         }
         public static double SnapStart(WeaponAttribute attribute, double beat)
@@ -38,9 +38,14 @@ namespace BBSB.Core
         public static WeaponBeatSide SideAt(double beat) =>
             ((long)Math.Floor(beat * 2 + .5) & 1) == 0 ? WeaponBeatSide.Light : WeaponBeatSide.Dark;
         public static WeaponBeatSide Opposite(WeaponBeatSide side) => side == WeaponBeatSide.Light ? WeaponBeatSide.Dark : WeaponBeatSide.Light;
+        public static bool SupportsChaos(string weaponId) =>
+            WeaponCatalog.Find(weaponId).Kind != WeaponKind.Shield &&
+            WeaponCatalog.Find(weaponId).ExclusiveAttribute != WeaponAttribute.Dual;
+        public static bool UsesChaosTransitions(string weaponId) =>
+            weaponId == "dagger" || weaponId == "dual-swords" || weaponId == "chaos-pendulum";
         public static WeaponAttribute Roll(string weaponId, SeededRandom random) =>
             WeaponCatalog.Find(weaponId).ExclusiveAttribute ??
-            (WeaponAttribute)random.Next(WeaponPhraseCatalog.Find(weaponId).Repeat ? 4 : 3);
+            (WeaponAttribute)random.Next(SupportsChaos(weaponId) ? 4 : 3);
     }
 
     public sealed class ChaosRules

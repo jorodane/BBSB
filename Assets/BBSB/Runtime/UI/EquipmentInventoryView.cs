@@ -77,11 +77,16 @@ namespace BBSB.Runtime.UI
         private static string AttributeHint(WeaponState weapon, WeaponPhraseSet set)
         {
             if (weapon.Attribute == WeaponAttribute.Chaos)
-                return set.Chaos.MinimumBeats + "박 유지 후 전환 · 효과 ×" + set.Chaos.EffectMultiplier + "\n" + ShortHint(set.LightStarts[0]);
+            {
+                var phrase = set.LightStarts[0];
+                string sequence = set.RandomizeChaosSections ?
+                    phrase.LengthBeats + "박 × 2 · 무작위 빛/어둠 · 쿨타임 " + phrase.CompletionCooldownBeats + "박" :
+                    "무한 반복 · " + set.Chaos.MinimumBeats + "박 유지 후 전환";
+                return sequence + "\n" + ShortHint(phrase);
+            }
             if (weapon.Attribute == WeaponAttribute.Dual && set.LightStarts[0].Hint != set.DarkStarts[0].Hint)
                 return "빛: " + ShortHint(set.LightStarts[0]) + "\n어둠: " + ShortHint(set.DarkStarts[0]);
-            string hint = weapon.Attribute == WeaponAttribute.Chaos ?
-                set.Chaos.MinimumBeats + "박 유지 후 전환 · 효과 ×" + set.Chaos.EffectMultiplier : WeaponAttributes.Hint(weapon.Attribute);
+            string hint = WeaponAttributes.Hint(weapon.Attribute);
             return hint + "\n" + ShortHint(set.For(0, weapon.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light));
         }
         private static string ShortHint(WeaponPhrase phrase)
@@ -93,10 +98,7 @@ namespace BBSB.Runtime.UI
                 return phrase.LengthBeats.ToString("0.##") + "박 간격 · 성공 시 반복";
             switch (phrase.WeaponId)
             {
-                case "staff": return "시작 쪽 반박 2회 입력 → 반대쪽 1박 홀드";
-                case "spirit-bell": return "양옆 무기 1박 뒤 시작 · 쿨타임 무시";
                 case "heater-shield": return "시작 패링 · 2박/50% 방어 · 패링 시 쿨타임 회복";
-                case "bow": return "1박 당기기 → 2박에 발사";
                 default: return phrase.Hint;
             }
         }

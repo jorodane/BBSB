@@ -18,7 +18,7 @@ namespace BBSB.Core
         public ScheduledStartState State { get; internal set; }
         public int SlotForNote(int index) => Target.InputSlots[(StartOffset + Phrase.Notes[index].LaneOffset) % Target.InputSlots.Count];
         internal ScheduledPhraseStart(PhraseLane target, int slot, double beat)
-        { Target = target; Slot = slot; StartOffset = target.Placement.OffsetOf(slot); Beat = WeaponAttributes.SnapStart(target.Weapon.Attribute, beat); }
+        { Target = target; Slot = slot; StartOffset = target.Placement.OffsetOf(slot); Beat = target.PlanStartBeat(beat); }
     }
     public sealed class BeatAttack
     {
@@ -79,7 +79,7 @@ namespace BBSB.Core
         {
             if (cycle.Index == Cycle.Index && cycle.StartBeat == Cycle.StartBeat && ProjectedTimingShift > 0)
                 cycle = new WeaponRhythmCycle(cycle.Phrase, cycle.Side, cycle.StartBeat + ProjectedTimingShift,
-                    cycle.StableSinceBeat, cycle.Index, cycle.IsTransition);
+                    cycle.StableSinceBeat, cycle.Index, cycle.IsTransition, cycle.BaseIndex);
             return cycle.Next(Patterns, Weapon.Attribute, StartOffset, CycleSeed);
         }
         public int NextNote { get; internal set; }
@@ -111,7 +111,7 @@ namespace BBSB.Core
         internal PhraseNoteState[] states;
         internal bool[] parried;
         public IReadOnlyList<PhraseNoteState> NoteStates { get; private set; }
-        public bool CanRepeat => Phase == PhraseLanePhase.Playing && Phrase.Repeat && !FailedCycle;
+        public bool CanRepeat => Phase == PhraseLanePhase.Playing && Cycle.CanContinue && !FailedCycle;
         public bool IsNoteVisible(int index) => Phase == PhraseLanePhase.Playing &&
             (states[index] == PhraseNoteState.Pending || states[index] == PhraseNoteState.Holding);
         public double NextBeat => StartBeat + TimingShiftBeats + Phrase.Notes[NextNote].Beat;
@@ -120,8 +120,19 @@ namespace BBSB.Core
             Weapon = new WeaponState(weapon.DefinitionId, weapon.Rarity, weapon.Level, weapon.RequiredLanes, weapon.Attribute);
             Placement = placement; Patterns = patterns; rhythmSeed = seed; SelectStart(0, WeaponAttributes.SnapStart(weapon.Attribute, 0));
         }
-        internal void SelectStart(int offset, double at)
+        internal double PlanStartBeat(double at)
         {
+            var attribute = Weapon.Attribute;
+            if (Patterns.RandomizeChaosSections)
+            {
+                int seed = unchecked(rhythmSeed + (activationSequence + 1) * 16777619);
+                attribute = WeaponRhythmCycle.RandomSide(seed, 0) == WeaponBeatSide.Light ? WeaponAttribute.Light : WeaponAttribute.Dark;
+            }
+            return WeaponAttributes.SnapStart(attribute, at);
+        }
+        internal void SelectStart(int offset, double at, bool reserved = false)
+        {
+            if (!reserved) at = PlanStartBeat(at);
             StartOffset = offset; activationSequence++;
             var side = WeaponAttributes.SideAt(at);
             SelectCycle(new WeaponRhythmCycle(Patterns.For(offset, side), side, at, at, 0));
@@ -282,7 +293,7 @@ namespace BBSB.Core
             {
                 // A fresh input chooses the phrase's phase; it is not a timing test.
                 // Repeats stay Playing and never receive this opening grace again.
-                BeginActivation(lane, slot, WeaponAttributes.SnapStart(lane.Weapon.Attribute, Beat));
+                BeginActivation(lane, slot, Beat);
             }
             // A different occupied line is a distinct input. It cannot hit this line's note
             // or switch the starting variant midway through an activation.
@@ -515,7 +526,7 @@ namespace BBSB.Core
                     lane.Feedback = "GROGGY!";
                 }
                 if (lane.FailedCycle) Cooldown(lane, Beat + lane.Phrase.MissCooldownBeats);
-                else if (lane.Phrase.Repeat)
+                else if (lane.CanRepeat)
                 { lane.SelectCycle(lane.NextCycle(lane.Cycle)); BeginCycle(lane); }
                 else
                     Cooldown(lane, Math.Max(Beat, lane.StartBeat + lane.TimingShiftBeats + lane.Phrase.LengthBeats) + lane.Phrase.CompletionCooldownBeats);
@@ -575,7 +586,7 @@ namespace BBSB.Core
             // Manual one-shot activations still contribute to authored finishers.
             // Changing variants starts a new streak; a miss already clears it.
             if (offset != lane.StartOffset) lane.CompletedPhrases = 0;
-            lane.SelectStart(offset, at); lane.Holding = false; lane.HoldingSlot = -1; lane.ScheduledOrigin = origin;
+            lane.SelectStart(offset, at, origin != null); lane.Holding = false; lane.HoldingSlot = -1; lane.ScheduledOrigin = origin;
             BeginCycle(lane);
         }
         private static void StartScheduled(ScheduledPhraseStart start)

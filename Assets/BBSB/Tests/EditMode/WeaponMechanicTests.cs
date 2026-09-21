@@ -13,14 +13,15 @@ namespace BBSB.Tests
         private static FiveLaneBattle Battle(params WeaponPlacement[] placements) =>
             new FiveLaneBattle(placements.Select(p => p.Weapon).ToArray(), 120, 32, Array.Empty<BeatAttack>(),
                 new StageHealth(10000), 100, 100, placements: placements,
-                extensions: InputExtensions.Left | InputExtensions.Right);
+                extensions: InputExtensions.Left | InputExtensions.Right,
+                phraseSets: placements.Select(p => ShortWeaponPhrases.Set(p.Weapon)).ToArray());
         private static WeaponPlacement Item(string id, params int[] slots) => new WeaponPlacement(new WeaponState(id, WeaponAttribute.Dual), slots);
         private static void Tap(FiveLaneBattle battle, int slot, double beat)
         { battle.Press(slot, beat); battle.Release(slot, beat); }
 
-        [Test] public void OnlyDaggerDualSwordsAndChaosPendulumRepeatAndNewPatternsDefaultToOneShot()
+        [Test] public void OnlyTheExclusiveChaosPendulumRepeatsInTheBaseCatalog()
         {
-            Check.Equal("dagger,dual-swords,chaos-pendulum", string.Join(",", WeaponPhraseCatalog.All.Where(p => p.Repeat).Select(p => p.WeaponId)));
+            Check.Equal("chaos-pendulum", string.Join(",", WeaponPhraseCatalog.All.Where(p => p.Repeat).Select(p => p.WeaponId)));
             Check.False(new WeaponPhrase("sword", "one shot", "", 1, new[] { new WeaponPhraseNote(0, 1) }).Repeat);
             Check.Equal(2, WeaponCatalog.Find("staff").RequiredLanes);
             Check.Equal(1, WeaponCatalog.Find("spirit-bell").RequiredLanes);

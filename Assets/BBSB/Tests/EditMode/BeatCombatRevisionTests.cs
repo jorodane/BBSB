@@ -11,7 +11,8 @@ namespace BBSB.Tests
     public sealed class BeatCombatRevisionTests
     {
         private static FiveLaneBattle Battle(params BeatAttack[] attacks) => new FiveLaneBattle(
-            new[] { new WeaponState("dagger", WeaponAttribute.Dual), new WeaponState("heater-shield", WeaponAttribute.Dual) }, 120, 32, attacks, new StageHealth(10000), 100, 100);
+            new[] { new WeaponState("dagger", WeaponAttribute.Dual), new WeaponState("heater-shield", WeaponAttribute.Dual) }, 120, 32, attacks, new StageHealth(10000), 100, 100,
+            new[] { ShortWeaponPhrases.Find("dagger"), ShortWeaponPhrases.Find("heater-shield") });
         private static void Tap(FiveLaneBattle b, int slot, double beat) { b.Press(slot, beat); b.Release(slot, beat); }
 
         [Test] public void DaggerCreatesExactlyOneNoteTwoBeatsAfterSuccess()
@@ -80,7 +81,8 @@ namespace BBSB.Tests
         [Test] public void ParryRecoveryLeavesOtherWeaponsCooldownsUntouched()
         {
             var b = new FiveLaneBattle(new[] { new WeaponState("heater-shield"), new WeaponState("round-shield"),
-                new WeaponState("dagger") }, 120, 32, new[] { new BeatAttack("a", 1, 10) }, new StageHealth(100), 100, 100);
+                new WeaponState("dagger") }, 120, 32, new[] { new BeatAttack("a", 1, 10) }, new StageHealth(100), 100, 100,
+                new[] { ShortWeaponPhrases.Find("heater-shield"), ShortWeaponPhrases.Find("round-shield"), ShortWeaponPhrases.Find("dagger") });
             Tap(b, 2, 0); Tap(b, 1, .1); Tap(b, 2, .5);
             double otherShieldReady = b.Lanes[1].ReadyAtBeat, daggerReady = b.Lanes[2].ReadyAtBeat;
             b.Press(0, 1); b.Release(0, 1.01);
@@ -159,7 +161,7 @@ namespace BBSB.Tests
         [Test] public void MissingARepeatedOpeningStillLeavesUnconditionalLaterNotesPlayable()
         {
             var phrase = new WeaponPhrase("sword", "authored repeat", "", 4,
-                WeaponPhraseCatalog.Find("sword").Notes, repeat: true);
+                ShortWeaponPhrases.Find("sword").Notes, repeat: true);
             var b = new FiveLaneBattle(new[] { new WeaponState("sword") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100,
                 new[] { phrase });
             Tap(b, 0, 0); Tap(b, 0, 1); Tap(b, 0, 2); b.Advance(4.25);

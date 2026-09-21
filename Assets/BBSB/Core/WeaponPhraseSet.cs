@@ -13,6 +13,7 @@ namespace BBSB.Core
         public IReadOnlyList<WeaponPhrase> LightTransitions { get; }
         public IReadOnlyList<WeaponPhrase> DarkTransitions { get; }
         public ChaosRules Chaos { get; }
+        public bool RandomizeChaosSections { get; }
         public WeaponPhraseSet(WeaponState weapon, IReadOnlyList<WeaponPhrase> starts,
             IReadOnlyList<WeaponPhrase> darkStarts = null, IReadOnlyList<WeaponPhrase> lightTransitions = null,
             IReadOnlyList<WeaponPhrase> darkTransitions = null, ChaosRules chaos = null)
@@ -24,6 +25,12 @@ namespace BBSB.Core
                 foreach (var phrase in side)
                     if (!phrase.Repeat || Math.Abs(phrase.LengthBeats - Math.Round(phrase.LengthBeats)) > .000001)
                         throw new ArgumentException("Chaos needs repeating base patterns that retain their beat side.");
+            RandomizeChaosSections = LightStarts[0].MaximumCycles > 0;
+            foreach (var side in new[] { LightStarts, DarkStarts })
+                foreach (var phrase in side)
+                    if (RandomizeChaosSections ? phrase.MaximumCycles != 2 : phrase.MaximumCycles != 0)
+                        throw new ArgumentException("Chaos bases must all use either two random sections or unlimited transitions.");
+            if (RandomizeChaosSections) return;
             LightTransitions = ValidateTransitions(weapon, FillTransitions(LightStarts, lightTransitions));
             DarkTransitions = ValidateTransitions(weapon, FillTransitions(DarkStarts, darkTransitions));
         }
@@ -84,10 +91,10 @@ namespace BBSB.Core
             var lightBridges = new WeaponPhrase[starts.Length]; var darkBridges = new WeaponPhrase[starts.Length];
             for (int i = 0; i < starts.Length; i++)
             {
-                starts[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light);
-                dark[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark);
-                lightBridges[i] = WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light, true);
-                darkBridges[i] = WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark, true);
+                starts[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light, attribute: weapon.Attribute);
+                dark[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark, attribute: weapon.Attribute);
+                lightBridges[i] = phrase != null ? null : WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light, true);
+                darkBridges[i] = phrase != null ? null : WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark, true);
             }
             return new WeaponPhraseSet(weapon, starts, dark, lightBridges, darkBridges);
         }
@@ -103,19 +110,32 @@ namespace BBSB.Core
         public double StartBeat { get; }
         public double StableSinceBeat { get; }
         public int Index { get; }
-        internal WeaponRhythmCycle(WeaponPhrase phrase, WeaponBeatSide side, double start, double stableSince, int index, bool transition = false)
-        { Phrase = phrase; Side = side; StartBeat = start; StableSinceBeat = stableSince; Index = index; IsTransition = transition; }
+        public int BaseIndex { get; }
+        public bool CanContinue => Phrase.Repeat &&
+            (Phrase.MaximumCycles == 0 || IsTransition || BaseIndex + 1 < Phrase.MaximumCycles);
+        internal WeaponRhythmCycle(WeaponPhrase phrase, WeaponBeatSide side, double start, double stableSince, int index, bool transition = false, int baseIndex = 0)
+        { BaseIndex = baseIndex; Phrase = phrase; Side = side; StartBeat = start; StableSinceBeat = stableSince; Index = index; IsTransition = transition; }
         internal WeaponRhythmCycle Next(WeaponPhraseSet patterns, WeaponAttribute attribute, int offset, int seed)
         {
             double start = StartBeat + Phrase.LengthBeats;
+            if (attribute == WeaponAttribute.Chaos && patterns.RandomizeChaosSections)
+            {
+                var randomSide = RandomSide(seed, BaseIndex + 1);
+                // Never overlap the preceding phrase; changing sides inserts a half-beat breath.
+                if (WeaponAttributes.SideAt(start) != randomSide) start += .5;
+                return new WeaponRhythmCycle(patterns.For(offset, randomSide), randomSide, start, start,
+                    Index + 1, baseIndex: BaseIndex + 1);
+            }
             var side = IsTransition ? WeaponAttributes.Opposite(Side) : Side;
             double stableSince = IsTransition ? start : StableSinceBeat;
             var last = Phrase.Notes[Phrase.Notes.Count - 1];
             double maintained = StartBeat + last.Beat + last.HoldBeats - stableSince;
             bool transition = attribute == WeaponAttribute.Chaos && !IsTransition && maintained + .000001 >= patterns.Chaos.MinimumBeats &&
                 Roll(seed, Index + 1) < patterns.Chaos.TransitionChance;
-            return new WeaponRhythmCycle(patterns.For(offset, side, transition), side, start, stableSince, Index + 1, transition);
+            return new WeaponRhythmCycle(patterns.For(offset, side, transition), side, start, stableSince, Index + 1, transition, transition ? BaseIndex : BaseIndex + 1);
         }
+        internal static WeaponBeatSide RandomSide(int seed, int section) =>
+            Roll(seed, section) < .5m ? WeaponBeatSide.Light : WeaponBeatSide.Dark;
         private static decimal Roll(int seed, int index)
         {
             uint value = unchecked((uint)seed ^ ((uint)index * 0x9e3779b9u));
