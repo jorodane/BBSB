@@ -64,10 +64,10 @@ namespace BBSB.Tests
             }
             var dagger = new WeaponState("dagger"); dagger.SetNoteBindings(new[] { Binding(2, "inject-hold", 0) });
             Check.Equal(.5, WeaponNoteAssembly.Apply(dagger, WeaponPhraseSet.Uniform(dagger)).LightStarts[0].Notes[0].HoldBeats);
-            dagger.SetNoteBindings(new[] { Binding(3, "inject-tap", 3) });
+            var sword = new WeaponState("sword"); sword.SetNoteBindings(new[] { Binding(3, "inject-tap", 2) });
             bool rejected = false;
-            try { WeaponNoteAssembly.Apply(dagger, WeaponPhraseSet.Uniform(dagger)); } catch (ArgumentException) { rejected = true; }
-            Check.True(rejected); Check.Equal(6, WeaponPhraseCatalog.Find("dagger").Notes.Count);
+            try { WeaponNoteAssembly.Apply(sword, WeaponPhraseSet.Uniform(sword)); } catch (ArgumentException) { rejected = true; }
+            Check.True(rejected); Check.Equal(1, WeaponPhraseCatalog.Find("dagger").Notes.Count);
         }
         [Test] public void ActualRewardsOwnPartsAndMovingOrRemovingThemNeverDeletesBaseNotes()
         {

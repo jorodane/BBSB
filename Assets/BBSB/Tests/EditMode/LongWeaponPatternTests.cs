@@ -18,7 +18,7 @@ namespace BBSB.Tests
         private static void Open(FiveLaneBattle b, int slot = 0, double at = 0)
         {
             b.Press(slot, at); var lane = b.Lanes[0];
-            b.Release(slot, Math.Max(at, lane.StartBeat + lane.Phrase.Notes[0].HoldBeats));
+            b.Release(slot, lane.Holding ? Math.Max(at, lane.HoldEndBeat) : at);
         }
         private static void FinishSection(FiveLaneBattle b)
         {
@@ -31,10 +31,67 @@ namespace BBSB.Tests
             }
         }
 
-        [Test] public void AllOffensiveAndSupportWeaponsHaveLongPhrasesCooldownsAndAMajorityOfTheirOwnPulse()
+        [Test] public void BasicPulseWeaponsKeepTheirCadenceThroughHalfMissesAndPauseUsingTheActualCatalog()
+        {
+            foreach (string id in new[] { "dagger", "dual-swords" })
+            foreach (var attribute in new[] { WeaponAttribute.Light, WeaponAttribute.Dark, WeaponAttribute.Dual })
+            foreach (double at in new[] { .13, .49 })
+            {
+                var b = Battle(id, attribute); var lane = b.Lanes[0];
+                double interval = id == "dagger" ? 2 : 1;
+                Open(b, at: at); double start = lane.StartBeat - interval;
+                Check.Equal(1, lane.Phrase.Notes.Count); Check.False(lane.Phrase.Notes[0].IsHold);
+                Check.Equal(interval, lane.Phrase.LengthBeats); Check.Equal(0, lane.Phrase.MaximumCycles);
+                Check.Equal(0.0, lane.Phrase.CompletionCooldownBeats); Check.Equal(2.0, lane.Phrase.MissCooldownBeats);
+                var side = lane.ActiveSide;
+                for (int i = 1; i <= 24; i++)
+                {
+                    double next = start + i * interval;
+                    Check.Equal(next, lane.NextBeat); Check.Equal(side, lane.ActiveSide);
+                    if (i == 5)
+                    {
+                        double paused = b.Beat; b.Pause(); b.Advance(1000);
+                        Check.Equal(paused, b.Beat); Check.Equal(next, lane.NextBeat); b.Resume();
+                    }
+                    double input = next + (i == 3 ? .2 : 0);
+                    b.Press(0, input); b.Release(0, input);
+                    Check.Equal(PhraseLanePhase.Playing, lane.Phase); Check.True(lane.CanRepeat);
+                }
+                Check.Equal(start + 25 * interval, lane.NextBeat);
+                Check.Equal(24, b.PerfectCount); Check.Equal(1, b.HalfMissCount); Check.Equal(0, b.MissCount);
+            }
+        }
+
+        [Test] public void BasicPulseMissesBreakTheForecastAndAllowANewStartAfterTwoBeats()
+        {
+            foreach (string id in new[] { "dagger", "dual-swords" })
+            foreach (var attribute in new[] { WeaponAttribute.Light, WeaponAttribute.Dark, WeaponAttribute.Dual })
+            {
+                var b = Battle(id, attribute); var lane = b.Lanes[0];
+                double interval = id == "dagger" ? 2 : 1;
+                Open(b, at: .49); double missedBeat = lane.NextBeat; decimal damage = b.TotalDamage;
+                var timeline = new FiveLaneNoteTimeline();
+                b.Advance(missedBeat - interval * .25); timeline.Refresh(b);
+                Check.True(timeline.Notes.Any(n => n.IsPreview));
+                b.Advance(missedBeat + b.HalfMissWindow + .01); timeline.Refresh(b);
+                Check.Equal(1, b.MissCount); Check.Equal(0, b.Combo); Check.False(lane.CanRepeat);
+                Check.Equal(PhraseLanePhase.Cooldown, lane.Phase); Check.Equal(0, timeline.Notes.Count);
+                Check.True(timeline.Broken.Any(n => n.Note.IsPreview));
+                Check.True(Math.Abs(lane.ReadyAtBeat - lane.LastJudgedBeat - 2) < .000001,
+                    "A missed pulse must recover two beats after the miss is judged.");
+                double ready = lane.ReadyAtBeat;
+                b.Press(0, ready - .1); b.Release(0, b.Beat);
+                Check.Equal(damage, b.TotalDamage); Check.Equal(1, b.PerfectCount);
+                b.Advance(ready); Check.Equal(PhraseLanePhase.Ready, lane.Phase);
+                Open(b, at: ready);
+                Check.Equal(2, b.PerfectCount); Check.Equal(1, b.MissCount); Check.True(lane.CanRepeat);
+            }
+        }
+
+        [Test] public void OtherOffensiveAndSupportWeaponsHaveLongPhrasesCooldownsAndAMajorityOfTheirOwnPulse()
         {
             Check.Equal(32, WeaponPhraseCatalog.All.Count);
-            foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.Shield))
+            foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.Shield && w.Id != "dagger" && w.Id != "dual-swords"))
             foreach (var side in new[] { WeaponBeatSide.Light, WeaponBeatSide.Dark })
             for (int offset = 0; offset < weapon.RequiredLanes; offset++)
             {
@@ -48,9 +105,9 @@ namespace BBSB.Tests
             }
         }
 
-        [Test] public void EveryAllowedNonChaosVariantCompletesFromEveryLineThenActuallyWaitsForItsCooldown()
+        [Test] public void EveryAllowedOneShotVariantCompletesFromEveryLineThenActuallyWaitsForItsCooldown()
         {
-            foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.Shield))
+            foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.Shield && !WeaponPhraseCatalog.Find(w.Id).Repeat))
             foreach (var attribute in new[] { WeaponAttribute.Light, WeaponAttribute.Dark, WeaponAttribute.Dual })
             {
                 if (weapon.ExclusiveAttribute.HasValue && weapon.ExclusiveAttribute != attribute) continue;
@@ -130,7 +187,9 @@ namespace BBSB.Tests
                 for (int i = 0; i < 3; i++)
                 {
                     var before = lane.ActiveSide; Check.Equal(0, lane.Phrase.MaximumCycles);
-                    FinishSection(b); Check.True(lane.IsTransition); Check.Equal(before, lane.ActiveSide);
+                    for (int section = 0; section < 12 && !lane.IsTransition; section++) FinishSection(b);
+                    Check.True(lane.IsTransition); Check.Equal(before, lane.ActiveSide);
+                    Check.True(lane.StartBeat - lane.Cycle.StableSinceBeat >= 6);
                     FinishSection(b); Check.False(lane.IsTransition); Check.Equal(WeaponAttributes.Opposite(before), lane.ActiveSide);
                     Check.True(lane.CanRepeat); Check.Equal(PhraseLanePhase.Playing, lane.Phase);
                 }

@@ -43,10 +43,12 @@ namespace BBSB.Core
                     8, finisherEvery: 1, finisherDamage: 38, groggyBeats: 4, completionCooldownBeats: 8);
                 case "bow": return P(id, "활", "당기고 발사 두 번 → 길게 당겨 강사격", 10, 8,
                     H(0, 1, 0), Shot(2, 24, 0), H(3, 1, 0), Shot(5, 28, 2), H(6, 2, 0), Shot(9, 44, 4));
-                case "dagger": return P(id, "단검", "간격을 둔 찌르기 → 끝에서 연속 찌르기", 8, 6,
-                    T(0, 6), T(2, 8), T(4, 8), T(5.5, 6), T(6, 10), T(7, 14));
-                case "dual-swords": return P(id, "쌍검", "연속 교차 베기 · 두 번의 반박 가속", 8, 6,
-                    T(0, 8), T(1, 8), T(2, 8), T(2.5, 8), T(3, 8), T(4, 8), T(5, 8), T(6, 8), T(6.5, 8), T(7, 16));
+                // These starter pulse weapons teach the main beat. Keep their single
+                // taps and unlimited cadence when expanding the other weapons.
+                case "dagger": return new WeaponPhrase(id, "단검", "2박마다 Tap 1회 · 성공하면 무한 반복 · 미스 대기 2박", 2,
+                    new[] { T(0, 6) }, repeat: true);
+                case "dual-swords": return new WeaponPhrase(id, "쌍검", "매 박자 Tap 1회 · 성공하면 무한 반복 · 미스 대기 2박", 1,
+                    new[] { T(0, 6) }, repeat: true);
                 case "staff": return P(id, "봉", "두 번 두드리기 → 반대쪽 Hold → 되돌려 마무리 · 2라인", 8, 8,
                     T(0, 8), T(.5, 8), H(1, 1, 18, 1), T(3, 10, 1), T(4, 10), H(5, 1, 22, 1), T(7, 16));
                 case "spirit-bell": return P(id, "신령 방울", "양옆 호출 → 쿨타임 감소 → 다시 호출", 12, 10,

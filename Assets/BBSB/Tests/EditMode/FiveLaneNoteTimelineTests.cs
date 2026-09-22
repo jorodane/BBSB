@@ -13,6 +13,9 @@ namespace BBSB.Tests
         private static FiveLaneBattle Battle(string weapon, WeaponPhrase phrase = null, params BeatAttack[] attacks) =>
             new FiveLaneBattle(new[] { new WeaponState(weapon) }, 120, 32, attacks, new StageHealth(10000), 100, 100,
                 new[] { phrase ?? ShortWeaponPhrases.Find(weapon) });
+        private static FiveLaneBattle CatalogBattle(string weapon) =>
+            new FiveLaneBattle(new[] { new WeaponState(weapon) }, 120, 32,
+                Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100);
         private static void Tap(FiveLaneBattle battle, double beat) { battle.Press(0, beat); battle.Release(0, beat); }
         private static TrackNote At(FiveLaneNoteTimeline timeline, double beat) =>
             timeline.Notes.Single(note => Math.Abs(note.Beat - beat) < .000001);
@@ -33,7 +36,7 @@ namespace BBSB.Tests
         }
         [Test] public void DualSwordsShowOneRealNoteAndAssumesSuccessfulRepeatsWithinThreeBeats()
         {
-            var b = Battle("dual-swords"); var timeline = new FiveLaneNoteTimeline();
+            var b = CatalogBattle("dual-swords"); var timeline = new FiveLaneNoteTimeline();
             timeline.Refresh(b); Check.Equal(0, timeline.Notes.Count);
             Tap(b, 0); timeline.Refresh(b);
             Check.Equal(3, timeline.Notes.Count);
@@ -45,6 +48,19 @@ namespace BBSB.Tests
             Check.Equal(3, timeline.Notes.Count); Check.Equal(0, timeline.Broken.Count);
             Tap(b, 2.2); timeline.Refresh(b); // Half-miss still succeeds and preserves the forecast.
             Check.Equal(1, b.HalfMissCount); Check.False(At(timeline, 3).IsPreview); Check.Equal(0, timeline.Broken.Count);
+        }
+        [Test] public void DefaultDaggerShowsOnlyTheTwoBeatPulseAndItsNextRepeatWithinTheHorizon()
+        {
+            var b = CatalogBattle("dagger"); var timeline = new FiveLaneNoteTimeline();
+            timeline.Refresh(b); Check.Equal(0, timeline.Notes.Count);
+            Tap(b, 0); timeline.Refresh(b);
+            Check.Equal(1, timeline.Notes.Count); Check.False(At(timeline, 2).IsPreview);
+            b.Advance(1); timeline.Refresh(b);
+            Check.Equal(2, timeline.Notes.Count); Check.False(At(timeline, 2).IsPreview); Check.True(At(timeline, 4).IsPreview);
+            Tap(b, 2); timeline.Refresh(b);
+            Check.Equal(1, timeline.Notes.Count); Check.False(At(timeline, 4).IsPreview);
+            Check.Equal(0, timeline.Broken.Count); Check.Equal(12m, b.TotalDamage);
+            Check.Equal(2, b.PerfectCount); Check.Equal(0, b.MissCount);
         }
         [Test] public void BowShotIsPreviewedDuringDrawThenPromotedInPlaceOnCompletion()
         {
@@ -76,7 +92,7 @@ namespace BBSB.Tests
         }
         [Test] public void FailedDualSwordsBreakFutureRepeatsWithoutMakingGhostsPlayable()
         {
-            var b = Battle("dual-swords"); Tap(b, 0);
+            var b = CatalogBattle("dual-swords"); Tap(b, 0);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
             Tap(b, .75); timeline.Refresh(b); // Too early for the actual note at 1.
             Check.Equal(0, timeline.Notes.Count);

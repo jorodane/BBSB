@@ -19,9 +19,9 @@ namespace BBSB.Tests
         private static void Tap(FiveLaneBattle battle, int slot, double beat)
         { battle.Press(slot, beat); battle.Release(slot, beat); }
 
-        [Test] public void OnlyTheExclusiveChaosPendulumRepeatsInTheBaseCatalog()
+        [Test] public void TheTwoBasicPulseWeaponsAndChaosPendulumRepeatInTheBaseCatalog()
         {
-            Check.Equal("chaos-pendulum", string.Join(",", WeaponPhraseCatalog.All.Where(p => p.Repeat).Select(p => p.WeaponId)));
+            Check.Equal("dagger,dual-swords,chaos-pendulum", string.Join(",", WeaponPhraseCatalog.All.Where(p => p.Repeat).Select(p => p.WeaponId)));
             Check.False(new WeaponPhrase("sword", "one shot", "", 1, new[] { new WeaponPhraseNote(0, 1) }).Repeat);
             Check.Equal(2, WeaponCatalog.Find("staff").RequiredLanes);
             Check.Equal(1, WeaponCatalog.Find("spirit-bell").RequiredLanes);
