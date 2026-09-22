@@ -7,7 +7,7 @@ namespace BBSB.Core
     {
         public PhraseLane Lane { get; }
         public int Slot { get; }
-        public AttackRank Rank { get; }
+        public AttackRank Rank { get; internal set; }
         public PhraseLanePhase Phase { get; internal set; }
         public double StartBeat { get; internal set; }
         public double GuardUntilBeat { get; internal set; }
@@ -26,11 +26,34 @@ namespace BBSB.Core
     {
         public const decimal ResonanceThreshold = 12, ResonanceCapacity = 24, ResonanceAttackMultiplier = 1.5m;
         private readonly List<ShieldContact> shieldContacts = new List<ShieldContact>();
+        private readonly List<int> shieldSlots = new List<int>();
+        private int nextFrontShield;
         public IReadOnlyList<ShieldContact> ShieldContacts => shieldContacts.AsReadOnly();
         public decimal LightResonance { get; private set; }
         public decimal DarkResonance { get; private set; }
         public ShieldContact ShieldAt(int slot) => shieldContacts.Find(x => x.Slot == slot);
         public static bool IsSplitShield(PhraseLane lane) => lane != null && lane.Weapon.DefinitionId == "wide-shield";
+        public AttackRank ShieldRankAt(int slot) => shieldSlots.Count > 1 && slot == shieldSlots[shieldSlots.Count - 1] ?
+            AttackRank.Rear : AttackRank.Front;
+        private void InitializeShieldRouting()
+        {
+            foreach (int slot in BattleInputLayout.DisplayOrder)
+                if (LaneAt(slot) != null && WeaponCatalog.Find(LaneAt(slot).Weapon.DefinitionId).Kind == WeaponKind.Shield)
+                    shieldSlots.Add(slot);
+            foreach (var contact in shieldContacts) contact.Rank = ShieldRankAt(contact.Slot);
+        }
+        private void RouteShieldAttack(IncomingBeatAttack attack)
+        {
+            if (shieldSlots.Count == 0) return;
+            if (attack.Definition.Rank == AttackRank.Rear)
+            {
+                if (shieldSlots.Count > 1) attack.ShieldSlot = shieldSlots[shieldSlots.Count - 1];
+                return;
+            }
+            int frontCount = Math.Max(1, shieldSlots.Count - 1);
+            attack.ShieldSlot = shieldSlots[nextFrontShield];
+            nextFrontShield = (nextFrontShield + 1) % frontCount;
+        }
         public IEnumerable<int> RequiredHeldSlots
         {
             get
@@ -43,9 +66,11 @@ namespace BBSB.Core
         { foreach (int required in RequiredHeldSlots) if (required == slot) return true; return false; }
         public bool CoversAttack(PhraseLane lane, int slot, IncomingBeatAttack attack)
         {
-            if (lane == null) return false;
-            return IsSplitShield(lane) ? (lane.Placement.OffsetOf(slot) == 0 ? AttackRank.Front : AttackRank.Rear) == attack.Definition.Rank :
-                attack.Definition.Rank == AttackRank.Front;
+            if (lane == null || attack == null || !ReferenceEquals(LaneAt(slot), lane)) return false;
+            // The physical destination is committed once, together with the preview.
+            // Non-shield parry weapons retain their authored front-rank behavior.
+            return WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield ?
+                attack.ShieldSlot == slot : attack.Definition.Rank == AttackRank.Front;
         }
         private void PressSplitShield(PhraseLane lane, int slot)
         {

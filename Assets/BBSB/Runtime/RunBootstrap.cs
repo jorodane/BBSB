@@ -17,6 +17,8 @@ namespace BBSB.Runtime
         [SerializeField] private bool showBattleTestControls = true;
         [Tooltip("Use the five-lane weapon phrase battle. Disable only to inspect the legacy prototype.")]
         [SerializeField] private bool useFiveLaneCombat = true;
+        [Tooltip("한 박에 한 단어씩 표시. 네 번째 단어와 동시에 곡과 전투가 시작해.")]
+        [SerializeField] private string[] countInWords = { "Beat", "Block", "Shake", "Beat" };
 
         private void Awake()
         {
@@ -35,7 +37,7 @@ namespace BBSB.Runtime
             var font = UI.PresentationFonts.Load();
             var presenter = gameObject.AddComponent<RunPresenter>();
             presenter.Initialize(new RunRules(startingHealth, startingGold, restPercent), font,
-                useFixedSeed ? (int?)seed : null, showBattleTestControls, useFiveLaneCombat);
+                useFixedSeed ? (int?)seed : null, showBattleTestControls, useFiveLaneCombat, countInWords);
         }
     }
 }

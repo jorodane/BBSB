@@ -40,6 +40,7 @@ namespace BBSB.Core
     {
         public BeatAttack Definition { get; }
         public double Beat { get; }
+        public int ShieldSlot { get; internal set; } = -1;
         internal double CutoffBeat = double.PositiveInfinity;
         public double EndBeat => Math.Min(Beat + Definition.HoldBeats, CutoffBeat);
         public double NextImpactBeat => Definition.IsHold ? Math.Min(EndBeat, Beat + (PulseIndex + 1) * .5) : Beat;
@@ -168,6 +169,7 @@ namespace BBSB.Core
         private readonly List<IncomingBeatAttack> incoming = new List<IncomingBeatAttack>();
         private readonly List<ScheduledPhraseStart> scheduledStarts = new List<ScheduledPhraseStart>();
         private readonly double loopBeats;
+        public MonsterAttackWindow AttackWindow { get; }
         private int nextAttack, cycle;
         public IReadOnlyList<PhraseLane> Lanes { get; }
         public IReadOnlyList<IncomingBeatAttack> Incoming { get; }
@@ -202,7 +204,7 @@ namespace BBSB.Core
             IReadOnlyList<WeaponPhrase> phrases = null, RhythmRules rules = null,
             IReadOnlyList<WeaponPlacement> placements = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null,
             InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1, CombatBonuses bonuses = null,
-            EncounterFormation formation = null)
+            EncounterFormation formation = null, MonsterAttackWindow attackWindow = null)
         {
             if (weapons == null || weapons.Count < 1 || weapons.Count > RunRules.WeaponSlots)
                 throw new ArgumentException("Equip between one and five weapons.");
@@ -215,6 +217,7 @@ namespace BBSB.Core
             Bpm = bpm; this.loopBeats = loopBeats; EnemyHealth = enemyHealth ?? throw new ArgumentNullException(nameof(enemyHealth));
             Bonuses = bonuses ?? new CombatBonuses();
             Formation = formation;
+            AttackWindow = attackWindow;
             if (Formation != null) Formation.FutureCut += CutFutureAttacks;
             PlayerHealth = playerHealth; PlayerMaximum = playerMaximum; rules ??= new RhythmRules(.09, .18);
             PerfectWindow = rules.PerfectSeconds * bpm / 60;
@@ -253,6 +256,7 @@ namespace BBSB.Core
                     inputs[slot] = lane;
                 }
             }
+            InitializeShieldRouting();
             schedule = new List<BeatAttack>(attacks ?? throw new ArgumentNullException(nameof(attacks)));
             foreach (var attack in schedule) if (attack == null || attack.Beat >= loopBeats ||
                 attack.Beat + attack.HoldBeats > loopBeats + Epsilon) throw new ArgumentException("Attack outside music loop.");
@@ -267,7 +271,8 @@ namespace BBSB.Core
             InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1, CombatBonuses bonuses = null, bool useFormation = true)
         {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
-            var formation = useFormation && plan.Monsters.Count > 0 ? new EncounterFormation(plan, enemyHealth) : null;
+            var formation = useFormation && plan.Monsters.Count > 0 ?
+                new EncounterFormation(plan, enemyHealth, startBeat: MonsterAttackWindow.OpeningBeats) : null;
             var attacks = new List<BeatAttack>();
             double length = (double)plan.Stage.Music.TotalTicks / RhythmTime.TicksPerBeat;
             if (formation == null) foreach (var attack in plan.Attacks)
@@ -279,7 +284,8 @@ namespace BBSB.Core
                 if (at < length) attacks.Add(new BeatAttack(attack.MonsterId, at, attack.Monster.DamagePerNote * attack.JudgmentWeight, duration));
             }
             return new FiveLaneBattle(weapons, plan.Stage.Music.Bpm, length, attacks, enemyHealth, health, maximum, phrases,
-                placements: placements, phraseSets: phraseSets, extensions: extensions, rhythmSeed: rhythmSeed, bonuses: bonuses, formation: formation);
+                placements: placements, phraseSets: phraseSets, extensions: extensions, rhythmSeed: rhythmSeed, bonuses: bonuses, formation: formation,
+                attackWindow: new MonsterAttackWindow(length, plan.Stage.Music.Bpm));
         }
 
         public void Pause() { if (!Finished) IsPaused = true; }
@@ -493,9 +499,12 @@ namespace BBSB.Core
             if (Formation != null)
             {
                 until = Math.Min(until, Beat + Formation.Rules.PreviewBeats);
-                foreach (var definition in Formation.Events(formationGeneratedThrough, until))
+                var definitions = new List<BeatAttack>(Formation.Events(formationGeneratedThrough, until));
+                definitions.Sort((a, b) => a.Beat != b.Beat ? a.Beat.CompareTo(b.Beat) : string.CompareOrdinal(a.MonsterId, b.MonsterId));
+                foreach (var definition in definitions)
                 {
-                    var attack = new IncomingBeatAttack(definition, definition.Beat);
+                    var attack = PlaceIncoming(definition, definition.Beat);
+                    if (attack == null) continue;
                     if (definition.Beat < (Formation.Find(definition.MonsterId)?.GroggyUntilBeat ?? 0))
                     { attack.State = IncomingAttackState.Interrupted; attack.ResolvedBeat = Beat; }
                     incoming.Add(attack);
@@ -508,11 +517,20 @@ namespace BBSB.Core
             while (schedule[nextAttack].Beat + cycle * loopBeats <= until)
             {
                 double at = schedule[nextAttack].Beat + cycle * loopBeats;
-                var attack = new IncomingBeatAttack(schedule[nextAttack], at);
-                if (at < GroggyUntilBeat) { attack.State = IncomingAttackState.Interrupted; attack.ResolvedBeat = Beat; }
-                incoming.Add(attack);
+                var attack = PlaceIncoming(schedule[nextAttack], at);
+                if (attack != null)
+                {
+                    if (at < GroggyUntilBeat) { attack.State = IncomingAttackState.Interrupted; attack.ResolvedBeat = Beat; }
+                    incoming.Add(attack);
+                }
                 if (++nextAttack == schedule.Count) { nextAttack = 0; cycle++; }
             }
+        }
+        private IncomingBeatAttack PlaceIncoming(BeatAttack definition, double at)
+        {
+            var attack = AttackWindow == null ? new IncomingBeatAttack(definition, at) : AttackWindow.Place(definition, at);
+            if (attack != null) RouteShieldAttack(attack);
+            return attack;
         }
         private void Miss(PhraseLane lane)
         {
@@ -527,6 +545,9 @@ namespace BBSB.Core
         private void Succeed(PhraseLane lane, RhythmGrade grade)
         {
             var note = lane.Phrase.Notes[lane.NextNote];
+            bool wasHolding = lane.Holding;
+            int heldSlot = lane.HoldingSlot;
+            double heldUntil = wasHolding ? lane.HoldEndBeat : double.NegativeInfinity;
             var resolvedSide = lane.ActiveSide;
             if (lane.SustainingGuard) lane.TimingShiftBeats += Math.Max(0, Beat - lane.NextBeat - note.HoldBeats);
             lane.GuardUntilBeat = double.NegativeInfinity;
@@ -595,6 +616,17 @@ namespace BBSB.Core
             if (Formation == null) EnemyHealth.Damage(damage);
             else lane.LastDamageMonsterId = Formation.Damage(damage, note.Target, Beat);
             lane.DamageDealt += damage; TotalDamage += damage;
+            if (!Finished && wasHolding && lane.Phase == PhraseLanePhase.Playing &&
+                heldInputs[heldSlot] && lane.SlotForNote(lane.NextNote) == heldSlot &&
+                Math.Abs(lane.NextBeat - heldUntil) < Epsilon &&
+                (lane.Phrase.Notes[lane.NextNote].ConnectFromPrevious || lane.Phrase.Notes[lane.NextNote].IsHold))
+            {
+                // Touching segments share contact and entry grade, even at a repeat boundary.
+                // Releasing within the next segment still misses; pauses still require this key.
+                lane.Holding = true; lane.HoldingSlot = heldSlot; lane.HoldGrade = grade;
+                lane.states[lane.NextNote] = PhraseNoteState.Holding;
+                if (!lane.Phrase.Notes[lane.NextNote].IsHold) Succeed(lane, grade);
+            }
         }
         private void ApplyAdjacentSupport(PhraseLane source, WeaponPhraseNote note, decimal effectScale)
         {

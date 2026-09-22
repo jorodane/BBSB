@@ -23,10 +23,14 @@ namespace BBSB.Runtime
         private Action onFinish, onLeave;
         private double origin, offsetBeat;
         private bool resultShown;
-        internal void Bind(FiveLaneBattle battle, RunSession session, RunUI ui, Action finished, Action leave)
+        private BattleCountIn countIn;
+        private bool showingCountIn;
+        public string CountInWord => !showingCountIn || Battle.IsPaused ? "" : countIn.WordAt((AudioSettings.dspTime - origin) * Battle.Bpm / 60);
+        internal void Bind(FiveLaneBattle battle, RunSession session, RunUI ui, Action finished, Action leave, BattleCountIn countIn = null)
         {
             if (Battle != null) throw new InvalidOperationException("Five-lane playback is already bound.");
             Battle = battle ?? throw new ArgumentNullException(nameof(battle));
+            this.countIn = countIn ?? new BattleCountIn();
             Battle.Pause(); onFinish = finished; onLeave = leave;
             string stage = "validating the encounter";
             try
@@ -35,7 +39,7 @@ namespace BBSB.Runtime
                     throw new InvalidOperationException("Five-lane playback requires a battle plan, music and UI.");
                 stage = "building the battle HUD and actors";
                 view = new FiveLaneBattleView((RectTransform)transform, ui, session, this);
-                view.Refresh(0, false);
+                view.Refresh("", false);
                 stage = "preparing the audio clock";
                 music = new StageMusicPlayer(transform, session.BattleMusic.Music);
                 tick = MakeTick(740); accent = MakeTick(1100);
@@ -94,8 +98,8 @@ namespace BBSB.Runtime
                 SchedulePulses();
                 if (AudioSettings.dspTime >= origin) Battle.Advance(Now);
             }
-            int count = Battle.IsPaused ? 0 : (int)Math.Ceiling(Math.Max(0, origin - AudioSettings.dspTime) * Battle.Bpm / 60);
-            view.Refresh(count, WaitingForHold);
+            view.Refresh(CountInWord, WaitingForHold);
+            if (!Battle.IsPaused && AudioSettings.dspTime >= origin + 60 / Battle.Bpm) showingCountIn = false;
             if (Battle.Finished)
             { resultShown = true; StopAudio(); view.ShowResult(onFinish); ClearSelection(); }
         }
@@ -125,7 +129,7 @@ namespace BBSB.Runtime
             if (!IsInitialized || Battle.Finished || !Battle.IsPaused) return;
             view.HideModal(); ClearSelection();
             foreach (int slot in Battle.RequiredHeldSlots) { WaitingForHold = true; return; }
-            Battle.Resume(); ReleaseStaleContacts(); RestartClock(false);
+            Battle.Resume(); ReleaseStaleContacts(); RestartClock(showingCountIn && Battle.Beat == 0);
         }
         private void TryResumeHeld()
         {
@@ -153,8 +157,10 @@ namespace BBSB.Runtime
         }
         private void RestartClock(bool countIn)
         {
-            offsetBeat = Battle.Beat; origin = AudioSettings.dspTime + (countIn ? 4 * 60 / Battle.Bpm : .12);
-            nextPulse = countIn ? -4 : (int)Math.Ceiling(offsetBeat);
+            showingCountIn = countIn;
+            offsetBeat = Battle.Beat;
+            origin = AudioSettings.dspTime + .12 + (countIn ? BattleCountIn.LeadBeats * 60 / Battle.Bpm : 0);
+            nextPulse = countIn ? -BattleCountIn.LeadBeats : (int)Math.Ceiling(offsetBeat);
             music.Start(origin, offsetBeat * 60 / Battle.Bpm, true);
         }
         private void SchedulePulses()

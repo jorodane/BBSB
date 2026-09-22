@@ -135,7 +135,7 @@ namespace BBSB.Runtime.UI
             placement.Layout(); stageActors.Add(placement);
             return actor;
         }
-        public void Refresh(int countdown, bool waitingForHold)
+        public void Refresh(string countInWord, bool waitingForHold)
         {
             if (battle.Formation != null)
             {
@@ -162,7 +162,7 @@ namespace BBSB.Runtime.UI
             hud.enemyHealth.text = "ENEMY " + battle.EnemyHealth.Current.ToString("0.#") + " / " + battle.EnemyHealth.Maximum;
             hud.playerFill.anchorMax = new Vector2((float)(battle.PlayerHealth / battle.PlayerMaximum), 1);
             hud.enemyFill.anchorMax = new Vector2((float)(battle.EnemyHealth.Current / battle.EnemyHealth.Maximum), 1);
-            hud.beat.text = countdown > 0 ? "COUNT IN\n" + countdown : battle.Combo + "\nCOMBO";
+            hud.beat.text = !string.IsNullOrEmpty(countInWord) ? countInWord : battle.Combo + "\nCOMBO";
             hud.beat.color = battle.Beat % 1 < .18 ? RunUI.Gold : RunUI.TextColor;
             hud.feedback.text = waitingForHold ? "Hold 중이던 버튼을 다시 눌러줘" : battle.IsGroggy ? "GROGGY" :
                 battle.Beat - battle.LastHitBeat < .5 ? "HIT" : "";
@@ -203,12 +203,13 @@ namespace BBSB.Runtime.UI
                 var contact = battle.ShieldAt(i);
                 if (contact != null)
                 {
-                    hud.laneStatus[i].text = (contact.Rank == AttackRank.Front ? "선봉" : "후열") + " · " +
-                        (contact.Phase == PhraseLanePhase.Playing ? "GUARD " + Math.Max(0, contact.EndBeat - battle.Beat).ToString("0.0") :
+                    hud.laneStatus[i].text = (contact.Phase == PhraseLanePhase.Playing ? "GUARD " + Math.Max(0, contact.EndBeat - battle.Beat).ToString("0.0") :
                         contact.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, contact.ReadyAtBeat - battle.Beat).ToString("0.0") : "READY");
                     hud.laneResults[i].text = battle.Beat - contact.LastJudgedBeat < 1 ? contact.Feedback : "";
                     icons[i].color = contact.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 }
+                if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
+                    hud.laneStatus[i].text = (battle.ShieldRankAt(i) == AttackRank.Front ? "전열" : "후열") + " · " + hud.laneStatus[i].text;
                 // Beat-driven recoil gives each successful input a readable weapon response.
                 double age = battle.Beat - lane.LastJudgedBeat;
                 float pulse = age >= 0 && age < .4 && lane.LastGrade != RhythmGrade.Miss ? 1 - (float)(age / .4) : 0;
@@ -241,7 +242,7 @@ namespace BBSB.Runtime.UI
                     monsters[i].RefreshSprites();
                 }
             }
-            hud.attackCue.text = countdown > 0 ? "" : double.IsPositiveInfinity(nearestAttack) ? "" :
+            hud.attackCue.text = !string.IsNullOrEmpty(countInWord) ? "" : double.IsPositiveInfinity(nearestAttack) ? "" :
                 nearestAttack <= battle.PerfectWindow ? "PARRY NOW" : "PARRY IN " + nearestAttack.ToString("0.0") + " BEATS";
             hud.attackCue.color = nearestAttack <= .5 ? RunUI.Gold : RunUI.Red;
             player.RefreshSprites();

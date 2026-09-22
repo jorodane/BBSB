@@ -134,9 +134,10 @@ namespace BBSB.Runtime.UI
                 var authored = UnityEngine.Object.Instantiate(template, parent, false);
                 Prefabs.PrepareText(authored.gameObject);
                 authored.name = "Button " + label; authored.interactable = enabled;
+                authored.navigation = new Navigation { mode = Navigation.Mode.None };
                 var caption = authored.GetComponentInChildren<TextMeshProUGUI>(true); if (caption != null) caption.text = label;
                 Size((RectTransform)authored.transform, height, 1);
-                authored.onClick.AddListener(() => action()); return authored;
+                authored.onClick.AddListener(() => { if (authored.isActiveAndEnabled && authored.IsInteractable()) action(); }); return authored;
             }
             var rect = Rect("Button " + label, parent); Size(rect, height, 1);
             var image = Background(rect, primary ? Gold : Hex("2B3850"), true);
@@ -148,7 +149,7 @@ namespace BBSB.Runtime.UI
             button.interactable = enabled;
             var text = Label(rect, label, 24, primary ? Ink : TextColor, height, TextAlignmentOptions.Center);
             Stretch(text.rectTransform, 8);
-            button.onClick.AddListener(() => action());
+            button.onClick.AddListener(() => { if (button.isActiveAndEnabled && button.IsInteractable()) action(); });
             return button;
         }
 

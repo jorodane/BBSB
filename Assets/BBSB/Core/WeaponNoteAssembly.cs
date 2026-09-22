@@ -25,7 +25,7 @@ namespace BBSB.Core
             new NotePartDefinition("frame-mend", "회복 프레임", "선택한 노트 성공 시 추가 체력 2 회복. 반미스는 절반.", NotePartKind.Frame, NotePartEffect.Mend),
             new NotePartDefinition("frame-pierce", "후열 관통 프레임", "선택한 공격 노트가 살아 있는 후열 중 체력이 가장 적은 적을 공격. 후열이 없으면 선봉.", NotePartKind.Frame, NotePartEffect.Pierce),
             new NotePartDefinition("inject-tap", "반박 주입", "선택한 노트 뒤 반박에 추가 Tap. 원래 노트 성공이 필요하며 기본 피해의 60%.", NotePartKind.Injection, NotePartEffect.ExtraTap),
-            new NotePartDefinition("inject-hold", "홀드 주입", "선택한 Tap을 반박 Hold로 변경하고 피해 +40%. 다음 노트와 겹치면 장착 불가.", NotePartKind.Injection, NotePartEffect.Hold),
+            new NotePartDefinition("inject-hold", "홀드 주입", "선택한 Tap 위에 반박 Hold를 씌우고 피해 +40%. 같은 라인의 기존 노트도 유지 입력으로 연주하고, 맞닿은 Hold는 연결돼.", NotePartKind.Injection, NotePartEffect.Hold),
             new NotePartDefinition("inject-cross", "교차 박자 주입", "선택한 노트 뒤 반박에 다음 점유 라인의 Tap 추가. 복수 라인 무기 전용, 기본 피해의 80%.", NotePartKind.Injection, NotePartEffect.CrossTap)
         });
         public static NotePartDefinition Find(string id)
@@ -108,8 +108,7 @@ namespace BBSB.Core
                     if (injection.Effect == NotePartEffect.Hold)
                     {
                         if (note.IsHold) throw new ArgumentException("홀드 주입은 Tap에 장착해.");
-                        hold = .5;
-                        if (note.Beat + hold >= next) throw new ArgumentException("다음 노트와 겹쳐서 홀드를 넣을 수 없어.");
+                        hold = Math.Min(.5, source.LengthBeats - note.Beat);
                         damage *= 1.4m;
                     }
                     else
@@ -129,6 +128,21 @@ namespace BBSB.Core
                         prerequisite: remap[i], condition: PhraseNoteCondition.Hit,
                         laneOffset: injection.Effect == NotePartEffect.CrossTap ? (note.LaneOffset + 1) % width : note.LaneOffset,
                         target: target, baseNoteIndex: i, injected: true));
+            }
+            // Split a continuous crown at original note boundaries. Every original effect
+            // and prerequisite still resolves once; only the required input is connected.
+            double crownEnd = -1;
+            int crownLane = -1;
+            for (int i = 0; i < result.Count; i++)
+            {
+                var note = result[i];
+                bool connected = crownLane == note.LaneOffset && crownEnd >= note.Beat;
+                double end = Math.Max(note.Beat + note.HoldBeats, connected ? crownEnd : note.Beat);
+                crownEnd = end; crownLane = note.LaneOffset;
+                double hold = Math.Max(0, Math.Min(end, i + 1 < result.Count ? result[i + 1].Beat : source.LengthBeats) - note.Beat);
+                result[i] = new WeaponPhraseNote(note.Beat, note.Damage, hold, note.Effect, note.Prerequisite, note.Condition,
+                    note.LaneOffset, note.EffectDurationBeats, note.Target, note.BonusHealing, note.BaseNoteIndex,
+                    note.IsInjected, connected);
             }
             return new WeaponPhrase(source.WeaponId, source.Name, source.Hint, source.LengthBeats, result,
                 source.MissCooldownBeats, source.Repeat, source.FinisherEvery, source.FinisherDamage, source.GroggyBeats,

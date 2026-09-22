@@ -34,6 +34,9 @@ namespace BBSB.Runtime
         private bool choosingRun;
         private int selectedMap = -1;
         private int pendingOffer = -1;
+        private bool pendingOfferIsShop;
+        private readonly List<Button> shopOfferButtons = new List<Button>();
+        private TMP_Text statsLabel, noticeLabel;
         private static readonly string[] InputKeys = { "D", "F", "Space", "J", "K", "S", "L" };
         private string notice = "";
         private bool rendering;
@@ -41,11 +44,14 @@ namespace BBSB.Runtime
         private RhythmRound completedRound;
         private BattlePreparationView preparation;
         private MonsterCodexView codex;
+        private BattleCountIn countIn;
 
-        public void Initialize(RunRules runRules, TMP_FontAsset font, int? seed, bool showTestControls, bool useFiveLaneCombat = false)
+        public void Initialize(RunRules runRules, TMP_FontAsset font, int? seed, bool showTestControls, bool useFiveLaneCombat = false,
+            IReadOnlyList<string> countInWords = null)
         {
             MonsterAuthoringRegistry.EnsureLoaded();
             fiveLaneCombat = useFiveLaneCombat;
+            countIn = new BattleCountIn(countInWords);
             rules = runRules; ui = new RunUI(font); fixedSeed = seed; testControls = showTestControls;
             var canvasRoot = ui.Rect("BBSB Canvas", transform);
             var canvas = canvasRoot.gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -106,6 +112,7 @@ namespace BBSB.Runtime
                 if (authoredScreen != null) { authoredScreen.gameObject.SetActive(false); Destroy(authoredScreen.gameObject); authoredScreen = null; }
                 else if (screen != null) { screen.gameObject.SetActive(false); Destroy(screen.gameObject); }
                 ClearMenu(); preparation = null;
+                shopOfferButtons.Clear(); statsLabel = noticeLabel = null;
                 authoredScreen = ui.Prefabs != null ? ui.Prefabs.Create(CurrentScreenKind(), safeArea) : null;
                 screen = authoredScreen != null ? authoredScreen.content : ui.Rect("Run screen", safeArea);
                 if (authoredScreen == null) RunUI.Stretch(screen);
@@ -123,7 +130,7 @@ namespace BBSB.Runtime
                     try
                     {
                         screen.gameObject.AddComponent<FiveLanePlayback>().Bind(battle, Session, ui,
-                            () => FinishFiveLaneBattle(ticket, battle), () => LeaveFiveLaneBattle(ticket, battle));
+                            () => FinishFiveLaneBattle(ticket, battle), () => LeaveFiveLaneBattle(ticket, battle), countIn);
                     }
                     catch (Exception error)
                     {
@@ -173,9 +180,10 @@ namespace BBSB.Runtime
                 // The preparation screen owns its header, HP bars and rectangular menu button.
                 if (completedRound != null || pendingOffer >= 0 || Session.Phase != RunPhase.Stage || !Session.CurrentNode.IsBattle)
                     DrawHud();
-                if (!string.IsNullOrEmpty(notice))
+                if (!string.IsNullOrEmpty(notice) || IsShopping)
                 {
                     var toast = ui.Label(page != null ? page : screen, notice, 21, RunUI.Teal, 42, TextAlignmentOptions.Center);
+                    noticeLabel = toast;
                     if (page == null)
                         RunUI.Overlay(toast.rectTransform, new Vector2(.3f, 0), new Vector2(.7f, 0), new Vector2(0, 68), new Vector2(0, 110));
                 }
@@ -262,6 +270,7 @@ namespace BBSB.Runtime
             var field = ui.Label(hud, Session.Map.Theme.Name + " · FIELD " + Session.Map.Number.ToString("00"), 27, RunUI.Gold, 40);
             RunUI.Overlay(field.rectTransform, Vector2.zero, Vector2.one, new Vector2(0, 40), Vector2.zero);
             var stats = ui.Label(hud, "HP  " + Session.Health.ToString("0.##") + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G", 22, RunUI.Teal, 36);
+            statsLabel = stats;
             RunUI.Overlay(stats.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0, -44));
             if (Session.Phase != RunPhase.GameOver) ui.FloatingMenu(screen, () => OpenMenu(MenuPage.Home));
         }
@@ -379,7 +388,7 @@ namespace BBSB.Runtime
             ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth +
                 "   ·   ENEMY " + Session.EnemyHealth.Current.ToString("0.#") + " / " + Session.EnemyHealth.Maximum, 22, null, 36);
             var list = ui.Scroll(panel);
-            ui.Label(list, "선봉을 공격하며 긴 패턴을 연주해. 후열은 짧게 개입하고, 교대는 보이는 3박 뒤에 일어나.\n넓은 방패는 왼쪽으로 선봉, 오른쪽으로 후열을 막아. 노트 조립에서 후열 관통도 준비할 수 있어.", 22, null, 96);
+            ui.Label(list, "네 번째 카운트인 단어에 시작! 곡의 첫 3박·끝 3초는 적 공격 없이 연주해.\n방패 라인이 둘 이상이면 맨 오른쪽은 후열, 나머지는 전열 공격이 왼쪽부터 순서대로 와.", 22, null, 96);
             var names = new System.Collections.Generic.List<string>();
             foreach (var monster in Session.BattlePlan.Monsters) names.Add(monster.Monster.Name);
             ui.Label(list, "MONSTERS  ·  " + string.Join(" / ", names), 20, RunUI.Red, 40);
@@ -590,31 +599,60 @@ namespace BBSB.Runtime
                 string label = offer.Purchased ? "구매 완료" : shop ? offer.Price + " G  ·  구매" : "선택";
                 if (Session.UsesFiveLaneCombat && definition.Kind == RewardKind.Weapon && !offer.Purchased) label += " · 가방에 보관";
                 if (shop && !offer.Purchased && Session.Gold < offer.Price) label += "  ·  골드 부족";
-                ui.Button(card, label, () => PickOffer(index), enabled, !shop, 62);
+                var button = ui.Button(card, label, () => PickOffer(index, shop, offer), enabled, !shop, 62);
+                if (shop) shopOfferButtons.Add(button);
             }
         }
 
-        private void PickOffer(int index)
+        private bool IsShopping => Session != null && Session.Phase == RunPhase.Stage && Session.CurrentNode?.Kind == StageKind.Shop;
+
+        private void PickOffer(int index, bool shop, Offer expected)
         {
-            if (index < 0 || index >= Session.Offers.Count) return;
+            if ((shop ? !IsShopping : Session.Phase != RunPhase.Reward) ||
+                index < 0 || index >= Session.Offers.Count || !ReferenceEquals(Session.Offers[index], expected)) return;
             if (!Session.UsesFiveLaneCombat && Session.Offers[index].Content.Kind == RewardKind.Weapon && Session.Weapons.Count >= RunRules.WeaponSlots)
-            { pendingOffer = index; notice = ""; Render(); return; }
-            GrantOffer(index, -1);
+            { pendingOffer = index; pendingOfferIsShop = shop; notice = ""; Render(); return; }
+            GrantOffer(index, -1, shop);
         }
 
-        private void GrantOffer(int index, int slot)
+        private void GrantOffer(int index, int slot, bool shop)
         {
-            if (index < 0 || index >= Session.Offers.Count) return;
+            if ((shop ? !IsShopping : Session.Phase != RunPhase.Reward) || index < 0 || index >= Session.Offers.Count) return;
             var selected = Session.Offers[index];
             string name = (selected.Content.Kind == RewardKind.Weapon && Session.UsesFiveLaneCombat ? WeaponAttributes.Name(selected.Attribute) + " " : "") + selected.Content.Name;
-            bool success = Session.Phase == RunPhase.Reward ? Session.ChooseReward(index, slot) : Session.Buy(index, slot);
-            if (success) { pendingOffer = -1; notice = name + " 획득!"; Render(); }
+            bool success = shop ? Session.Buy(index, slot) : Session.ChooseReward(index, slot);
+            if (!success) return;
+            bool replacement = pendingOffer >= 0;
+            pendingOffer = -1; notice = name + " 획득!";
+            // A purchase keeps the same controls, scroll position and exit button.
+            // Rebuilding the screen under the pointer/submit selection could activate
+            // a different control on the next click or queued submit event.
+            if (shop && !replacement) RefreshShop(); else Render();
+        }
+
+        private void RefreshShop()
+        {
+            for (int i = 0; i < shopOfferButtons.Count; i++)
+            {
+                var offer = Session.Offers[i]; var button = shopOfferButtons[i];
+                button.interactable = !offer.Purchased && Session.Gold >= offer.Price;
+                string label = offer.Purchased ? "구매 완료" : offer.Price + " G  ·  구매";
+                if (!offer.Purchased && Session.Gold < offer.Price) label += "  ·  골드 부족";
+                button.name = "Button " + label;
+                var caption = button.GetComponentInChildren<TMP_Text>(true);
+                if (caption != null) caption.text = label;
+            }
+            if (statsLabel != null) statsLabel.text = "HP  " + Session.Health.ToString("0.##") + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G";
+            if (noticeLabel != null) noticeLabel.text = notice;
+            if (UnityEngine.EventSystems.EventSystem.current != null)
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
         }
 
         private void DrawReplacement()
         {
             var offer = Session.Offers[pendingOffer];
             int offerIndex = pendingOffer;
+            bool shop = pendingOfferIsShop;
             var page = ui.Stack(screen, "Weapon replacement", 0, 12);
             RunUI.Overlay(page, Vector2.zero, Vector2.one, new Vector2(24, 24), new Vector2(-24, -116));
             ui.Label(page, "무기 교체", 32, RunUI.Gold, 44);
@@ -641,7 +679,7 @@ namespace BBSB.Runtime
                 var state = Session.Weapons[slot];
                 ui.Label(card, (slot + 1) + "  " + WeaponName(slot), 24, WeaponIconGraphic.RarityColor(state.Rarity), 44);
                 DrawWeaponSummary(card, state);
-                ui.Button(card, (slot + 1) + "  " + WeaponName(slot) + "  교체", () => GrantOffer(offerIndex, slot), height: 64);
+                ui.Button(card, (slot + 1) + "  " + WeaponName(slot) + "  교체", () => GrantOffer(offerIndex, slot, shop), height: 64);
             }
             ui.Button(page, "돌아가기", () => { pendingOffer = -1; Render(); }, height: 64);
         }

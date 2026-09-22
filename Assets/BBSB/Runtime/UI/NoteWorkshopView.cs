@@ -16,7 +16,7 @@ namespace BBSB.Runtime.UI
     {
         internal static void Draw(RectTransform root, RunUI ui, RunSession session, NoteWorkshopSelection selection, Action refresh)
         {
-            ui.Label(root, "무기 → 원본 노트 → 프레임 또는 박자 주입을 선택해.\n해제하면 원본으로 돌아가고, 부품은 가방에 남아.", 22, RunUI.Muted, 72);
+            ui.Label(root, "무기 → 원본 노트 → 프레임 또는 박자 주입을 선택해.\n홀드는 기존 박자 위에 씌우고 같은 라인에서 이어져. 해제하면 원본으로 돌아가.", 22, RunUI.Muted, 72);
             if (session.OwnedWeapons.Count == 0) return;
             selection.Weapon = Math.Max(0, Math.Min(selection.Weapon, session.OwnedWeapons.Count - 1));
             var weapon = session.OwnedWeapons[selection.Weapon];
@@ -40,7 +40,7 @@ namespace BBSB.Runtime.UI
             ui.Label(root, "조립 결과 · " + (selection.Side == WeaponBeatSide.Light ? "정박" : "엇박") + " · " + composed.LengthBeats + "박", 24, RunUI.Teal, 40);
             var sequence = new List<string>();
             foreach (var note in composed.Notes)
-                sequence.Add((note.IsInjected ? "+" : "") + note.Beat.ToString("0.##") + (note.IsHold ? "~" + (note.Beat + note.HoldBeats).ToString("0.##") + " Hold" : " Tap") +
+                sequence.Add((note.ConnectFromPrevious ? "연결 " : note.IsInjected ? "+" : "") + note.Beat.ToString("0.##") + (note.IsHold ? "~" + (note.Beat + note.HoldBeats).ToString("0.##") + " Hold" : note.ConnectFromPrevious ? " 유지" : " Tap") +
                     (weapon.RequiredLanes > 1 ? "(" + (note.LaneOffset + 1) + ")" : "") + (note.Target == WeaponAttackTarget.Rear ? " 후열" : ""));
             ui.Label(root, string.Join("  →  ", sequence), 21, RunUI.TextColor, Math.Max(72, (sequence.Count + 4) / 5 * 34));
             ui.Label(root, "원본 노트 선택 · 같은 번호의 모든 시작 방향에 적용 · 혼돈 전환 구간은 유지", 20, RunUI.Muted, 44);

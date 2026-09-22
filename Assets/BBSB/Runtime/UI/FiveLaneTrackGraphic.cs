@@ -89,14 +89,15 @@ namespace BBSB.Runtime.UI
                         var head = Position(slot, Math.Max(battle.Beat, at)); var tail = Position(slot, shown.EndBeat);
                         if (shown.IsPreview) DashedLine(vh, head, tail, tint);
                         else Line(vh, head, tail, 11, tint);
-                        if (SteppedNoteTrack.InHorizon(shown.EndBeat - battle.Beat))
+                        if (!shown.ConnectsNext && SteppedNoteTrack.InHorizon(shown.EndBeat - battle.Beat))
                         {
                             var endTint = shown.ReleaseParry ? RunUI.Gold : Color.white; endTint.a = tint.a;
                             NoteHead(vh, tail, shown.ReleaseParry ? 11 : 7, endTint, shown.IsPreview);
                         }
                     }
                     var headTint = shown.PressParry ? RunUI.Gold : tint; headTint.a = tint.a;
-                    NoteHead(vh, p, shown.PressParry ? 11 : 9, headTint, shown.IsPreview);
+                    if (!shown.IsConnected) NoteHead(vh, p, shown.PressParry ? 11 : 9, headTint, shown.IsPreview);
+                    else Line(vh, p - Vector2.right * 5, p + Vector2.right * 5, 2, headTint);
                 }
                 foreach (var broken in noteTimeline.Broken)
                     if (broken.Note.Slot == slot && !(SpriteNoteShatter && broken.Note.IsPreview)) DrawBroken(vh, broken, laneColor);

@@ -52,7 +52,7 @@ namespace BBSB.Tests
             battle.Press(0, 2.5); battle.Release(0, 2.5); Check.Equal(50.4m, battle.TotalDamage);
             Check.Equal(0, battle.MissCount);
         }
-        [Test] public void CrossInjectionAndHoldTransformationRejectOverlapsAcrossEveryVariant()
+        [Test] public void ExtraTapRejectsOccupiedBeatsWhileHoldTransformationKeepsEveryVariant()
         {
             var staff = new WeaponState("staff");
             staff.SetNoteBindings(new[] { Binding(1, "inject-cross", 2) });
@@ -159,8 +159,8 @@ namespace BBSB.Tests
             Check.Equal(12m, battle.LightResonance); Check.Equal(0m, battle.DarkResonance); Check.Equal(988m, battle.PlayerHealth);
             battle.Press(1, 3.25); battle.Release(1, 3.25);
             Check.Equal(9m, battle.TotalDamage); Check.Equal(0m, battle.LightResonance);
-            var parry = ShieldBattle(new[] { "resonance-shield", "heater-shield" }, new BeatAttack("front", 1, 48, 4));
-            parry.Press(0, 0); parry.Press(1, 1); parry.Advance(5.25);
+            var parry = ShieldBattle(new[] { "heater-shield", "resonance-shield" }, new BeatAttack("front", 1, 48, 4));
+            parry.Press(1, 0); parry.Press(0, 1); parry.Advance(5.25);
             Check.Equal(0m, parry.LightResonance); Check.Equal(48m, parry.TotalBlocked);
         }
         [Test] public void GlobalAugmentsAffectDamageAndGuardButNeverShortenThePatternItself()

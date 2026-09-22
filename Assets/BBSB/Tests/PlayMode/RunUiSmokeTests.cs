@@ -26,6 +26,46 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator ShopPurchasesKeepTheSameButtonsScrollAndExitUntilExplicitReturn()
+        {
+            int seed = Enumerable.Range(0, 100).First(s => MapGenerator.Generate(1, new SeededRandom(s)).Nodes.Any(n => n.Row == 1 && n.Kind == StageKind.Shop));
+            root = new GameObject("Shop repeated purchase test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(startingGold: 1000), PresentationFonts.Load(), seed, false, true);
+            Click("탐험 시작"); Click("편성하고 시작");
+            var run = presenter.Session;
+            var shop = run.Map.Nodes.First(n => n.Row == 1 && n.Kind == StageKind.Shop);
+            Assert.IsTrue(run.Enter(run.Map.Nodes.First(n => n.Row == 0 && n.Next.Contains(shop.Id)).Id));
+            Assert.IsTrue(run.ResolveBattle(run.StageTicket, true, run.Health)); Assert.IsTrue(run.SkipReward());
+            Assert.IsTrue(run.Enter(shop.Id)); presenter.SendMessage("Render");
+            yield return null; Canvas.ForceUpdateCanvases();
+            var buttons = root.GetComponentsInChildren<Button>().Where(b => b.GetComponentInChildren<TMP_Text>()?.text.Contains("G  ·  구매") == true).ToArray();
+            Assert.AreEqual(4, buttons.Length);
+            var exit = root.GetComponentsInChildren<Button>().Single(b => b.GetComponentInChildren<TMP_Text>()?.text == "지도에 돌아가기");
+            var scroll = buttons[0].GetComponentInParent<ScrollRect>();
+            scroll.verticalNormalizedPosition = .3f; Canvas.ForceUpdateCanvases();
+            var position = scroll.content.anchoredPosition;
+            int cleared = run.ClearedStages;
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                Assert.AreEqual(Navigation.Mode.None, buttons[i].navigation.mode);
+                int gold = run.Gold - run.Offers[i].Price;
+                buttons[i].onClick.Invoke(); buttons[i].onClick.Invoke();
+                yield return null; Canvas.ForceUpdateCanvases();
+                Assert.AreEqual(RunPhase.Stage, run.Phase); Assert.AreSame(shop, run.CurrentNode);
+                Assert.AreEqual(cleared, run.ClearedStages); Assert.AreEqual(gold, run.Gold);
+                Assert.AreEqual("구매 완료", buttons[i].GetComponentInChildren<TMP_Text>().text);
+                Assert.IsFalse(buttons[i].interactable); Assert.IsTrue(exit.gameObject.activeInHierarchy);
+                Assert.AreSame(exit, root.GetComponentsInChildren<Button>().Single(b => b.GetComponentInChildren<TMP_Text>()?.text == "지도에 돌아가기"));
+                Assert.AreEqual(position.y, scroll.content.anchoredPosition.y, .1f);
+                Assert.IsTrue(root.GetComponentsInChildren<TMP_Text>().Any(t => t.text.Contains("·  " + gold + " G")));
+            }
+            exit.onClick.Invoke(); yield return null;
+            Assert.AreEqual(RunPhase.Map, run.Phase); Assert.AreEqual(cleared + 1, run.ClearedStages);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator NoteWorkshopEquipsAndRemovesARewardWithoutDeletingTheBasePattern()
         {
             root = new GameObject("Note workshop UI smoke test");

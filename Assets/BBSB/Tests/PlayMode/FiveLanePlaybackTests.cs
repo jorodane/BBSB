@@ -26,6 +26,36 @@ namespace BBSB.Tests
             yield return null;
         }
 
+        [UnityTest] public IEnumerator FourthConfiguredWordSharesTheSongAndInputOriginAndPauseRestartsTheLeadIn()
+        {
+            root = new GameObject("Word count-in test");
+            var presenter = root.AddComponent<RunPresenter>();
+            var words = new[] { "Bounce", "Block", "Swing", "Begin" };
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 31, false, true, words);
+            Click("탐험 시작"); Click("편성하고 시작");
+            Assert.IsTrue(presenter.Session.Enter(presenter.Session.Map.Nodes.First(n => presenter.Session.CanEnter(n.Id)).Id));
+            Assert.IsTrue(presenter.StartFiveLaneBattle());
+            var playback = root.GetComponentInChildren<FiveLanePlayback>();
+            var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
+            var clock = typeof(FiveLanePlayback).GetField("origin", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            for (int i = 0; i < 3; i++)
+            {
+                clock.SetValue(playback, AudioSettings.dspTime + (3 - i - .01) * 60 / playback.Battle.Bpm);
+                playback.SendMessage("LateUpdate");
+                Assert.AreEqual(words[i], hud.beat.text); Assert.IsFalse(playback.CanReceiveInput);
+                Assert.AreEqual(0, playback.Battle.Beat); Assert.AreEqual(100, playback.Battle.PlayerHealth);
+            }
+            playback.Pause(); playback.Continue();
+            Assert.IsFalse(playback.CanReceiveInput);
+            Assert.Greater((double)clock.GetValue(playback) - AudioSettings.dspTime, 2.9 * 60 / playback.Battle.Bpm);
+            clock.SetValue(playback, AudioSettings.dspTime - .01 * 60 / playback.Battle.Bpm);
+            playback.SendMessage("LateUpdate");
+            Assert.AreEqual("Begin", hud.beat.text); Assert.IsTrue(playback.CanReceiveInput);
+            Assert.Greater(playback.Battle.Beat, 0); Assert.Less(playback.Battle.Beat, .5);
+            Assert.IsTrue(playback.Battle.Incoming.All(a => a.Beat >= 3));
+            yield return null; LogAssert.NoUnexpectedReceived();
+        }
+
         [UnityTest] public IEnumerator DefaultBootstrapOpensTwoEquippedLanesAndWaitsForHeldContactOnResume()
         {
             root = new GameObject("Five lane bootstrap"); root.AddComponent<RunBootstrap>();

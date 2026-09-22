@@ -13,6 +13,11 @@ namespace BBSB.Runtime.UI
         public bool IsPreview { get; }
         public bool PressParry { get; }
         public bool ReleaseParry { get; }
+        public bool IsConnected => Index > 0 && Connects(Phrase.Notes[Index - 1], Definition);
+        public bool ConnectsNext => Index + 1 < Phrase.Notes.Count && Connects(Definition, Phrase.Notes[Index + 1]);
+        private static bool Connects(WeaponPhraseNote previous, WeaponPhraseNote next) => previous.IsHold &&
+            previous.LaneOffset == next.LaneOffset && Math.Abs(previous.Beat + previous.HoldBeats - next.Beat) < .000001 &&
+            (next.IsHold || next.ConnectFromPrevious);
         internal WeaponPhrase Phrase { get; }
         internal ScheduledPhraseStart Reservation { get; }
         private readonly double timingShift;

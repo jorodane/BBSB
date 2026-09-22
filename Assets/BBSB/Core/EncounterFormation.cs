@@ -70,6 +70,7 @@ namespace BBSB.Core
         private readonly List<EncounterMonster> monsters = new List<EncounterMonster>();
         private readonly StageHealth totalHealth;
         private double segmentStart, sourceStart, decisionAt;
+        private readonly double openingBeat;
         private EncounterMonster returningTo;
         private bool returnPending;
         private int rotation;
@@ -82,11 +83,13 @@ namespace BBSB.Core
         public double NextDeadline => Math.Min(SwitchAtBeat, decisionAt);
         public event Action<string, double> FutureCut;
 
-        public EncounterFormation(BattlePlan plan, StageHealth totalHealth, FormationRules rules = null)
+        public EncounterFormation(BattlePlan plan, StageHealth totalHealth, FormationRules rules = null, double startBeat = 0)
         {
             if (plan == null || plan.Monsters.Count == 0 || totalHealth == null || totalHealth.Defeated)
                 throw new ArgumentException("A formation needs living monsters and health.");
+            if (!WeaponPhraseNote.Finite(startBeat) || startBeat < 0) throw new ArgumentOutOfRangeException(nameof(startBeat));
             this.totalHealth = totalHealth; Rules = rules ?? new FormationRules();
+            segmentStart = openingBeat = startBeat;
             decimal used = 0;
             for (int i = 0; i < plan.Monsters.Count; i++)
             {
@@ -98,7 +101,7 @@ namespace BBSB.Core
                 decimal previousShares = used - maximum;
                 if (priorDamage > previousShares) monster.Health.Damage(Math.Min(maximum, priorDamage - previousShares));
             }
-            Monsters = monsters.AsReadOnly(); Front = FirstLiving(); decisionAt = Rules.RotationBeats;
+            Monsters = monsters.AsReadOnly(); Front = FirstLiving(); decisionAt = startBeat + Rules.RotationBeats;
         }
         public EncounterMonster Find(string id) => monsters.Find(x => x.InstanceId == id);
         private EncounterMonster FirstLiving() => monsters.Find(x => !x.Health.Defeated);
@@ -183,7 +186,7 @@ namespace BBSB.Core
             for (int i = 0; i < monsters.Count; i++)
             {
                 var monster = monsters[i]; if (monster.Health.Defeated) continue;
-                double offset = 4 + i * 2;
+                double offset = openingBeat + 4 + i * 2;
                 int first = Math.Max(0, (int)Math.Floor((after - offset) / Rules.SupportInterval) + 1);
                 for (int turn = first; ; turn++)
                 {
