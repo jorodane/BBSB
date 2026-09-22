@@ -26,6 +26,34 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator NoteWorkshopEquipsAndRemovesARewardWithoutDeletingTheBasePattern()
+        {
+            root = new GameObject("Note workshop UI smoke test");
+            var presenter = root.AddComponent<RunPresenter>();
+            presenter.Initialize(new RunRules(), PresentationFonts.Load(), 31, false, true);
+            Click("탐험 시작"); yield return null;
+            Click("편성하고 시작"); yield return null;
+            var run = presenter.Session;
+            Assert.IsTrue(run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id));
+            Assert.IsTrue(run.ResolveBattle(run.StageTicket, true, run.Health));
+            Assert.AreEqual(RewardKind.Frame, run.Offers[2].Content.Kind);
+            Assert.IsTrue(run.ChooseReward(2));
+            presenter.SendMessage("Render"); yield return null;
+            Click("메뉴"); Click("노트 조립"); yield return null;
+            var weapon = run.OwnedWeapons[0];
+            int originalCount = WeaponPhraseSet.Uniform(weapon).For(0, WeaponBeatSide.Light).Notes.Count;
+            Click("1번 노트에 장착"); yield return null;
+            Assert.AreEqual(1, weapon.NoteBindings.Count);
+            Assert.AreSame(weapon, run.NotePartOwner(run.NoteParts[0].InstanceId));
+            Assert.AreEqual(originalCount, WeaponNoteAssembly.Apply(weapon,
+                WeaponPhraseSet.Uniform(weapon)).For(0, WeaponBeatSide.Light).Notes.Count);
+            Click("부품 해제"); yield return null;
+            Assert.AreEqual(0, weapon.NoteBindings.Count); Assert.AreEqual(1, run.NoteParts.Count);
+            Assert.IsNull(run.NotePartOwner(run.NoteParts[0].InstanceId));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator BossWeaponChoiceHasThreeCardsThenOffersEquipmentAndTheNextField()
         {
             root = new GameObject("Boss progression UI smoke test");
@@ -74,7 +102,8 @@ namespace BBSB.Tests
             codex.GetComponentsInChildren<Button>().Single(x => x.name == "Codex tap-slime").onClick.Invoke();
             yield return null; Canvas.ForceUpdateCanvases();
             Assert.IsNotNull(codex.GetComponentInChildren<MonsterCodexStage>());
-            Assert.AreEqual(3, codex.GetComponentsInChildren<Button>().Count(x => x.name == "Codex idle" || x.name.StartsWith("Codex pattern ")));
+            Assert.AreEqual(MonsterCatalog.All.First(x => x.Id == "tap-slime").Patterns.Count + 1,
+                codex.GetComponentsInChildren<Button>().Count(x => x.name == "Codex idle" || x.name.StartsWith("Codex pattern ")));
             Click("소리 켜짐");
             Click(MonsterCatalog.All[0].Patterns[0].Name); yield return null;
             Assert.IsNotNull(codex.GetComponentInChildren<MonsterPatternGraphic>());

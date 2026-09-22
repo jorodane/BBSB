@@ -22,19 +22,26 @@ namespace BBSB.Core
         public PhraseNoteCondition Condition { get; }
         // Relative to the line that started this activation, within its weapon's footprint.
         public int LaneOffset { get; }
+        public WeaponAttackTarget Target { get; }
+        public decimal BonusHealing { get; }
+        public int BaseNoteIndex { get; }
+        public bool IsInjected { get; }
         public bool IsHold => HoldBeats > 0;
         public bool IsParry => Effect == PhraseEffect.Parry;
         public WeaponPhraseNote(double beat, decimal damage, double holdBeats = 0, PhraseEffect effect = PhraseEffect.Strike,
             int prerequisite = -1, PhraseNoteCondition condition = PhraseNoteCondition.Always, int laneOffset = 0,
-            double effectDurationBeats = 2)
+            double effectDurationBeats = 2, WeaponAttackTarget target = WeaponAttackTarget.Front,
+            decimal bonusHealing = 0, int baseNoteIndex = -1, bool injected = false)
         {
             if (!Finite(beat) || beat < 0 || !Finite(holdBeats) || holdBeats < 0 || damage < 0 ||
                 !Enum.IsDefined(typeof(PhraseEffect), effect) || !Enum.IsDefined(typeof(PhraseNoteCondition), condition) ||
                 (condition == PhraseNoteCondition.Always ? prerequisite != -1 : prerequisite < 0) ||
-                laneOffset < 0 || laneOffset >= BattleInputLayout.LaneCount || !Finite(effectDurationBeats) || effectDurationBeats <= 0)
+                laneOffset < 0 || laneOffset >= BattleInputLayout.LaneCount || !Finite(effectDurationBeats) || effectDurationBeats <= 0 ||
+                !Enum.IsDefined(typeof(WeaponAttackTarget), target) || bonusHealing < 0 || baseNoteIndex < -1)
                 throw new ArgumentOutOfRangeException(nameof(beat));
             Beat = beat; HoldBeats = holdBeats; Damage = damage; Effect = effect; EffectDurationBeats = effectDurationBeats;
             Prerequisite = prerequisite; Condition = condition; LaneOffset = laneOffset;
+            Target = target; BonusHealing = bonusHealing; BaseNoteIndex = baseNoteIndex; IsInjected = injected;
         }
         internal static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
@@ -104,7 +111,7 @@ namespace BBSB.Core
 
     public static class WeaponPhraseCatalog
     {
-        public static IReadOnlyList<string> ShieldIds { get; } = Array.AsReadOnly(new[] { "shield", "round-shield", "tower-shield", "heater-shield" });
+        public static IReadOnlyList<string> ShieldIds { get; } = Array.AsReadOnly(new[] { "shield", "round-shield", "tower-shield", "heater-shield", "wide-shield", "resonance-shield" });
         private static WeaponPhraseNote Counter(double at, decimal damage) =>
             new WeaponPhraseNote(at, damage, prerequisite: 0, condition: PhraseNoteCondition.Parry);
         private static readonly WeaponPhrase[] phrases = Build();
@@ -122,6 +129,12 @@ namespace BBSB.Core
                 new[] { new WeaponPhraseNote(0, 0, 2, PhraseEffect.Parry) }, repeat: false,
                 holdDamageReduction: .5m, releaseEndsPhrase: true, parryRequired: false,
                 completionCooldownBeats: 2),
+            new WeaponPhrase("wide-shield", "넓은 방패", "왼쪽 Hold는 선봉 · 오른쪽 Hold는 후열 · 각각 2박/50% 방어와 패링", 2,
+                new[] { new WeaponPhraseNote(0, 0, 2, PhraseEffect.Parry) }, holdDamageReduction: .5m,
+                releaseEndsPhrase: true, parryRequired: false, completionCooldownBeats: 2),
+            new WeaponPhrase("resonance-shield", "축적 방패", "2박 Hold · 50% 방어 · 막은 피해 12로 같은 속성의 다음 공격 +50%", 2,
+                new[] { new WeaponPhraseNote(0, 0, 2) }, holdDamageReduction: .5m,
+                releaseEndsPhrase: true, parryRequired: false, completionCooldownBeats: 2),
             };
             foreach (var weapon in WeaponCatalog.All)
                 if (weapon.Kind != WeaponKind.Shield)

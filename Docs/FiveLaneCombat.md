@@ -1,6 +1,6 @@
 # 박자 기반 무기 전투
 
-`RunMap`의 기본 전투는 단검과 히터실드로 시작한다. 무기는 보스 처치 후 3개 중 하나를 선택해 보유 목록에 추가하며 자동 장착되지 않는다. 일반·엘리트 보상과 상점에서는 아이템·증강을 얻는다. [보스 보상과 다음 필드 진행](BossProgression.md)을 참고한다. 장착 한도는 2개에서 시작해 보스를 클리어할 때마다 1개씩, 최대 5개까지 늘어난다. 일반·엘리트·서비스 노드는 한도를 늘리지 않는다. 이전 Call & Response 모드는 `RunBootstrap.Use Five Lane Combat`을 끄면 실행할 수 있다.
+`RunMap`의 기본 전투는 단검과 히터실드로 시작한다. 무기는 보스 처치 후 3개 중 하나를 선택해 보유 목록에 추가하며 자동 장착되지 않는다. 일반·엘리트 보상과 상점에서는 아이템·증강·프레임·박자 주입을 얻는다. [보스 보상과 다음 필드 진행](BossProgression.md)을 참고한다. 장착 한도는 2개에서 시작해 보스를 클리어할 때마다 1개씩, 최대 5개까지 늘어난다. 일반·엘리트·서비스 노드는 한도를 늘리지 않는다. 이전 Call & Response 모드는 `RunBootstrap.Use Five Lane Combat`을 끄면 실행할 수 있다.
 
 공격·지원 무기는 8~12박 패턴과 6~10박 쿨타임을 사용한다. 방패는 짧게 유지한다. [무기별 최신 패턴 표](LongWeaponPatterns.md)를 참고한다. 현재 속성은 **빛·어둠·이면·혼돈**이다. 시작 박자·효과 선택·중복 장착·혼돈 전환의 상세 규칙과 에셋 설정은 [무기 속성](WeaponAttributes.md)을 참고한다.
 
@@ -76,7 +76,7 @@ Esc / II / 포커스 상실 시 모든 시간과 판정을 동결한다. Hold를
 
 기존 프리팹에도 누락된 공격 예고와 슬롯을 보완하므로 수동 재생성이 필요하지 않다. 필수 연결이 잘못된 HUD는 원인을 경고하고 해당 실행에서 기본 HUD를 사용한다. 렌더링·오디오 초기화 실패 시 전투를 정지하고 준비 복귀·재시도를 제공한다.
 
-캐릭터는 기존 Player/MonsterAuthoring과 SpriteRenderer/Animator 또는 Image 초상화를 사용한다. `SpriteCanvasGraphic`은 CanvasRenderer를 필수로 요구하며 생성할 때도 명시적으로 붙인다. Animator가 없는 몬스터도 짧은 준비 동작과 숫자 예고를 표시한다. 별도의 신규 이미지나 음원은 추가하지 않았다.
+캐릭터는 기존 Player/MonsterAuthoring과 SpriteRenderer/Animator 또는 Image 초상화를 사용한다. `SpriteCanvasGraphic`은 CanvasRenderer를 필수로 요구하며 생성할 때도 명시적으로 붙인다. Animator가 없는 몬스터도 짧은 준비 동작과 숫자 예고를 표시한다. 새 넓은 방패·축적 방패 이미지는 [통합 전투 이미지 팩](IntegratedCombat.md#이미지-설치)으로 별도 설치한다.
 
 `Create → BBSB → Weapon Phrase` 에셋을 `Resources/BBSB/WeaponPhrases/`에 두면 해당 무기 ID와 시작 Offset의 기본 프레이즈를 덮어쓴다.
 
@@ -106,3 +106,7 @@ PlayMode 검사에는 실제 CanvasRenderer의 메시 생성, 기본 장비 2개
 ## 몬스터의 긴 프레이즈와 홀드 방어
 
 12종 × 5패턴, 반 박마다 분배되는 홀드 피해, 중간 진입과 방어 연장은 [MonsterPatternExpansion.md](MonsterPatternExpansion.md)를 참고해.
+
+## 노트 성장과 몬스터 전열
+
+원본 패턴을 보존하는 프레임/박자 주입, 개별 몬스터 HP, 선봉/후열 교대와 트릭스터 복귀, 넓은 방패와 축적 방패는 [IntegratedCombat.md](IntegratedCombat.md)를 따른다. 기존 방패는 선봉 공격에 대응하며 넓은 방패의 오른쪽 입력으로 후열을 방어한다.

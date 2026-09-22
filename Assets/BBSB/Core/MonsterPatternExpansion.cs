@@ -22,7 +22,7 @@ namespace BBSB.Core
                 var patterns = new List<MonsterPatternDefinition>(monster.Patterns);
                 patterns.AddRange(For(monster.Id));
                 result.Add(new MonsterDefinition(monster.Id, monster.Name, monster.Description, monster.MainGesture,
-                    patterns, monster.EncounterWeight, monster.DamagePerNote, monster.ArtId, monster.PatternPlanner));
+                    patterns, monster.EncounterWeight, monster.DamagePerNote, monster.ArtId, monster.PatternPlanner, formationRole: monster.FormationRole));
             }
             return result.AsReadOnly();
         }

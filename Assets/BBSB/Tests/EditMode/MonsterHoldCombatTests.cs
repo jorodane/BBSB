@@ -102,14 +102,14 @@ namespace BBSB.Tests
             b.Resume(); b.Release(0, 6); b.Advance(6.25); Check.Equal(100m, b.PlayerHealth);
             b.Advance(14.25); Check.Equal(84m, b.PlayerHealth); Check.Equal(16m, b.TotalBlocked);
         }
-        [Test] public void FromPlanPreservesHoldHeadDurationAndTheFullDamageBudget()
+        [Test] public void LegacyPlanAdapterPreservesHoldHeadDurationAndTheFullDamageBudget()
         {
             var monster = MonsterCatalog.BuiltIn.Single(x => x.Id == "iron-turtle");
             var pattern = monster.Patterns.Single(x => x.Id == "turtle-long-hold");
             var stage = MusicStage.Generate(MusicCatalog.All.First());
             var placement = stage.FindPlacements(pattern.Pattern).First();
             var plan = BattlePlanner.Resolve(stage, new[] { new MonsterProposal(monster.Id, monster, new[] { placement }) }, 1);
-            var b = FiveLaneBattle.FromPlan(plan, new[] { new WeaponState("shield") }, new StageHealth(1000), 100, 100);
+            var b = FiveLaneBattle.FromPlan(plan, new[] { new WeaponState("shield") }, new StageHealth(1000), 100, 100, useFormation: false);
             double start = placement.StartTick / 4.0; b.Advance(start);
             var attack = b.Incoming.First(); Check.Equal(start, attack.Beat); Check.Equal(2.0, attack.Definition.HoldBeats);
             Check.Equal(monster.DamagePerNote * plan.Attacks[0].JudgmentWeight, attack.Definition.Damage);

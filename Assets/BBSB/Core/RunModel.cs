@@ -5,7 +5,7 @@ namespace BBSB.Core
 {
     public enum StageKind { Monster, Elite, Upgrade, Rest, Shop, Boss, Mystery }
     public enum RunPhase { Map, Stage, Reward, FieldCleared, GameOver }
-    public enum RewardKind { Weapon, Item, Augment }
+    public enum RewardKind { Weapon, Item, Augment, Frame, BeatInjection }
 
     public sealed class StageNode
     {
@@ -104,6 +104,15 @@ namespace BBSB.Core
 
     public sealed class WeaponState
     {
+        private readonly List<WeaponNoteBinding> noteBindings = new List<WeaponNoteBinding>();
+        public IReadOnlyList<WeaponNoteBinding> NoteBindings { get; }
+        internal void SetNoteBindings(IEnumerable<WeaponNoteBinding> bindings)
+        { noteBindings.Clear(); noteBindings.AddRange(bindings); }
+        public WeaponState Copy()
+        {
+            var copy = new WeaponState(DefinitionId, Rarity, Level, RequiredLanes, Attribute);
+            copy.SetNoteBindings(noteBindings); return copy;
+        }
         public string DefinitionId { get; }
         public WeaponRarity Rarity { get; }
         public WeaponAttribute Attribute { get; }
@@ -125,6 +134,7 @@ namespace BBSB.Core
             if (definition.ExclusiveAttribute.HasValue && definition.ExclusiveAttribute.Value != selectedAttribute)
                 throw new ArgumentException("This weapon has an exclusive attribute.", nameof(attribute));
             Attribute = selectedAttribute; DefinitionId = definitionId; Rarity = rarity; Level = level; RequiredLanes = lanes;
+            NoteBindings = noteBindings.AsReadOnly();
         }
     }
 

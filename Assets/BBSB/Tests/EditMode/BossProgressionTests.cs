@@ -62,13 +62,13 @@ namespace BBSB.Tests
             }
         }
 
-        [Test] public void OrdinaryEliteAndShopOffersContainOnlyItemsAndAugments()
+        [Test] public void OrdinaryEliteAndShopOffersContainItemsAugmentsAndNoteParts()
         {
             foreach (var kind in new[] { StageKind.Monster, StageKind.Elite, StageKind.Shop })
             {
                 var run = Run(); Arrive(run, kind);
                 if (kind != StageKind.Shop) Check.True(run.ResolveBattle(run.StageTicket, true, run.Health));
-                Check.Equal(2, run.Offers.Count);
+                Check.Equal(4, run.Offers.Count);
                 Check.True(run.Offers.All(o => o.Content.Kind != RewardKind.Weapon));
                 Check.Equal(2, run.OwnedWeapons.Count); Check.Equal(2, run.Equipment.Capacity);
                 Check.False(run.IsBossWeaponReward);

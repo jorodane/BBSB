@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace BBSB.Core
 {
     /// <summary>Owns one disposable run and applies incoming damage from its active performance.</summary>
-    public sealed class RunSession : IEquipmentEditor
+    public sealed partial class RunSession : IEquipmentEditor
     {
         private readonly RunRules rules;
         private SeededRandom mapRandom;
@@ -71,6 +71,7 @@ namespace BBSB.Core
             rewardRandom = new SeededRandom(unchecked(seed ^ (int)0xa511e9b3u));
             Health = MaxHealth = rules.StartingHealth; Gold = rules.StartingGold; ClearedStages = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); visited.Clear(); offers.Clear();
+            ResetNoteWorkshop();
             Equipment.Reset(); EquipmentCapacityIncreased = false;
             if (UsesFiveLaneCombat) StartingLoadout.Populate(Equipment, Character, startingLoadout);
             else foreach (var id in new[] { "greatsword", "bell", "spear", "blade", "dagger" }) weapons.Add(new WeaponState(id));
@@ -162,7 +163,7 @@ namespace BBSB.Core
             if (!UsesFiveLaneCombat || Phase != RunPhase.Stage || BattlePlan == null || Health <= 0 || ActiveRhythmRound != null || Weapons.Count == 0) return null;
             if (PhraseBattle == null)
             {
-                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases, Equipment.Placements, phraseSets, Equipment.Extensions, unchecked(Seed * 397 + ClearedStages));
+                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases, Equipment.Placements, phraseSets, Equipment.Extensions, unchecked(Seed * 397 + ClearedStages), BattleBonuses);
                 PhraseBattle.PlayerHealthChanged += ApplyPhraseHealth;
             }
             if (PhraseBattle.Finished) return null;
@@ -295,7 +296,8 @@ namespace BBSB.Core
             foreach (RewardKind kind in Enum.GetValues(typeof(RewardKind)))
             {
                 if (UsesFiveLaneCombat && kind == RewardKind.Weapon) continue;
-                AddOffer(ContentCatalog.Pick(kind, rewardRandom), shop);
+                if (!UsesFiveLaneCombat && (kind == RewardKind.Frame || kind == RewardKind.BeatInjection)) continue;
+                AddOffer(ContentCatalog.Pick(kind, rewardRandom, UsesFiveLaneCombat), shop);
             }
         }
 
@@ -328,6 +330,10 @@ namespace BBSB.Core
                     weapons[slot] = new WeaponState(content.Id, offer.Rarity, attribute: offer.Attribute);
                     break;
                 case RewardKind.Item: items.Add(content.Id); break;
+                case RewardKind.Frame:
+                case RewardKind.BeatInjection:
+                    if (!UsesFiveLaneCombat) return false;
+                    AcquireNotePart(content.Id); break;
                 case RewardKind.Augment:
                     augments.Add(content.Id);
                     if (content.Id == "vitality") { MaxHealth += 20; Health = Math.Min(MaxHealth, Health + 20); }
@@ -350,6 +356,7 @@ namespace BBSB.Core
             // Retain only the reached field/stage count for the result screen. No inventory survives.
             Health = 0; MaxHealth = rules.StartingHealth; Gold = 0;
             weapons.Clear(); items.Clear(); augments.Clear(); offers.Clear();
+            ResetNoteWorkshop();
             Equipment.Reset(); EquipmentCapacityIncreased = false;
             visited.Clear(); StageTicket = null; BattleMusic = null; BattlePlan = null; EnemyHealth = null; BattleLoadout = null; claimedService = false; Phase = RunPhase.GameOver;
         }

@@ -105,6 +105,27 @@ namespace BBSB.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest] public IEnumerator WideShieldRequiresBothHeldInputsOnResumeAndShowsIndividualMonsterHealth()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
+            run.Equipment.Acquire(new WeaponState("wide-shield", WeaponRarity.Common));
+            Assert.IsTrue(run.EquipWeapon(2, 1, 2));
+            Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
+            var playback = root.GetComponentInChildren<FiveLanePlayback>(); var battle = playback.Battle;
+            var healthLabels = playback.GetComponentsInChildren<TMP_Text>().Where(t => t.name.StartsWith("Monster health ")).ToArray();
+            Assert.AreEqual(battle.Formation.Monsters.Count, healthLabels.Length);
+            Assert.IsTrue(healthLabels.All(t => t.text.Contains(" / ")));
+            battle.Press(1, 0); battle.Press(2, 0); battle.Advance(.5);
+            Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(1).Phase); Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(2).Phase);
+            playback.Pause(); playback.Continue(); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(1, true); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(2, true); Assert.IsFalse(playback.WaitingForHold);
+            Assert.IsFalse(battle.IsPaused); Assert.AreEqual(.5, battle.Beat);
+            Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(1).Phase); Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(2).Phase);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         [UnityTest] public IEnumerator SparseKBindingUsesKForInputHoldResumeAndHudPosition()
         {
             yield return OpenPreparation();

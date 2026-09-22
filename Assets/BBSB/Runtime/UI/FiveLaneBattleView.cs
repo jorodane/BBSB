@@ -20,6 +20,8 @@ namespace BBSB.Runtime.UI
         private readonly FiveLaneEffectsView effects;
         private readonly List<StageActor> stageActors = new List<StageActor>();
         private readonly List<TMP_Text> attackLabels = new List<TMP_Text>();
+        private readonly List<TMP_Text> monsterHealthLabels = new List<TMP_Text>();
+        private readonly List<RectTransform> monsterHealthFills = new List<RectTransform>();
         private RectTransform modal;
         private static readonly string[] Keys = { "D", "F", "SPACE", "J", "K", "S", "L" };
 
@@ -104,6 +106,12 @@ namespace BBSB.Runtime.UI
                     appearance != null ? appearance.displayOffset : Vector2.zero));
                 monsterIds.Add(plan.InstanceId);
                 species.Add(plan.Monster.Id); enemySlots.Add(stageActors[i + 1].Slot);
+                var actorSlot = stageActors[i + 1].Slot;
+                var healthLabel = ui.Label(actorSlot, "", 18, RunUI.Teal);
+                healthLabel.name = "Monster health " + plan.InstanceId; healthLabel.alignment = TextAlignmentOptions.Center;
+                FiveLaneHudBindings.Place(healthLabel.rectTransform, 0, .9f, 1, 1.08f); monsterHealthLabels.Add(healthLabel);
+                var bar = ui.Rect("Monster health bar", actorSlot); FiveLaneHudBindings.Place(bar, .1f, .9f, .9f, .925f); ui.Background(bar, RunUI.Ink);
+                var fill = ui.Rect("Fill", bar); RunUI.Stretch(fill); ui.Background(fill, RunUI.Red); monsterHealthFills.Add(fill);
                 var cue = ui.Label(hud.actors, "", 20, RunUI.Red);
                 cue.alignment = TextAlignmentOptions.Center;
                 float x0 = Mathf.Lerp(hud.monsterArea.anchorMin.x, hud.monsterArea.anchorMax.x, (float)i / count);
@@ -129,6 +137,26 @@ namespace BBSB.Runtime.UI
         }
         public void Refresh(int countdown, bool waitingForHold)
         {
+            if (battle.Formation != null)
+            {
+                int rear = 0;
+                for (int i = 0; i < monsterIds.Count; i++)
+                {
+                    var monster = battle.Formation.Find(monsterIds[i]); var slot = stageActors[i + 1].Slot;
+                    bool front = ReferenceEquals(monster, battle.Formation.Front);
+                    if (front) FiveLaneHudBindings.Place(slot, .02f, 0, .61f, .91f);
+                    else
+                    {
+                        float x = .55f + .22f * (rear % 2), y = .36f + .08f * (rear % 2); rear++;
+                        FiveLaneHudBindings.Place(slot, x, y, Math.Min(1, x + .25f), .98f);
+                    }
+                    monsterHealthLabels[i].text = (monster.Health.Defeated ? "격파" : front ? "선봉" : monster.IsTrickster ? "후열 · 난입" : "후열") +
+                        "\n" + monster.Health.Current.ToString("0.#") + " / " + monster.Health.Maximum.ToString("0.#");
+                    monsterHealthFills[i].anchorMax = new Vector2((float)(monster.Health.Current / monster.Health.Maximum), 1);
+                    if (attackLabels[i].transform.parent != slot) attackLabels[i].transform.SetParent(slot, false);
+                    FiveLaneHudBindings.Place(attackLabels[i].rectTransform, 0, .77f, 1, .88f);
+                }
+            }
             foreach (var actor in stageActors) actor.Layout();
             hud.health.text = "HP " + battle.PlayerHealth.ToString("0.#") + " / " + battle.PlayerMaximum;
             hud.enemyHealth.text = "ENEMY " + battle.EnemyHealth.Current.ToString("0.#") + " / " + battle.EnemyHealth.Maximum;
@@ -139,6 +167,13 @@ namespace BBSB.Runtime.UI
             hud.feedback.text = waitingForHold ? "Hold 중이던 버튼을 다시 눌러줘" : battle.IsGroggy ? "GROGGY" :
                 battle.Beat - battle.LastHitBeat < .5 ? "HIT" : "";
             hud.feedback.color = battle.IsGroggy ? RunUI.Gold : RunUI.Red;
+            if (!waitingForHold && battle.Formation?.PendingFront != null)
+                hud.feedback.text = (battle.Formation.ChangeReason == FormationChangeReason.Intrusion ? "난입" : battle.Formation.ChangeReason == FormationChangeReason.Return ? "복귀" : "교대") +
+                    " " + Math.Max(0, battle.Formation.SwitchAtBeat - battle.Beat).ToString("0.0") + "박 · " + battle.Formation.PendingFront.Definition.Name;
+            bool hasStorageShield = false;
+            foreach (var lane in battle.Lanes) hasStorageShield |= lane.Weapon.DefinitionId == "resonance-shield";
+            if (hasStorageShield)
+                hud.help.text = string.Join(" / ", Keys) + " · 축적 빛 " + battle.LightResonance.ToString("0.#") + " / 어둠 " + battle.DarkResonance.ToString("0.#") + " · 12마다 다음 공격 +50%";
             for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
                 var lane = battle.LaneAt(i);
@@ -165,6 +200,15 @@ namespace BBSB.Runtime.UI
                 hud.laneResults[i].color = lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
                 icons[i].color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 icons[i].SetPose(FiveLaneArtTimeline.Weapon(lane, battle.Beat));
+                var contact = battle.ShieldAt(i);
+                if (contact != null)
+                {
+                    hud.laneStatus[i].text = (contact.Rank == AttackRank.Front ? "선봉" : "후열") + " · " +
+                        (contact.Phase == PhraseLanePhase.Playing ? "GUARD " + Math.Max(0, contact.EndBeat - battle.Beat).ToString("0.0") :
+                        contact.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, contact.ReadyAtBeat - battle.Beat).ToString("0.0") : "READY");
+                    hud.laneResults[i].text = battle.Beat - contact.LastJudgedBeat < 1 ? contact.Feedback : "";
+                    icons[i].color = contact.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
+                }
                 // Beat-driven recoil gives each successful input a readable weapon response.
                 double age = battle.Beat - lane.LastJudgedBeat;
                 float pulse = age >= 0 && age < .4 && lane.LastGrade != RhythmGrade.Miss ? 1 - (float)(age / .4) : 0;

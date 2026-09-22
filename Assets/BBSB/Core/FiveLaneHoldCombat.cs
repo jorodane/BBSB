@@ -11,8 +11,16 @@ namespace BBSB.Core
             public int Slot;
             public IncomingBeatAttack Attack;
             public decimal Reduction;
+            public bool Parry;
         }
         private readonly List<HoldDefense> holdDefenses = new List<HoldDefense>();
+
+        private WeaponPhrase GuardPhrase(PhraseLane lane, int slot) => IsSplitShield(lane) ? ShieldAt(slot).Phrase : lane.Phrase;
+        private decimal GuardReduction(PhraseLane lane, int slot)
+        {
+            decimal reduction = GuardPhrase(lane, slot).HoldDamageReduction;
+            return reduction <= 0 ? 0 : Math.Min(1m, reduction * lane.EffectMultiplier + Bonuses.GuardBonus);
+        }
 
         private double AttackDeadline(IncomingBeatAttack attack)
         {
@@ -40,39 +48,41 @@ namespace BBSB.Core
 
         private void AttachHoldGuard(PhraseLane lane, int slot, RhythmGrade grade, IncomingBeatAttack attack)
         {
-            var note = lane.Phrase.Notes[lane.NextNote];
-            if (!heldInputs[slot] || !note.IsHold || lane.Phrase.HoldDamageReduction <= 0) return;
-            decimal reduction = Math.Min(1m, lane.Phrase.HoldDamageReduction * lane.EffectMultiplier) *
+            var phrase = GuardPhrase(lane, slot); var note = phrase.Notes[IsSplitShield(lane) ? 0 : lane.NextNote];
+            if (!heldInputs[slot] || !note.IsHold || phrase.HoldDamageReduction <= 0 || !CoversAttack(lane, slot, attack)) return;
+            decimal reduction = GuardReduction(lane, slot) *
                 (grade == RhythmGrade.Perfect ? 1m : .5m);
             BindHoldDefense(lane, slot, attack, reduction);
         }
 
-        private void BindHoldDefense(PhraseLane lane, int slot, IncomingBeatAttack attack, decimal reduction)
+        private void BindHoldDefense(PhraseLane lane, int slot, IncomingBeatAttack attack, decimal reduction, bool parry = false)
         {
             // Snapshot once per held contact. Repeated frames and subsequent ticks
             // cannot upgrade the entry grade or extend protection to another attack.
             if (!holdDefenses.Exists(x => ReferenceEquals(x.Lane, lane) && x.Slot == slot && ReferenceEquals(x.Attack, attack)))
-                holdDefenses.Add(new HoldDefense { Lane = lane, Slot = slot, Attack = attack, Reduction = reduction });
-            lane.GuardUntilBeat = Math.Max(lane.GuardUntilBeat, attack.EndBeat);
+                holdDefenses.Add(new HoldDefense { Lane = lane, Slot = slot, Attack = attack, Reduction = reduction, Parry = parry });
+            var contact = IsSplitShield(lane) ? ShieldAt(slot) : null;
+            if (contact != null) contact.GuardUntilBeat = Math.Max(contact.GuardUntilBeat, attack.EndBeat);
+            else lane.GuardUntilBeat = Math.Max(lane.GuardUntilBeat, attack.EndBeat);
         }
 
         private decimal HoldReduction(IncomingBeatAttack attack)
         {
-            decimal reduction = attack.Reduction;
             foreach (var defense in holdDefenses)
                 if (ReferenceEquals(defense.Attack, attack) && heldInputs[defense.Slot])
-                    reduction = Math.Max(reduction, defense.Reduction);
-            return reduction;
+                    SetReduction(attack, defense.Reduction, defense.Lane, defense.Parry);
+            return attack.Reduction;
         }
 
         private void ResolveImpact(IncomingBeatAttack attack)
         {
-            decimal cumulative = attack.Definition.Damage;
+            decimal cumulative = attack.DamageBudget;
             if (attack.Definition.IsHold && attack.NextImpactBeat < attack.EndBeat - Epsilon)
-                cumulative *= (decimal)((attack.PulseIndex + 1) * .5) / (decimal)attack.Definition.HoldBeats;
+                cumulative = attack.Definition.Damage * (decimal)((attack.PulseIndex + 1) * .5) / (decimal)attack.Definition.HoldBeats;
             decimal damage = cumulative - attack.DistributedDamage;
             attack.DistributedDamage = cumulative;
             decimal reduced = damage * attack.Reduction, taken = damage - reduced;
+            AccumulateResonance(attack, reduced);
             if (attack.Reduction >= 1) TotalBlocked += reduced; else TotalReduced += reduced;
             attack.DamageTaken += taken; attack.LastPulseReduction = attack.Reduction;
             attack.LastPulseBeat = attack.NextImpactBeat;
@@ -88,7 +98,7 @@ namespace BBSB.Core
             }
             else
             {
-                attack.PulseIndex++; attack.ImpactSampled = false; attack.Reduction = 0;
+                attack.PulseIndex++; attack.ImpactSampled = false; attack.Reduction = 0; attack.ReductionSource = null; attack.ReductionByParry = false;
             }
         }
     }

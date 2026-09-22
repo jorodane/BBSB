@@ -47,7 +47,7 @@ namespace BBSB.Runtime
                 }
                 // Publish readiness only after the entire view and audio setup succeeds.
                 // A constructor exception must not leave LateUpdate running a partial battle.
-                bool holds = false; foreach (var lane in Battle.Lanes) holds |= lane.Holding;
+                bool holds = false; foreach (int slot in Battle.RequiredHeldSlots) holds = true;
                 if (holds) WaitingForHold = true;
                 else { Battle.Resume(); ReleaseStaleContacts(); RestartClock(Battle.Beat == 0); }
                 IsInitialized = true;
@@ -124,14 +124,13 @@ namespace BBSB.Runtime
         {
             if (!IsInitialized || Battle.Finished || !Battle.IsPaused) return;
             view.HideModal(); ClearSelection();
-            foreach (var lane in Battle.Lanes)
-                if (lane.Holding) { WaitingForHold = true; return; }
+            foreach (int slot in Battle.RequiredHeldSlots) { WaitingForHold = true; return; }
             Battle.Resume(); ReleaseStaleContacts(); RestartClock(false);
         }
         private void TryResumeHeld()
         {
-            foreach (var lane in Battle.Lanes)
-                if (lane.Holding && !KeyHeld(lane.HoldingSlot) && !pointerHeld[lane.HoldingSlot]) return;
+            foreach (int slot in Battle.RequiredHeldSlots)
+                if (!KeyHeld(slot) && !pointerHeld[slot]) return;
             WaitingForHold = false; Battle.Resume(); ReleaseStaleContacts(); RestartClock(false); ClearSelection();
         }
         private void ReleaseStaleContacts()
@@ -139,7 +138,7 @@ namespace BBSB.Runtime
             for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
                 var lane = Battle.LaneAt(i);
-                sentHeld[i] = lane != null && lane.Holding && lane.HoldingSlot == i;
+                sentHeld[i] = lane != null && Battle.RequiresHeldInput(i);
                 if (!sentHeld[i]) Battle.Release(i, Battle.Beat);
             }
         }

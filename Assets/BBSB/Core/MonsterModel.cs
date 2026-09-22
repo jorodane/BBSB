@@ -99,16 +99,20 @@ namespace BBSB.Core
         public IReadOnlyList<MonsterPatternDefinition> Patterns { get; }
         public int DamagePerNote { get; }
         public IMonsterPatternPlanner PatternPlanner { get; }
+        public MonsterFormationRole FormationRole { get; }
 
         public MonsterDefinition(string id, string name, string description, GestureKind mainGesture,
             IEnumerable<MonsterPatternDefinition> patterns, double encounterWeight = 1, int damagePerNote = 4, string artId = null,
-            IMonsterPatternPlanner patternPlanner = null, bool validateCallReadability = true)
+            IMonsterPatternPlanner patternPlanner = null, bool validateCallReadability = true, MonsterFormationRole? formationRole = null)
         {
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A monster needs an ID and name.");
             if (!Enum.IsDefined(typeof(GestureKind), mainGesture)) throw new ArgumentOutOfRangeException(nameof(mainGesture));
             if (patterns == null) throw new ArgumentNullException(nameof(patterns));
             SlotTemplate.ValidateWeight(encounterWeight);
             if (damagePerNote < 0) throw new ArgumentOutOfRangeException(nameof(damagePerNote));
+            if (formationRole.HasValue && !Enum.IsDefined(typeof(MonsterFormationRole), formationRole.Value))
+                throw new ArgumentOutOfRangeException(nameof(formationRole));
+            FormationRole = formationRole ?? (id == "seesaw-goblin" || id == "offbeat-goblin" ? MonsterFormationRole.Trickster : MonsterFormationRole.Standard);
             var copy = new List<MonsterPatternDefinition>(patterns);
             var ids = new HashSet<string>();
             if (copy.Count == 0) throw new ArgumentException("A monster needs patterns.");
@@ -273,7 +277,7 @@ namespace BBSB.Core
         { Attack = attack; KeptMonsterId = keptMonsterId; ConflictTick = tick; YieldingOccupiedBeats = yieldingBeats; KeptOccupiedBeats = keptBeats; }
     }
 
-    /// <summary>One immutable plan shared by preparation and the upcoming battle player. No individual HP.</summary>
+    /// <summary>Immutable authored source shared by preparation and battle. Runtime HP and ranks belong to EncounterFormation.</summary>
     public sealed class BattlePlan
     {
         public MusicStage Stage { get; }

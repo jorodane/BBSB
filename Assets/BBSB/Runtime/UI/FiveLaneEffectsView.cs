@@ -46,6 +46,8 @@ namespace BBSB.Runtime.UI
             foreach (var lane in battle.Lanes)
                 if (FiveLaneArtTimeline.Guarding(lane))
                 { Draw(art.guard, target, .23f, .58f); break; }
+            foreach (var contact in battle.ShieldContacts)
+                if (contact.Phase == PhraseLanePhase.Playing) { Draw(art.guard, target, .25f, .58f); break; }
             foreach (var attack in battle.Incoming)
             {
                 int index = instances.IndexOf(attack.Definition.MonsterId);
@@ -75,7 +77,8 @@ namespace BBSB.Runtime.UI
             {
                 var lane = battle.Lanes[i]; double age = battle.Beat - lane.LastDamageBeat;
                 if (age < 0 || age >= .65) continue;
-                Vector2 enemy = At(enemies[i % enemies.Count], .5f, .48f);
+                int victim = instances.IndexOf(lane.LastDamageMonsterId);
+                Vector2 enemy = At(enemies[victim >= 0 ? victim : i % enemies.Count], .5f, .48f);
                 bool ranged = WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged;
                 if (ranged && age < .3)
                     Draw(art.arrow, Vector2.Lerp(target, enemy, (float)(age / .3)), .12f, 1, Direction(enemy - target) - 45);

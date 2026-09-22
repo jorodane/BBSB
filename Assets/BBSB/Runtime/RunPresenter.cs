@@ -24,7 +24,8 @@ namespace BBSB.Runtime
         private CanvasScreen authoredScreen;
         private RectTransform body;
         private RectTransform menuOverlay, menuBody;
-        private enum MenuPage { None, Home, Inventory, Help, Patterns, Development, Abandon }
+        private enum MenuPage { None, Home, Inventory, Help, Patterns, Development, Abandon, NoteWorkshop }
+        private readonly NoteWorkshopSelection noteWorkshop = new NoteWorkshopSelection();
         private MenuPage menuPage;
         private int? fixedSeed;
         private bool testControls;
@@ -378,7 +379,7 @@ namespace BBSB.Runtime
             ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth +
                 "   ·   ENEMY " + Session.EnemyHealth.Current.ToString("0.#") + " / " + Session.EnemyHealth.Maximum, 22, null, 36);
             var list = ui.Scroll(panel);
-            ui.Label(list, "단검은 2박마다, 쌍검은 1박마다 이어져.\n방패는 누르는 순간 패리하고, 최대 2박 동안 피해를 줄여줘.", 22, null, 72);
+            ui.Label(list, "선봉을 공격하며 긴 패턴을 연주해. 후열은 짧게 개입하고, 교대는 보이는 3박 뒤에 일어나.\n넓은 방패는 왼쪽으로 선봉, 오른쪽으로 후열을 막아. 노트 조립에서 후열 관통도 준비할 수 있어.", 22, null, 96);
             var names = new System.Collections.Generic.List<string>();
             foreach (var monster in Session.BattlePlan.Monsters) names.Add(monster.Monster.Name);
             ui.Label(list, "MONSTERS  ·  " + string.Join(" / ", names), 20, RunUI.Red, 40);
@@ -386,7 +387,7 @@ namespace BBSB.Runtime
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
                 var placement = Session.Equipment.Placements[i];
-                var set = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Patterns : sets[i];
+                var set = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Patterns : WeaponNoteAssembly.Apply(Session.Weapons[i], sets[i]);
                 for (int offset = 0; offset < placement.Slots.Count; offset++)
                 {
                     var weapon = Session.Weapons[i];
@@ -398,6 +399,7 @@ namespace BBSB.Runtime
             var actions = ui.Row(panel, 64);
             ui.Button(actions, Session.PhraseBattle == null ? "연주 시작" : "연주 이어가기", () => StartFiveLaneBattle(), Session.Weapons.Count > 0, primary: true, height: 64);
             ui.Button(actions, "무기 편성", () => OpenMenu(MenuPage.Inventory), height: 64);
+            ui.Button(actions, "노트 조립", () => OpenMenu(MenuPage.NoteWorkshop), height: 64);
             ui.Button(actions, "메뉴", () => OpenMenu(MenuPage.Home), height: 64);
         }
 
@@ -579,7 +581,8 @@ namespace BBSB.Runtime
             {
                 int index = i; var offer = Session.Offers[i]; var definition = offer.Content;
                 var card = ui.Card(body, 18);
-                string category = definition.Kind == RewardKind.Weapon ? "무기" : definition.Kind == RewardKind.Item ? "아이템" : "증강";
+                string category = definition.Kind == RewardKind.Weapon ? "무기" : definition.Kind == RewardKind.Item ? "아이템" :
+                    definition.Kind == RewardKind.Frame ? "프레임 강화" : definition.Kind == RewardKind.BeatInjection ? "박자 주입" : "증강";
                 ui.Label(card, category + "  /  " + (definition.Kind == RewardKind.Weapon && Session.UsesFiveLaneCombat ? WeaponAttributes.Name(offer.Attribute) + " " : "") + definition.Name, 28, RunUI.Gold, 44);
                 if (definition.Kind == RewardKind.Weapon) DrawWeaponSummary(card, new WeaponState(definition.Id, offer.Rarity, attribute: offer.Attribute));
                 else ui.Label(card, definition.Description, 22, RunUI.Muted, 78);
@@ -719,7 +722,7 @@ namespace BBSB.Runtime
             if ((menuPage == MenuPage.Patterns || menuPage == MenuPage.Development) && Session.BattlePlan == null)
                 menuPage = MenuPage.Home;
             if (menuPage == MenuPage.Development && !testControls) menuPage = MenuPage.Home;
-            string heading = menuPage == MenuPage.Inventory ? "장비 · 가방 · 증강" :
+            string heading = menuPage == MenuPage.Inventory ? "장비 · 가방 · 증강" : menuPage == MenuPage.NoteWorkshop ? "노트 조립" :
                 menuPage == MenuPage.Help ? "조작 방법" : menuPage == MenuPage.Patterns ? "몬스터 패턴" :
                 menuPage == MenuPage.Development ? "개발 도구" : menuPage == MenuPage.Abandon ? "탐험 종료" : "탐험 메뉴";
             menuOverlay = ui.Modal(safeArea, "Run menu", heading, CloseMenu, out menuBody);
@@ -730,6 +733,7 @@ namespace BBSB.Runtime
                     ui.Label(body, Session.Map.Theme.Name + " · FIELD " + Session.Map.Number.ToString("00") + "  ·  통과한 스테이지 " + Session.ClearedStages, 25, RunUI.Gold, 54);
                     ui.Button(body, "돌아가기", CloseMenu, primary: true);
                     ui.Button(body, "장비 · 가방 · 증강", () => OpenMenu(MenuPage.Inventory));
+                    if (Session.UsesFiveLaneCombat) ui.Button(body, "노트 조립", () => OpenMenu(MenuPage.NoteWorkshop));
                     if (Session.BattlePlan != null)
                     {
                         ui.Button(body, "몬스터 패턴", () => OpenMenu(MenuPage.Patterns));
@@ -741,6 +745,7 @@ namespace BBSB.Runtime
                     ui.Button(body, "탐험 종료", () => OpenMenu(MenuPage.Abandon));
                     break;
                 case MenuPage.Inventory: DrawInventory(); break;
+                case MenuPage.NoteWorkshop: NoteWorkshopView.Draw(body, ui, Session, noteWorkshop, RenderMenu); break;
                 case MenuPage.Help:
                     ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n시작 지점 네 곳은 모두 몬스터, 여섯 번째 무대는 보스야.\n? 지역은 들어가면 정체가 밝혀져.", 24, RunUI.Muted, 125);
                     if (Session.UsesFiveLaneCombat)
@@ -814,7 +819,7 @@ namespace BBSB.Runtime
             if (Session.UsesFiveLaneCombat)
             {
                 foreach (var sockets in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
-                var patterns = WeaponPhraseAuthoring.LoadSetsFor(new[] { state })[0];
+                var patterns = WeaponNoteAssembly.Apply(state, WeaponPhraseAuthoring.LoadSetsFor(new[] { state })[0]);
                 var phrase = patterns.For(0, state.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light);
                 string sequence = phrase.LengthBeats + (patterns.RandomizeChaosSections ? "박 × 2" : phrase.Repeat ? "박 반복" : "박");
                 ui.Label(row, state.DisplayName + "\n" + sequence + " · Tap / Hold", 23, RunUI.Teal, 100);
@@ -841,6 +846,8 @@ namespace BBSB.Runtime
             if (!Session.UsesFiveLaneCombat)
                 ui.Label(body, "HP  " + Session.Health.ToString("0.##") + " / " + Session.MaxHealth + "  ·  " + Session.Gold + " G", 26, RunUI.Teal, 48);
             DrawLoadout();
+            if (Session.UsesFiveLaneCombat)
+                ui.Button(body, "노트 조립 · 보유 부품 " + Session.NoteParts.Count, () => OpenMenu(MenuPage.NoteWorkshop));
             ui.Label(body, "아이템", 27, RunUI.Gold, 45);
             if (Session.Items.Count == 0) ui.Label(body, "아직 아이템이 없어.", 22, RunUI.Muted, 60);
             for (int i = 0; i < Session.Items.Count; i++)
@@ -853,7 +860,7 @@ namespace BBSB.Runtime
             }
             ui.Label(body, "증강", 27, RunUI.Gold, 45);
             if (Session.Augments.Count == 0) ui.Label(body, "아직 증강이 없어.", 22, RunUI.Muted, 60);
-            foreach (var id in new[] { "vitality", "recovery", "bargain" })
+            foreach (var id in new[] { "vitality", "recovery", "bargain", "force-rhythm", "steady-guard", "quick-rest" })
             {
                 int count = Session.CountAugment(id); if (count == 0) continue;
                 var card = ui.Card(body, 16); var definition = ContentCatalog.Find(id);

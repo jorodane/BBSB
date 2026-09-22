@@ -115,6 +115,14 @@ namespace BBSB.Runtime.UI
 
         private void Collect(FiveLaneBattle battle, PhraseLane lane)
         {
+            if (FiveLaneBattle.IsSplitShield(lane))
+            {
+                foreach (var contact in battle.ShieldContacts)
+                    if (ReferenceEquals(contact.Lane, lane) && contact.Phase == PhraseLanePhase.Playing)
+                        Add(battle, new TrackNote(contact.Slot, 0, contact.StartBeat, contact.Phrase, false,
+                            extendedEnd: contact.EndBeat, sustainedGuard: contact.EndBeat > contact.StartBeat + contact.Phrase.LengthBeats));
+                return;
+            }
             if (lane.Phase != PhraseLanePhase.Playing) return;
             int first = notes.Count;
             for (int i = 0; i < lane.Phrase.Notes.Count && notes.Count - first < MaxNotesPerLane; i++)
@@ -161,6 +169,7 @@ namespace BBSB.Runtime.UI
             }
             var lane = battle.LaneAt(note.Slot);
             if (lane == null) return true;
+            if (FiveLaneBattle.IsSplitShield(lane)) return false;
             if (note.CycleStart < lane.StartBeat - .000001) return false;
             if (note.CycleStart > lane.StartBeat + .000001) return !lane.CanRepeat;
             if (!ReferenceEquals(note.Phrase, lane.Phrase)) return true;

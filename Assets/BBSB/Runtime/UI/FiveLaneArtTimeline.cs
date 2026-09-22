@@ -48,6 +48,8 @@ namespace BBSB.Runtime.UI
             if (Recent(battle.Beat, strike, .4)) return new FiveLaneActorFrame("TapImpact", battle.Beat - strike, .4f);
             foreach (var lane in battle.Lanes)
                 if (Guarding(lane)) return new FiveLaneActorFrame("Guard", battle.Beat - lane.NextBeat, 2, true);
+            foreach (var contact in battle.ShieldContacts)
+                if (contact.Phase == PhraseLanePhase.Playing) return new FiveLaneActorFrame("Guard", battle.Beat - contact.StartBeat, 2, true);
             foreach (var incoming in battle.Incoming)
                 if (incoming.State == IncomingAttackState.Blocked && Recent(battle.Beat, incoming.ResolvedBeat, .4))
                     return new FiveLaneActorFrame("Guard", battle.Beat - incoming.ResolvedBeat, .4f);
@@ -59,7 +61,10 @@ namespace BBSB.Runtime.UI
 
         public static FiveLaneActorFrame Monster(FiveLaneBattle battle, string instanceId)
         {
-            if (battle.IsGroggy) return new FiveLaneActorFrame("Hit", battle.Beat, 1, true);
+            var monster = battle.Formation?.Find(instanceId);
+            if (monster != null && monster.Health.Defeated) return new FiveLaneActorFrame("Defeated", battle.Beat - monster.DefeatedBeat, 1);
+            if (monster != null && Recent(battle.Beat, monster.LastHitBeat, .35)) return new FiveLaneActorFrame("Hit", battle.Beat - monster.LastHitBeat, .35f);
+            if (monster != null ? battle.Beat < monster.GroggyUntilBeat : battle.IsGroggy) return new FiveLaneActorFrame("Hit", battle.Beat, 1, true);
             IncomingBeatAttack nearest = null;
             foreach (var attack in battle.Incoming)
             {

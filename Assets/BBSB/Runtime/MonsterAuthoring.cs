@@ -21,6 +21,8 @@ namespace BBSB.Runtime
         public GestureKind mainGesture;
         public double encounterWeight = 1;
         [Min(0)] public int damagePerNote = 4;
+        public bool overrideFormationRole;
+        public MonsterFormationRole formationRole;
         public Sprite portrait;
         public string artId;
         public MonsterPatternStrategy patternStrategy;
@@ -175,7 +177,8 @@ namespace BBSB.Runtime
             IMonsterPatternPlanner planner = patternStrategy == MonsterPatternStrategy.BeatShift
                 ? (IMonsterPatternPlanner)new BeatShiftPlanner(steadyCallsPerPhase, usePatternProbabilities) : IndependentPatternPlanner.Instance;
             var monster = new MonsterDefinition(monsterId, displayName, description, mainGesture, definitions, encounterWeight, damagePerNote,
-                string.IsNullOrWhiteSpace(artId) ? null : artId, planner, validateCallReadability: false);
+                string.IsNullOrWhiteSpace(artId) ? null : artId, planner, validateCallReadability: false,
+                formationRole: overrideFormationRole ? formationRole : (MonsterFormationRole?)null);
             RegisterAttacks(monster);
             return monster;
         }

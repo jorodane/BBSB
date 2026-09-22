@@ -49,6 +49,9 @@ namespace BBSB.Core
             {
                 var phrase = starts[i];
                 if (phrase == null || phrase.WeaponId != weapon.DefinitionId) throw new ArgumentException("Wrong weapon pattern.");
+                if (weapon.DefinitionId == "wide-shield" && (phrase.Notes.Count != 1 || !phrase.Notes[0].IsHold ||
+                    phrase.Repeat || phrase.ParryInput != ParryInputEdge.KeyDown))
+                    throw new ArgumentException("넓은 방패는 각 입력에 하나의 짧은 Hold와 누르기 패링을 사용해.");
                 foreach (var note in phrase.Notes)
                     if (note.LaneOffset >= weapon.RequiredLanes) throw new ArgumentException("Note offset lies outside this weapon's footprint.");
                 copy[i] = phrase;

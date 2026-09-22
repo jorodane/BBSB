@@ -101,6 +101,8 @@ namespace BBSB.Editor
             Field("includeInEncounters", "출현 목록에 등록"); Field("monsterId", "고유 ID"); Field("displayName", "이름"); Field("description", "설명");
             Field("artId", "기존 외형 리소스 ID (선택)");
             Field("mainGesture", "주요 입력"); Field("encounterWeight", "출현 가중치"); Field("damagePerNote", "판정 기본 피해");
+            Field("overrideFormationRole", "전열 역할 직접 지정");
+            if (serializedObject.FindProperty("overrideFormationRole").boolValue) Field("formationRole", "전열 역할 · Standard / Trickster");
             Field("portrait", "기본 모습 / 도감 Sprite"); Field("displayScale", "전투 표시 크기"); Field("displayOffset", "위치 보정 (몸 높이 기준)");
             var sprite = serializedObject.FindProperty("portrait").objectReferenceValue as Sprite;
             if (sprite != null)

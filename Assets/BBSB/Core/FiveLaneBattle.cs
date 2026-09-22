@@ -26,21 +26,25 @@ namespace BBSB.Core
         public double Beat { get; }
         public decimal Damage { get; }
         public double HoldBeats { get; }
+        public AttackRank Rank { get; }
         public bool IsHold => HoldBeats > 0;
         // Damage is the complete attack budget, distributed over its half-beat ticks.
-        public BeatAttack(string monsterId, double beat, decimal damage, double holdBeats = 0)
+        public BeatAttack(string monsterId, double beat, decimal damage, double holdBeats = 0, AttackRank rank = AttackRank.Front)
         {
             if (!WeaponPhraseNote.Finite(beat) || beat < 0 || damage < 0 ||
-                !WeaponPhraseNote.Finite(holdBeats) || holdBeats < 0) throw new ArgumentOutOfRangeException(nameof(beat));
-            MonsterId = monsterId; Beat = beat; Damage = damage; HoldBeats = holdBeats;
+                !WeaponPhraseNote.Finite(holdBeats) || holdBeats < 0 || !Enum.IsDefined(typeof(AttackRank), rank)) throw new ArgumentOutOfRangeException(nameof(beat));
+            MonsterId = monsterId; Beat = beat; Damage = damage; HoldBeats = holdBeats; Rank = rank;
         }
     }
     public sealed class IncomingBeatAttack
     {
         public BeatAttack Definition { get; }
         public double Beat { get; }
-        public double EndBeat => Beat + Definition.HoldBeats;
-        public double NextImpactBeat => Definition.IsHold ? Beat + Math.Min(Definition.HoldBeats, (PulseIndex + 1) * .5) : Beat;
+        internal double CutoffBeat = double.PositiveInfinity;
+        public double EndBeat => Math.Min(Beat + Definition.HoldBeats, CutoffBeat);
+        public double NextImpactBeat => Definition.IsHold ? Math.Min(EndBeat, Beat + (PulseIndex + 1) * .5) : Beat;
+        public decimal DamageBudget => Definition.IsHold && CutoffBeat < Beat + Definition.HoldBeats ?
+            Definition.Damage * (decimal)(EndBeat - Beat) / (decimal)Definition.HoldBeats : Definition.Damage;
         public double LastPulseBeat { get; internal set; } = double.NegativeInfinity;
         public double LastParryBeat { get; internal set; } = double.NegativeInfinity;
         public decimal DamageTaken { get; internal set; }
@@ -52,6 +56,8 @@ namespace BBSB.Core
         internal int PulseIndex;
         internal decimal DistributedDamage;
         internal decimal Reduction;
+        internal PhraseLane ReductionSource;
+        internal bool ReductionByParry;
         internal IncomingBeatAttack(BeatAttack definition, double beat) { Definition = definition; Beat = beat; }
     }
     public sealed class PhraseLane
@@ -104,6 +110,7 @@ namespace BBSB.Core
         public decimal PendingDamageMultiplier { get; internal set; } = 1m;
         public double DamageBoostUntilBeat { get; internal set; } = double.NegativeInfinity;
         public double LastDamageBeat { get; internal set; } = double.NegativeInfinity;
+        public string LastDamageMonsterId { get; internal set; }
         public int Activations { get; internal set; }
         internal RhythmGrade HoldGrade;
         internal bool FailedCycle;
@@ -117,7 +124,7 @@ namespace BBSB.Core
         public double NextBeat => StartBeat + TimingShiftBeats + Phrase.Notes[NextNote].Beat;
         internal PhraseLane(WeaponState weapon, WeaponPlacement placement, WeaponPhraseSet patterns, int seed)
         {
-            Weapon = new WeaponState(weapon.DefinitionId, weapon.Rarity, weapon.Level, weapon.RequiredLanes, weapon.Attribute);
+            Weapon = weapon.Copy();
             Placement = placement; Patterns = patterns; rhythmSeed = seed; SelectStart(0, WeaponAttributes.SnapStart(weapon.Attribute, 0));
         }
         internal double PlanStartBeat(double at)
@@ -170,12 +177,13 @@ namespace BBSB.Core
         public double PerfectWindow { get; }
         public double HalfMissWindow { get; }
         public double GroggyUntilBeat { get; private set; }
-        public bool IsGroggy => Beat < GroggyUntilBeat;
+        public bool IsGroggy => Formation == null ? Beat < GroggyUntilBeat : Formation.Front != null && Beat < Formation.Front.GroggyUntilBeat;
         public bool IsPaused { get; private set; }
         public bool Aborted { get; private set; }
         public decimal PlayerHealth { get; private set; }
         public decimal PlayerMaximum { get; }
         public StageHealth EnemyHealth { get; }
+        public CombatBonuses Bonuses { get; }
         public bool Victory => EnemyHealth.Defeated && PlayerHealth > 0;
         public bool Finished => Aborted || Victory || PlayerHealth == 0;
         public int PerfectCount { get; private set; }
@@ -193,7 +201,8 @@ namespace BBSB.Core
             IEnumerable<BeatAttack> attacks, StageHealth enemyHealth, decimal playerHealth, decimal playerMaximum,
             IReadOnlyList<WeaponPhrase> phrases = null, RhythmRules rules = null,
             IReadOnlyList<WeaponPlacement> placements = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null,
-            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1)
+            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1, CombatBonuses bonuses = null,
+            EncounterFormation formation = null)
         {
             if (weapons == null || weapons.Count < 1 || weapons.Count > RunRules.WeaponSlots)
                 throw new ArgumentException("Equip between one and five weapons.");
@@ -204,6 +213,9 @@ namespace BBSB.Core
             if (placements != null && placements.Count != weapons.Count || phraseSets != null && phraseSets.Count != weapons.Count)
                 throw new ArgumentException("One placement and pattern set per weapon is required.");
             Bpm = bpm; this.loopBeats = loopBeats; EnemyHealth = enemyHealth ?? throw new ArgumentNullException(nameof(enemyHealth));
+            Bonuses = bonuses ?? new CombatBonuses();
+            Formation = formation;
+            if (Formation != null) Formation.FutureCut += CutFutureAttacks;
             PlayerHealth = playerHealth; PlayerMaximum = playerMaximum; rules ??= new RhythmRules(.09, .18);
             PerfectWindow = rules.PerfectSeconds * bpm / 60;
             // Adjacent half-beat starts remain unambiguous even in fast songs.
@@ -231,7 +243,9 @@ namespace BBSB.Core
                 // Revalidate externally supplied sets against the actual equipment footprint.
                 patterns = new WeaponPhraseSet(weapons[i], patterns?.LightStarts, patterns?.DarkStarts,
                     patterns?.LightTransitions, patterns?.DarkTransitions, patterns?.Chaos);
+                patterns = WeaponNoteAssembly.Apply(weapons[i], patterns);
                 var lane = new PhraseLane(weapons[i], placement, patterns, unchecked(rhythmSeed + i * 486187739)); lanes.Add(lane);
+                if (IsSplitShield(lane)) foreach (int slot in placement.Slots) shieldContacts.Add(new ShieldContact(lane, slot));
                 foreach (int slot in placement.Slots)
                 {
                     if (!IsInputAvailable(slot)) throw new ArgumentException("This input extension is locked.");
@@ -250,12 +264,13 @@ namespace BBSB.Core
         public static FiveLaneBattle FromPlan(BattlePlan plan, IReadOnlyList<WeaponState> weapons,
             StageHealth enemyHealth, decimal health, decimal maximum, IReadOnlyList<WeaponPhrase> phrases = null,
             IReadOnlyList<WeaponPlacement> placements = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null,
-            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1)
+            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1, CombatBonuses bonuses = null, bool useFormation = true)
         {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
+            var formation = useFormation && plan.Monsters.Count > 0 ? new EncounterFormation(plan, enemyHealth) : null;
             var attacks = new List<BeatAttack>();
             double length = (double)plan.Stage.Music.TotalTicks / RhythmTime.TicksPerBeat;
-            foreach (var attack in plan.Attacks)
+            if (formation == null) foreach (var attack in plan.Attacks)
             foreach (var step in attack.Placement.Pattern.Steps)
             {
                 // Hold keeps its complete interval. Other legacy gestures retain their impact timing.
@@ -264,7 +279,7 @@ namespace BBSB.Core
                 if (at < length) attacks.Add(new BeatAttack(attack.MonsterId, at, attack.Monster.DamagePerNote * attack.JudgmentWeight, duration));
             }
             return new FiveLaneBattle(weapons, plan.Stage.Music.Bpm, length, attacks, enemyHealth, health, maximum, phrases,
-                placements: placements, phraseSets: phraseSets, extensions: extensions, rhythmSeed: rhythmSeed);
+                placements: placements, phraseSets: phraseSets, extensions: extensions, rhythmSeed: rhythmSeed, bonuses: bonuses, formation: formation);
         }
 
         public void Pause() { if (!Finished) IsPaused = true; }
@@ -280,6 +295,13 @@ namespace BBSB.Core
             var lane = inputs[slot];
             if (lane == null || heldInputs[slot]) return;
             heldInputs[slot] = true; lane.InputHeld = true;
+            if (IsSplitShield(lane))
+            {
+                foreach (var start in scheduledStarts)
+                    if (start.State == ScheduledStartState.Pending && start.Slot == slot && start.Beat - Beat <= HalfMissWindow + Epsilon)
+                    { StartScheduled(start); break; }
+                PressSplitShield(lane, slot); return;
+            }
             // The forecasted first note has the same early window as every other note,
             // even when the target's previous cooldown extends beyond the reservation.
             if (lane.Phase != PhraseLanePhase.Playing)
@@ -335,6 +357,7 @@ namespace BBSB.Core
             heldInputs[slot] = false; lane.InputHeld = false;
             holdDefenses.RemoveAll(x => ReferenceEquals(x.Lane, lane) && x.Slot == slot);
             foreach (int input in lane.InputSlots) lane.InputHeld |= heldInputs[input];
+            if (IsSplitShield(lane)) { EndSplitShield(ShieldAt(slot), false); return; }
             if (Finished || !lane.Holding || slot != lane.HoldingSlot) return;
             if (lane.WaitingForParryRelease)
             {
@@ -362,25 +385,31 @@ namespace BBSB.Core
             if (!WeaponPhraseNote.Finite(atBeat) || atBeat < Beat - Epsilon) throw new ArgumentOutOfRangeException(nameof(atBeat));
             if (IsPaused || Finished) return;
             atBeat = Math.Max(Beat, atBeat);
-            EnsureIncoming(atBeat + 8);
+            EnsureIncoming(Formation == null ? atBeat + 8 : Beat + Formation.Rules.PreviewBeats);
             // Resolve deadlines chronologically, including across a long frame or a song loop.
             while (!Finished)
             {
                 double next = double.PositiveInfinity;
+                if (Formation != null) next = Math.Min(Formation.NextDeadline, (Math.Floor(Beat * 2 + Epsilon) + 1) / 2);
                 foreach (var lane in lanes) next = Math.Min(next, Deadline(lane));
+                foreach (var contact in shieldContacts) next = Math.Min(next, ShieldDeadline(contact));
                 foreach (var start in scheduledStarts)
                     if (start.State == ScheduledStartState.Pending) next = Math.Min(next, start.Beat);
                 foreach (var attack in incoming) if (attack.State == IncomingAttackState.Pending)
                     next = Math.Min(next, AttackDeadline(attack));
                 if (next > atBeat) break;
                 Beat = Math.Max(Beat, next);
+                if (Formation != null) { Formation.Advance(Beat); EnsureIncoming(Beat + Formation.Rules.PreviewBeats); }
                 // Bind an already held guard before the weapon's authored hold deadline.
                 foreach (var attack in incoming)
                     if (attack.State == IncomingAttackState.Pending && attack.Definition.IsHold && !attack.Started && attack.Beat <= Beat)
                     {
                         attack.Started = true;
                         foreach (var lane in lanes) if (lane.Holding) AttachHoldGuard(lane, lane.HoldingSlot, lane.HoldGrade, attack);
+                        foreach (var contact in shieldContacts) if (contact.Phase == PhraseLanePhase.Playing)
+                            AttachHoldGuard(contact.Lane, contact.Slot, contact.Grade, attack);
                     }
+                AdvanceShields();
                 foreach (var lane in lanes)
                 {
                     if (Deadline(lane) > Beat) continue;
@@ -400,8 +429,7 @@ namespace BBSB.Core
                         // Sample protection at impact, not at the end of the late-parry grace window.
                         attack.ImpactSampled = true;
                         if (attack.Definition.IsHold) attack.Reduction = HoldReduction(attack);
-                        else foreach (var lane in lanes) if (lane.Holding)
-                            attack.Reduction = Math.Max(attack.Reduction, Math.Min(1m, lane.Phrase.HoldDamageReduction * lane.EffectMultiplier));
+                        else SampleTapGuard(attack);
                     }
                     if (attack.NextImpactBeat + HalfMissWindow + Epsilon > Beat) continue;
                     ResolveImpact(attack);
@@ -409,6 +437,7 @@ namespace BBSB.Core
                 }
             }
             if (!Finished) Beat = atBeat;
+            if (Formation != null && !Finished) EnsureIncoming(Beat + Formation.Rules.PreviewBeats);
             incoming.RemoveAll(x => x.State != IncomingAttackState.Pending && x.EndBeat < Beat - 4);
             holdDefenses.RemoveAll(x => x.Attack.State != IncomingAttackState.Pending || !heldInputs[x.Slot]);
             scheduledStarts.RemoveAll(x => x.State != ScheduledStartState.Pending && x.Beat < Beat - 4);
@@ -419,30 +448,31 @@ namespace BBSB.Core
             if (slot < 0 || slot >= BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(slot));
             if (!WeaponPhraseNote.Finite(atBeat) || atBeat < Beat - Epsilon) throw new ArgumentOutOfRangeException(nameof(atBeat));
         }
-        private bool TryParry(PhraseLane lane, out RhythmGrade grade)
+        private bool TryParry(PhraseLane lane, out RhythmGrade grade, int inputSlot = -1)
         {
+            if (inputSlot < 0) inputSlot = lane.SlotForNote(lane.NextNote);
             IncomingBeatAttack target = null; double nearest = double.PositiveInfinity;
             foreach (var attack in incoming)
-                if (attack.State == IncomingAttackState.Pending && Math.Abs(ParryBeat(attack) - Beat) <= HalfMissWindow + Epsilon &&
+                if (attack.State == IncomingAttackState.Pending && CoversAttack(lane, inputSlot, attack) && Math.Abs(ParryBeat(attack) - Beat) <= HalfMissWindow + Epsilon &&
                     Math.Abs(ParryBeat(attack) - Beat) < nearest)
                 { target = attack; nearest = Math.Abs(ParryBeat(attack) - Beat); }
             grade = nearest <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
             if (target == null) return false;
             double targetBeat = ParryBeat(target);
             foreach (var attack in incoming)
-                if (attack.State == IncomingAttackState.Pending && Math.Abs(ParryBeat(attack) - targetBeat) < Epsilon)
+                if (attack.State == IncomingAttackState.Pending && CoversAttack(lane, inputSlot, attack) && Math.Abs(ParryBeat(attack) - targetBeat) < Epsilon)
                 {
                     if (attack.Definition.IsHold)
                     {
                         decimal reduction = grade == RhythmGrade.Perfect ? 1m : .5m;
-                        if (heldInputs[lane.SlotForNote(lane.NextNote)]) BindHoldDefense(lane, lane.SlotForNote(lane.NextNote), attack, reduction);
+                        if (heldInputs[inputSlot]) BindHoldDefense(lane, inputSlot, attack, reduction, true);
                         if (Math.Abs(attack.NextImpactBeat - Beat) <= HalfMissWindow + Epsilon)
-                            attack.Reduction = Math.Max(attack.Reduction, reduction);
+                            SetReduction(attack, reduction, lane, true);
                         attack.LastParryBeat = Beat;
                     }
                     else { attack.State = IncomingAttackState.Blocked; attack.ResolvedBeat = Beat; TotalBlocked += attack.Definition.Damage; }
                 }
-            if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
+            if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield && !IsSplitShield(lane))
             {
                 // Keep the active hold/counters playable. Their completion must not
                 // reapply the cooldown that this real parry has already recovered.
@@ -460,6 +490,20 @@ namespace BBSB.Core
         }
         private void EnsureIncoming(double until)
         {
+            if (Formation != null)
+            {
+                until = Math.Min(until, Beat + Formation.Rules.PreviewBeats);
+                foreach (var definition in Formation.Events(formationGeneratedThrough, until))
+                {
+                    var attack = new IncomingBeatAttack(definition, definition.Beat);
+                    if (definition.Beat < (Formation.Find(definition.MonsterId)?.GroggyUntilBeat ?? 0))
+                    { attack.State = IncomingAttackState.Interrupted; attack.ResolvedBeat = Beat; }
+                    incoming.Add(attack);
+                }
+                formationGeneratedThrough = Math.Max(formationGeneratedThrough, until);
+                incoming.Sort((a, b) => a.Beat.CompareTo(b.Beat));
+                return;
+            }
             if (schedule.Count == 0) return;
             while (schedule[nextAttack].Beat + cycle * loopBeats <= until)
             {
@@ -483,6 +527,7 @@ namespace BBSB.Core
         private void Succeed(PhraseLane lane, RhythmGrade grade)
         {
             var note = lane.Phrase.Notes[lane.NextNote];
+            var resolvedSide = lane.ActiveSide;
             if (lane.SustainingGuard) lane.TimingShiftBeats += Math.Max(0, Beat - lane.NextBeat - note.HoldBeats);
             lane.GuardUntilBeat = double.NegativeInfinity;
             lane.states[lane.NextNote] = PhraseNoteState.Hit;
@@ -496,9 +541,9 @@ namespace BBSB.Core
             decimal effectScale = (1m + .25m * lane.Weapon.Level) * (grade == RhythmGrade.Perfect ? 1m : .5m) *
                 lane.EffectMultiplier;
             decimal damage = note.Effect == PhraseEffect.Strike || note.IsParry ? note.Damage : 0;
-            if (note.Effect == PhraseEffect.Heal)
+            if (note.Effect == PhraseEffect.Heal || note.BonusHealing > 0)
             {
-                decimal healed = Math.Min(PlayerMaximum - PlayerHealth, note.Damage * effectScale);
+                decimal healed = Math.Min(PlayerMaximum - PlayerHealth, ((note.Effect == PhraseEffect.Heal ? note.Damage : 0) + note.BonusHealing) * effectScale);
                 PlayerHealth += healed; TotalHealed += healed;
                 if (healed > 0) PlayerHealthChanged?.Invoke(PlayerHealth);
                 lane.Feedback = "HEAL";
@@ -519,9 +564,14 @@ namespace BBSB.Core
                 if (!lane.FailedCycle) lane.CompletedPhrases++;
                 if (!lane.FailedCycle && lane.Phrase.FinisherEvery > 0 && lane.CompletedPhrases % lane.Phrase.FinisherEvery == 0)
                 {
-                    damage += lane.Phrase.FinisherDamage; GroggyUntilBeat = Math.Max(GroggyUntilBeat, Beat + lane.Phrase.GroggyBeats);
+                    damage += lane.Phrase.FinisherDamage;
+                    var victim = Formation?.TargetFor(note.Target);
+                    double until = Beat + lane.Phrase.GroggyBeats;
+                    if (Formation == null) GroggyUntilBeat = Math.Max(GroggyUntilBeat, until);
+                    else if (victim != null) victim.GroggyUntilBeat = Math.Max(victim.GroggyUntilBeat, until);
                     foreach (var attack in incoming)
-                        if (attack.State == IncomingAttackState.Pending && attack.EndBeat >= Beat - HalfMissWindow && attack.Beat < GroggyUntilBeat)
+                        if (attack.State == IncomingAttackState.Pending && attack.EndBeat >= Beat - HalfMissWindow && attack.Beat < until &&
+                            (Formation == null || attack.Definition.MonsterId == victim?.InstanceId))
                         { attack.State = IncomingAttackState.Interrupted; attack.ResolvedBeat = Beat; }
                     lane.Feedback = "GROGGY!";
                 }
@@ -529,16 +579,22 @@ namespace BBSB.Core
                 else if (lane.CanRepeat)
                 { lane.SelectCycle(lane.NextCycle(lane.Cycle)); BeginCycle(lane); }
                 else
-                    Cooldown(lane, Math.Max(Beat, lane.StartBeat + lane.TimingShiftBeats + lane.Phrase.LengthBeats) + lane.Phrase.CompletionCooldownBeats);
+                {
+                    double end = Math.Max(Beat, lane.StartBeat + lane.TimingShiftBeats + lane.Phrase.LengthBeats);
+                    Cooldown(lane, end + lane.Phrase.CompletionCooldownBeats, end);
+                }
             }
-            damage *= effectScale;
+            damage *= effectScale * Bonuses.DamageMultiplier;
             if (damage > 0)
             {
+                damage *= ConsumeResonance(resolvedSide);
                 if (Beat < lane.DamageBoostUntilBeat) damage *= lane.PendingDamageMultiplier;
                 lane.PendingDamageMultiplier = 1m; lane.DamageBoostUntilBeat = double.NegativeInfinity;
             }
             if (damage > 0) lane.LastDamageBeat = Beat;
-            EnemyHealth.Damage(damage); lane.DamageDealt += damage; TotalDamage += damage;
+            if (Formation == null) EnemyHealth.Damage(damage);
+            else lane.LastDamageMonsterId = Formation.Damage(damage, note.Target, Beat);
+            lane.DamageDealt += damage; TotalDamage += damage;
         }
         private void ApplyAdjacentSupport(PhraseLane source, WeaponPhraseNote note, decimal effectScale)
         {
@@ -551,6 +607,16 @@ namespace BBSB.Core
                 if (note.Effect == PhraseEffect.ReduceAdjacentCooldown)
                 {
                     // Never restart or retime an active pattern or invent player contact.
+                    if (IsSplitShield(target))
+                    {
+                        foreach (var contact in shieldContacts)
+                        {
+                            if (!ReferenceEquals(contact.Lane, target) || contact.Phase != PhraseLanePhase.Cooldown) continue;
+                            contact.ReadyAtBeat = Math.Max(Beat, contact.ReadyAtBeat - (double)(note.Damage * effectScale));
+                            if (contact.ReadyAtBeat <= Beat) { contact.Phase = PhraseLanePhase.Ready; contact.Feedback = "READY"; }
+                        }
+                        continue;
+                    }
                     if (target.Phase != PhraseLanePhase.Cooldown) continue;
                     target.ReadyAtBeat = Math.Max(Beat, target.ReadyAtBeat - (double)(note.Damage * effectScale));
                     if (target.ReadyAtBeat <= Beat) { target.Phase = PhraseLanePhase.Ready; target.Feedback = "READY"; }
@@ -589,8 +655,17 @@ namespace BBSB.Core
             lane.SelectStart(offset, at, origin != null); lane.Holding = false; lane.HoldingSlot = -1; lane.ScheduledOrigin = origin;
             BeginCycle(lane);
         }
-        private static void StartScheduled(ScheduledPhraseStart start)
+        private void StartScheduled(ScheduledPhraseStart start)
         {
+            if (IsSplitShield(start.Target))
+            {
+                var contact = ShieldAt(start.Slot);
+                if (contact.Phase == PhraseLanePhase.Playing) { start.State = ScheduledStartState.Skipped; return; }
+                // A bell can recover this half's cooldown, but the player must make
+                // the contact before either rank receives a guard or parry.
+                contact.ReadyAtBeat = Beat; contact.Phase = PhraseLanePhase.Ready;
+                contact.Feedback = "CHIME READY"; start.State = ScheduledStartState.Started; return;
+            }
             if (start.Target.Phase == PhraseLanePhase.Playing)
             { start.State = ScheduledStartState.Skipped; return; }
             start.State = ScheduledStartState.Started;
@@ -624,9 +699,12 @@ namespace BBSB.Core
                 if (lane.states[i] == PhraseNoteState.Pending) { lane.NextNote = i; return true; }
             return false;
         }
-        private void Cooldown(PhraseLane lane, double until)
+        private void Cooldown(PhraseLane lane, double until, double? cooldownStart = null)
         {
             lane.Holding = false;
+            double start = cooldownStart ?? Beat, duration = until - start;
+            if (duration > 0 && Bonuses.CooldownReduction > 0)
+                until = start + Math.Max(Math.Min(1, duration), duration - Bonuses.CooldownReduction);
             lane.ReadyAtBeat = lane.ParryRecoveredCooldown ? Beat : until;
             lane.Phase = lane.ParryRecoveredCooldown ? PhraseLanePhase.Ready : PhraseLanePhase.Cooldown;
         }

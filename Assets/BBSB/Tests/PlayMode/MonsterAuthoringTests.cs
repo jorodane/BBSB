@@ -42,6 +42,19 @@ namespace BBSB.Tests
             MonsterAuthoringRegistry.Reload(Resources.LoadAll<MonsterAuthoring>(MonsterAuthoring.ResourceFolder));
         }
         [Test]
+        public void FormationRoleCanBeOverriddenWithoutChangingPatternArrangement()
+        {
+            asset.monsterId = "offbeat-goblin";
+            Assert.AreEqual(MonsterFormationRole.Trickster, asset.BuildDefinition().FormationRole);
+            asset.overrideFormationRole = true; asset.formationRole = MonsterFormationRole.Standard;
+            var standard = asset.BuildDefinition();
+            Assert.AreEqual(MonsterFormationRole.Standard, standard.FormationRole);
+            asset.formationRole = MonsterFormationRole.Trickster;
+            var trickster = asset.BuildDefinition();
+            Assert.AreEqual(MonsterFormationRole.Trickster, trickster.FormationRole);
+            Assert.AreEqual(standard.PatternPlanner.GetType(), trickster.PatternPlanner.GetType());
+        }
+        [Test]
         public void CustomTrajectoryIsSharedWithPreviewAndSnapshotsCurveKeys()
         {
             var authored = asset.patterns[0].steps[0].attack;

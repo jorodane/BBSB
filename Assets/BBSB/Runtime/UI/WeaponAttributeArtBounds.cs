@@ -143,6 +143,13 @@ namespace BBSB.Runtime.UI
             { "war-fan/3/0", new PreviewRect(0.500000000000, 0.000000000000, 0.500000000000, 0.500000000000) },
         };
         private static readonly Dictionary<string, PreviewRect> measuredBounds = new Dictionary<string, PreviewRect> {
+            { "wide-shield/0/0", new PreviewRect(0.049441786284, 0.215311004785, 0.902711323764, 0.604465709729) },
+            { "wide-shield/1/0", new PreviewRect(0.046251993620, 0.215311004785, 0.905901116427, 0.604465709729) },
+            { "wide-shield/2/0", new PreviewRect(0.049441786284, 0.215311004785, 0.902711323764, 0.606060606061) },
+            { "resonance-shield/0/0", new PreviewRect(0.057416267943, 0.052631578947, 0.885167464115, 0.896331738437) },
+            { "resonance-shield/1/0", new PreviewRect(0.055821371611, 0.052631578947, 0.886762360447, 0.896331738437) },
+            { "resonance-shield/2/0", new PreviewRect(0.057416267943, 0.052631578947, 0.885167464115, 0.896331738437) },
+
             { "battle-axe/0/0", new PreviewRect(0.236044657097, 0.011164274322, 0.604465709729, 0.963317384370) },
             { "battle-axe/2/0", new PreviewRect(0.236044657097, 0.035087719298, 0.602870813397, 0.953748006380) },
             { "battle-axe/1/0", new PreviewRect(0.216905901116, 0.011164274322, 0.601275917065, 0.961722488038) },

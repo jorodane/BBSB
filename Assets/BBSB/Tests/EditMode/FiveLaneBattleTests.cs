@@ -57,6 +57,11 @@ namespace BBSB.Tests
                 b.Press(0, .25); // Between both grids, outside the normal timing window.
                 var lane = b.Lanes[0];
                 Check.Equal(0, b.MissCount); Check.Equal(0, b.HalfMissCount);
+                if (FiveLaneBattle.IsSplitShield(lane))
+                {
+                    Check.Equal(.5, b.ShieldAt(0).StartBeat); Check.Equal(PhraseLanePhase.Playing, b.ShieldAt(0).Phase);
+                    Check.Equal(PhraseLanePhase.Ready, b.ShieldAt(1).Phase); Check.Equal(0m, b.TotalBlocked); continue;
+                }
                 Check.Equal(.5 + (phrase.Repeat && phrase.Notes.Count == 1 ? phrase.LengthBeats : 0), lane.StartBeat);
                 if (phrase.Notes[0].IsHold) Check.True(lane.Holding);
                 else { Check.Equal(1, b.PerfectCount); Check.Equal(1, lane.Activations); }
@@ -185,12 +190,12 @@ namespace BBSB.Tests
         }
         [Test] public void BuiltInShieldsHaveParryNotesAndRoundShieldUsesTwoFastCounters()
         {
-            Check.Equal(4, WeaponPhraseCatalog.ShieldIds.Count);
+            Check.Equal(6, WeaponPhraseCatalog.ShieldIds.Count);
             foreach (string id in WeaponPhraseCatalog.ShieldIds)
             {
                 var phrase = WeaponPhraseCatalog.Find(id);
                 Check.Equal(WeaponKind.Shield, WeaponCatalog.Find(id).Kind);
-                Check.True(phrase.Notes.Any(n => n.IsParry));
+                Check.True(id == "resonance-shield" ? phrase.HoldDamageReduction > 0 && !phrase.Notes.Any(n => n.IsParry) : phrase.Notes.Any(n => n.IsParry));
                 Check.Equal(RewardKind.Weapon, ContentCatalog.Find(id).Kind);
             }
             var b = Battle(new[] { new BeatAttack("enemy", 2, 10) }, shield: "round-shield");

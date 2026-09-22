@@ -62,6 +62,7 @@ namespace BBSB.Runtime.UI
                 if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
                     foreach (var attack in battle.Incoming)
                     {
+                        if (!battle.CoversAttack(lane, slot, attack)) continue;
                         double remaining = attack.Beat - battle.Beat;
                         if (remaining > LookAheadBeats || attack.EndBeat - battle.Beat < -battle.HalfMissWindow ||
                             attack.State == IncomingAttackState.Interrupted || attack.State == IncomingAttackState.Hit) continue;

@@ -4,7 +4,7 @@ Unity 메뉴 **BBSB → Monster Editor**에서 몬스터를 추가한다. 프로
 
 ## 기존 몬스터 편집
 
-기존 **12종 / 24개 패턴**도 `Assets/BBSB/Resources/BBSB/Monsters/<몬스터 ID>.asset`에 각각 저장되어 있다. Monster Editor의 **등록된 몬스터** 목록에서 이름으로 고르면 같은 탭에서 외형·패턴·출현 가중치·피해를 수정할 수 있다. 새로 생성하거나 데이터를 복사할 필요가 없다.
+기존 **12종 / 60개 패턴**도 `Assets/BBSB/Resources/BBSB/Monsters/<몬스터 ID>.asset`에 각각 저장되어 있다. Monster Editor의 **등록된 몬스터** 목록에서 이름으로 고르면 같은 탭에서 외형·패턴·출현 가중치·피해를 수정할 수 있다. 새로 생성하거나 데이터를 복사할 필요가 없다.
 
 - Play와 빌드의 출현 목록은 이 폴더의 유효하고 활성화된 에셋만 사용한다. 기존 몬스터도 출현 옵션을 끄거나 에셋을 삭제하면 제외된다. 수정 후 다음 Play 또는 빌드부터 적용된다.
 - 기존 종족 ID와 패턴 ID를 유지해야 이미 등록된 전용 이미지 슬롯이 계속 연결된다. 이름과 설명은 자유롭게 변경해도 된다.
@@ -166,3 +166,7 @@ Response를 선택하고 **공격 직접 설정**을 켜면 다음을 편집할 
 
 
 Canvas 화면과 SpriteRenderer 외형 프리팹 편집은 [PresentationPrefabs.md](PresentationPrefabs.md)를 참고한다. 새 actorPrefab 연결이 있으면 기존 RectTransform visualPrefab보다 우선한다.
+
+## 선봉·후열과 트릭스터 역할
+
+기본 무기 연주 모드는 개별 HP와 선봉 교대를 사용한다. **기본 모습 → 전열 역할 직접 지정**을 켜고 `Standard` 또는 `Trickster`를 선택한다. 기본값은 `seesaw-goblin`과 `offbeat-goblin`만 트릭스터다. 이 역할은 기존 Call & Response의 Independent/Beat Shift 배치 방식과 독립적이다. 트릭스터는 난입 후 현재 구절을 마치고 원래 선봉의 중단 지점으로 복귀한다. [3박 예고 보존·홀드 절단·기본 교대 수치](IntegratedCombat.md#몬스터-개별-hp와-교대)를 참고한다.

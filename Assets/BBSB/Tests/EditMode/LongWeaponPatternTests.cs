@@ -33,7 +33,7 @@ namespace BBSB.Tests
 
         [Test] public void AllOffensiveAndSupportWeaponsHaveLongPhrasesCooldownsAndAMajorityOfTheirOwnPulse()
         {
-            Check.Equal(30, WeaponPhraseCatalog.All.Count);
+            Check.Equal(32, WeaponPhraseCatalog.All.Count);
             foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.Shield))
             foreach (var side in new[] { WeaponBeatSide.Light, WeaponBeatSide.Dark })
             for (int offset = 0; offset < weapon.RequiredLanes; offset++)
@@ -177,7 +177,7 @@ namespace BBSB.Tests
 
         [Test] public void ShieldsKeepTheirExactShortPatternsAndDefensiveRules()
         {
-            foreach (string id in WeaponPhraseCatalog.ShieldIds)
+            foreach (string id in ShortWeaponPhrases.ShieldIds)
             {
                 var old = ShortWeaponPhrases.Find(id); var current = WeaponPhraseCatalog.Find(id);
                 Check.Equal(old.LengthBeats, current.LengthBeats); Check.Equal(old.MissCooldownBeats, current.MissCooldownBeats);
