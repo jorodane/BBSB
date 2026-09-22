@@ -11,11 +11,14 @@ namespace BBSB.Runtime.UI
         public RectTransform scenery, actors, tracks;
         public RectTransform playerSlot, monsterArea;
         public ShoulderViewPresentation presentation;
-        public TextMeshProUGUI song, health, enemyHealth, beat, feedback, help;
+        public TextMeshProUGUI song, health, beat, feedback, help;
+        // Retain the serialized references only to retire widgets in existing prefabs.
+        [HideInInspector] public TextMeshProUGUI enemyHealth;
         public TextMeshProUGUI attackCue;
         [Tooltip("Place inputs at the five fixed D/F/Space/J/K positions. Disable to use custom prefab positions.")]
         public bool arrangeEquippedLanes = true;
-        public RectTransform playerFill, enemyFill;
+        public RectTransform playerFill;
+        [HideInInspector] public RectTransform enemyFill;
         public Button pause;
         public RectTransform[] weaponRoots = new RectTransform[5];
         public RectTransform[] judgmentPoints = new RectTransform[5];
@@ -29,8 +32,7 @@ namespace BBSB.Runtime.UI
         {
             problem = null;
             if (scenery == null || actors == null || tracks == null || song == null || health == null ||
-                enemyHealth == null || beat == null || feedback == null || help == null ||
-                playerFill == null || enemyFill == null || pause == null)
+                beat == null || feedback == null || help == null || playerFill == null || pause == null)
                 problem = "FiveLaneHudBindings is missing a stage, text, HP bar or pause reference.";
             else if (!Complete(weaponRoots) || !Complete(inputAreas) || !Complete(laneLabels) || !Complete(laneStatus) || !Complete(laneResults))
                 problem = "FiveLaneHudBindings requires five non-null entries in each weapon, input and label array.";
@@ -49,6 +51,16 @@ namespace BBSB.Runtime.UI
         {
             if (!TryValidate(out _)) return false;
             bool changed = false;
+            if (enemyHealth != null && enemyHealth.gameObject.activeSelf)
+            { enemyHealth.gameObject.SetActive(false); changed = true; }
+            if (enemyFill != null)
+            {
+                var bar = enemyFill.parent;
+                // Older generated HUDs have a dedicated track parent. Keep a custom
+                // shared HUD container alive if it also owns the player's health.
+                var retired = bar != null && bar != transform && !transform.IsChildOf(bar) && !playerFill.IsChildOf(bar) ? bar : enemyFill;
+                if (retired.gameObject.activeSelf) { retired.gameObject.SetActive(false); changed = true; }
+            }
             var ui = new RunUI(song.font);
             if (attackCue == null)
             {
@@ -75,8 +87,6 @@ namespace BBSB.Runtime.UI
                 MoveDefault(song.rectTransform, .30f, .93f, .70f, .99f, .72f, .025f, .92f, .09f);
                 MoveDefault(health.rectTransform, .02f, .93f, .28f, .99f, .025f, .085f, .29f, .14f);
                 MoveDefault((RectTransform)playerFill.parent, .02f, .91f, .28f, .925f, .025f, .06f, .29f, .08f);
-                MoveDefault(enemyHealth.rectTransform, .72f, .93f, .90f, .99f, .40f, .93f, .86f, .985f);
-                MoveDefault((RectTransform)enemyFill.parent, .72f, .91f, .90f, .925f, .40f, .90f, .86f, .92f);
                 MoveDefault(beat.rectTransform, .30f, .855f, .70f, .92f, .82f, .54f, .98f, .64f);
                 MoveDefault(feedback.rectTransform, .30f, .785f, .70f, .85f, .48f, .32f, .81f, .40f);
                 MoveDefault(help.rectTransform, .10f, .005f, .90f, .045f, .36f, .01f, .70f, .05f);
@@ -179,9 +189,7 @@ namespace BBSB.Runtime.UI
             b.tracks = ui.Rect("Note tracks", root); RunUI.Stretch(b.tracks);
             b.song = Text(ui, root, "SONG", 21, .30f, .93f, .70f, .99f);
             b.health = Text(ui, root, "HP", 22, .02f, .93f, .28f, .99f);
-            b.enemyHealth = Text(ui, root, "ENEMY", 22, .72f, .93f, .90f, .99f);
             b.playerFill = Bar(ui, root, "Player HP", .02f, .91f, .28f, .925f, RunUI.Teal);
-            b.enemyFill = Bar(ui, root, "Enemy HP", .72f, .91f, .90f, .925f, RunUI.Red);
             b.beat = Text(ui, root, "1 · 2 · 3 · 4", 25, .30f, .855f, .70f, .92f);
             b.feedback = Text(ui, root, "", 29, .30f, .785f, .70f, .85f);
             b.help = Text(ui, root, "D / F / SPACE / J / K  ·  Tap / Hold  ·  Esc", 18, .10f, .005f, .90f, .045f);

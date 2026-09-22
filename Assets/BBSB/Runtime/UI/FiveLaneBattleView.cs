@@ -159,9 +159,7 @@ namespace BBSB.Runtime.UI
             }
             foreach (var actor in stageActors) actor.Layout();
             hud.health.text = "HP " + battle.PlayerHealth.ToString("0.#") + " / " + battle.PlayerMaximum;
-            hud.enemyHealth.text = "ENEMY " + battle.EnemyHealth.Current.ToString("0.#") + " / " + battle.EnemyHealth.Maximum;
             hud.playerFill.anchorMax = new Vector2((float)(battle.PlayerHealth / battle.PlayerMaximum), 1);
-            hud.enemyFill.anchorMax = new Vector2((float)(battle.EnemyHealth.Current / battle.EnemyHealth.Maximum), 1);
             hud.beat.text = !string.IsNullOrEmpty(countInWord) ? countInWord : battle.Combo + "\nCOMBO";
             hud.beat.color = battle.Beat % 1 < .18 ? RunUI.Gold : RunUI.TextColor;
             hud.feedback.text = waitingForHold ? "Hold 중이던 버튼을 다시 눌러줘" : battle.IsGroggy ? "GROGGY" :

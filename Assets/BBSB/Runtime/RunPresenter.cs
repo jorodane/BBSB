@@ -385,8 +385,7 @@ namespace BBSB.Runtime
             var panel = ui.Stack(screen, "Five lane preparation", 28, 10); RunUI.Stretch(panel);
             ui.Label(panel, "CHOOSE YOUR RHYTHM", 28, RunUI.Gold, 44);
             ui.Label(panel, Session.BattleMusic.Music.Name + " · " + Session.BattleMusic.Music.Bpm + " BPM", 24, RunUI.Teal, 40);
-            ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth +
-                "   ·   ENEMY " + Session.EnemyHealth.Current.ToString("0.#") + " / " + Session.EnemyHealth.Maximum, 22, null, 36);
+            ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth, 22, null, 36);
             var list = ui.Scroll(panel);
             ui.Label(list, "네 번째 카운트인 단어에 시작! 곡의 첫 3박·끝 3초는 적 공격 없이 연주해.\n방패 라인이 둘 이상이면 맨 오른쪽은 후열, 나머지는 전열 공격이 왼쪽부터 순서대로 와.", 22, null, 96);
             var names = new System.Collections.Generic.List<string>();

@@ -128,7 +128,8 @@ namespace BBSB.Tests
                     if (i > 0) Assert.Greater(point.xMin, BoundsIn(screen, hud.judgmentPoints[i - 1]).xMax);
                 }
                 Assert.Less(BoundsIn(screen, hud.health.rectTransform).yMax, heroRect.yMin);
-                Assert.Greater(BoundsIn(screen, hud.enemyFill).yMin, enemyRect.yMax);
+                Assert.IsTrue(hud.enemyHealth == null || !hud.enemyHealth.gameObject.activeInHierarchy);
+                Assert.IsTrue(hud.enemyFill == null || !hud.enemyFill.gameObject.activeInHierarchy);
             }
             Assert.AreEqual(2, playback.GetComponentsInChildren<WeaponIconGraphic>().Length);
             Assert.AreEqual(1, playback.GetComponentsInChildren<FiveLaneTrackGraphic>().Length);
