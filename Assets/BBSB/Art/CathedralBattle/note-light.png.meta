@@ -1,0 +1,1692 @@
+fileFormatVersion: 2
+guid: 32d86d2be027480488b6d5aa665fe03a
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8237069304511377574
+    second: note-light_0
+  - first:
+      213: -3665862650283180452
+    second: note-light_1
+  - first:
+      213: 74968473158893775
+    second: note-light_2
+  - first:
+      213: 8792800930298352289
+    second: note-light_3
+  - first:
+      213: 1260321304321252137
+    second: note-light_4
+  - first:
+      213: -6723939538601993249
+    second: note-light_5
+  - first:
+      213: -6595729938188567974
+    second: note-light_6
+  - first:
+      213: 5439248062897183952
+    second: note-light_7
+  - first:
+      213: 3347379213820946858
+    second: note-light_8
+  - first:
+      213: -1148012637940533107
+    second: note-light_9
+  - first:
+      213: -6931501253629948433
+    second: note-light_10
+  - first:
+      213: -7116592230280577928
+    second: note-light_11
+  - first:
+      213: -6382798131184690285
+    second: note-light_12
+  - first:
+      213: -7036016041161318757
+    second: note-light_13
+  - first:
+      213: 7491974193565906303
+    second: note-light_14
+  - first:
+      213: 5709706458479965884
+    second: note-light_15
+  - first:
+      213: 3398594625698334321
+    second: note-light_16
+  - first:
+      213: 10678576715222835
+    second: note-light_17
+  - first:
+      213: 2810089546234649761
+    second: note-light_18
+  - first:
+      213: -6132260041807342489
+    second: note-light_19
+  - first:
+      213: -1482357682550061225
+    second: note-light_20
+  - first:
+      213: 5450952156167065773
+    second: note-light_21
+  - first:
+      213: -4075001667281116284
+    second: note-light_22
+  - first:
+      213: -2576580967817790588
+    second: note-light_23
+  - first:
+      213: -6836239670709502695
+    second: note-light_24
+  - first:
+      213: 899230426425232294
+    second: note-light_25
+  - first:
+      213: 5361048756374535611
+    second: note-light_26
+  - first:
+      213: 4322251578215196208
+    second: note-light_27
+  - first:
+      213: -2776284299393119110
+    second: note-light_28
+  - first:
+      213: 1860303975239359750
+    second: note-light_29
+  - first:
+      213: 520953548203722762
+    second: note-light_30
+  - first:
+      213: 1769748275833452349
+    second: note-light_31
+  - first:
+      213: -3939218675364306572
+    second: note-light_32
+  - first:
+      213: -202961876303751853
+    second: note-light_33
+  - first:
+      213: -1292408967441616048
+    second: note-light_34
+  - first:
+      213: -5363716494824472443
+    second: note-light_35
+  - first:
+      213: -6828926485850511211
+    second: note-light_36
+  - first:
+      213: 8049497067738126268
+    second: note-light_37
+  - first:
+      213: 3041643346658156652
+    second: note-light_38
+  - first:
+      213: 570323492157673380
+    second: note-light_39
+  - first:
+      213: 6565003885319226674
+    second: note-light_40
+  - first:
+      213: -7654365816853323997
+    second: note-light_41
+  - first:
+      213: 4747398948521422025
+    second: note-light_42
+  - first:
+      213: 5842805968375451989
+    second: note-light_43
+  - first:
+      213: 3465679365826829817
+    second: note-light_44
+  - first:
+      213: 3979082597485962359
+    second: note-light_45
+  - first:
+      213: -373820635211522192
+    second: note-light_46
+  - first:
+      213: 4474234969865975116
+    second: note-light_47
+  - first:
+      213: 175955296184371400
+    second: note-light_48
+  - first:
+      213: 7039658528575795090
+    second: note-light_49
+  - first:
+      213: -1572419190943254374
+    second: note-light_50
+  - first:
+      213: -1192785542207547522
+    second: note-light_51
+  - first:
+      213: 2720890168157870977
+    second: note-light_52
+  - first:
+      213: -2045877212383508164
+    second: note-light_53
+  - first:
+      213: 551770629056338555
+    second: note-light_54
+  - first:
+      213: 5604652323595206258
+    second: note-light_55
+  - first:
+      213: -7634640947965378397
+    second: note-light_56
+  - first:
+      213: -2548042557106971100
+    second: note-light_57
+  - first:
+      213: 4118280693284719085
+    second: note-light_58
+  - first:
+      213: -5141012749306275927
+    second: note-light_59
+  - first:
+      213: -1536354429674726920
+    second: note-light_60
+  - first:
+      213: -962917126053236025
+    second: note-light_61
+  - first:
+      213: -5866237622115943825
+    second: note-light_62
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: note-light_0
+      rect:
+        serializedVersion: 2
+        x: 226
+        y: 695
+        width: 130
+        height: 86
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6a0bcadf3e2ff4270800000000000000
+      internalID: 8237069304511377574
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_1
+      rect:
+        serializedVersion: 2
+        x: 313
+        y: 770
+        width: 9
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c5ebf76975d302dc0800000000000000
+      internalID: -3665862650283180452
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_2
+      rect:
+        serializedVersion: 2
+        x: 347
+        y: 763
+        width: 17
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fc04dfbdd675a0100800000000000000
+      internalID: 74968473158893775
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_3
+      rect:
+        serializedVersion: 2
+        x: 435
+        y: 751
+        width: 74
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1a2582f1cdd460a70800000000000000
+      internalID: 8792800930298352289
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_4
+      rect:
+        serializedVersion: 2
+        x: 655
+        y: 630
+        width: 297
+        height: 141
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 92bdcee7c8f8d7110800000000000000
+      internalID: 1260321304321252137
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_5
+      rect:
+        serializedVersion: 2
+        x: 965
+        y: 760
+        width: 14
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fdb9c665d94cfa2a0800000000000000
+      internalID: -6723939538601993249
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_6
+      rect:
+        serializedVersion: 2
+        x: 1056
+        y: 656
+        width: 76
+        height: 125
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5a7cdf11924774a0800000000000000
+      internalID: -6595729938188567974
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_7
+      rect:
+        serializedVersion: 2
+        x: 1151
+        y: 632
+        width: 416
+        height: 141
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0dcd73a7b471c7b40800000000000000
+      internalID: 5439248062897183952
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_8
+      rect:
+        serializedVersion: 2
+        x: 1628
+        y: 760
+        width: 16
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aa9e258e8a7447e20800000000000000
+      internalID: 3347379213820946858
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_9
+      rect:
+        serializedVersion: 2
+        x: 1652
+        y: 761
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d8835e596907110f0800000000000000
+      internalID: -1148012637940533107
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_10
+      rect:
+        serializedVersion: 2
+        x: 1685
+        y: 762
+        width: 7
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fed4631a55c5ecf90800000000000000
+      internalID: -6931501253629948433
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_11
+      rect:
+        serializedVersion: 2
+        x: 1691
+        y: 764
+        width: 19
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 87c32d66219cc3d90800000000000000
+      internalID: -7116592230280577928
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_12
+      rect:
+        serializedVersion: 2
+        x: 1693
+        y: 758
+        width: 7
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39b95bdcaeebb67a0800000000000000
+      internalID: -6382798131184690285
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_13
+      rect:
+        serializedVersion: 2
+        x: 1697
+        y: 745
+        width: 39
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b9e11a060bc0b5e90800000000000000
+      internalID: -7036016041161318757
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_14
+      rect:
+        serializedVersion: 2
+        x: 466
+        y: 638
+        width: 132
+        height: 103
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f75b3e9b5d6d8f760800000000000000
+      internalID: 7491974193565906303
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_15
+      rect:
+        serializedVersion: 2
+        x: 617
+        y: 723
+        width: 23
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cb6b37dc5c3fc3f40800000000000000
+      internalID: 5709706458479965884
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_16
+      rect:
+        serializedVersion: 2
+        x: 907
+        y: 727
+        width: 11
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1760d483ecb3a2f20800000000000000
+      internalID: 3398594625698334321
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_17
+      rect:
+        serializedVersion: 2
+        x: 1161
+        y: 731
+        width: 15
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 33f41d3eb10f52000800000000000000
+      internalID: 10678576715222835
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_18
+      rect:
+        serializedVersion: 2
+        x: 1191
+        y: 719
+        width: 13
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1acda56cd817ff620800000000000000
+      internalID: 2810089546234649761
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_19
+      rect:
+        serializedVersion: 2
+        x: 1233
+        y: 735
+        width: 9
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 76450c96bf5d5eaa0800000000000000
+      internalID: -6132260041807342489
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_20
+      rect:
+        serializedVersion: 2
+        x: 1239
+        y: 735
+        width: 6
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7574885aa8b9d6be0800000000000000
+      internalID: -1482357682550061225
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_21
+      rect:
+        serializedVersion: 2
+        x: 1669
+        y: 703
+        width: 53
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da0dcfb0b1ca5ab40800000000000000
+      internalID: 5450952156167065773
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_22
+      rect:
+        serializedVersion: 2
+        x: 1699
+        y: 727
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 483a59ae29fa277c0800000000000000
+      internalID: -4075001667281116284
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_23
+      rect:
+        serializedVersion: 2
+        x: 559
+        y: 723
+        width: 8
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 48b3036d2452e3cd0800000000000000
+      internalID: -2576580967817790588
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_24
+      rect:
+        serializedVersion: 2
+        x: 562
+        y: 719
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 91d3deb4d3cc021a0800000000000000
+      internalID: -6836239670709502695
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_25
+      rect:
+        serializedVersion: 2
+        x: 593
+        y: 715
+        width: 7
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ab8c4afe45ba7c00800000000000000
+      internalID: 899230426425232294
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_26
+      rect:
+        serializedVersion: 2
+        x: 602
+        y: 718
+        width: 16
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bbdf04b9075466a40800000000000000
+      internalID: 5361048756374535611
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_27
+      rect:
+        serializedVersion: 2
+        x: 966
+        y: 697
+        width: 21
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 036636df8e8bbfb30800000000000000
+      internalID: 4322251578215196208
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_28
+      rect:
+        serializedVersion: 2
+        x: 989
+        y: 709
+        width: 22
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a7ccd2b9328a879d0800000000000000
+      internalID: -2776284299393119110
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_29
+      rect:
+        serializedVersion: 2
+        x: 1126
+        y: 711
+        width: 26
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 60d9362fb9021d910800000000000000
+      internalID: 1860303975239359750
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_30
+      rect:
+        serializedVersion: 2
+        x: 377
+        y: 685
+        width: 88
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a088921fd7cca3700800000000000000
+      internalID: 520953548203722762
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_31
+      rect:
+        serializedVersion: 2
+        x: 463
+        y: 693
+        width: 10
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d37b9ea2ea86f8810800000000000000
+      internalID: 1769748275833452349
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_32
+      rect:
+        serializedVersion: 2
+        x: 470
+        y: 698
+        width: 7
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 47163525c751559c0800000000000000
+      internalID: -3939218675364306572
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_33
+      rect:
+        serializedVersion: 2
+        x: 611
+        y: 689
+        width: 17
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 355d7f3bf3fee2df0800000000000000
+      internalID: -202961876303751853
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_34
+      rect:
+        serializedVersion: 2
+        x: 627
+        y: 694
+        width: 17
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 053fc1f34e0701ee0800000000000000
+      internalID: -1292408967441616048
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_35
+      rect:
+        serializedVersion: 2
+        x: 643
+        y: 695
+        width: 13
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 580851224404095b0800000000000000
+      internalID: -5363716494824472443
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_36
+      rect:
+        serializedVersion: 2
+        x: 1022
+        y: 693
+        width: 21
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 598af95da87ca31a0800000000000000
+      internalID: -6828926485850511211
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_37
+      rect:
+        serializedVersion: 2
+        x: 1153
+        y: 686
+        width: 11
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cb7541f5fee85bf60800000000000000
+      internalID: 8049497067738126268
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_38
+      rect:
+        serializedVersion: 2
+        x: 70
+        y: 0
+        width: 1900
+        height: 691
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c606dfa2286163a20800000000000000
+      internalID: 3041643346658156652
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_39
+      rect:
+        serializedVersion: 2
+        x: 421
+        y: 681
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4af4e15c1323ae700800000000000000
+      internalID: 570323492157673380
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_40
+      rect:
+        serializedVersion: 2
+        x: 625
+        y: 663
+        width: 43
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 235038530449b1b50800000000000000
+      internalID: 6565003885319226674
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_41
+      rect:
+        serializedVersion: 2
+        x: 1143
+        y: 671
+        width: 14
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 32f909918da36c590800000000000000
+      internalID: -7654365816853323997
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_42
+      rect:
+        serializedVersion: 2
+        x: 265
+        y: 653
+        width: 14
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9ccaeadd03622e140800000000000000
+      internalID: 4747398948521422025
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_43
+      rect:
+        serializedVersion: 2
+        x: 322
+        y: 662
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5511d8c5211d51150800000000000000
+      internalID: 5842805968375451989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_44
+      rect:
+        serializedVersion: 2
+        x: 459
+        y: 664
+        width: 7
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9fd52817501981030800000000000000
+      internalID: 3465679365826829817
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_45
+      rect:
+        serializedVersion: 2
+        x: 602
+        y: 660
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 774e6135a8a883730800000000000000
+      internalID: 3979082597485962359
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_46
+      rect:
+        serializedVersion: 2
+        x: 1096
+        y: 654
+        width: 7
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07f9184ec1cefcaf0800000000000000
+      internalID: -373820635211522192
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_47
+      rect:
+        serializedVersion: 2
+        x: 1151
+        y: 660
+        width: 17
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c45fd74effca71e30800000000000000
+      internalID: 4474234969865975116
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_48
+      rect:
+        serializedVersion: 2
+        x: 322
+        y: 655
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c80b6dd86e117200800000000000000
+      internalID: 175955296184371400
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_49
+      rect:
+        serializedVersion: 2
+        x: 594
+        y: 654
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 29f2fcf4224e1b160800000000000000
+      internalID: 7039658528575795090
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_50
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 649
+        width: 10
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a98f1dda315ad2ae0800000000000000
+      internalID: -1572419190943254374
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_51
+      rect:
+        serializedVersion: 2
+        x: 1122
+        y: 650
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e775f777edf527fe0800000000000000
+      internalID: -1192785542207547522
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_52
+      rect:
+        serializedVersion: 2
+        x: 1125
+        y: 648
+        width: 13
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 18b17e9213b82c520800000000000000
+      internalID: 2720890168157870977
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_53
+      rect:
+        serializedVersion: 2
+        x: 1136
+        y: 648
+        width: 10
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c3980ddc3859b93e0800000000000000
+      internalID: -2045877212383508164
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_54
+      rect:
+        serializedVersion: 2
+        x: 1153
+        y: 646
+        width: 15
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b7a9566b67848a700800000000000000
+      internalID: 551770629056338555
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_55
+      rect:
+        serializedVersion: 2
+        x: 1243
+        y: 627
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 27eb575f799b7cd40800000000000000
+      internalID: 5604652323595206258
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_56
+      rect:
+        serializedVersion: 2
+        x: 1165
+        y: 128
+        width: 13
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a04fd4028e4c0690800000000000000
+      internalID: -7634640947965378397
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_57
+      rect:
+        serializedVersion: 2
+        x: 441
+        y: 112
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42e9f0f5bc883acd0800000000000000
+      internalID: -2548042557106971100
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_58
+      rect:
+        serializedVersion: 2
+        x: 1056
+        y: 104
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: de9c5909872172930800000000000000
+      internalID: 4118280693284719085
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_59
+      rect:
+        serializedVersion: 2
+        x: 1118
+        y: 96
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9a758db842477a8b0800000000000000
+      internalID: -5141012749306275927
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_60
+      rect:
+        serializedVersion: 2
+        x: 1151
+        y: 96
+        width: 10
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8f9d32249c5cdaae0800000000000000
+      internalID: -1536354429674726920
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_61
+      rect:
+        serializedVersion: 2
+        x: 1394
+        y: 98
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c2f471c9f703a2f0800000000000000
+      internalID: -962917126053236025
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: note-light_62
+      rect:
+        serializedVersion: 2
+        x: 599
+        y: 57
+        width: 9
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f6a3fbd96ffe69ea0800000000000000
+      internalID: -5866237622115943825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable: {}
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

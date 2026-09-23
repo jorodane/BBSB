@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: fd1b65fe92e9474bb940228e5dc6b318
+guid: d2878504ae6e5604aa211a3355b7b98c
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -43,9 +43,9 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 0
+  spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
@@ -54,7 +54,7 @@ TextureImporter:
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
-  textureType: 8
+  textureType: 0
   textureShape: 1
   singleChannelComponent: 0
   flipbookRows: 1
@@ -69,10 +69,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 4096
     resizeAlgorithm: 0
-    textureFormat: 4
-    textureCompression: 0
+    textureFormat: -1
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -97,10 +97,10 @@ TextureImporter:
     serializedVersion: 2
     sprites: []
     outline: []
-    customData: null
+    customData: 
     physicsShape: []
     bones: []
-    spriteID: 603feeed873c443a899fe0797e4777f0
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -110,8 +110,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable: {}
-  mipmapLimitGroupName: null
+  mipmapLimitGroupName: 
   pSDRemoveMatte: 0
-  userData: null
-  assetBundleName: null
-  assetBundleVariant: null
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

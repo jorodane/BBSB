@@ -1,7 +1,10 @@
 fileFormatVersion: 2
-guid: fd1b65fe92e9474bb940228e5dc6b318
+guid: 2c33078712ea8c349983c72fddcb6662
 TextureImporter:
-  internalIDToNameTable: []
+  internalIDToNameTable:
+  - first:
+      213: 1543865150453654327
+    second: combo-crest_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -71,8 +74,8 @@ TextureImporter:
     buildTarget: DefaultTexturePlatform
     maxTextureSize: 2048
     resizeAlgorithm: 0
-    textureFormat: 4
-    textureCompression: 0
+    textureFormat: -1
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -95,12 +98,34 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites: []
+    sprites:
+    - serializedVersion: 2
+      name: combo-crest_0
+      rect:
+        serializedVersion: 2
+        x: 28
+        y: 162
+        width: 2116
+        height: 417
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 73325e1bc29ec6510800000000000000
+      internalID: 1543865150453654327
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
-    customData: null
+    customData: 
     physicsShape: []
     bones: []
-    spriteID: 603feeed873c443a899fe0797e4777f0
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -110,8 +135,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable: {}
-  mipmapLimitGroupName: null
+  mipmapLimitGroupName: 
   pSDRemoveMatte: 0
-  userData: null
-  assetBundleName: null
-  assetBundleVariant: null
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
