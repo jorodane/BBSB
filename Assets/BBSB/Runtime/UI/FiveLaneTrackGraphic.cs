@@ -16,16 +16,14 @@ namespace BBSB.Runtime.UI
         public FiveLaneNoteTimeline NoteTimeline => noteTimeline;
         public ISet<string> SpriteProjectiles { get; set; }
         public bool SpriteNoteShatter { get; set; }
+        public BattleVisualTheme Theme { get; set; }
         public const double LookAheadBeats = SteppedNoteTrack.LookAheadBeats;
         public static Vector2 LanePoint(int lane, float distance, int count = 5) =>
-            new Vector2(.655f + (lane - (count - 1) * .5f) * .1375f, Mathf.Lerp(.22f, .42f, distance));
-        public static Vector2 InputPoint(int slot, float distance, InputExtensions extensions)
-        {
-            int left = (extensions & InputExtensions.Left) != 0 ? 1 : 0;
-            int count = BattleInputLayout.MainLaneCount + left + ((extensions & InputExtensions.Right) != 0 ? 1 : 0);
-            float position = BattleInputLayout.Position(slot) + left;
-            return new Vector2(.415f + position * (.54f / (count - 1)), Mathf.Lerp(.22f, .42f, distance));
-        }
+            new Vector2(.5f + ((lane + .5f) / count - .5f) * (float)BattleBoardLayout.Width(distance), (float)BattleBoardLayout.Y(distance));
+        public static Vector2 InputPoint(int slot, float distance, InputExtensions extensions) =>
+            new Vector2((float)BattleBoardLayout.X(slot, distance, extensions), (float)BattleBoardLayout.Y(distance));
+        public float NoteWidth(int slot, double at) => CellWidth((float)(SteppedNoteTrack.Distance(at, battle.Beat) / LookAheadBeats)) * .87f;
+        private float CellWidth(float distance) => (float)BattleBoardLayout.CellWidth(distance, battle.Extensions) * rectTransform.rect.width;
         public void Bind(FiveLaneBattle value, RectTransform[] judgmentTargets = null,
             RectTransform player = null, RectTransform enemies = null)
         { battle = value; targets = judgmentTargets; playerTarget = player; enemySource = enemies; raycastTarget = false; Refresh(); }
@@ -36,29 +34,41 @@ namespace BBSB.Runtime.UI
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (battle == null) return;
+            float unit = rectTransform.rect.height / 720f;
+            float pulse = battle.Beat % 1 < .18 ? 1 - (float)(battle.Beat % 1 / .18) : 0;
             for (int slot = 0; slot < BattleInputLayout.LaneCount; slot++)
             {
+                if (!battle.IsInputAvailable(slot)) continue;
                 var lane = battle.LaneAt(slot);
-                if (lane == null) continue;
                 var near = Point(slot, 0); var far = Point(slot, 1);
+                float nearHalf = CellWidth(0) * .5f, farHalf = CellWidth(1) * .5f;
                 Color laneColor = LaneColor(slot);
-                var floor = laneColor; floor.a = .07f;
-                Quad(vh, near - Vector2.right * 28, far - Vector2.right * 28,
-                    far + Vector2.right * 28, near + Vector2.right * 28, floor);
-                var edge = laneColor; edge.a = .6f;
-                Line(vh, near, far, 2, edge);
+                var edge = new Color(.9f, .82f, .70f, lane == null ? .15f : .5f);
+                Quad(vh, near - Vector2.right * nearHalf, far - Vector2.right * farHalf,
+                    far + Vector2.right * farHalf, near + Vector2.right * nearHalf, new Color(.022f, .023f, .042f, lane == null ? .4f : .72f));
+                Line(vh, near - Vector2.right * nearHalf, far - Vector2.right * farHalf, unit, edge);
+                Line(vh, near + Vector2.right * nearHalf, far + Vector2.right * farHalf, unit, edge);
+                var header = far + Vector2.up * (rectTransform.rect.height * (float)(BattleBoardLayout.HeaderTop - BattleBoardLayout.FarY));
+                Quad(vh, far - Vector2.right * farHalf, header - Vector2.right * farHalf * .94f,
+                    header + Vector2.right * farHalf * .94f, far + Vector2.right * farHalf, new Color(.025f, .025f, .04f, .80f));
+                Line(vh, far - Vector2.right * farHalf, header - Vector2.right * farHalf * .94f, unit, edge);
+                Line(vh, header - Vector2.right * farHalf * .94f, header + Vector2.right * farHalf * .94f, unit, edge);
+                Line(vh, header + Vector2.right * farHalf * .94f, far + Vector2.right * farHalf, unit, edge);
                 int cells = (int)(LookAheadBeats / SteppedNoteTrack.CellBeats);
                 for (int cell = 1; cell <= cells; cell++)
                 {
-                    var p = Point(slot, (float)cell / cells);
-                    bool wholeBeat = cell % 2 == 0;
-                    float halfWidth = wholeBeat ? 28 : 12;
-                    Line(vh, p - Vector2.right * halfWidth, p + Vector2.right * halfWidth,
-                        wholeBeat ? 3 : 1, new Color(.8f, .9f, 1, wholeBeat ? .6f : .18f));
+                    float distance = (float)cell / cells;
+                    var p = Point(slot, distance); float half = CellWidth(distance) * .5f;
+                    Line(vh, p - Vector2.right * half, p + Vector2.right * half, unit,
+                        new Color(.9f, .82f, .7f, cell % 2 == 0 ? .24f : .08f));
                 }
-                float beatPulse = battle.Beat % 1 < .15 ? 1 - (float)(battle.Beat % 1 / .15) : 0;
-                Ring(vh, near, new Vector2(36 + 4 * beatPulse, 10 + 3 * beatPulse),
-                    lane.Phase == PhraseLanePhase.Cooldown ? RunUI.Muted : Color.Lerp(laneColor, Color.white, beatPulse * .6f));
+                var receptor = lane == null ? new Color(.5f, .5f, .6f, .18f) :
+                    lane.Phase == PhraseLanePhase.Cooldown ? RunUI.Muted : Color.Lerp(laneColor, Color.white, pulse * .65f);
+                float receptorHalf = nearHalf * .86f;
+                Line(vh, near - Vector2.right * receptorHalf, near + Vector2.right * receptorHalf, 12 * unit, Alpha(receptor, .10f + pulse * .10f));
+                Line(vh, near - Vector2.right * receptorHalf, near + Vector2.right * receptorHalf, 3 * unit, receptor);
+                Diamond(vh, near, 4 * unit, receptor);
+                if (lane == null) continue;
                 if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
                     foreach (var attack in battle.Incoming)
                     {
@@ -80,24 +90,25 @@ namespace BBSB.Runtime.UI
                 foreach (var shown in noteTimeline.Notes)
                 {
                     if (shown.Slot != slot) continue;
-                    var note = shown.Definition;
                     double at = shown.Beat;
-                    var p = Position(slot, at); Color tint = shown.IsHold ? Color.Lerp(laneColor, Color.white, .35f) : laneColor;
-                    if (shown.IsPreview) { tint = Color.Lerp(tint, Color.white, .3f); tint.a = .45f; }
+                    var p = Position(slot, at); Color tint = BattleVisualTheme.NoteColor(at);
+                    if (shown.IsPreview) tint.a = .32f;
                     if (shown.IsHold)
                     {
                         var head = Position(slot, Math.Max(battle.Beat, at)); var tail = Position(slot, shown.EndBeat);
-                        if (shown.IsPreview) DashedLine(vh, head, tail, tint);
-                        else Line(vh, head, tail, 11, tint);
+                        float headWidth = NoteWidth(slot, Math.Max(battle.Beat, at)) * .33f;
+                        float tailWidth = NoteWidth(slot, shown.EndBeat) * .33f;
+                        Quad(vh, head - Vector2.right * headWidth, head + Vector2.right * headWidth,
+                            tail + Vector2.right * tailWidth, tail - Vector2.right * tailWidth, Alpha(tint, tint.a * .42f));
+                        Line(vh, head - Vector2.right * headWidth, tail - Vector2.right * tailWidth, 2 * unit, tint);
+                        Line(vh, head + Vector2.right * headWidth, tail + Vector2.right * tailWidth, 2 * unit, tint);
+                        if (shown.IsPreview) DashedLine(vh, head, tail, Alpha(tint, .6f));
                         if (!shown.ConnectsNext && SteppedNoteTrack.InHorizon(shown.EndBeat - battle.Beat))
-                        {
-                            var endTint = shown.ReleaseParry ? RunUI.Gold : Color.white; endTint.a = tint.a;
-                            NoteHead(vh, tail, shown.ReleaseParry ? 11 : 7, endTint, shown.IsPreview);
-                        }
+                            DrawNoteHead(vh, slot, shown.EndBeat, at, shown.IsPreview, shown.ReleaseParry);
                     }
-                    var headTint = shown.PressParry ? RunUI.Gold : tint; headTint.a = tint.a;
-                    if (!shown.IsConnected) NoteHead(vh, p, shown.PressParry ? 11 : 9, headTint, shown.IsPreview);
-                    else Line(vh, p - Vector2.right * 5, p + Vector2.right * 5, 2, headTint);
+                    if (!shown.IsConnected) DrawNoteHead(vh, slot, at, at, shown.IsPreview, shown.PressParry);
+                    else Line(vh, p - Vector2.right * NoteWidth(slot, at) * .25f,
+                        p + Vector2.right * NoteWidth(slot, at) * .25f, 2 * unit, tint);
                 }
                 foreach (var broken in noteTimeline.Broken)
                     if (broken.Note.Slot == slot && !(SpriteNoteShatter && broken.Note.IsPreview)) DrawBroken(vh, broken, laneColor);
@@ -124,21 +135,30 @@ namespace BBSB.Runtime.UI
         {
             Vector2 near = targets != null && slot < targets.Length && targets[slot] != null ?
                 (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(InputPoint(slot, 0, battle.Extensions));
-            return near + Vector2.up * (rectTransform.rect.height * .20f * distance);
+            var defaultNear = Pixel(InputPoint(slot, 0, battle.Extensions));
+            var projected = Pixel(InputPoint(slot, distance, battle.Extensions));
+            // Custom prefab receptor offsets remain authoritative; the same perspective
+            // displacement applies to the note, its hold and the sprite effect pool.
+            return near + projected - defaultNear;
         }
         private Vector2 Pixel(Vector2 normalized)
         { var r = rectTransform.rect; return new Vector2(r.xMin + r.width * normalized.x, r.yMin + r.height * normalized.y); }
         private Vector2 LocalPoint(RectTransform rect, Vector2 point) => rectTransform.InverseTransformPoint(rect.TransformPoint(point));
-        private static Color LaneColor(int slot)
+        private Color LaneColor(int slot) => battle.LaneAt(slot)?.ActiveSide == WeaponBeatSide.Dark ? BattleVisualTheme.Dark : BattleVisualTheme.Light;
+        private static Color Alpha(Color color, float alpha) { color.a = alpha; return color; }
+        private void DrawNoteHead(VertexHelper vh, int slot, double at, double colorBeat, bool preview, bool parry)
         {
-            switch (slot)
+            var p = Position(slot, at); float width = NoteWidth(slot, at) * .4f;
+            float height = rectTransform.rect.height * .007f;
+            var tint = BattleVisualTheme.NoteColor(colorBeat); if (preview) tint.a = .32f;
+            if (Theme == null || Theme.NoteSprite(colorBeat) == null)
             {
-                case 0: return new Color(1, .30f, .50f);
-                case 1: return new Color(1, .73f, .28f);
-                case 2: return new Color(.25f, .70f, 1);
-                case 3: return new Color(.25f, 1, .72f);
-                default: return new Color(.79f, .40f, 1);
+                Quad(vh, p + new Vector2(-width, -height), p + new Vector2(-width, height),
+                    p + new Vector2(width, height), p + new Vector2(width, -height), Alpha(tint, tint.a * .8f));
+                Line(vh, p + new Vector2(-width, height), p + new Vector2(width, height), 2, tint);
+                Diamond(vh, p, height * .65f, Alpha(Color.white, tint.a));
             }
+            if (parry) Ring(vh, p, new Vector2(width * .9f, height * 1.8f), Alpha(RunUI.Gold, tint.a));
         }
         private void DrawBroken(VertexHelper vh, BrokenTrackNote broken, Color laneColor)
         {
@@ -158,15 +178,6 @@ namespace BBSB.Runtime.UI
                 Line(vh, head + direction * (i * 18) + offset,
                     head + direction * Mathf.Min(length, i * 18 + 9) + offset, 4, tint);
             }
-        }
-        private static void NoteHead(VertexHelper vh, Vector2 p, float radius, Color tint, bool preview)
-        {
-            if (!preview) { Diamond(vh, p, radius, tint); return; }
-            var fill = tint; fill.a *= .3f; Diamond(vh, p, radius, fill);
-            Line(vh, p + Vector2.left * radius, p + Vector2.up * radius, 2, tint);
-            Line(vh, p + Vector2.up * radius, p + Vector2.right * radius, 2, tint);
-            Line(vh, p + Vector2.right * radius, p + Vector2.down * radius, 2, tint);
-            Line(vh, p + Vector2.down * radius, p + Vector2.left * radius, 2, tint);
         }
         private static void DashedLine(VertexHelper vh, Vector2 a, Vector2 b, Color tint)
         {

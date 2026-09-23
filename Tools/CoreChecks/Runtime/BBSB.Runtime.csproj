@@ -15,6 +15,7 @@
     <Compile Include="../../../Assets/BBSB/Runtime/UI/PlayerSquashStretch.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/PlayerPoseGeometry.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/BattleStageLayout.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/BattleBoardLayout.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/BattleTrajectory.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/MonsterAttackCatalog.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/MonsterAttackTimeline.cs" />

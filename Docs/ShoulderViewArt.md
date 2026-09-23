@@ -23,7 +23,7 @@ Inspector에서 이미지를 하나씩 연결할 필요가 없다. 에디터의 
 
 ## 프리팹과 애니메이션 편집
 
-모든 캐릭터 프리팹은 `Animator` 루트 아래에 `Body/SpriteRenderer`를 둔다. 플레이어는 등 뒤 시점이며 화면 왼쪽 전경에 크게, 몬스터는 거의 정면 시점으로 중앙 오른쪽 후경에 배치된다.
+모든 캐릭터 프리팹은 `Animator` 루트 아래에 `Body/SpriteRenderer`를 둔다. 플레이어는 등 뒤 시점이며, 현재 5라인 전투에서는 화면 중앙 전경에 배치한다. 몬스터는 거의 정면 시점으로 위쪽 후경에 배치한다. 성당 무대와 원근 레인 업데이트는 [CathedralBattleVisuals.md](CathedralBattleVisuals.md)를 참고한다.
 
 | 캐릭터 | Animator 상태 | 이미지/동작 |
 | --- | --- | --- |

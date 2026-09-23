@@ -18,6 +18,7 @@ namespace BBSB.Runtime.UI
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
         private readonly FiveLaneEffectsView effects;
+        private readonly BattleThemeView themeView;
         private readonly List<StageActor> stageActors = new List<StageActor>();
         private readonly List<TMP_Text> attackLabels = new List<TMP_Text>();
         private readonly List<TMP_Text> monsterHealthLabels = new List<TMP_Text>();
@@ -56,19 +57,23 @@ namespace BBSB.Runtime.UI
             foreach (int slot in BattleInputLayout.DisplayOrder) if (battle.IsInputAvailable(slot)) inputNames.Add(Keys[slot]);
             hud.help.text = string.Join(" / ", inputNames) + "  ·  Tap / Hold  ·  Esc";
             var presentation = hud.presentation != null ? hud.presentation : Resources.Load<ShoulderViewPresentation>(ShoulderViewPresentation.ResourcePath);
-            StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art", presentation);
-            var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .16f));
+            var theme = hud.visualTheme != null ? hud.visualTheme : Resources.Load<BattleVisualTheme>(BattleVisualTheme.ResourcePath);
+            if (!BattleThemeView.AddArena(ui, hud.scenery, theme)) StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art", presentation);
+            var shade = ui.Rect("Scene shade", hud.scenery); RunUI.Stretch(shade); ui.Background(shade, new Color(.025f, .035f, .08f, .09f));
             // A prefab slot may already have an Image. Unity permits only one Graphic per
             // object, so runtime meshes get their own children instead of AddComponent failing.
             var trackMesh = ui.Rect("Live note tracks", hud.tracks); RunUI.Stretch(trackMesh);
             tracks = trackMesh.gameObject.AddComponent<FiveLaneTrackGraphic>();
+            tracks.Theme = theme;
             tracks.Bind(battle, hud.judgmentPoints, hud.playerSlot, hud.monsterArea);
+            themeView = new BattleThemeView(ui, hud, battle, tracks, theme);
             hud.pause.onClick.AddListener(playback.Pause);
+            hud.stageBadge.text = "FLOOR  " + session.Map.Number + "–" + (session.CurrentNode.Row + 1);
             hud.song.text = session.BattleMusic.Music.Name + "\n" + battle.Bpm + " BPM";
             for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
                 var lane = battle.LaneAt(i);
-                hud.laneLabels[i].text = Keys[i] + "\n" + (lane == null ? "비어 있음" : lane.Weapon.DisplayName);
+                hud.laneLabels[i].text = Keys[i] + "\n" + (lane == null ? i >= 5 ? "AUX" : "—" : lane.Weapon.DisplayName);
                 hud.laneLabels[i].color = lane == null ? RunUI.Muted : RunUI.TextColor;
                 if (lane == null) continue;
                 var weaponMesh = ui.Rect("Live weapon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
@@ -78,7 +83,7 @@ namespace BBSB.Runtime.UI
                 foreach (var sockets in icons[i].GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
                 var input = hud.inputAreas[i].GetComponent<FiveLaneInputSurface>();
                 if (input == null) input = hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
-                input.Bind(playback, i);
+                input.Bind(playback, i, hud.arrangeEquippedLanes ? (RectTransform)hud.transform : null);
             }
             var hero = PlayerCharacterRegistry.Find(session.CharacterId);
             Sprite heroPortrait = hero != null ? hero.portrait : null;
@@ -107,11 +112,14 @@ namespace BBSB.Runtime.UI
                 monsterIds.Add(plan.InstanceId);
                 species.Add(plan.Monster.Id); enemySlots.Add(stageActors[i + 1].Slot);
                 var actorSlot = stageActors[i + 1].Slot;
-                var healthLabel = ui.Label(actorSlot, "", 18, RunUI.Teal);
+                var healthLabel = ui.Label(actorSlot, "", 14, RunUI.TextColor);
+                healthLabel.fontSize = 14; healthLabel.color = RunUI.TextColor;
+                healthLabel.enableAutoSizing = true; healthLabel.fontSizeMin = 10; healthLabel.fontSizeMax = 14;
                 healthLabel.name = "Monster health " + plan.InstanceId; healthLabel.alignment = TextAlignmentOptions.Center;
-                FiveLaneHudBindings.Place(healthLabel.rectTransform, 0, .9f, 1, 1.08f); monsterHealthLabels.Add(healthLabel);
-                var bar = ui.Rect("Monster health bar", actorSlot); FiveLaneHudBindings.Place(bar, .1f, .9f, .9f, .925f); ui.Background(bar, RunUI.Ink);
-                var fill = ui.Rect("Fill", bar); RunUI.Stretch(fill); ui.Background(fill, RunUI.Red); monsterHealthFills.Add(fill);
+                FiveLaneHudBindings.Place(healthLabel.rectTransform, -.05f, 1.01f, 1.05f, 1.17f); monsterHealthLabels.Add(healthLabel);
+                var bar = ui.Rect("Monster health bar", actorSlot); FiveLaneHudBindings.Place(bar, .03f, .965f, .97f, .99f); ui.Background(bar, RunUI.Ink);
+                var fill = ui.Rect("Fill", bar); RunUI.Stretch(fill); ui.Background(fill, new Color(.88f, .13f, .20f)); monsterHealthFills.Add(fill);
+                BattleThemeView.Frame(ui, bar, theme != null ? theme.healthFrame : null);
                 var cue = ui.Label(hud.actors, "", 20, RunUI.Red);
                 cue.alignment = TextAlignmentOptions.Center;
                 float x0 = Mathf.Lerp(hud.monsterArea.anchorMin.x, hud.monsterArea.anchorMax.x, (float)i / count);
@@ -144,23 +152,39 @@ namespace BBSB.Runtime.UI
                 {
                     var monster = battle.Formation.Find(monsterIds[i]); var slot = stageActors[i + 1].Slot;
                     bool front = ReferenceEquals(monster, battle.Formation.Front);
-                    if (front) FiveLaneHudBindings.Place(slot, .02f, 0, .61f, .91f);
+                    // Reserve the center above the player for the central floating weapon.
+                    if (monsterIds.Count == 1 || front) FiveLaneHudBindings.Place(slot, .02f, 0, .42f, .90f);
                     else
                     {
-                        float x = .55f + .22f * (rear % 2), y = .36f + .08f * (rear % 2); rear++;
-                        FiveLaneHudBindings.Place(slot, x, y, Math.Min(1, x + .25f), .98f);
+                        float x = monsterIds.Count == 2 ? .65f : .54f + .26f * (rear % 2);
+                        float y = .14f + .08f * (rear % 2); rear++;
+                        FiveLaneHudBindings.Place(slot, x, y, Math.Min(1, x + (monsterIds.Count == 2 ? .28f : .22f)), .88f);
                     }
                     monsterHealthLabels[i].text = (monster.Health.Defeated ? "격파" : front ? "선봉" : monster.IsTrickster ? "후열 · 난입" : "후열") +
-                        "\n" + monster.Health.Current.ToString("0.#") + " / " + monster.Health.Maximum.ToString("0.#");
+                        " · " + monster.Health.Current.ToString("0.#") + " / " + monster.Health.Maximum.ToString("0.#");
                     monsterHealthFills[i].anchorMax = new Vector2((float)(monster.Health.Current / monster.Health.Maximum), 1);
                     if (attackLabels[i].transform.parent != slot) attackLabels[i].transform.SetParent(slot, false);
-                    FiveLaneHudBindings.Place(attackLabels[i].rectTransform, 0, .77f, 1, .88f);
+                    FiveLaneHudBindings.Place(attackLabels[i].rectTransform, -.05f, -.13f, 1.05f, .02f);
+                    attackLabels[i].fontSize = 15;
                 }
             }
             foreach (var actor in stageActors) actor.Layout();
-            hud.health.text = "HP " + battle.PlayerHealth.ToString("0.#") + " / " + battle.PlayerMaximum;
+            for (int i = 0; i < monsterHealthFills.Count; i++)
+            {
+                var slot = stageActors[i + 1].Slot;
+                // Stage slots include generous horizontal space. The HP bar should
+                // follow the body size instead of stretching across that whole space.
+                float width = slot.rect.width > 0 ? Mathf.Min(.9f, slot.rect.height * 1.2f / slot.rect.width) : .9f;
+                FiveLaneHudBindings.Place((RectTransform)monsterHealthFills[i].parent, .5f - width * .5f, .965f, .5f + width * .5f, .99f);
+                FiveLaneHudBindings.Place(monsterHealthLabels[i].rectTransform, .5f - width * .65f, 1.01f, .5f + width * .65f, 1.17f);
+            }
+            hud.health.text = battle.PlayerHealth.ToString("0.#") + " / " + battle.PlayerMaximum;
             hud.playerFill.anchorMax = new Vector2((float)(battle.PlayerHealth / battle.PlayerMaximum), 1);
-            hud.beat.text = !string.IsNullOrEmpty(countInWord) ? countInWord : battle.Combo + "\nCOMBO";
+            hud.beat.text = "<size=15>COMBO</size>\n<size=48>" + battle.Combo + "</size>";
+            hud.countIn.text = countInWord ?? "";
+            hud.countIn.gameObject.SetActive(!string.IsNullOrEmpty(countInWord));
+            hud.rhythmBeat.text = ((int)Math.Floor(battle.Beat) % 4 + 1) + "<size=17>/4</size>\n<size=12>BEAT</size>";
+            hud.rhythmBeat.color = battle.Beat % 1 < .18 ? BattleVisualTheme.Light : RunUI.TextColor;
             hud.beat.color = battle.Beat % 1 < .18 ? RunUI.Gold : RunUI.TextColor;
             hud.feedback.text = waitingForHold ? "Hold 중이던 버튼을 다시 눌러줘" : battle.IsGroggy ? "GROGGY" :
                 battle.Beat - battle.LastHitBeat < .5 ? "HIT" : "";
@@ -214,6 +238,22 @@ namespace BBSB.Runtime.UI
                 hud.weaponRoots[i].localScale = Vector3.one * (1 + pulse * .18f);
                 hud.weaponRoots[i].localRotation = Quaternion.Euler(0, 0, pulse * (i % 2 == 0 ? -24 : 24));
             }
+            if (string.IsNullOrEmpty(hud.feedback.text))
+            {
+                double latest = battle.Beat - .8;
+                foreach (var lane in battle.Lanes)
+                    if (lane.LastJudgedBeat > latest)
+                    {
+                        latest = lane.LastJudgedBeat; hud.feedback.text = lane.Feedback;
+                        hud.feedback.color = lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : RunUI.Gold;
+                    }
+                foreach (var contact in battle.ShieldContacts)
+                    if (contact.LastJudgedBeat >= latest)
+                    {
+                        latest = contact.LastJudgedBeat; hud.feedback.text = contact.Feedback;
+                        hud.feedback.color = contact.Grade == RhythmGrade.Miss ? RunUI.Red : RunUI.Gold;
+                    }
+            }
             var heroFrame = FiveLaneArtTimeline.Player(battle);
             player.Sample(heroFrame.State, heroFrame.Age, heroFrame.Duration, heroFrame.Loop);
             double nearestAttack = double.PositiveInfinity;
@@ -245,6 +285,7 @@ namespace BBSB.Runtime.UI
             hud.attackCue.color = nearestAttack <= .5 ? RunUI.Gold : RunUI.Red;
             player.RefreshSprites();
             tracks.Refresh();
+            themeView.Refresh();
             effects.Refresh();
         }
         public void ShowPause(Action resume, Action leave)

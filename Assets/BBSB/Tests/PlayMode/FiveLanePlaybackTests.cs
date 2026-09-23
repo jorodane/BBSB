@@ -42,7 +42,7 @@ namespace BBSB.Tests
             {
                 clock.SetValue(playback, AudioSettings.dspTime + (3 - i - .01) * 60 / playback.Battle.Bpm);
                 playback.SendMessage("LateUpdate");
-                Assert.AreEqual(words[i], hud.beat.text); Assert.IsFalse(playback.CanReceiveInput);
+                Assert.AreEqual(words[i], hud.countIn.text); Assert.IsFalse(playback.CanReceiveInput);
                 Assert.AreEqual(0, playback.Battle.Beat); Assert.AreEqual(100, playback.Battle.PlayerHealth);
             }
             playback.Pause(); playback.Continue();
@@ -50,7 +50,7 @@ namespace BBSB.Tests
             Assert.Greater((double)clock.GetValue(playback) - AudioSettings.dspTime, 2.9 * 60 / playback.Battle.Bpm);
             clock.SetValue(playback, AudioSettings.dspTime - .01 * 60 / playback.Battle.Bpm);
             playback.SendMessage("LateUpdate");
-            Assert.AreEqual("Begin", hud.beat.text); Assert.IsTrue(playback.CanReceiveInput);
+            Assert.AreEqual("Begin", hud.countIn.text); Assert.IsTrue(playback.CanReceiveInput);
             Assert.Greater(playback.Battle.Beat, 0); Assert.Less(playback.Battle.Beat, .5);
             Assert.IsTrue(playback.Battle.Incoming.All(a => a.Beat >= 3));
             yield return null; LogAssert.NoUnexpectedReceived();
@@ -116,18 +116,18 @@ namespace BBSB.Tests
                 foreach (var enemy in enemies) AssertActorVisible(enemy);
                 var heroRect = BoundsIn(screen, hud.playerSlot);
                 var enemyRect = BoundsIn(screen, hud.monsterArea);
-                Assert.Less(heroRect.xMax, enemyRect.xMin, "The foreground player and enemy stage must remain separate.");
-                Assert.Greater(enemyRect.yMin, heroRect.yMin + size.y * .25f);
-                Assert.Greater(((RectTransform)hero.transform).rect.height * hero.transform.localScale.y, size.y * .40f);
+                Assert.AreEqual(size.x * .5f, heroRect.center.x - screen.rect.xMin, 1, "The player anchors the center of the stage.");
+                Assert.Greater(enemyRect.yMin, heroRect.yMin + size.y * .18f);
+                Assert.Greater(((RectTransform)hero.transform).rect.height * hero.transform.localScale.y, size.y * .22f);
                 Assert.AreEqual(new Vector2(.5f, 0), ((RectTransform)hero.transform).pivot, "Actor feet belong at the stage slot's bottom.");
                 for (int i = 0; i < playback.Battle.Lanes.Count; i++)
                 {
                     var point = BoundsIn(screen, hud.judgmentPoints[i]);
-                    Assert.Greater(point.center.x, heroRect.xMax);
+                    Assert.Less(point.yMax, heroRect.yMin);
                     Assert.Less(point.yMax, enemyRect.yMin);
                     if (i > 0) Assert.Greater(point.xMin, BoundsIn(screen, hud.judgmentPoints[i - 1]).xMax);
                 }
-                Assert.Less(BoundsIn(screen, hud.health.rectTransform).yMax, heroRect.yMin);
+                Assert.Less(BoundsIn(screen, hud.health.rectTransform).yMin, heroRect.yMin);
                 Assert.IsTrue(hud.enemyHealth == null || !hud.enemyHealth.gameObject.activeInHierarchy);
                 Assert.IsTrue(hud.enemyFill == null || !hud.enemyFill.gameObject.activeInHierarchy);
             }
@@ -263,7 +263,7 @@ namespace BBSB.Tests
             var custom = hud.weaponRoots[0]; custom.anchorMin = new Vector2(.11f, .21f); custom.offsetMin = new Vector2(13, 17);
             var min = custom.anchorMin; var offset = custom.offsetMin;
             Assert.IsTrue(hud.EnsureStageLayout());
-            Assert.Less(text.anchorMax.y, .2f);
+            Assert.Less(text.anchorMax.y, .53f); Assert.Greater(text.anchorMin.y, .45f);
             Assert.AreEqual(min, custom.anchorMin); Assert.AreEqual(offset, custom.offsetMin);
             Assert.IsFalse(hud.EnsureStageLayout(), "Migration must be idempotent.");
         }
