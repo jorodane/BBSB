@@ -9,6 +9,40 @@ namespace BBSB.Tests
 {
     public sealed class BattleBoardLayoutTests
     {
+        [Test] public void NotesRiseAtConstantScreenSpeedAndReachTheUpperJudgmentLine()
+        {
+            foreach (int slot in BattleInputLayout.DisplayOrder)
+            foreach (double due in new[] { 3.0, 3.5, 3.137 })
+            {
+                double previousX = 0, previousY = 0, stepX = 0, stepY = 0;
+                for (int frame = 0; frame <= 60; frame++)
+                {
+                    double now = due - 3 + frame * .05;
+                    double depth = SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(due, now));
+                    double x = BattleBoardLayout.X(slot, depth, InputExtensions.All), y = BattleBoardLayout.Y(depth);
+                    if (frame == 0) Check.Equal(BattleBoardLayout.NearY, y);
+                    else
+                    {
+                        Check.True(y > previousY);
+                        if (frame == 1) { stepX = x - previousX; stepY = y - previousY; }
+                        Check.True(Math.Abs(x - previousX - stepX) < .000000001);
+                        Check.True(Math.Abs(y - previousY - stepY) < .000000001);
+                    }
+                    previousX = x; previousY = y;
+                }
+                Check.Equal(BattleBoardLayout.FarY, previousY);
+                Check.Equal(BattleBoardLayout.X(slot, 1, InputExtensions.All), previousX);
+            }
+        }
+        [Test] public void HoldHeadStaysAtTheTopWhileItsLaterTailApproachesFromBelow()
+        {
+            double head = SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(2, 2.5));
+            double tail = SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(4, 2.5));
+            Check.Equal(1.0, head);
+            Check.True(BattleBoardLayout.Y(tail) < BattleBoardLayout.Y(head));
+            Check.Equal(0.0, SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(8, 2.5)));
+            Check.False(SteppedNoteTrack.InHorizon(8 - 2.5));
+        }
         [Test] public void EveryProjectedLaneHitsItsOwnKeyAcrossTheWholePerspectiveBoard()
         {
             foreach (InputExtensions extensions in new[] { InputExtensions.None, InputExtensions.Left, InputExtensions.Right, InputExtensions.All })

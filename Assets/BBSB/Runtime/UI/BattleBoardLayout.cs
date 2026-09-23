@@ -7,7 +7,7 @@ namespace BBSB.Runtime.UI
     // Coordinates are normalized to the full battle Canvas, measured from bottom left.
     public static class BattleBoardLayout
     {
-        public const double NearY = .065, FarY = .36, HeaderTop = .465;
+        public const double NearY = .065, FarY = .42, HeaderTop = .465;
         public static int Count(InputExtensions extensions) => 5 +
             ((extensions & InputExtensions.Left) != 0 ? 1 : 0) + ((extensions & InputExtensions.Right) != 0 ? 1 : 0);
         public static double Width(double distance) => .86 + (.53 - .86) * Clamp(distance);

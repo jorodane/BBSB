@@ -123,6 +123,15 @@ namespace BBSB.Tests
                 for (int i = 0; i < playback.Battle.Lanes.Count; i++)
                 {
                     var point = BoundsIn(screen, hud.judgmentPoints[i]);
+                    Assert.AreEqual(size.y * (float)BattleBoardLayout.FarY, point.center.y - screen.rect.yMin, 1);
+                    var track = playback.GetComponentInChildren<FiveLaneTrackGraphic>();
+                    var arrival = screen.InverseTransformPoint(track.NoteWorldPosition(i, playback.Battle.Beat));
+                    var spawn = screen.InverseTransformPoint(track.NoteWorldPosition(i, playback.Battle.Beat + 3));
+                    Assert.AreEqual(point.center.y, arrival.y, 1);
+                    Assert.Less(spawn.y, arrival.y, "All notes rise from the bottom toward combat.");
+                    Assert.Greater(track.NoteWidth(i, playback.Battle.Beat + 3), track.NoteWidth(i, playback.Battle.Beat));
+                    Assert.AreEqual(BattleInputLayout.Key(i).ToUpperInvariant(), hud.laneLabels[i].text);
+                    Assert.IsTrue(hud.laneStatus[i] == null || !hud.laneStatus[i].gameObject.activeInHierarchy);
                     Assert.Less(point.yMax, heroRect.yMin);
                     Assert.Less(point.yMax, enemyRect.yMin);
                     if (i > 0) Assert.Greater(point.xMin, BoundsIn(screen, hud.judgmentPoints[i - 1]).xMax);

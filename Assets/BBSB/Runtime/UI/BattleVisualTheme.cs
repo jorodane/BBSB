@@ -10,6 +10,8 @@ namespace BBSB.Runtime.UI
         public bool useArena = true;
         public Texture2D arena, skyClouds;
         public Sprite lightNote, darkNote, healthFrame, comboCrest, beatRing, weaponHalo, judgmentFlash;
+        public Sprite enemyAttackNote;
+        [HideInInspector] public bool attackNoteImported;
         public Color sky = new Color(.22f, .27f, .36f);
         public static readonly Color Light = new Color(1, .76f, .43f);
         public static readonly Color Dark = new Color(.65f, .31f, 1);

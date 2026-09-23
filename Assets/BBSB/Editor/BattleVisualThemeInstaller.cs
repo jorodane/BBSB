@@ -14,6 +14,7 @@ namespace BBSB.Editor
         public const string ThemePath = "Assets/BBSB/Resources/BBSB/Presentation/CathedralBattle.asset";
         private static readonly string[] Names = { "cathedral-arena", "sky-clouds", "note-light", "note-dark", "health-frame",
             "combo-crest", "beat-ring", "weapon-halo", "judgment-flash" };
+        private const string AttackNoteName = "enemy-attack-note";
         private static bool queued, installing;
         [InitializeOnLoadMethod] private static void Initialize()
         {
@@ -33,8 +34,12 @@ namespace BBSB.Editor
             queued = false;
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
             if (EditorApplication.isCompiling || EditorApplication.isUpdating) { Schedule(); return; }
-            if (AssetDatabase.LoadAssetAtPath<BattleVisualTheme>(ThemePath) != null) return;
-            foreach (var name in Names) if (!File.Exists(PathFor(name))) return;
+            var existing = AssetDatabase.LoadAssetAtPath<BattleVisualTheme>(ThemePath);
+            if (existing != null)
+            {
+                if (existing.attackNoteImported || !File.Exists(PathFor(AttackNoteName))) return;
+            }
+            else foreach (var name in Names) if (!File.Exists(PathFor(name))) return;
             if (!TryInstall(out var problem)) Debug.LogError(problem);
         }
         [MenuItem("BBSB/Presentation/Install cathedral battle art")]
@@ -48,36 +53,51 @@ namespace BBSB.Editor
             problem = null;
             if (installing || EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
             { problem = "Stop Play Mode and wait for compilation before importing the cathedral art pack."; return false; }
-            if (AssetDatabase.LoadAssetAtPath<BattleVisualTheme>(ThemePath) != null) return true;
-            foreach (var name in Names)
-                if (!File.Exists(PathFor(name))) { problem = "Copy the art ZIP's Assets folder into the Unity project. Missing: " + PathFor(name); return false; }
+            var theme = AssetDatabase.LoadAssetAtPath<BattleVisualTheme>(ThemePath);
+            if (theme == null)
+                foreach (var name in Names)
+                    if (!File.Exists(PathFor(name))) { problem = "Copy the art ZIP's Assets folder into the Unity project. Missing: " + PathFor(name); return false; }
             installing = true;
             try
             {
-                foreach (var name in Names)
+                if (theme == null)
                 {
-                    string path = PathFor(name);
-                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
-                    var importer = AssetImporter.GetAtPath(path) as TextureImporter;
-                    if (importer == null) throw new InvalidOperationException("Could not import " + path);
-                    Configure(importer, name == "cathedral-arena" || name == "sky-clouds"); importer.SaveAndReimport();
+                    foreach (var name in Names) Import(name);
+                    theme = ScriptableObject.CreateInstance<BattleVisualTheme>();
+                    theme.arena = AssetDatabase.LoadAssetAtPath<Texture2D>(PathFor("cathedral-arena"));
+                    theme.skyClouds = AssetDatabase.LoadAssetAtPath<Texture2D>(PathFor("sky-clouds"));
+                    theme.lightNote = Sprite("note-light"); theme.darkNote = Sprite("note-dark");
+                    theme.healthFrame = Sprite("health-frame"); theme.comboCrest = Sprite("combo-crest");
+                    theme.beatRing = Sprite("beat-ring"); theme.weaponHalo = Sprite("weapon-halo");
+                    theme.judgmentFlash = Sprite("judgment-flash");
+                    EnsureFolder(Path.GetDirectoryName(ThemePath).Replace('\\', '/'));
+                    AssetDatabase.CreateAsset(theme, ThemePath);
+                    Debug.Log("BBSB cathedral battle art connected: arena, clouds, crystal notes and five HUD/effect sprites.");
                 }
-                var theme = ScriptableObject.CreateInstance<BattleVisualTheme>();
-                theme.arena = AssetDatabase.LoadAssetAtPath<Texture2D>(PathFor("cathedral-arena"));
-                theme.skyClouds = AssetDatabase.LoadAssetAtPath<Texture2D>(PathFor("sky-clouds"));
-                theme.lightNote = Sprite("note-light"); theme.darkNote = Sprite("note-dark");
-                theme.healthFrame = Sprite("health-frame"); theme.comboCrest = Sprite("combo-crest");
-                theme.beatRing = Sprite("beat-ring"); theme.weaponHalo = Sprite("weapon-halo");
-                theme.judgmentFlash = Sprite("judgment-flash");
-                EnsureFolder(Path.GetDirectoryName(ThemePath).Replace('\\', '/'));
-                AssetDatabase.CreateAsset(theme, ThemePath); AssetDatabase.SaveAssets();
-                Debug.Log("BBSB cathedral battle art connected: arena, clouds, crystal notes and five HUD/effect sprites.");
+                // Add the new optional sprite once. Preserve all existing theme and
+                // importer edits, including an artist's custom attack sprite. Once
+                // imported, intentionally clearing it does not resurrect it on reimport.
+                if (!theme.attackNoteImported && File.Exists(PathFor(AttackNoteName)))
+                {
+                    if (theme.enemyAttackNote == null) { Import(AttackNoteName); theme.enemyAttackNote = Sprite(AttackNoteName); }
+                    theme.attackNoteImported = true; EditorUtility.SetDirty(theme);
+                    Debug.Log("BBSB common enemy attack note connected.");
+                }
+                AssetDatabase.SaveAssets();
                 return true;
             }
             catch (Exception e) { problem = e.ToString(); return false; }
             finally { installing = false; }
         }
         private static string PathFor(string name) => ArtRoot + "/" + name + ".png";
+        private static void Import(string name)
+        {
+            string path = PathFor(name);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null) throw new InvalidOperationException("Could not import " + path);
+            Configure(importer, name == "cathedral-arena" || name == "sky-clouds"); importer.SaveAndReimport();
+        }
         private static Sprite Sprite(string name) => AssetDatabase.LoadAssetAtPath<Sprite>(PathFor(name)) ??
             throw new InvalidOperationException("Missing imported sprite: " + name);
         internal static void Configure(TextureImporter importer, bool arena)

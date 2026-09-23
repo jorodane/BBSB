@@ -73,7 +73,7 @@ namespace BBSB.Runtime.UI
             for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
                 var lane = battle.LaneAt(i);
-                hud.laneLabels[i].text = Keys[i] + "\n" + (lane == null ? i >= 5 ? "AUX" : "—" : lane.Weapon.DisplayName);
+                hud.laneLabels[i].text = Keys[i];
                 hud.laneLabels[i].color = lane == null ? RunUI.Muted : RunUI.TextColor;
                 if (lane == null) continue;
                 var weaponMesh = ui.Rect("Live weapon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
@@ -200,38 +200,16 @@ namespace BBSB.Runtime.UI
             {
                 var lane = battle.LaneAt(i);
                 if (lane == null) continue;
-                hud.laneStatus[i].text = lane.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, lane.ReadyAtBeat - battle.Beat).ToString("0.0") :
-                    lane.Phase == PhraseLanePhase.Ready ? "READY" :
-                    lane.WaitingForParryRelease ? "HOLD → UP" : lane.Holding ?
-                    (lane.SustainingGuard ? "GUARD " : "HOLD ") + Math.Max(0, lane.HoldEndBeat - battle.Beat).ToString("0.0") :
-                    "NOTE " + (lane.NextNote + 1) + "/" + lane.Phrase.Notes.Count +
-                    (lane.Phrase.FinisherEvery > 0 ? " · " + (lane.CompletedPhrases % lane.Phrase.FinisherEvery + 1) + "/" + lane.Phrase.FinisherEvery : "");
                 hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
-                if (lane.Phase == PhraseLanePhase.Playing)
-                    hud.laneStatus[i].text += lane.IsTransition ? " · 전환" : lane.ActiveSide == WeaponBeatSide.Light ? " · 정박" : " · 엇박";
-                if (lane.Phase == PhraseLanePhase.Playing && lane.Patterns.RandomizeChaosSections)
-                    hud.laneStatus[i].text += " · " + (lane.Cycle.BaseIndex + 1) + "/2";
-                if (lane.PendingDamageMultiplier > 1 && battle.Beat < lane.DamageBoostUntilBeat)
-                    hud.laneStatus[i].text += "\nATK x" + lane.PendingDamageMultiplier.ToString("0.##");
-                foreach (var start in battle.ScheduledStarts)
-                    if (start.Slot == i && start.State == ScheduledStartState.Pending)
-                    {
-                        hud.laneStatus[i].text += "\nCHIME " + Math.Max(0, start.Beat - battle.Beat).ToString("0.0");
-                        break;
-                    }
                 hud.laneResults[i].color = lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
                 icons[i].color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 icons[i].SetPose(FiveLaneArtTimeline.Weapon(lane, battle.Beat));
                 var contact = battle.ShieldAt(i);
                 if (contact != null)
                 {
-                    hud.laneStatus[i].text = (contact.Phase == PhraseLanePhase.Playing ? "GUARD " + Math.Max(0, contact.EndBeat - battle.Beat).ToString("0.0") :
-                        contact.Phase == PhraseLanePhase.Cooldown ? "CD " + Math.Max(0, contact.ReadyAtBeat - battle.Beat).ToString("0.0") : "READY");
                     hud.laneResults[i].text = battle.Beat - contact.LastJudgedBeat < 1 ? contact.Feedback : "";
                     icons[i].color = contact.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 }
-                if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
-                    hud.laneStatus[i].text = (battle.ShieldRankAt(i) == AttackRank.Front ? "전열" : "후열") + " · " + hud.laneStatus[i].text;
                 // Beat-driven recoil gives each successful input a readable weapon response.
                 double age = battle.Beat - lane.LastJudgedBeat;
                 float pulse = age >= 0 && age < .4 && lane.LastGrade != RhythmGrade.Miss ? 1 - (float)(age / .4) : 0;

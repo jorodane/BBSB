@@ -22,7 +22,7 @@ namespace BBSB.Runtime.UI
             new Vector2(.5f + ((lane + .5f) / count - .5f) * (float)BattleBoardLayout.Width(distance), (float)BattleBoardLayout.Y(distance));
         public static Vector2 InputPoint(int slot, float distance, InputExtensions extensions) =>
             new Vector2((float)BattleBoardLayout.X(slot, distance, extensions), (float)BattleBoardLayout.Y(distance));
-        public float NoteWidth(int slot, double at) => CellWidth((float)(SteppedNoteTrack.Distance(at, battle.Beat) / LookAheadBeats)) * .87f;
+        public float NoteWidth(int slot, double at) => CellWidth((float)SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(at, battle.Beat))) * .87f;
         private float CellWidth(float distance) => (float)BattleBoardLayout.CellWidth(distance, battle.Extensions) * rectTransform.rect.width;
         public void Bind(FiveLaneBattle value, RectTransform[] judgmentTargets = null,
             RectTransform player = null, RectTransform enemies = null)
@@ -30,7 +30,7 @@ namespace BBSB.Runtime.UI
         public void Refresh() { noteTimeline.Refresh(battle); SetVerticesDirty(); }
         public Vector3 NoteWorldPosition(int slot, double at) => rectTransform.TransformPoint(Position(slot, at));
         public Vector3 BrokenWorldPosition(BrokenTrackNote note) => rectTransform.TransformPoint(
-            Point(note.Note.Slot, (float)(note.HeadDistance / LookAheadBeats)));
+            Point(note.Note.Slot, (float)SteppedNoteTrack.Depth(note.HeadDistance)));
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); if (battle == null) return;
@@ -64,29 +64,11 @@ namespace BBSB.Runtime.UI
                 }
                 var receptor = lane == null ? new Color(.5f, .5f, .6f, .18f) :
                     lane.Phase == PhraseLanePhase.Cooldown ? RunUI.Muted : Color.Lerp(laneColor, Color.white, pulse * .65f);
-                float receptorHalf = nearHalf * .86f;
-                Line(vh, near - Vector2.right * receptorHalf, near + Vector2.right * receptorHalf, 12 * unit, Alpha(receptor, .10f + pulse * .10f));
-                Line(vh, near - Vector2.right * receptorHalf, near + Vector2.right * receptorHalf, 3 * unit, receptor);
-                Diamond(vh, near, 4 * unit, receptor);
+                float receptorHalf = farHalf * .86f;
+                Line(vh, far - Vector2.right * receptorHalf, far + Vector2.right * receptorHalf, 12 * unit, Alpha(receptor, .10f + pulse * .10f));
+                Line(vh, far - Vector2.right * receptorHalf, far + Vector2.right * receptorHalf, 3 * unit, receptor);
+                Diamond(vh, far, 4 * unit, receptor);
                 if (lane == null) continue;
-                if (WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield)
-                    foreach (var attack in battle.Incoming)
-                    {
-                        if (!battle.CoversAttack(lane, slot, attack)) continue;
-                        double remaining = attack.Beat - battle.Beat;
-                        if (remaining > LookAheadBeats || attack.EndBeat - battle.Beat < -battle.HalfMissWindow ||
-                            attack.State == IncomingAttackState.Interrupted || attack.State == IncomingAttackState.Hit) continue;
-                        var p = Position(slot, attack.Definition.IsHold ? Math.Max(battle.Beat, attack.Beat) : attack.Beat);
-                        var tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
-                        if (attack.Definition.IsHold)
-                        {
-                            var head = Position(slot, Math.Max(battle.Beat, attack.Beat));
-                            var tail = Position(slot, Math.Min(battle.Beat + LookAheadBeats, attack.EndBeat));
-                            Line(vh, head + Vector2.right * 22, tail + Vector2.right * 22, 5, tint);
-                        }
-                        Line(vh, p + new Vector2(-22, 7), p + new Vector2(0, -5), 4, tint);
-                        Line(vh, p + new Vector2(0, -5), p + new Vector2(22, 7), 4, tint);
-                    }
                 foreach (var shown in noteTimeline.Notes)
                 {
                     if (shown.Slot != slot) continue;
@@ -110,11 +92,12 @@ namespace BBSB.Runtime.UI
                     else Line(vh, p - Vector2.right * NoteWidth(slot, at) * .25f,
                         p + Vector2.right * NoteWidth(slot, at) * .25f, 2 * unit, tint);
                 }
+                foreach (var attack in battle.Incoming)
+                    if (EnemyAttackNotes.Visible(battle, attack, slot)) DrawAttack(vh, slot, attack);
                 foreach (var broken in noteTimeline.Broken)
                     if (broken.Note.Slot == slot && !(SpriteNoteShatter && broken.Note.IsPreview)) DrawBroken(vh, broken, laneColor);
             }
-            // The hostile marker uses the same musical rotation during its final beat.
-            // Its impact stays exact even when scheduled between whole beats.
+            // The battlefield projectile also moves linearly during its final beat.
             var source = enemySource != null ? LocalPoint(enemySource, new Vector2(enemySource.rect.center.x, enemySource.rect.yMin)) : Pixel(new Vector2(.625f, .50f));
             var target = playerTarget != null ? LocalPoint(playerTarget, playerTarget.rect.center) : Pixel(new Vector2(.185f, .43f));
             foreach (var attack in battle.Incoming)
@@ -130,22 +113,49 @@ namespace BBSB.Runtime.UI
             }
         }
         private Vector2 Position(int slot, double at) => Point(slot,
-            (float)(SteppedNoteTrack.Distance(at, battle.Beat) / LookAheadBeats));
+            (float)SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(at, battle.Beat)));
         private Vector2 Point(int slot, float distance)
         {
-            Vector2 near = targets != null && slot < targets.Length && targets[slot] != null ?
-                (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(InputPoint(slot, 0, battle.Extensions));
-            var defaultNear = Pixel(InputPoint(slot, 0, battle.Extensions));
+            Vector2 judgment = targets != null && slot < targets.Length && targets[slot] != null ?
+                (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(InputPoint(slot, 1, battle.Extensions));
+            var defaultJudgment = Pixel(InputPoint(slot, 1, battle.Extensions));
             var projected = Pixel(InputPoint(slot, distance, battle.Extensions));
             // Custom prefab receptor offsets remain authoritative; the same perspective
             // displacement applies to the note, its hold and the sprite effect pool.
-            return near + projected - defaultNear;
+            return judgment + projected - defaultJudgment;
         }
         private Vector2 Pixel(Vector2 normalized)
         { var r = rectTransform.rect; return new Vector2(r.xMin + r.width * normalized.x, r.yMin + r.height * normalized.y); }
         private Vector2 LocalPoint(RectTransform rect, Vector2 point) => rectTransform.InverseTransformPoint(rect.TransformPoint(point));
         private Color LaneColor(int slot) => battle.LaneAt(slot)?.ActiveSide == WeaponBeatSide.Dark ? BattleVisualTheme.Dark : BattleVisualTheme.Light;
         private static Color Alpha(Color color, float alpha) { color.a = alpha; return color; }
+        private void DrawAttack(VertexHelper vh, int slot, IncomingBeatAttack attack)
+        {
+            var tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
+            if (attack.Definition.IsHold)
+            {
+                double headBeat = Math.Max(battle.Beat, attack.Beat);
+                var head = Position(slot, headBeat); var tail = Position(slot, attack.EndBeat);
+                float headWidth = NoteWidth(slot, headBeat) * .40f, tailWidth = NoteWidth(slot, attack.EndBeat) * .40f;
+                float stroke = rectTransform.rect.height / 360f;
+                Quad(vh, head - Vector2.right * headWidth, head + Vector2.right * headWidth,
+                    tail + Vector2.right * tailWidth, tail - Vector2.right * tailWidth, Alpha(tint, .2f));
+                Line(vh, head - Vector2.right * headWidth, tail - Vector2.right * tailWidth, stroke, tint);
+                Line(vh, head + Vector2.right * headWidth, tail + Vector2.right * tailWidth, stroke, tint);
+            }
+            if (Theme != null && Theme.enemyAttackNote != null) return;
+            DrawAttackHead(vh, slot, attack.Beat, tint);
+            if (EnemyAttackNotes.TailVisible(battle, attack)) DrawAttackHead(vh, slot, attack.EndBeat, tint);
+        }
+        private void DrawAttackHead(VertexHelper vh, int slot, double at, Color tint)
+        {
+            // A filled blade token remains legible before the optional PNG is imported.
+            var p = Position(slot, at); float width = NoteWidth(slot, at) * .39f;
+            float height = rectTransform.rect.height * .013f;
+            Quad(vh, p + Vector2.left * width, p + Vector2.up * height,
+                p + Vector2.right * width, p + Vector2.down * height, tint);
+            Line(vh, p - Vector2.up * height * .6f, p + Vector2.up * height * .6f, 2, Color.white);
+        }
         private void DrawNoteHead(VertexHelper vh, int slot, double at, double colorBeat, bool preview, bool parry)
         {
             var p = Position(slot, at); float width = NoteWidth(slot, at) * .4f;
@@ -165,10 +175,10 @@ namespace BBSB.Runtime.UI
             float progress = (float)broken.Progress(battle.Beat);
             var tint = Color.Lerp(laneColor, RunUI.Red, .4f);
             tint.a = (1 - progress) * (broken.Note.IsPreview ? .7f : 1);
-            var head = Point(broken.Note.Slot, (float)(broken.HeadDistance / LookAheadBeats));
+            var head = Point(broken.Note.Slot, (float)SteppedNoteTrack.Depth(broken.HeadDistance));
             Fragments(vh, head, 9, progress, tint);
             if (!broken.Note.IsHold) return;
-            var tail = Point(broken.Note.Slot, (float)(broken.TailDistance / LookAheadBeats));
+            var tail = Point(broken.Note.Slot, (float)SteppedNoteTrack.Depth(broken.TailDistance));
             if (broken.TailVisible) Fragments(vh, tail, 7, progress, tint);
             float length = Vector2.Distance(head, tail);
             var direction = (tail - head).normalized;

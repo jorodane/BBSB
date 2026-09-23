@@ -96,6 +96,14 @@ namespace BBSB.Runtime.UI
             foreach (int slot in BattleInputLayout.DisplayOrder)
             {
                 var lane = battle.LaneAt(slot); if (lane == null) continue;
+                foreach (var attack in battle.Incoming)
+                {
+                    if (!EnemyAttackNotes.Visible(battle, attack, slot)) continue;
+                    var sprite = theme.enemyAttackNote;
+                    bool blocked = attack.State == IncomingAttackState.Blocked;
+                    Head(sprite, slot, attack.Beat, blocked);
+                    if (EnemyAttackNotes.TailVisible(battle, attack)) Head(sprite, slot, attack.EndBeat, blocked);
+                }
                 var contact = battle.ShieldAt(slot);
                 double judged = contact != null ? contact.LastJudgedBeat : lane.LastJudgedBeat;
                 var grade = contact != null ? contact.Grade : lane.LastGrade;
@@ -111,7 +119,7 @@ namespace BBSB.Runtime.UI
             Draw(sprite, tracks.NoteWorldPosition(slot, beat), tracks.NoteWidth(slot, beat), preview ? .35f : 1);
         private void Draw(Sprite sprite, Vector3 world, float width, float alpha)
         {
-            if (sprite == null || used >= FiveLaneNoteTimeline.MaxNotesPerLane * BattleInputLayout.LaneCount * 2 + 7) return;
+            if (sprite == null || used >= FiveLaneNoteTimeline.MaxNotesPerLane * BattleInputLayout.LaneCount * 4 + 7) return;
             if (used == pool.Count)
             {
                 var go = new GameObject("Pooled note art", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));

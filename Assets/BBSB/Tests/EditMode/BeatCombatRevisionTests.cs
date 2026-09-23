@@ -180,7 +180,7 @@ namespace BBSB.Tests
                 Check.True(rejected);
             }
         }
-        [Test] public void WholeBeatMovementSettlesAtDownbeatsAndPassesHalfBeatAtSpeed()
+        [Test] public void NotesKeepConstantSpeedThroughWholeAndHalfBeatBoundaries()
         {
             Check.Equal(3.0, SteppedNoteTrack.Distance(3, 0));
             Check.Equal(2.5, SteppedNoteTrack.Distance(3, .5));
@@ -188,18 +188,18 @@ namespace BBSB.Tests
             double first = SteppedNoteTrack.Distance(3, 0) - SteppedNoteTrack.Distance(3, .1);
             double middle = SteppedNoteTrack.Distance(3, .45) - SteppedNoteTrack.Distance(3, .55);
             double last = SteppedNoteTrack.Distance(3, .9) - SteppedNoteTrack.Distance(3, 1);
-            Check.True(first > 0 && first < .01);
-            Check.True(middle > first * 10); // No stop or restarted easing at the half beat.
+            Check.True(Math.Abs(first - .1) < .000000001);
+            Check.True(Math.Abs(middle - first) < .000000001);
             Check.True(Math.Abs(first - last) < .000000001);
-            Check.True(SteppedNoteTrack.Distance(3, .25) - SteppedNoteTrack.Distance(3, .75) > .75);
+            Check.Equal(.5, SteppedNoteTrack.Distance(3, .25) - SteppedNoteTrack.Distance(3, .75));
             double previous = 3;
             for (int frame = 1; frame <= 200; frame++)
             {
                 double distance = SteppedNoteTrack.Distance(3, frame / 100.0);
-                Check.True(distance <= previous && distance >= 1); // No bounce at whole-beat boundaries.
+                Check.True(Math.Abs(previous - distance - .01) < .000000001);
                 previous = distance;
             }
-            Check.True(SteppedNoteTrack.Distance(3, .99) - SteppedNoteTrack.Distance(3, 1.01) < .0001);
+            Check.True(Math.Abs(SteppedNoteTrack.Distance(3, .99) - SteppedNoteTrack.Distance(3, 1.01) - .02) < .000000001);
         }
         [Test] public void AllNotesShareTheSameMotionPhaseRegardlessOfTheirScheduledBeat()
         {
