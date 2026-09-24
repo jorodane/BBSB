@@ -6,6 +6,7 @@ using BBSB.Runtime;
 using BBSB.Runtime.UI;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 
@@ -80,16 +81,67 @@ namespace BBSB.Tests
             Assert.IsTrue(run.ChooseReward(2));
             presenter.SendMessage("Render"); yield return null;
             Click("메뉴"); Click("노트 조립"); yield return null;
+            Canvas.ForceUpdateCanvases();
+            var workshop = root.GetComponentInChildren<NoteWorkshopView>();
+            Assert.IsNull(workshop.GetComponentInParent<ScrollRect>());
+            Assert.IsNotNull(workshop.Demo);
+            var safe = root.GetComponentInChildren<SafeAreaPanel>(); safe.enabled = false;
+            foreach (var size in new[] { new Vector2(1280, 720), new Vector2(1280, 800), new Vector2(1220, 680) })
+            {
+                SetViewport(safe, size); yield return null; Canvas.ForceUpdateCanvases();
+                var bounds = (RectTransform)workshop.transform;
+                AssertContained(bounds, (RectTransform)safe.transform);
+                AssertContained((RectTransform)workshop.Demo.transform, bounds);
+                AssertContained(workshop.BagViewport, bounds);
+                Assert.GreaterOrEqual(workshop.BagViewport.rect.height, 70);
+                AssertNoOverlap((RectTransform)workshop.Demo.transform, (RectTransform)workshop.Pattern.transform.parent);
+            }
             var weapon = run.OwnedWeapons[0];
             int originalCount = WeaponPhraseSet.Uniform(weapon).For(0, WeaponBeatSide.Light).Notes.Count;
-            Click("1번 노트에 장착"); yield return null;
+            int partId = run.NoteParts[0].InstanceId;
+            var handle = workshop.GetComponentsInChildren<NotePartDragHandle>().Single(x => x.InstanceId == partId);
+            var data = new PointerEventData(EventSystem.current) { pointerId = 12, button = PointerEventData.InputButton.Left,
+                position = RectTransformUtility.WorldToScreenPoint(null, handle.transform.position) };
+            handle.OnBeginDrag(data);
+            data.position = new Vector2(-10000, -10000); handle.OnDrag(data); handle.OnEndDrag(data);
+            Assert.IsNull(run.NotePartOwner(partId), "Dropping outside the pattern keeps the free part.");
+            handle.OnBeginDrag(data);
+            data.position = RectTransformUtility.WorldToScreenPoint(null, workshop.Pattern.transform.TransformPoint(workshop.Pattern.NoteCenter(0)));
+            handle.OnDrag(data); Assert.IsNull(run.NotePartOwner(partId), "Hovering only validates the placement.");
+            handle.OnEndDrag(data); yield return null;
             Assert.AreEqual(1, weapon.NoteBindings.Count);
             Assert.AreSame(weapon, run.NotePartOwner(run.NoteParts[0].InstanceId));
+            Assert.IsFalse(workshop.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Free part " + partId));
             Assert.AreEqual(originalCount, WeaponNoteAssembly.Apply(weapon,
                 WeaponPhraseSet.Uniform(weapon)).For(0, WeaponBeatSide.Light).Notes.Count);
-            Click("부품 해제"); yield return null;
+            decimal health = run.Health; int gold = run.Gold; var phase = run.Phase;
+            double beat = workshop.Demo.Beat;
+            yield return new WaitForSecondsRealtime(.12f);
+            Assert.Greater(workshop.Demo.Beat, beat);
+            workshop.Demo.TogglePause(); beat = workshop.Demo.Beat; yield return null;
+            Assert.AreEqual(beat, workshop.Demo.Beat);
+            Assert.AreEqual(health, run.Health); Assert.AreEqual(gold, run.Gold); Assert.AreEqual(phase, run.Phase);
+            Assert.IsNull(run.PhraseBattle);
+            // Dragging an installed chip back into the bag removes only its overlay.
+            handle = workshop.GetComponentsInChildren<NotePartDragHandle>().Single(x => x.InstanceId == partId);
+            handle.OnBeginDrag(data);
+            data.position = RectTransformUtility.WorldToScreenPoint(null, workshop.BagViewport.TransformPoint(workshop.BagViewport.rect.center));
+            handle.OnDrag(data); handle.OnEndDrag(data); yield return null;
             Assert.AreEqual(0, weapon.NoteBindings.Count); Assert.AreEqual(1, run.NoteParts.Count);
             Assert.IsNull(run.NotePartOwner(run.NoteParts[0].InstanceId));
+            // The click alternative and explicit removal share the same validated transaction.
+            workshop.GetComponentsInChildren<Button>().Single(x => x.name == "Free part " + partId).onClick.Invoke();
+            workshop.SelectNote(0); yield return null;
+            Click("해제"); yield return null;
+            Assert.IsNull(run.NotePartOwner(partId));
+            run.Equipment.Acquire(new WeaponState("dagger"));
+            Assert.IsTrue(run.TryAttachNotePart(0, 2, 0, out _));
+            Click("닫기"); Click("메뉴"); Click("노트 조립"); yield return null;
+            workshop = root.GetComponentInChildren<NoteWorkshopView>();
+            Assert.IsFalse(workshop.GetComponentsInChildren<NotePartDragHandle>().Any(x => x.InstanceId == partId));
+            workshop.BeginPartDrag(partId, data);
+            Assert.IsFalse(workshop.GetComponentsInChildren<RectTransform>().Any(x => x.name == "Dragged note part"));
+            Assert.AreSame(run.OwnedWeapons[2], run.NotePartOwner(partId));
             LogAssert.NoUnexpectedReceived();
         }
 

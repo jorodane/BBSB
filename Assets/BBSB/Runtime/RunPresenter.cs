@@ -763,6 +763,25 @@ namespace BBSB.Runtime
                 menuPage == MenuPage.Help ? "조작 방법" : menuPage == MenuPage.Patterns ? "몬스터 패턴" :
                 menuPage == MenuPage.Development ? "개발 도구" : menuPage == MenuPage.Abandon ? "탐험 종료" : "탐험 메뉴";
             menuOverlay = ui.Modal(safeArea, "Run menu", heading, CloseMenu, out menuBody);
+            if (menuPage == MenuPage.NoteWorkshop)
+            {
+                // The editor owns two independent panes; an outer vertical scroll would
+                // push its live example and drop targets out of view.
+                var scroll = menuBody.GetComponentInParent<ScrollRect>();
+                var panel = (RectTransform)scroll.transform.parent;
+                scroll.gameObject.SetActive(false); Destroy(scroll.gameObject);
+                var header = (RectTransform)panel.GetChild(0); RunUI.Size(header, 52);
+                foreach (Transform child in header)
+                {
+                    var headerSize = child.GetComponent<LayoutElement>();
+                    if (headerSize != null) headerSize.minHeight = headerSize.preferredHeight = 52;
+                }
+                menuBody = ui.Rect("Note workshop", panel);
+                var size = RunUI.Size(menuBody, 300, 1); size.flexibleHeight = 1;
+                menuBody.gameObject.AddComponent<NoteWorkshopView>().Bind(ui, Session, noteWorkshop);
+                ui.Button(panel, "메뉴로 돌아가기", () => OpenMenu(MenuPage.Home), height: 44);
+                return;
+            }
             var previousBody = body; body = menuBody;
             switch (menuPage)
             {
@@ -782,7 +801,6 @@ namespace BBSB.Runtime
                     ui.Button(body, "탐험 종료", () => OpenMenu(MenuPage.Abandon));
                     break;
                 case MenuPage.Inventory: DrawInventory(); break;
-                case MenuPage.NoteWorkshop: NoteWorkshopView.Draw(body, ui, Session, noteWorkshop, RenderMenu); break;
                 case MenuPage.Help:
                     ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n시작 지점 네 곳은 모두 몬스터, 여섯 번째 무대는 보스야.\n? 지역은 들어가면 정체가 밝혀져.", 24, RunUI.Muted, 125);
                     if (Session.UsesFiveLaneCombat)
