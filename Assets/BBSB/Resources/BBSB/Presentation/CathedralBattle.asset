@@ -22,4 +22,6 @@ MonoBehaviour:
   beatRing: {fileID: 21300000, guid: 28e119010236f4a4a8e9c20508519323, type: 3}
   weaponHalo: {fileID: 21300000, guid: 8b7157b10e77e2548a643dfcb6659a8b, type: 3}
   judgmentFlash: {fileID: 21300000, guid: 72eb9a9ade3a142498c2affaf8b1888a, type: 3}
+  enemyAttackNote: {fileID: 21300000, guid: d111506f2d45cbb45b202a3ce66d9d56, type: 3}
+  attackNoteImported: 1
   sky: {r: 0.22, g: 0.27, b: 0.36, a: 1}
