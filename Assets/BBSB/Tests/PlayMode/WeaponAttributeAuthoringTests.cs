@@ -9,6 +9,27 @@ namespace BBSB.Tests
 {
     public sealed class WeaponAttributeAuthoringTests
     {
+        [Test] public void AuthoringSeparatesInvocationTimingCallsAndConditionalResponses()
+        {
+            var asset = ScriptableObject.CreateInstance<WeaponPhraseAuthoring>();
+            try
+            {
+                asset.weaponId = "dagger"; Assert.AreEqual(1, asset.Build().FirstNoteDelayBeats);
+                asset.weaponId = "heater-shield"; Assert.AreEqual(0, asset.Build().FirstNoteDelayBeats);
+                asset.weaponId = "dagger"; asset.useDefaultCallTiming = false; asset.firstNoteDelayBeats = 3;
+                asset.notes = new[] {
+                    new WeaponPhraseAuthoring.Note { role = WeaponNoteRole.Call, beat = 0 },
+                    new WeaponPhraseAuthoring.Note { role = WeaponNoteRole.Call, beat = 1 },
+                    new WeaponPhraseAuthoring.Note { role = WeaponNoteRole.Response, beat = 2,
+                        condition = PhraseNoteCondition.AllCalls, damage = 40 }
+                };
+                var phrase = asset.Build(); Assert.AreEqual(3, phrase.FirstNoteDelayBeats);
+                Assert.AreEqual(0m, phrase.Notes[0].Damage); Assert.IsTrue(phrase.Notes[1].IsCall);
+                Assert.AreEqual(PhraseNoteCondition.AllCalls, phrase.Notes[2].Condition);
+                asset.firstNoteDelayBeats = 0; Assert.AreEqual(0, asset.Build().FirstNoteDelayBeats);
+            }
+            finally { Object.DestroyImmediate(asset); }
+        }
         private static WeaponPhraseAuthoring Asset(string id, WeaponBeatSide side, int offset, PhraseEffect effect, float amount)
         {
             var asset = ScriptableObject.CreateInstance<WeaponPhraseAuthoring>();

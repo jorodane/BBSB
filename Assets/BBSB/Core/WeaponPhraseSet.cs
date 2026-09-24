@@ -82,7 +82,8 @@ namespace BBSB.Core
                     throw new ArgumentException("Author a Chaos transition for this repeating pattern.");
                 var note = source.Notes[0];
                 result[i] = new WeaponPhrase(source.WeaponId, source.Name, "반박 3회 입력 → 반대 박자 유지", 1.5,
-                    new[] { note, new WeaponPhraseNote(.5, note.Damage, effect: note.Effect), new WeaponPhraseNote(1, note.Damage, effect: note.Effect) },
+                    new[] { note, new WeaponPhraseNote(.5, note.Damage, effect: note.Effect, role: note.Role),
+                        new WeaponPhraseNote(1, note.Damage, effect: note.Effect, role: note.Role) },
                     source.MissCooldownBeats, repeat: true, parryRequired: source.ParryRequired);
             }
             return result;

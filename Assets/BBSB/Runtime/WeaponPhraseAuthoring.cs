@@ -27,6 +27,10 @@ namespace BBSB.Runtime
         [TextArea] public string hint = "Tap 0 / 1 / 2";
         [Min(.5f)] public float lengthBeats = 4;
         [Min(.25f)] public float missCooldownBeats = 2;
+        [Tooltip("Built-in timing: shields respond immediately; other weapons reserve at least one beat after invocation.")]
+        public bool useDefaultCallTiming = true;
+        [Min(0), Tooltip("Minimum lead after invocation, aligned to the chosen beat side. Zero judges the invocation immediately. Applied once, never between repeated cycles.")]
+        public float firstNoteDelayBeats = 1;
         public bool repeat;
         [Min(0), Tooltip("Base cycles per activation; zero repeats indefinitely. Chaos bridges do not count.")]
         public int maximumCycles;
@@ -34,7 +38,7 @@ namespace BBSB.Runtime
         public ParryInputEdge parryInput;
         [Range(0, 1)] public float holdDamageReduction;
         public bool releaseEndsPhrase;
-        [Tooltip("Later parry notes require a timed block. The opening press is always accepted, but counters still require an actual parry.")]
+        [Tooltip("Parry notes require a timed block. Only zero-delay opening presses receive grace; counters always require an actual parry.")]
         public bool parryRequired = true;
         [Min(0)] public float completionCooldownBeats;
         [Min(0)] public int finisherEvery;
@@ -42,6 +46,8 @@ namespace BBSB.Runtime
         public Note[] notes = { new Note(), new Note { beat = 1 }, new Note { beat = 2, damage = 12 } };
         [Serializable] public sealed class Note
         {
+            [Tooltip("Call: judged preparation with no effect. Response: execute the authored effect. AllCalls requires every earlier Call to succeed.")]
+            public WeaponNoteRole role;
             [Range(0, 6), Tooltip("Line offset relative to the input that started the pattern; wraps within this weapon's selected lines. The first note must use zero.")]
             public int laneOffset;
             [Min(0)] public float beat, holdBeats;
@@ -60,11 +66,13 @@ namespace BBSB.Runtime
             {
                 if (note == null) throw new ArgumentException("Null phrase note.");
                 result.Add(new WeaponPhraseNote(note.beat, (decimal)note.damage, note.holdBeats, note.effect,
-                    note.condition == PhraseNoteCondition.Always ? -1 : note.prerequisite, note.condition, note.laneOffset, note.effectDurationBeats));
+                    note.condition == PhraseNoteCondition.Hit || note.condition == PhraseNoteCondition.Parry ? note.prerequisite : -1,
+                    note.condition, note.laneOffset, note.effectDurationBeats, role: note.role));
             }
             return new WeaponPhrase(weaponId, displayName, hint, lengthBeats, result, missCooldownBeats,
                 repeat, finisherEvery, (decimal)finisherDamage, groggyBeats, parryInput,
-                (decimal)holdDamageReduction, releaseEndsPhrase, parryRequired, completionCooldownBeats, maximumCycles);
+                (decimal)holdDamageReduction, releaseEndsPhrase, parryRequired, completionCooldownBeats, maximumCycles,
+                useDefaultCallTiming ? WeaponCatalog.Find(weaponId).Kind == WeaponKind.Shield ? 0 : 1 : firstNoteDelayBeats);
         }
         private ChaosRules BuildChaosRules() => new ChaosRules(chaosMinimumBeats, (decimal)chaosTransitionChance, (decimal)chaosEffectMultiplier);
         public static IReadOnlyList<WeaponPhrase> LoadFor(IReadOnlyList<WeaponState> weapons)

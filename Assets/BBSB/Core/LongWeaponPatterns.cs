@@ -8,6 +8,8 @@ namespace BBSB.Core
             new WeaponPhraseNote(at, damage, laneOffset: lane);
         private static WeaponPhraseNote H(double at, double length, decimal damage, int lane = 0) =>
             new WeaponPhraseNote(at, damage, length, laneOffset: lane);
+        private static WeaponPhraseNote C(double at, double length) =>
+            new WeaponPhraseNote(at, 0, length, role: WeaponNoteRole.Call);
         private static WeaponPhraseNote E(double at, decimal amount, PhraseEffect effect, int lane = 0,
             double hold = 0, double duration = 2) =>
             new WeaponPhraseNote(at, amount, hold, effect, laneOffset: lane, effectDurationBeats: duration);
@@ -22,13 +24,14 @@ namespace BBSB.Core
             WeaponAttribute? attribute = null)
         {
             if (transition) return Bridge(id);
-            var phrase = Base(id, offset, side);
+            var phrase = Base(id, offset, side)?.WithFirstNoteDelay(1);
             if (phrase == null || attribute != WeaponAttribute.Chaos || !WeaponAttributes.SupportsChaos(id)) return phrase;
             return new WeaponPhrase(id, phrase.Name, phrase.Hint + (WeaponAttributes.UsesChaosTransitions(id) ? " · 혼돈: 무한 반복·박자 전환" : " · 혼돈: 무작위 박자 두 구간"), phrase.LengthBeats,
                 phrase.Notes, phrase.MissCooldownBeats, repeat: true,
                 finisherEvery: phrase.FinisherEvery, finisherDamage: phrase.FinisherDamage, groggyBeats: phrase.GroggyBeats,
                 completionCooldownBeats: phrase.CompletionCooldownBeats,
-                maximumCycles: WeaponAttributes.UsesChaosTransitions(id) ? 0 : 2);
+                maximumCycles: WeaponAttributes.UsesChaosTransitions(id) ? 0 : 2,
+                firstNoteDelayBeats: phrase.FirstNoteDelayBeats);
         }
 
         private static WeaponPhrase Base(string id, int offset, WeaponBeatSide side)
@@ -42,7 +45,7 @@ namespace BBSB.Core
                     new[] { T(0, 6), T(1.5, 8), T(3, 12), T(4, 6), T(5.5, 8), T(7, 12), T(8, 6), T(9.5, 8), T(11, 12) },
                     8, finisherEvery: 1, finisherDamage: 38, groggyBeats: 4, completionCooldownBeats: 8);
                 case "bow": return P(id, "활", "당기고 발사 두 번 → 길게 당겨 강사격", 10, 8,
-                    H(0, 1, 0), Shot(2, 24, 0), H(3, 1, 0), Shot(5, 28, 2), H(6, 2, 0), Shot(9, 44, 4));
+                    C(0, 1), Shot(2, 24, 0), C(3, 1), Shot(5, 28, 2), C(6, 2), Shot(9, 44, 4));
                 // These starter pulse weapons teach the main beat. Keep their single
                 // taps and unlimited cadence when expanding the other weapons.
                 case "dagger": return new WeaponPhrase(id, "단검", "2박마다 Tap 1회 · 성공하면 무한 반복 · 미스 대기 2박", 2,
@@ -63,7 +66,7 @@ namespace BBSB.Core
                 case "blade": return P(id, "쌍날검", "반박 회전 두 묶음 → 마무리 베기", 8, 8,
                     T(0, 6), T(1, 6), T(1.5, 8), T(2, 10), T(4, 6), T(5, 8), T(5.5, 10), T(6, 12), T(7, 18));
                 case "crossbow": return P(id, "석궁", "짧게 장전 후 세 발 → 길게 장전 후 두 발", 8, 8,
-                    H(0, .5, 0), Shot(1, 18, 0), Shot(2, 18, 0), Shot(3, 22, 0), H(4, 1, 0), Shot(6, 26, 4), Shot(7, 32, 4));
+                    C(0, .5), Shot(1, 18, 0), Shot(2, 18, 0), Shot(3, 22, 0), C(4, 1), Shot(6, 26, 4), Shot(7, 32, 4));
                 case "wand": return P(id, "마도봉", "충전과 연사 두 묶음 → 마력 폭발", 12, 10,
                     H(0, 2, 10), T(3, 16), T(4, 18), T(5.5, 10), H(6, 2, 16), T(9, 28), T(10, 30), T(11, 38));
                 case "rapier": return P(id, "레이피어", "재빠른 이중 찌르기 두 번 → 깊게 찌르기", 8, 6,

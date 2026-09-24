@@ -7,7 +7,8 @@ namespace BBSB.Core
     // Keep existing serialized values; Both adds a parry at each end of a Hold.
     public enum ParryInputEdge { KeyDown = 0, KeyUp = 1, Both = 2 }
     public enum PhraseLanePhase { Ready, Playing, Cooldown }
-    public enum PhraseNoteCondition { Always, Hit, Parry }
+    public enum PhraseNoteCondition { Always, Hit, Parry, AllCalls }
+    public enum WeaponNoteRole { Response, Call }
     public enum PhraseNoteState { Locked, Pending, Holding, Hit, Missed, Skipped }
 
     // Offsets/durations are musical beats, independent of the song's BPM and monster gestures.
@@ -28,20 +29,25 @@ namespace BBSB.Core
         public bool IsInjected { get; }
         // A crown can cover an existing note without deleting its damage/effect/socket.
         public bool ConnectFromPrevious { get; }
+        public WeaponNoteRole Role { get; }
+        public bool IsCall => Role == WeaponNoteRole.Call;
         public bool IsHold => HoldBeats > 0;
         public bool IsParry => Effect == PhraseEffect.Parry;
         public WeaponPhraseNote(double beat, decimal damage, double holdBeats = 0, PhraseEffect effect = PhraseEffect.Strike,
             int prerequisite = -1, PhraseNoteCondition condition = PhraseNoteCondition.Always, int laneOffset = 0,
             double effectDurationBeats = 2, WeaponAttackTarget target = WeaponAttackTarget.Front,
-            decimal bonusHealing = 0, int baseNoteIndex = -1, bool injected = false, bool connectFromPrevious = false)
+            decimal bonusHealing = 0, int baseNoteIndex = -1, bool injected = false, bool connectFromPrevious = false,
+            WeaponNoteRole role = WeaponNoteRole.Response)
         {
             if (!Finite(beat) || beat < 0 || !Finite(holdBeats) || holdBeats < 0 || damage < 0 ||
                 !Enum.IsDefined(typeof(PhraseEffect), effect) || !Enum.IsDefined(typeof(PhraseNoteCondition), condition) ||
-                (condition == PhraseNoteCondition.Always ? prerequisite != -1 : prerequisite < 0) ||
+                (condition == PhraseNoteCondition.Hit || condition == PhraseNoteCondition.Parry ? prerequisite < 0 : prerequisite != -1) ||
                 laneOffset < 0 || laneOffset >= BattleInputLayout.LaneCount || !Finite(effectDurationBeats) || effectDurationBeats <= 0 ||
-                !Enum.IsDefined(typeof(WeaponAttackTarget), target) || bonusHealing < 0 || baseNoteIndex < -1)
+                !Enum.IsDefined(typeof(WeaponAttackTarget), target) || bonusHealing < 0 || baseNoteIndex < -1 ||
+                !Enum.IsDefined(typeof(WeaponNoteRole), role) || role == WeaponNoteRole.Call && (effect != PhraseEffect.Strike || bonusHealing != 0))
                 throw new ArgumentOutOfRangeException(nameof(beat));
-            Beat = beat; HoldBeats = holdBeats; Damage = damage; Effect = effect; EffectDurationBeats = effectDurationBeats;
+            Role = role;
+            Beat = beat; HoldBeats = holdBeats; Damage = IsCall ? 0 : damage; Effect = effect; EffectDurationBeats = effectDurationBeats;
             Prerequisite = prerequisite; Condition = condition; LaneOffset = laneOffset;
             Target = target; BonusHealing = bonusHealing; BaseNoteIndex = baseNoteIndex; IsInjected = injected;
             ConnectFromPrevious = connectFromPrevious;
@@ -69,20 +75,23 @@ namespace BBSB.Core
         public bool ReleaseEndsPhrase { get; }
         public bool ParryRequired { get; }
         public double CompletionCooldownBeats { get; }
+        // Zero is the explicitly immediate mode used by reactive shields and legacy authored patterns.
+        public double FirstNoteDelayBeats { get; }
         public IReadOnlyList<WeaponPhraseNote> Notes { get; }
         public WeaponPhrase(string weaponId, string name, string hint, double lengthBeats,
             IEnumerable<WeaponPhraseNote> notes, double missCooldownBeats = 2, bool repeat = false,
             int finisherEvery = 0, decimal finisherDamage = 0, double groggyBeats = 0,
             ParryInputEdge parryInput = ParryInputEdge.KeyDown,
             decimal holdDamageReduction = 0, bool releaseEndsPhrase = false, bool parryRequired = true,
-            double completionCooldownBeats = 0, int maximumCycles = 0)
+            double completionCooldownBeats = 0, int maximumCycles = 0, double firstNoteDelayBeats = 0)
         {
             WeaponCatalog.Find(weaponId);
             if (!WeaponPhraseNote.Finite(lengthBeats) || lengthBeats <= 0 || !WeaponPhraseNote.Finite(missCooldownBeats) ||
                 missCooldownBeats <= 0 || maximumCycles < 0 || (maximumCycles > 0 && !repeat) || finisherEvery < 0 || finisherDamage < 0 ||
                 !WeaponPhraseNote.Finite(groggyBeats) || groggyBeats < 0 ||
                 holdDamageReduction < 0 || holdDamageReduction > 1 ||
-                !WeaponPhraseNote.Finite(completionCooldownBeats) || completionCooldownBeats < 0)
+                !WeaponPhraseNote.Finite(completionCooldownBeats) || completionCooldownBeats < 0 ||
+                !WeaponPhraseNote.Finite(firstNoteDelayBeats) || firstNoteDelayBeats < 0)
                 throw new ArgumentOutOfRangeException(nameof(lengthBeats));
             var copy = new List<WeaponPhraseNote>(notes ?? throw new ArgumentNullException(nameof(notes)));
             if (copy.Count == 0 || copy[0] == null || copy[0].Beat != 0 || copy[0].LaneOffset != 0)
@@ -100,9 +109,15 @@ namespace BBSB.Core
                     throw new ArgumentException("A connected note needs a touching Hold on the same line.");
                 if (note.IsParry && parryInput != ParryInputEdge.KeyDown && !note.IsHold)
                     throw new ArgumentException("A release parry needs a Hold note.", nameof(notes));
-                if (note.Condition != PhraseNoteCondition.Always && (note.Prerequisite >= i ||
+                if ((note.Condition == PhraseNoteCondition.Hit || note.Condition == PhraseNoteCondition.Parry) && (note.Prerequisite >= i ||
                     (note.Condition == PhraseNoteCondition.Parry && !copy[note.Prerequisite].IsParry)))
                     throw new ArgumentException("A conditional note needs a matching earlier prerequisite.", nameof(notes));
+                if (note.Condition == PhraseNoteCondition.AllCalls)
+                {
+                    bool hasCall = false;
+                    for (int j = 0; j < i; j++) hasCall |= copy[j].IsCall;
+                    if (note.IsCall || !hasCall) throw new ArgumentException("An AllCalls response needs earlier preparation notes.", nameof(notes));
+                }
             }
             WeaponId = weaponId; Name = name; Hint = hint; LengthBeats = lengthBeats;
             MissCooldownBeats = missCooldownBeats; Repeat = repeat; FinisherEvery = finisherEvery;
@@ -112,7 +127,11 @@ namespace BBSB.Core
             HoldDamageReduction = holdDamageReduction;
             ReleaseEndsPhrase = releaseEndsPhrase; ParryRequired = parryRequired;
             CompletionCooldownBeats = completionCooldownBeats; MaximumCycles = maximumCycles;
+            FirstNoteDelayBeats = firstNoteDelayBeats;
         }
+        public WeaponPhrase WithFirstNoteDelay(double beats) => new WeaponPhrase(WeaponId, Name, Hint, LengthBeats, Notes,
+            MissCooldownBeats, Repeat, FinisherEvery, FinisherDamage, GroggyBeats, ParryInput, HoldDamageReduction,
+            ReleaseEndsPhrase, ParryRequired, CompletionCooldownBeats, MaximumCycles, beats);
     }
 
     public static class WeaponPhraseCatalog

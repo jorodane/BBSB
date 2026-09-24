@@ -124,7 +124,8 @@ namespace BBSB.Core
         private void SampleTapGuard(IncomingBeatAttack attack)
         {
             foreach (var lane in lanes)
-                if (lane.Holding && CoversAttack(lane, lane.HoldingSlot, attack)) SetReduction(attack, GuardReduction(lane, lane.HoldingSlot), lane);
+                if (lane.Holding && !lane.Phrase.Notes[lane.NextNote].IsCall && CoversAttack(lane, lane.HoldingSlot, attack))
+                    SetReduction(attack, GuardReduction(lane, lane.HoldingSlot), lane);
             foreach (var contact in shieldContacts)
                 if (contact.Phase == PhraseLanePhase.Playing && Beat < contact.EndBeat && CoversAttack(contact.Lane, contact.Slot, attack))
                     SetReduction(attack, GuardReduction(contact.Lane, contact.Slot), contact.Lane);

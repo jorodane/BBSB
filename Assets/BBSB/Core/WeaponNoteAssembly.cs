@@ -93,6 +93,7 @@ namespace BBSB.Core
                 frames.TryGetValue(i, out var frame); injections.TryGetValue(i, out var injection);
                 if (frame != null)
                 {
+                    if (note.IsCall) throw new ArgumentException("준비용 콜 노트에는 박자 주입만 장착할 수 있어.");
                     if (frame.Effect == NotePartEffect.Power || frame.Effect == NotePartEffect.Pierce)
                     {
                         if (note.Effect != PhraseEffect.Strike || damage <= 0) throw new ArgumentException("피해가 있는 공격 노트를 선택해줘.");
@@ -103,7 +104,7 @@ namespace BBSB.Core
                 double next = i + 1 < source.Notes.Count ? source.Notes[i + 1].Beat : source.LengthBeats;
                 if (injection != null)
                 {
-                    if (note.Effect != PhraseEffect.Strike || note.Damage <= 0)
+                    if (note.Effect != PhraseEffect.Strike || note.Damage <= 0 && !note.IsCall)
                         throw new ArgumentException("박자 주입에는 피해가 있는 공격 노트가 필요해.");
                     if (injection.Effect == NotePartEffect.Hold)
                     {
@@ -121,13 +122,13 @@ namespace BBSB.Core
                 int prerequisite = note.Prerequisite < 0 ? -1 : remap[note.Prerequisite];
                 remap[i] = result.Count;
                 result.Add(new WeaponPhraseNote(note.Beat, damage, hold, note.Effect, prerequisite, note.Condition,
-                    note.LaneOffset, note.EffectDurationBeats, target, healing, i));
+                    note.LaneOffset, note.EffectDurationBeats, target, healing, i, role: note.Role));
                 if (injection != null && injection.Effect != NotePartEffect.Hold)
                     result.Add(new WeaponPhraseNote(note.Beat + hold + .5,
                         note.Damage * (injection.Effect == NotePartEffect.CrossTap ? .8m : .6m),
                         prerequisite: remap[i], condition: PhraseNoteCondition.Hit,
                         laneOffset: injection.Effect == NotePartEffect.CrossTap ? (note.LaneOffset + 1) % width : note.LaneOffset,
-                        target: target, baseNoteIndex: i, injected: true));
+                        target: target, baseNoteIndex: i, injected: true, role: note.Role));
             }
             // Split a continuous crown at original note boundaries. Every original effect
             // and prerequisite still resolves once; only the required input is connected.
@@ -142,12 +143,12 @@ namespace BBSB.Core
                 double hold = Math.Max(0, Math.Min(end, i + 1 < result.Count ? result[i + 1].Beat : source.LengthBeats) - note.Beat);
                 result[i] = new WeaponPhraseNote(note.Beat, note.Damage, hold, note.Effect, note.Prerequisite, note.Condition,
                     note.LaneOffset, note.EffectDurationBeats, note.Target, note.BonusHealing, note.BaseNoteIndex,
-                    note.IsInjected, connected);
+                    note.IsInjected, connected, note.Role);
             }
             return new WeaponPhrase(source.WeaponId, source.Name, source.Hint, source.LengthBeats, result,
                 source.MissCooldownBeats, source.Repeat, source.FinisherEvery, source.FinisherDamage, source.GroggyBeats,
                 source.ParryInput, source.HoldDamageReduction, source.ReleaseEndsPhrase, source.ParryRequired,
-                source.CompletionCooldownBeats, source.MaximumCycles);
+                source.CompletionCooldownBeats, source.MaximumCycles, source.FirstNoteDelayBeats);
         }
     }
 

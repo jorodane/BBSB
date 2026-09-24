@@ -53,14 +53,6 @@ namespace BBSB.Runtime.UI
             {
                 Picture(ui, chrome, "Combo ornament", theme.comboCrest, .015f, .332f, .19f, .375f);
                 Picture(ui, chrome, "Beat ring", theme.beatRing, .85f, .305f, 1, .535f);
-                foreach (var lane in battle.Lanes)
-                    foreach (int slot in lane.InputSlots)
-                    {
-                        var weapon = hud.weaponRoots[slot];
-                        var halo = Picture(ui, chrome, "Weapon halo " + slot, theme.weaponHalo,
-                            weapon.anchorMin.x - .015f, weapon.anchorMin.y - .02f, weapon.anchorMax.x + .015f, weapon.anchorMax.y + .02f);
-                        if (halo != null) halo.color = new Color(1, 1, 1, .38f);
-                    }
                 Frame(ui, (RectTransform)hud.playerFill.parent, theme.healthFrame);
             }
             notes = ui.Rect("Crystal note sprites", tracks.transform); RunUI.Stretch(notes);
@@ -88,6 +80,7 @@ namespace BBSB.Runtime.UI
             used = 0;
             foreach (var note in tracks.NoteTimeline.Notes)
             {
+                if (note.Definition.IsCall) continue;
                 var sprite = theme.NoteSprite(note.Beat);
                 if (!note.IsConnected) Head(sprite, note.Slot, note.Beat, note.IsPreview);
                 if (note.IsHold && !note.ConnectsNext && SteppedNoteTrack.InHorizon(note.EndBeat - battle.Beat))

@@ -69,7 +69,9 @@ namespace BBSB.Runtime.UI
             composed = WeaponNoteAssembly.Apply(weapon, source).For(selection.Offset, selection.Side);
             selection.Note = Mathf.Clamp(selection.Note, 0, original.Notes.Count - 1);
             DrawChooser();
-            Caption(ui, left, "패턴  ·  부품 아이콘을 노트 위로 끌어 놓아 줘", 18, RunUI.Gold, 24);
+            Caption(ui, left, original.FirstNoteDelayBeats > 0 ?
+                "호출 → " + original.FirstNoteDelayBeats.ToString("0.##") + "박 준비 후 연주  ·  ◆ 콜  ▬ 리스폰스" :
+                "호출 즉시 실행  ·  ◆ 콜  ▬ 리스폰스", 17, RunUI.Gold, 24);
             DrawPattern();
             slots = ui.Row(left, 48, 8); slots.name = "Selected note parts"; DrawSlots();
             detail = Caption(ui, left, "", 17, RunUI.Muted, 42);
@@ -218,7 +220,9 @@ namespace BBSB.Runtime.UI
             if (index < 0 || index >= original.Notes.Count || draggingPart >= 0) return;
             if (selectedPart >= 0) { Attach(selectedPart, index); return; }
             selection.Note = index; pattern.Select(index); DrawSlots();
-            ShowNotice((index + 1) + "번 노트 · " + original.Notes[index].Beat.ToString("0.##") + "박 · 아래 부품을 끌어 놓으면 적용돼.");
+            var note = original.Notes[index];
+            ShowNotice((index + 1) + "번 · " + (note.IsCall ? "준비 콜" : "리스폰스") + " · " + note.Beat.ToString("0.##") + "박" +
+                (note.Condition == PhraseNoteCondition.AllCalls ? " · 앞선 콜을 모두 성공하면 실행" : " · 부품을 끌어 놓으면 적용돼."));
         }
         private void SelectPart(int id)
         {

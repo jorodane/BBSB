@@ -59,7 +59,8 @@ namespace BBSB.Tests
                 {
                     var b = new FiveLaneBattle(new[] { new WeaponState(entry.Definition.Id, attribute) }, 120, 64,
                         Array.Empty<BeatAttack>(), new StageHealth(100000), 30, 100);
-                    b.Press(offset, at); var lane = b.Lanes[0];
+                    b.Press(offset, at); b.Release(offset, at); var lane = b.Lanes[0];
+                    b.Press(offset, lane.NextBeat);
                     double end = lane.StartBeat + lane.Phrase.Notes[0].HoldBeats;
                     b.Release(offset, Math.Max(at, end));
                     int count = lane.Phrase.Notes.Count;
@@ -153,10 +154,10 @@ namespace BBSB.Tests
             var b = new FiveLaneBattle(new[] { target, source }, 120, 64, Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100,
                 placements: new[] { new WeaponPlacement(target, BattleInputLayout.Left, 0), new WeaponPlacement(source, 1) },
                 extensions: InputExtensions.Left);
-            Tap(b, 1, .5); Check.Equal(1.5m, b.LaneAt(BattleInputLayout.Left).PendingDamageMultiplier);
+            Tap(b, 1, .5); Tap(b, 1, 1.5); Check.Equal(1.5m, b.LaneAt(BattleInputLayout.Left).PendingDamageMultiplier);
             var gap = new FiveLaneBattle(new[] { target, source }, 120, 64, Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100,
                 placements: new[] { new WeaponPlacement(target, 0, 1), new WeaponPlacement(source, 3) });
-            Tap(gap, 3, .5); Check.Equal(1m, gap.LaneAt(0).PendingDamageMultiplier);
+            Tap(gap, 3, .5); Tap(gap, 3, 1.5); Check.Equal(1m, gap.LaneAt(0).PendingDamageMultiplier);
         }
 
         [Test] public void EmpowerExpiresAndReapplicationKeepsOnlyTheStrongerCharge()

@@ -19,7 +19,7 @@ namespace BBSB.Runtime.UI
     {
         public const double RushBeats = .35;
         public static bool Recent(double now, double at, double duration) => now >= at && now - at < duration;
-        public static bool Guarding(PhraseLane lane) => lane.Holding &&
+        public static bool Guarding(PhraseLane lane) => lane.Holding && !lane.Phrase.Notes[lane.NextNote].IsCall &&
             (lane.Phrase.HoldDamageReduction > 0 || lane.Phrase.Notes[lane.NextNote].IsParry);
 
         private static bool BowDrawn(PhraseLane lane)

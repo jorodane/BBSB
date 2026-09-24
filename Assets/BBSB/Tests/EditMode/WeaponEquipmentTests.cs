@@ -44,8 +44,9 @@ namespace BBSB.Tests
             var battle = run.StartFiveLaneBattle();
             Check.Equal(2, battle.Lanes.Count); Check.True(battle.LaneAt(0) == null);
             Tap(battle, 0, 0); Check.Equal(0, battle.PerfectCount);
-            Tap(battle, 2, 0); Check.Equal(6m, battle.TotalDamage);
+            Tap(battle, 2, 0); Check.Equal(0m, battle.TotalDamage);
             battle.Press(4, 0); Check.True(battle.LaneAt(4).Holding); Check.Equal(4, battle.LaneAt(4).HoldingSlot);
+            Tap(battle, 2, 1); Check.Equal(6m, battle.TotalDamage);
             Check.Equal(2, battle.LaneAt(2).Slot);
         }
         [Test] public void MovementAndUnequipOnlyChangePlacementAndRetainTheSameItemReference()

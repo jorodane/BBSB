@@ -116,8 +116,10 @@ namespace BBSB.Tests
                 foreach (var enemy in enemies) AssertActorVisible(enemy);
                 var heroRect = BoundsIn(screen, hud.playerSlot);
                 var enemyRect = BoundsIn(screen, hud.monsterArea);
-                Assert.AreEqual(size.x * .5f, heroRect.center.x - screen.rect.xMin, 1, "The player anchors the center of the stage.");
-                Assert.Greater(enemyRect.yMin, heroRect.yMin + size.y * .18f);
+                Assert.AreEqual(size.x * .15f, heroRect.center.x - screen.rect.xMin, 1, "The player stands on the far left.");
+                Assert.Greater(enemyRect.xMin, heroRect.xMax);
+                var front = BoundsIn(screen, (RectTransform)enemies[0].transform.parent);
+                Assert.AreEqual(size.x * .5054f, front.center.x - screen.rect.xMin, 2, "The vanguard occupies the former player position.");
                 Assert.Greater(((RectTransform)hero.transform).rect.height * hero.transform.localScale.y, size.y * .22f);
                 Assert.AreEqual(new Vector2(.5f, 0), ((RectTransform)hero.transform).pivot, "Actor feet belong at the stage slot's bottom.");
                 for (int i = 0; i < playback.Battle.Lanes.Count; i++)
@@ -134,13 +136,18 @@ namespace BBSB.Tests
                     Assert.IsTrue(hud.laneStatus[i] == null || !hud.laneStatus[i].gameObject.activeInHierarchy);
                     Assert.Less(point.yMax, heroRect.yMin);
                     Assert.Less(point.yMax, enemyRect.yMin);
+                    var icon = BoundsIn(screen, hud.weaponRoots[i]);
+                    Assert.Greater(icon.yMin, point.yMax);
+                    Assert.Less(icon.yMax, heroRect.yMin);
+                    Assert.Less(icon.height, size.y * .06f);
                     if (i > 0) Assert.Greater(point.xMin, BoundsIn(screen, hud.judgmentPoints[i - 1]).xMax);
                 }
                 Assert.Less(BoundsIn(screen, hud.health.rectTransform).yMin, heroRect.yMin);
                 Assert.IsTrue(hud.enemyHealth == null || !hud.enemyHealth.gameObject.activeInHierarchy);
                 Assert.IsTrue(hud.enemyFill == null || !hud.enemyFill.gameObject.activeInHierarchy);
             }
-            Assert.AreEqual(2, playback.GetComponentsInChildren<WeaponIconGraphic>().Length);
+            Assert.AreEqual(2, hud.actors.Find("Orbiting weapons").GetComponentsInChildren<WeaponIconGraphic>().Length);
+            Assert.AreEqual(4, playback.GetComponentsInChildren<WeaponIconGraphic>().Length);
             Assert.AreEqual(1, playback.GetComponentsInChildren<FiveLaneTrackGraphic>().Length);
             LogAssert.NoUnexpectedReceived();
         }
@@ -153,6 +160,9 @@ namespace BBSB.Tests
             Assert.IsTrue(run.EquipWeapon(2, 1, 2));
             Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
             var playback = root.GetComponentInChildren<FiveLanePlayback>(); var battle = playback.Battle;
+            var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
+            Assert.AreEqual(battle.Lanes.Count, hud.actors.Find("Orbiting weapons").GetComponentsInChildren<WeaponIconGraphic>().Length,
+                "A two-line shield must still have only one physical shield.");
             var healthLabels = playback.GetComponentsInChildren<TMP_Text>().Where(t => t.name.StartsWith("Monster health ")).ToArray();
             Assert.AreEqual(battle.Formation.Monsters.Count, healthLabels.Length);
             Assert.IsTrue(healthLabels.All(t => t.text.Contains(" / ")));
@@ -272,7 +282,9 @@ namespace BBSB.Tests
             var custom = hud.weaponRoots[0]; custom.anchorMin = new Vector2(.11f, .21f); custom.offsetMin = new Vector2(13, 17);
             var min = custom.anchorMin; var offset = custom.offsetMin;
             Assert.IsTrue(hud.EnsureStageLayout());
-            Assert.Less(text.anchorMax.y, .53f); Assert.Greater(text.anchorMin.y, .45f);
+            Assert.Less(text.anchorMax.y, .55f); Assert.Greater(text.anchorMin.y, .45f);
+            Assert.Less(hud.playerSlot.anchorMax.x, hud.monsterArea.anchorMin.x);
+            Assert.AreEqual(new Vector2(.38f, .54f), hud.monsterArea.anchorMin);
             Assert.AreEqual(min, custom.anchorMin); Assert.AreEqual(offset, custom.offsetMin);
             Assert.IsFalse(hud.EnsureStageLayout(), "Migration must be idempotent.");
         }

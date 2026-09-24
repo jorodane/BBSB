@@ -62,13 +62,14 @@ namespace BBSB.Runtime.UI
             foreach (var note in composed.Notes)
             {
                 float x = X(note.Beat), y = Y((offset + note.LaneOffset) % width);
-                var tint = owner.Side == WeaponBeatSide.Dark ? BattleVisualTheme.NoteColor(note.Beat + .5) : BattleVisualTheme.NoteColor(note.Beat);
+                var tint = note.IsCall ? RunUI.Teal : owner.Side == WeaponBeatSide.Dark ? BattleVisualTheme.NoteColor(note.Beat + .5) : BattleVisualTheme.NoteColor(note.Beat);
                 if (note.IsHold)
                 {
                     NoteWorkshopMesh.Quad(vh, x, y - 6, X(note.Beat + note.HoldBeats) - x, 12, new Color(tint.r, tint.g, tint.b, .4f));
                     NoteWorkshopMesh.Quad(vh, X(note.Beat + note.HoldBeats) - 1, y - 9, 2, 18, tint);
                 }
-                if (note.IsInjected) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 6, RunUI.Teal);
+                if (note.IsCall) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 10, tint);
+                else if (note.IsInjected) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 6, RunUI.Teal);
                 else if (note.ConnectFromPrevious) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 5, tint);
                 else NoteWorkshopMesh.Quad(vh, x - 10, y - 7, 20, 14, tint);
             }

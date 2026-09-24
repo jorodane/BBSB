@@ -183,11 +183,11 @@ namespace BBSB.Tests
         {
             var weapons = new[] { new WeaponState("spirit-bell"), new WeaponState("dagger", WeaponAttribute.Dark) };
             var b = new FiveLaneBattle(weapons, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100);
-            Tap(b, 0); var start = b.ScheduledStarts.Single(); Check.Equal(1.5, start.Beat);
+            Tap(b, 0); Tap(b, 1); var start = b.ScheduledStarts.Single(); Check.Equal(2.5, start.Beat);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
-            Check.Equal(1.5, timeline.Notes.Single(n => n.Slot == 1).Beat);
-            b.Advance(1.5); Check.Equal(0m, b.TotalDamage); Check.Equal(WeaponBeatSide.Dark, b.LaneAt(1).ActiveSide);
-            Tap(b, 1.5, 1); Check.Equal(6m, b.TotalDamage); Check.Equal(3.5, b.LaneAt(1).NextBeat);
+            Check.Equal(2.5, timeline.Notes.Single(n => n.Slot == 1).Beat);
+            b.Advance(2.5); Check.Equal(0m, b.TotalDamage); Check.Equal(WeaponBeatSide.Dark, b.LaneAt(1).ActiveSide);
+            Tap(b, 2.5, 1); Check.Equal(6m, b.TotalDamage); Check.Equal(4.5, b.LaneAt(1).NextBeat);
         }
         [Test] public void ChaosRejectsNonRepeatingBasesAndBridgesThatCannotSwitchPhase()
         {

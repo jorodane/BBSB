@@ -47,7 +47,7 @@ namespace BBSB.Tests
                 Check.Equal(2, b.PerfectCount); Check.Equal(cases[i, 1] + 2, b.Lanes[4].NextBeat);
             }
         }
-        [Test] public void EveryBuiltInWeaponAcceptsItsOpeningWithoutAnEnemyTarget()
+        [Test] public void EveryBuiltInWeaponAcceptsItsInvocationWithoutAnEnemyTarget()
         {
             foreach (var phrase in WeaponPhraseCatalog.All)
             {
@@ -61,6 +61,12 @@ namespace BBSB.Tests
                 {
                     Check.Equal(.5, b.ShieldAt(0).StartBeat); Check.Equal(PhraseLanePhase.Playing, b.ShieldAt(0).Phase);
                     Check.Equal(PhraseLanePhase.Ready, b.ShieldAt(1).Phase); Check.Equal(0m, b.TotalBlocked); continue;
+                }
+                if (phrase.FirstNoteDelayBeats > 0)
+                {
+                    Check.Equal(1.5, lane.StartBeat); Check.False(lane.Holding);
+                    Check.Equal(0, b.PerfectCount); Check.Equal(0, lane.Activations); Check.Equal(0m, b.TotalDamage);
+                    continue;
                 }
                 Check.Equal(.5 + (phrase.Repeat && phrase.Notes.Count == 1 ? phrase.LengthBeats : 0), lane.StartBeat);
                 if (phrase.Notes[0].IsHold) Check.True(lane.Holding);
@@ -430,13 +436,13 @@ namespace BBSB.Tests
             Check.Equal("dagger,heater-shield", string.Join(",", run.Weapons.Select(w => w.DefinitionId)));
             run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id);
             var b = run.StartFiveLaneBattle(); Check.True(b != null); Check.True(run.StartRhythmRound() == null);
-            b.Press(0, 0); b.Release(0, 0); b.Advance(1.25); b.Pause();
+            b.Press(0, 0); b.Release(0, 0); b.Press(0, 1); b.Release(0, 1); b.Advance(1.25); b.Pause();
             var again = run.StartFiveLaneBattle(); Check.True(ReferenceEquals(b, again));
             Check.Equal(1.25, again.Beat); Check.Equal(PhraseLanePhase.Playing, again.Lanes[0].Phase);
-            Check.Equal(0, again.MissCount); Check.Equal(2.0, again.Lanes[0].NextBeat); Check.True(again.Lanes[0].CanRepeat);
-            b.Resume(); b.Advance(2.25); b.Pause(); double ready = b.Lanes[0].ReadyAtBeat;
+            Check.Equal(0, again.MissCount); Check.Equal(3.0, again.Lanes[0].NextBeat); Check.True(again.Lanes[0].CanRepeat);
+            b.Resume(); b.Advance(3.25); b.Pause(); double ready = b.Lanes[0].ReadyAtBeat;
             again = run.StartFiveLaneBattle(); Check.True(ReferenceEquals(b, again));
-            Check.Equal(2.25, again.Beat); Check.Equal(PhraseLanePhase.Cooldown, again.Lanes[0].Phase);
+            Check.Equal(3.25, again.Beat); Check.Equal(PhraseLanePhase.Cooldown, again.Lanes[0].Phase);
             Check.Equal(1, again.MissCount); Check.False(again.Lanes[0].CanRepeat);
             Check.Equal(ready, again.Lanes[0].ReadyAtBeat);
         }

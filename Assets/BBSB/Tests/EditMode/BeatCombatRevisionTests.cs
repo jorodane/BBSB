@@ -142,8 +142,8 @@ namespace BBSB.Tests
             foreach (bool complete in new[] { false, true })
             {
                 var b = new FiveLaneBattle(new[] { new WeaponState("bow") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100);
-                b.Press(0, 0); Check.Equal(PhraseNoteState.Locked, b.Lanes[0].NoteStates[1]);
-                Check.False(b.Lanes[0].IsNoteVisible(1)); b.Release(0, complete ? 1 : .5);
+                b.Press(0, 0); b.Release(0, 0); b.Press(0, 1); Check.Equal(PhraseNoteState.Locked, b.Lanes[0].NoteStates[1]);
+                Check.False(b.Lanes[0].IsNoteVisible(1)); b.Release(0, complete ? 2 : 1.5);
                 Check.Equal(complete, b.Lanes[0].IsNoteVisible(1));
                 Check.Equal(complete ? PhraseNoteState.Pending : PhraseNoteState.Skipped, b.Lanes[0].NoteStates[1]);
             }

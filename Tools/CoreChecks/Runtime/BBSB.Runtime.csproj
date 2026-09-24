@@ -26,6 +26,7 @@
     <Compile Include="../../../Assets/BBSB/Runtime/UI/NamedResourceClips.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponFormation.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/FiveLaneWeaponMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponTrailHistory.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponArtLayout.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponAttributeArtLayout.cs" />

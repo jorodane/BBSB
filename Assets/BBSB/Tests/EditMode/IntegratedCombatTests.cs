@@ -48,8 +48,8 @@ namespace BBSB.Tests
             var battle = new FiveLaneBattle(new[] { weapon }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100);
             weapon.SetNoteBindings(Array.Empty<WeaponNoteBinding>());
             Check.Equal(2, battle.Lanes[0].Weapon.NoteBindings.Count); Check.Equal(7, battle.Lanes[0].Phrase.Notes.Count);
-            battle.Press(0, 0); battle.Release(0, 1); battle.Press(0, 2); battle.Release(0, 2);
-            battle.Press(0, 2.5); battle.Release(0, 2.5); Check.Equal(50.4m, battle.TotalDamage);
+            battle.Press(0, 0); battle.Release(0, 0); battle.Press(0, 1); battle.Release(0, 2); battle.Press(0, 3); battle.Release(0, 3);
+            battle.Press(0, 3.5); battle.Release(0, 3.5); Check.Equal(50.4m, battle.TotalDamage);
             Check.Equal(0, battle.MissCount);
         }
         [Test] public void ExtraTapRejectsOccupiedBeatsWhileHoldTransformationKeepsEveryVariant()
@@ -158,6 +158,8 @@ namespace BBSB.Tests
             battle.Press(0, 0); battle.Advance(3.25);
             Check.Equal(12m, battle.LightResonance); Check.Equal(0m, battle.DarkResonance); Check.Equal(988m, battle.PlayerHealth);
             battle.Press(1, 3.25); battle.Release(1, 3.25);
+            Check.Equal(0m, battle.TotalDamage); battle.Release(0, 3.25);
+            battle.Press(1, battle.Lanes[1].NextBeat); battle.Release(1, battle.Beat);
             Check.Equal(9m, battle.TotalDamage); Check.Equal(0m, battle.LightResonance);
             var parry = ShieldBattle(new[] { "heater-shield", "resonance-shield" }, new BeatAttack("front", 1, 48, 4));
             parry.Press(1, 0); parry.Press(0, 1); parry.Advance(5.25);
@@ -178,7 +180,9 @@ namespace BBSB.Tests
         {
             FiveLaneBattle Create()
             {
-                var b = ShieldBattle(new[] { "spirit-bell", "wide-shield" }, new BeatAttack("enemy", 1, 10));
+                var b = new FiveLaneBattle(new[] { new WeaponState("spirit-bell"), new WeaponState("wide-shield") },
+                    120, 32, new[] { new BeatAttack("enemy", 1, 10) }, new StageHealth(10000), 1000, 1000,
+                    phrases: new[] { WeaponPhraseCatalog.Find("spirit-bell").WithFirstNoteDelay(0), WeaponPhraseCatalog.Find("wide-shield") });
                 b.Press(1, 0); b.Release(1, .1); b.Press(0, .2); b.Release(0, .2); return b;
             }
             var untouched = Create(); untouched.Advance(1.25);
@@ -212,7 +216,7 @@ namespace BBSB.Tests
             var support = ShieldBattle(new[] { "tuning-fork", "wide-shield" });
             support.Press(2, 0); support.Release(2, .1);
             support.Press(3, .1); support.Release(3, .2);
-            support.Press(0, .3); support.Release(0, .3); support.Press(1, 1);
+            support.Press(0, .3); support.Release(0, .3); support.Press(0, 2); support.Release(0, 2); support.Press(1, 3);
             Check.Equal(PhraseLanePhase.Ready, support.ShieldAt(2).Phase);
             Check.Equal(PhraseLanePhase.Ready, support.ShieldAt(3).Phase);
             Check.False(support.RequiresHeldInput(2)); Check.False(support.RequiresHeldInput(3));

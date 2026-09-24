@@ -90,12 +90,13 @@ namespace BBSB.Runtime.UI
             for (int lane = 0; lane < keys.Count; lane++)
             {
                 var input = Playback.InputAt(beat, lane);
-                keys[lane].color = input == NoteDemoInput.Press ? RunUI.Gold : input == NoteDemoInput.Hold ? RunUI.Teal :
+                keys[lane].color = input == NoteDemoInput.Press ? RunUI.Gold : input == NoteDemoInput.Hold || input == NoteDemoInput.Invoke || input == NoteDemoInput.Call ? RunUI.Teal :
                     input == NoteDemoInput.Release ? RunUI.Hex("49335B") : RunUI.Ink;
                 keyTexts[lane].color = input == NoteDemoInput.Press || input == NoteDemoInput.Hold ? RunUI.Ink : RunUI.TextColor;
-                keyTexts[lane].text = keyNames[lane] + "\n" + (input == NoteDemoInput.Press ? "누름" : input == NoteDemoInput.Hold ? "유지" : input == NoteDemoInput.Release ? "떼기" : "·");
+                keyTexts[lane].text = keyNames[lane] + "\n" + (input == NoteDemoInput.Invoke ? "호출" : input == NoteDemoInput.Call ? "콜" : input == NoteDemoInput.Press ? "누름" : input == NoteDemoInput.Hold ? "유지" : input == NoteDemoInput.Release ? "떼기" : "·");
             }
             status.text = beat < 0 ? "자동 입력 준비 · " + Math.Ceiling(-beat) :
+                Playback.PreparationRemaining(beat) > 0 ? "호출 → 첫 노트까지 " + Playback.PreparationRemaining(beat).ToString("0.0") + "박" :
                 Playback.PatternBeat(beat) < 0 ? "쉬고 다시 시작" : (Playback.PatternBeat(beat) + 1).ToString("0.0") + "박";
             int used = 0;
             Playback.VisitNotes(beat, beat + 3, (note, start, end, lane) =>
@@ -107,14 +108,14 @@ namespace BBSB.Runtime.UI
                 // Screen-space distance is linear all the way to the judgment line.
                 float head = field.rect.height * (.92f - .89f * (float)Math.Max(0, start - beat) / 3);
                 float tail = field.rect.height * (.92f - .89f * (float)Math.Min(3, end - beat) / 3);
-                Color tint = BattleVisualTheme.NoteColor(note.Beat + (side == WeaponBeatSide.Dark ? .5 : 0));
+                Color tint = note.IsCall ? RunUI.Teal : BattleVisualTheme.NoteColor(note.Beat + (side == WeaponBeatSide.Dark ? .5 : 0));
                 bool connected = Playback.ConnectsFromPrevious(note, start);
                 RunUI.Pin(art.Tail, Vector2.zero, new Vector2(.5f, 0), new Vector2(x, tail), new Vector2(Mathf.Min(unit * .5f, 80), Mathf.Max(0, head - tail)));
                 art.Tail.gameObject.SetActive(note.IsHold && end > beat);
                 art.Body.color = new Color(tint.r, tint.g, tint.b, .4f);
                 RunUI.Pin(art.Head, Vector2.zero, new Vector2(.5f, .5f), new Vector2(x, head),
                     new Vector2(Mathf.Min(unit * (connected ? .5f : .78f), connected ? 80 : 112), connected ? 3 : 28));
-                art.Face.sprite = theme == null || connected ? null : theme.NoteSprite(note.Beat + (side == WeaponBeatSide.Dark ? .5 : 0));
+                art.Face.sprite = theme == null || connected || note.IsCall ? null : theme.NoteSprite(note.Beat + (side == WeaponBeatSide.Dark ? .5 : 0));
                 art.Face.color = art.Face.sprite == null ? tint : Color.white;
                 art.Head.gameObject.SetActive(!connected || start > beat);
             });

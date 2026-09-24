@@ -91,9 +91,11 @@ namespace BBSB.Runtime.UI
             if (stageBadge == null)
             { stageBadge = Text(ui, transform, "", 18, .735f, .94f, .92f, .98f); changed = true; }
             beat.richText = true; rhythmBeat.richText = true;
-            if (stageLayoutVersion >= 3) return changed;
+            if (stageLayoutVersion >= 4) return changed;
+            if (stageLayoutVersion == 3)
+            { UpgradeCombatLayout(); stageLayoutVersion = 4; return true; }
             if (stageLayoutVersion >= 2)
-            { UpgradeReferenceLayout(); stageLayoutVersion = 3; return true; }
+            { UpgradeReferenceLayout(); UpgradeCombatLayout(); stageLayoutVersion = 4; return true; }
             if (stageLayoutVersion < 1)
             {
                 MoveDefault(song.rectTransform, .30f, .93f, .70f, .99f, .72f, .025f, .92f, .09f);
@@ -118,7 +120,7 @@ namespace BBSB.Runtime.UI
             MoveDefault(monsterArea, .39f, .50f, .86f, .88f, .43f, .50f, .91f, .86f);
             // Keep the global countdown clear of per-enemy attack labels.
             MoveDefault(attackCue.rectTransform, .40f, .82f, .86f, .89f, .015f, .82f, .38f, .88f);
-            UpgradeReferenceLayout(); stageLayoutVersion = 3;
+            UpgradeReferenceLayout(); UpgradeCombatLayout(); stageLayoutVersion = 4;
             return true;
         }
         private void UpgradeReferenceLayout()
@@ -143,6 +145,14 @@ namespace BBSB.Runtime.UI
             }
             beat.fontSize = 36; health.fontSize = 18; help.fontSize = 13; feedback.fontSize = 23; song.fontSize = 13;
         }
+        private void UpgradeCombatLayout()
+        {
+            MoveDefault(playerSlot, .38f, .505f, .62f, .785f, .03f, .54f, .27f, .84f);
+            MoveDefault(monsterArea, .23f, .735f, .84f, .955f, .38f, .54f, .95f, .88f);
+            MoveDefault(health.rectTransform, .605f, .48f, .735f, .515f, .185f, .505f, .31f, .54f);
+            MoveDefault((RectTransform)playerFill.parent, .405f, .49f, .60f, .505f, .04f, .52f, .18f, .535f);
+            MoveDefault(attackCue.rectTransform, .01f, .50f, .22f, .55f, .26f, .77f, .41f, .84f);
+        }
         public void ConfigureLanes(BBSB.Core.FiveLaneBattle battle)
         {
             EnsureExtensionSlots(battle.Extensions);
@@ -158,6 +168,8 @@ namespace BBSB.Runtime.UI
                 float headerX = FiveLaneTrackGraphic.InputPoint(i, 1, battle.Extensions).x;
                 float half = (float)BattleBoardLayout.CellWidth(1, battle.Extensions) * .47f;
                 float judgmentY = (float)BattleBoardLayout.FarY;
+                float iconHalf = Mathf.Min(half * .6f, .025f);
+                Place(weaponRoots[i], headerX - iconHalf, .468f, headerX + iconHalf, .515f);
                 Place(judgmentPoints[i], headerX - half, judgmentY - .01f, headerX + half, judgmentY + .01f);
                 Place(laneLabels[i].rectTransform, headerX - half, judgmentY + .008f, headerX + half, .464f);
                 laneLabels[i].fontSize = 17; laneLabels[i].enableAutoSizing = true;

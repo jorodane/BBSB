@@ -18,6 +18,7 @@ namespace BBSB.Runtime.UI
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
         private readonly FiveLaneEffectsView effects;
+        private readonly FiveLaneWeaponsView weapons;
         private readonly BattleThemeView themeView;
         private readonly List<StageActor> stageActors = new List<StageActor>();
         private readonly List<TMP_Text> attackLabels = new List<TMP_Text>();
@@ -76,7 +77,7 @@ namespace BBSB.Runtime.UI
                 hud.laneLabels[i].text = Keys[i];
                 hud.laneLabels[i].color = lane == null ? RunUI.Muted : RunUI.TextColor;
                 if (lane == null) continue;
-                var weaponMesh = ui.Rect("Live weapon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
+                var weaponMesh = ui.Rect("Lane weapon icon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
                 icons[i] = weaponMesh.gameObject.AddComponent<WeaponIconGraphic>();
                 icons[i].FitVisibleArtwork = true; icons[i].Bind(lane.Weapon);
                 // The old gesture sockets described automatic responses. This screen shows the weapon's phrase instead.
@@ -127,7 +128,9 @@ namespace BBSB.Runtime.UI
                 FiveLaneHudBindings.Place(cue.rectTransform, x0, .85f, x1, .89f);
                 attackLabels.Add(cue);
             }
-            effects = new FiveLaneEffectsView(presentation, battle, ui, hud, tracks, enemySlots, monsterIds, species);
+            weapons = new FiveLaneWeaponsView(battle, ui, hud, enemySlots, monsterIds);
+            tracks.BindEnemySlots(enemySlots, monsterIds);
+            effects = new FiveLaneEffectsView(presentation, battle, ui, hud, tracks, enemySlots, monsterIds, species, weapons);
         }
         private ActorPrefabView Actor(string name, RectTransform stage, int index, int count, GameObject prefab,
             RuntimeAnimatorController controller, Sprite sprite, float reference, float scale, Vector2 offset)
@@ -152,7 +155,7 @@ namespace BBSB.Runtime.UI
                 {
                     var monster = battle.Formation.Find(monsterIds[i]); var slot = stageActors[i + 1].Slot;
                     bool front = ReferenceEquals(monster, battle.Formation.Front);
-                    // Reserve the center above the player for the central floating weapon.
+                    // The frontline faces the player; the reserve waits behind it.
                     if (monsterIds.Count == 1 || front) FiveLaneHudBindings.Place(slot, .02f, 0, .42f, .90f);
                     else
                     {
@@ -200,21 +203,20 @@ namespace BBSB.Runtime.UI
             {
                 var lane = battle.LaneAt(i);
                 if (lane == null) continue;
-                hud.laneResults[i].text = battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
+                hud.laneResults[i].text = lane.Phase == PhraseLanePhase.Playing && lane.Cycle.Index == 0 && lane.NextNote == 0 &&
+                    lane.Phrase.FirstNoteDelayBeats > 0 && battle.Beat < lane.NextBeat ? "CALL · " + (lane.NextBeat - battle.Beat).ToString("0.0") :
+                    battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
                 hud.laneResults[i].color = lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
                 icons[i].color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
-                icons[i].SetPose(FiveLaneArtTimeline.Weapon(lane, battle.Beat));
+                icons[i].SetPose(RangedWeaponPose.Idle);
                 var contact = battle.ShieldAt(i);
                 if (contact != null)
                 {
                     hud.laneResults[i].text = battle.Beat - contact.LastJudgedBeat < 1 ? contact.Feedback : "";
                     icons[i].color = contact.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 }
-                // Beat-driven recoil gives each successful input a readable weapon response.
-                double age = battle.Beat - lane.LastJudgedBeat;
-                float pulse = age >= 0 && age < .4 && lane.LastGrade != RhythmGrade.Miss ? 1 - (float)(age / .4) : 0;
-                hud.weaponRoots[i].localScale = Vector3.one * (1 + pulse * .18f);
-                hud.weaponRoots[i].localRotation = Quaternion.Euler(0, 0, pulse * (i % 2 == 0 ? -24 : 24));
+                hud.weaponRoots[i].localScale = Vector3.one;
+                hud.weaponRoots[i].localRotation = Quaternion.identity;
             }
             if (string.IsNullOrEmpty(hud.feedback.text))
             {
@@ -262,6 +264,7 @@ namespace BBSB.Runtime.UI
                 nearestAttack <= battle.PerfectWindow ? "PARRY NOW" : "PARRY IN " + nearestAttack.ToString("0.0") + " BEATS";
             hud.attackCue.color = nearestAttack <= .5 ? RunUI.Gold : RunUI.Red;
             player.RefreshSprites();
+            weapons.Refresh();
             tracks.Refresh();
             themeView.Refresh();
             effects.Refresh();

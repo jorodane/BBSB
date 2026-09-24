@@ -18,7 +18,13 @@ namespace BBSB.Core
         public ScheduledStartState State { get; internal set; }
         public int SlotForNote(int index) => Target.InputSlots[(StartOffset + Phrase.Notes[index].LaneOffset) % Target.InputSlots.Count];
         internal ScheduledPhraseStart(PhraseLane target, int slot, double beat)
-        { Target = target; Slot = slot; StartOffset = target.Placement.OffsetOf(slot); Beat = target.PlanStartBeat(beat); }
+        {
+            Target = target; Slot = slot; StartOffset = target.Placement.OffsetOf(slot);
+            double first = target.PlanStartBeat(beat);
+            var phrase = target.Patterns.For(StartOffset, WeaponAttributes.SideAt(first));
+            // The bell already provides one beat of lead. Longer preparations still apply.
+            Beat = first + Math.Max(0, Math.Ceiling(beat - 1 + phrase.FirstNoteDelayBeats - first - .000001));
+        }
     }
     public sealed class BeatAttack
     {
@@ -113,6 +119,7 @@ namespace BBSB.Core
         public double LastDamageBeat { get; internal set; } = double.NegativeInfinity;
         public string LastDamageMonsterId { get; internal set; }
         public int Activations { get; internal set; }
+        public double InvokedAtBeat { get; internal set; } = double.NegativeInfinity;
         internal RhythmGrade HoldGrade;
         internal bool FailedCycle;
         internal bool ParryRecoveredCooldown;
@@ -140,10 +147,16 @@ namespace BBSB.Core
         }
         internal void SelectStart(int offset, double at, bool reserved = false)
         {
+            double invokedAt = at;
             if (!reserved) at = PlanStartBeat(at);
             StartOffset = offset; activationSequence++;
             var side = WeaponAttributes.SideAt(at);
-            SelectCycle(new WeaponRhythmCycle(Patterns.For(offset, side), side, at, at, 0));
+            var phrase = Patterns.For(offset, side);
+            // Keep the chosen Light/Dark grid, and guarantee the configured lead.
+            // A reservation already names the first judged beat, so do not delay it twice.
+            if (!reserved && phrase.FirstNoteDelayBeats > 0)
+                at += Math.Max(0, Math.Ceiling(invokedAt + phrase.FirstNoteDelayBeats - at - .000001));
+            SelectCycle(new WeaponRhythmCycle(phrase, side, at, at, 0));
         }
         internal void SelectCycle(WeaponRhythmCycle cycle)
         {
@@ -322,12 +335,16 @@ namespace BBSB.Core
                 // A fresh input chooses the phrase's phase; it is not a timing test.
                 // Repeats stay Playing and never receive this opening grace again.
                 BeginActivation(lane, slot, Beat);
+                if (lane.Phrase.FirstNoteDelayBeats > 0)
+                { lane.Feedback = "CALL"; return; }
             }
             // A different occupied line is a distinct input. It cannot hit this line's note
             // or switch the starting variant midway through an activation.
             if (slot != lane.SlotForNote(lane.NextNote)) return;
             double error = Math.Abs(Beat - lane.NextBeat);
             var note = lane.Phrase.Notes[lane.NextNote];
+            if (lane.Cycle.Index == 0 && lane.NextNote == 0 && lane.Phrase.FirstNoteDelayBeats > 0 &&
+                Beat < lane.NextBeat - HalfMissWindow - Epsilon) return;
             bool pressParry = note.IsParry && lane.Phrase.ParriesOnKeyDown;
             if (!starting && error > HalfMissWindow + Epsilon) { Miss(lane); return; }
             var grade = starting || error <= PerfectWindow + Epsilon ? RhythmGrade.Perfect : RhythmGrade.HalfMiss;
@@ -344,11 +361,11 @@ namespace BBSB.Core
                 if ((!starting || lane.GuardUntilBeat > Beat) && parried && parryGrade == RhythmGrade.HalfMiss) grade = RhythmGrade.HalfMiss;
                 lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Feedback = parried ? "PARRY" : "GUARD";
             }
-            AttachActiveHolds(lane, slot, grade);
+            if (!note.IsCall) AttachActiveHolds(lane, slot, grade);
             if (note.IsHold || lane.GuardUntilBeat > Beat)
             {
                 lane.Holding = true; lane.HoldingSlot = slot; lane.states[lane.NextNote] = PhraseNoteState.Holding; lane.HoldGrade = grade;
-                lane.Feedback = lane.parried[lane.NextNote] ? "PARRY / HOLD" : lane.Phrase.HoldDamageReduction > 0 ? "GUARD" : "HOLD";
+                lane.Feedback = note.IsCall ? "CALL / HOLD" : lane.parried[lane.NextNote] ? "PARRY / HOLD" : lane.Phrase.HoldDamageReduction > 0 ? "GUARD" : "HOLD";
             }
             else Succeed(lane, grade);
         }
@@ -553,7 +570,7 @@ namespace BBSB.Core
             lane.GuardUntilBeat = double.NegativeInfinity;
             lane.states[lane.NextNote] = PhraseNoteState.Hit;
             lane.Holding = false; lane.LastGrade = grade; lane.LastJudgedBeat = Beat; lane.Activations++;
-            lane.Feedback = note.IsParry ?
+            lane.Feedback = note.IsCall ? "CALL OK" : note.IsParry ?
                 (note.IsHold && !lane.Phrase.ParriesOnKeyUp ? "HOLD OK" :
                     lane.parried[lane.NextNote] ? "PARRY" : "OK") :
                 grade == RhythmGrade.Perfect ? "PERFECT" : "HALF";
@@ -583,7 +600,7 @@ namespace BBSB.Core
             if (!SelectNext(lane))
             {
                 if (!lane.FailedCycle) lane.CompletedPhrases++;
-                if (!lane.FailedCycle && lane.Phrase.FinisherEvery > 0 && lane.CompletedPhrases % lane.Phrase.FinisherEvery == 0)
+                if (!note.IsCall && !lane.FailedCycle && lane.Phrase.FinisherEvery > 0 && lane.CompletedPhrases % lane.Phrase.FinisherEvery == 0)
                 {
                     damage += lane.Phrase.FinisherDamage;
                     var victim = Formation?.TargetFor(note.Target);
@@ -612,9 +629,12 @@ namespace BBSB.Core
                 if (Beat < lane.DamageBoostUntilBeat) damage *= lane.PendingDamageMultiplier;
                 lane.PendingDamageMultiplier = 1m; lane.DamageBoostUntilBeat = double.NegativeInfinity;
             }
-            if (damage > 0) lane.LastDamageBeat = Beat;
-            if (Formation == null) EnemyHealth.Damage(damage);
-            else lane.LastDamageMonsterId = Formation.Damage(damage, note.Target, Beat);
+            if (damage > 0)
+            {
+                lane.LastDamageBeat = Beat;
+                if (Formation == null) EnemyHealth.Damage(damage);
+                else lane.LastDamageMonsterId = Formation.Damage(damage, note.Target, Beat);
+            }
             lane.DamageDealt += damage; TotalDamage += damage;
             if (!Finished && wasHolding && lane.Phase == PhraseLanePhase.Playing &&
                 heldInputs[heldSlot] && lane.SlotForNote(lane.NextNote) == heldSlot &&
@@ -685,6 +705,7 @@ namespace BBSB.Core
             // Changing variants starts a new streak; a miss already clears it.
             if (offset != lane.StartOffset) lane.CompletedPhrases = 0;
             lane.SelectStart(offset, at, origin != null); lane.Holding = false; lane.HoldingSlot = -1; lane.ScheduledOrigin = origin;
+            lane.InvokedAtBeat = at;
             BeginCycle(lane);
         }
         private void StartScheduled(ScheduledPhraseStart start)
@@ -719,7 +740,21 @@ namespace BBSB.Core
             for (int i = 0; i < lane.states.Length; i++)
             {
                 if (lane.states[i] != PhraseNoteState.Locked) continue;
-                var note = lane.Phrase.Notes[i]; var state = lane.states[note.Prerequisite];
+                var note = lane.Phrase.Notes[i];
+                if (note.Condition == PhraseNoteCondition.AllCalls)
+                {
+                    bool waiting = false, failed = false;
+                    for (int j = 0; j < i; j++)
+                    {
+                        if (!lane.Phrase.Notes[j].IsCall) continue;
+                        waiting |= lane.states[j] == PhraseNoteState.Locked || lane.states[j] == PhraseNoteState.Pending || lane.states[j] == PhraseNoteState.Holding;
+                        failed |= lane.states[j] == PhraseNoteState.Missed || lane.states[j] == PhraseNoteState.Skipped;
+                    }
+                    if (failed) lane.states[i] = PhraseNoteState.Skipped;
+                    else if (!waiting) lane.states[i] = PhraseNoteState.Pending;
+                    continue;
+                }
+                var state = lane.states[note.Prerequisite];
                 if (state == PhraseNoteState.Locked || state == PhraseNoteState.Pending || state == PhraseNoteState.Holding) continue;
                 bool met = state == PhraseNoteState.Hit && (note.Condition != PhraseNoteCondition.Parry || lane.parried[note.Prerequisite]);
                 lane.states[i] = met ? PhraseNoteState.Pending : PhraseNoteState.Skipped;

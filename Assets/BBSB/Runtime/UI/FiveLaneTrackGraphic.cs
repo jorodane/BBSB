@@ -13,6 +13,7 @@ namespace BBSB.Runtime.UI
         private readonly FiveLaneNoteTimeline noteTimeline = new FiveLaneNoteTimeline();
         private RectTransform[] targets;
         private RectTransform playerTarget, enemySource;
+        private readonly Dictionary<string, RectTransform> enemySlots = new Dictionary<string, RectTransform>();
         public FiveLaneNoteTimeline NoteTimeline => noteTimeline;
         public ISet<string> SpriteProjectiles { get; set; }
         public bool SpriteNoteShatter { get; set; }
@@ -28,6 +29,8 @@ namespace BBSB.Runtime.UI
             RectTransform player = null, RectTransform enemies = null)
         { battle = value; targets = judgmentTargets; playerTarget = player; enemySource = enemies; raycastTarget = false; Refresh(); }
         public void Refresh() { noteTimeline.Refresh(battle); SetVerticesDirty(); }
+        internal void BindEnemySlots(IReadOnlyList<RectTransform> slots, IReadOnlyList<string> ids)
+        { enemySlots.Clear(); for (int i = 0; i < slots.Count; i++) enemySlots[ids[i]] = slots[i]; }
         public Vector3 NoteWorldPosition(int slot, double at) => rectTransform.TransformPoint(Position(slot, at));
         public Vector3 BrokenWorldPosition(BrokenTrackNote note) => rectTransform.TransformPoint(
             Point(note.Note.Slot, (float)SteppedNoteTrack.Depth(note.HeadDistance)));
@@ -73,7 +76,7 @@ namespace BBSB.Runtime.UI
                 {
                     if (shown.Slot != slot) continue;
                     double at = shown.Beat;
-                    var p = Position(slot, at); Color tint = BattleVisualTheme.NoteColor(at);
+                    var p = Position(slot, at); Color tint = shown.Definition.IsCall ? RunUI.Teal : BattleVisualTheme.NoteColor(at);
                     if (shown.IsPreview) tint.a = .32f;
                     if (shown.IsHold)
                     {
@@ -86,9 +89,9 @@ namespace BBSB.Runtime.UI
                         Line(vh, head + Vector2.right * headWidth, tail + Vector2.right * tailWidth, 2 * unit, tint);
                         if (shown.IsPreview) DashedLine(vh, head, tail, Alpha(tint, .6f));
                         if (!shown.ConnectsNext && SteppedNoteTrack.InHorizon(shown.EndBeat - battle.Beat))
-                            DrawNoteHead(vh, slot, shown.EndBeat, at, shown.IsPreview, shown.ReleaseParry);
+                            DrawNoteHead(vh, slot, shown.EndBeat, at, shown.IsPreview, shown.ReleaseParry, shown.Definition.IsCall);
                     }
-                    if (!shown.IsConnected) DrawNoteHead(vh, slot, at, at, shown.IsPreview, shown.PressParry);
+                    if (!shown.IsConnected) DrawNoteHead(vh, slot, at, at, shown.IsPreview, shown.PressParry, shown.Definition.IsCall);
                     else Line(vh, p - Vector2.right * NoteWidth(slot, at) * .25f,
                         p + Vector2.right * NoteWidth(slot, at) * .25f, 2 * unit, tint);
                 }
@@ -99,10 +102,12 @@ namespace BBSB.Runtime.UI
             }
             // The battlefield projectile also moves linearly during its final beat.
             var source = enemySource != null ? LocalPoint(enemySource, new Vector2(enemySource.rect.center.x, enemySource.rect.yMin)) : Pixel(new Vector2(.625f, .50f));
-            var target = playerTarget != null ? LocalPoint(playerTarget, playerTarget.rect.center) : Pixel(new Vector2(.185f, .43f));
+            var target = playerTarget != null ? LocalPoint(playerTarget, playerTarget.rect.center + Vector2.up * playerTarget.rect.height * .03f) : Pixel(new Vector2(.15f, .699f));
             foreach (var attack in battle.Incoming)
             {
                 if (SpriteProjectiles != null && SpriteProjectiles.Contains(attack.Definition.MonsterId)) continue;
+                if (enemySlots.TryGetValue(attack.Definition.MonsterId, out var actor))
+                    source = LocalPoint(actor, actor.rect.center - Vector2.up * actor.rect.height * .04f);
                 double delta = attack.Beat - battle.Beat;
                 if (delta > 1 || attack.EndBeat - battle.Beat < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
                 float t = (float)SteppedNoteTrack.ImpactProgress(attack.Beat, battle.Beat);
@@ -156,11 +161,18 @@ namespace BBSB.Runtime.UI
                 p + Vector2.right * width, p + Vector2.down * height, tint);
             Line(vh, p - Vector2.up * height * .6f, p + Vector2.up * height * .6f, 2, Color.white);
         }
-        private void DrawNoteHead(VertexHelper vh, int slot, double at, double colorBeat, bool preview, bool parry)
+        private void DrawNoteHead(VertexHelper vh, int slot, double at, double colorBeat, bool preview, bool parry, bool call)
         {
             var p = Position(slot, at); float width = NoteWidth(slot, at) * .4f;
             float height = rectTransform.rect.height * .007f;
-            var tint = BattleVisualTheme.NoteColor(colorBeat); if (preview) tint.a = .32f;
+            var tint = call ? RunUI.Teal : BattleVisualTheme.NoteColor(colorBeat); if (preview) tint.a = .32f;
+            if (call)
+            {
+                Quad(vh, p + Vector2.left * width, p + Vector2.up * height * 1.7f,
+                    p + Vector2.right * width, p + Vector2.down * height * 1.7f, tint);
+                Diamond(vh, p, height * .7f, Alpha(RunUI.Ink, tint.a));
+                return;
+            }
             if (Theme == null || Theme.NoteSprite(colorBeat) == null)
             {
                 Quad(vh, p + new Vector2(-width, -height), p + new Vector2(-width, height),

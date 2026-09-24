@@ -19,6 +19,11 @@ namespace BBSB.Tests
         {
             b.Press(slot, at); var lane = b.Lanes[0];
             b.Release(slot, lane.Holding ? Math.Max(at, lane.HoldEndBeat) : at);
+            if (lane.Phrase.FirstNoteDelayBeats > 0)
+            {
+                double first = lane.NextBeat;
+                b.Press(slot, first); b.Release(slot, lane.Holding ? lane.HoldEndBeat : first);
+            }
         }
         private static void FinishSection(FiveLaneBattle b)
         {
@@ -209,11 +214,11 @@ namespace BBSB.Tests
         [Test] public void BowDrawsRecoverIndependentlyAndThePoseClearsBetweenShots()
         {
             var b = Battle("bow", WeaponAttribute.Light); var lane = b.Lanes[0];
-            b.Press(0, 0); b.Release(0, .5); Check.Equal(PhraseNoteState.Skipped, lane.NoteStates[1]);
+            b.Press(0, 0); b.Release(0, 0); b.Press(0, 1); b.Release(0, 1.5); Check.Equal(PhraseNoteState.Skipped, lane.NoteStates[1]);
             Check.Equal(RangedWeaponPose.Idle, FiveLaneArtTimeline.Weapon(lane, b.Beat));
             FinishSection(b); Check.Equal(72m, b.TotalDamage); Check.Equal(1, b.MissCount);
             var good = Battle("bow", WeaponAttribute.Light); Open(good);
-            good.Press(0, 2); good.Release(0, 2); good.Advance(2.5);
+            good.Press(0, 3); good.Release(0, 3); good.Advance(3.5);
             Check.Equal(RangedWeaponPose.Idle, FiveLaneArtTimeline.Weapon(good.Lanes[0], good.Beat));
             Check.Equal("Base Layer.Idle", FiveLaneArtTimeline.Player(good).State);
             FinishSection(good); Check.Equal(96m, good.TotalDamage); Check.Equal(0, good.MissCount);

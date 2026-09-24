@@ -100,14 +100,14 @@ namespace BBSB.Tests
         {
             var weapon = new WeaponState("rapier");
             weapon.SetNoteBindings(new[] { Part(1, "inject-hold", 0), Part(2, "inject-hold", 1) });
-            var battle = Play(weapon); battle.Press(0, 0); battle.Advance(.5);
-            Check.True(battle.Lanes[0].Holding); Check.Equal(1.0, battle.Lanes[0].HoldEndBeat);
+            var battle = Play(weapon); battle.Press(0, 0); battle.Release(0, 0); battle.Press(0, 1); battle.Advance(1.5);
+            Check.True(battle.Lanes[0].Holding); Check.Equal(2.0, battle.Lanes[0].HoldEndBeat);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(battle);
-            Check.True(timeline.Notes.Any(n => n.Definition.ConnectFromPrevious && n.EndBeat == 1));
-            battle.Pause(); battle.Advance(10); Check.Equal(.5, battle.Beat);
-            Check.Equal(0, battle.RequiredHeldSlots.Single()); battle.Resume(); battle.Release(0, 1);
+            Check.True(timeline.Notes.Any(n => n.Definition.ConnectFromPrevious && n.EndBeat == 2));
+            battle.Pause(); battle.Advance(10); Check.Equal(1.5, battle.Beat);
+            Check.Equal(0, battle.RequiredHeldSlots.Single()); battle.Resume(); battle.Release(0, 2);
             Check.Equal(22m, battle.TotalDamage); Check.Equal(0, battle.MissCount);
-            var broken = Play(weapon); broken.Press(0, 0); broken.Release(0, .75);
+            var broken = Play(weapon); broken.Press(0, 0); broken.Release(0, 0); broken.Press(0, 1); broken.Release(0, 1.75);
             Check.Equal(1, broken.MissCount); Check.Equal(8.4m, broken.TotalDamage);
             Check.False(broken.Lanes[0].Holding); Check.False(broken.Lanes[0].CanRepeat);
         }
@@ -152,9 +152,9 @@ namespace BBSB.Tests
                 }
             }
             var chain = new WeaponState("chain-sickle"); chain.SetNoteBindings(new[] { Part(1, "inject-hold", 0), Part(2, "inject-hold", 1) });
-            var battle = Play(chain); battle.Press(0, 0); battle.Advance(.5);
+            var battle = Play(chain); battle.Press(0, 0); battle.Release(0, 0); battle.Press(0, 1); battle.Advance(1.5);
             Check.False(battle.Lanes[0].Holding); Check.Equal(1, battle.Lanes[0].SlotForNote(battle.Lanes[0].NextNote));
-            battle.Press(1, .5); battle.Advance(1); Check.Equal(25.2m, battle.TotalDamage); Check.Equal(0, battle.MissCount);
+            battle.Press(1, 1.5); battle.Advance(2); Check.Equal(25.2m, battle.TotalDamage); Check.Equal(0, battle.MissCount);
         }
 
         private static FiveLaneBattle Shields(string[] ids, BeatAttack[] attacks) => new FiveLaneBattle(

@@ -49,7 +49,7 @@ namespace BBSB.Core
         private void AttachHoldGuard(PhraseLane lane, int slot, RhythmGrade grade, IncomingBeatAttack attack)
         {
             var phrase = GuardPhrase(lane, slot); var note = phrase.Notes[IsSplitShield(lane) ? 0 : lane.NextNote];
-            if (!heldInputs[slot] || !note.IsHold || phrase.HoldDamageReduction <= 0 || !CoversAttack(lane, slot, attack)) return;
+            if (note.IsCall || !heldInputs[slot] || !note.IsHold || phrase.HoldDamageReduction <= 0 || !CoversAttack(lane, slot, attack)) return;
             decimal reduction = GuardReduction(lane, slot) *
                 (grade == RhythmGrade.Perfect ? 1m : .5m);
             BindHoldDefense(lane, slot, attack, reduction);

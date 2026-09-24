@@ -14,6 +14,7 @@ namespace BBSB.Runtime.UI
         private readonly FiveLaneBattle battle;
         private readonly RectTransform root, player;
         private readonly FiveLaneTrackGraphic tracks;
+        private readonly FiveLaneWeaponsView weapons;
         private readonly List<RectTransform> enemies;
         private readonly List<string> instances;
         private readonly List<Sprite> projectiles;
@@ -21,9 +22,9 @@ namespace BBSB.Runtime.UI
         private int used;
 
         public FiveLaneEffectsView(ShoulderViewPresentation art, FiveLaneBattle battle, RunUI ui, FiveLaneHudBindings hud,
-            FiveLaneTrackGraphic tracks, List<RectTransform> enemies, List<string> instances, List<string> species)
+            FiveLaneTrackGraphic tracks, List<RectTransform> enemies, List<string> instances, List<string> species, FiveLaneWeaponsView weapons)
         {
-            this.art = art; this.battle = battle; this.tracks = tracks; this.enemies = enemies; this.instances = instances;
+            this.art = art; this.battle = battle; this.tracks = tracks; this.enemies = enemies; this.instances = instances; this.weapons = weapons;
             player = hud.playerSlot;
             root = ui.Rect("Battle sprite effects", hud.transform); RunUI.Stretch(root);
             // Above bodies and note meshes, below health, labels and input surfaces.
@@ -42,12 +43,13 @@ namespace BBSB.Runtime.UI
         {
             if (art == null) return;
             used = 0;
-            Vector2 target = At(player, .72f, .53f);
+            Vector2 target = At(player, .5f, .53f);
+            Vector2 guard = target + Vector2.right * (Mathf.Min(player.rect.height, player.rect.width) * .30f);
             foreach (var lane in battle.Lanes)
                 if (FiveLaneArtTimeline.Guarding(lane))
-                { Draw(art.guard, target, .23f, .58f); break; }
+                { Draw(art.guard, guard, .23f, .58f); break; }
             foreach (var contact in battle.ShieldContacts)
-                if (contact.Phase == PhraseLanePhase.Playing) { Draw(art.guard, target, .25f, .58f); break; }
+                if (contact.Phase == PhraseLanePhase.Playing) { Draw(art.guard, guard, .25f, .58f); break; }
             foreach (var attack in battle.Incoming)
             {
                 int index = instances.IndexOf(attack.Definition.MonsterId);
@@ -67,23 +69,29 @@ namespace BBSB.Runtime.UI
                         Direction(target - source) - 225);
                 }
                 else if (attack.State == IncomingAttackState.Blocked && FiveLaneArtTimeline.Recent(battle.Beat, attack.ResolvedBeat, .45))
-                    Burst(art.parry, target, attack.ResolvedBeat, .27f, .45);
+                    Burst(art.parry, guard, attack.ResolvedBeat, .27f, .45);
                 if (attack.Definition.IsHold && FiveLaneArtTimeline.Recent(battle.Beat, attack.LastParryBeat, .45))
-                    Burst(art.parry, target, attack.LastParryBeat, .27f, .45);
+                    Burst(art.parry, guard, attack.LastParryBeat, .27f, .45);
             }
             if (FiveLaneArtTimeline.Recent(battle.Beat, battle.LastHitBeat, .4))
                 Burst(art.impact, target, battle.LastHitBeat, .2f, .4);
             for (int i = 0; i < battle.Lanes.Count && enemies.Count > 0; i++)
             {
                 var lane = battle.Lanes[i]; double age = battle.Beat - lane.LastDamageBeat;
-                if (age < 0 || age >= .65) continue;
+                var style = FiveLaneWeaponMotion.Style(lane);
+                double impact = WeaponMotion.ImpactSeconds(style) * battle.Bpm / 60;
+                if (age < 0 || age >= impact + .35) continue;
                 int victim = instances.IndexOf(lane.LastDamageMonsterId);
                 Vector2 enemy = At(enemies[victim >= 0 ? victim : i % enemies.Count], .5f, .48f);
                 bool ranged = WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged;
-                if (ranged && age < .3)
-                    Draw(art.arrow, Vector2.Lerp(target, enemy, (float)(age / .3)), .12f, 1, Direction(enemy - target) - 45);
-                else if (!ranged && age < .3) Burst(art.slash, enemy, lane.LastDamageBeat, .26f, .3);
-                if (age >= .3) Burst(art.impact, enemy, lane.LastDamageBeat + .3, .14f, .35);
+                Vector2 origin = root.InverseTransformPoint(weapons.Origin(lane));
+                if (ranged && age < impact)
+                    Draw(art.arrow, Vector2.Lerp(origin, enemy, (float)(age / impact)), .12f, 1, Direction(enemy - origin) - 45);
+                if (age >= impact)
+                {
+                    if (!ranged) Burst(art.slash, enemy, lane.LastDamageBeat + impact, .26f, .35);
+                    Burst(art.impact, enemy, lane.LastDamageBeat + impact, .14f, .35);
+                }
             }
             foreach (var note in tracks.NoteTimeline.Confirmed)
             {

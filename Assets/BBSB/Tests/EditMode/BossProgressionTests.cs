@@ -55,7 +55,8 @@ namespace BBSB.Tests
                     Check.True(run.Enter(run.Map.Nodes.First(n => run.CanEnter(n.Id)).Id));
                     var battle = run.StartFiveLaneBattle(); Check.True(battle != null);
                     foreach (int key in BattleInputLayout.DisplayOrder) Check.True(battle.IsInputAvailable(key));
-                    battle.Press(slot, 0); battle.Release(slot, 0); Check.Equal(1, battle.PerfectCount);
+                    battle.Press(slot, 0); battle.Release(slot, 0); Check.Equal(0, battle.PerfectCount);
+                    battle.Press(slot, 1); battle.Release(slot, 1); Check.Equal(1, battle.PerfectCount);
                     run.Abandon(); run.Restart(31);
                     Check.Equal(edge, run.Equipment.PlacementOf(run.OwnedWeapons[0]).Offset);
                 }

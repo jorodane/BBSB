@@ -42,23 +42,25 @@ namespace BBSB.Tests
             Check.Equal(3, timeline.Notes.Count);
             Check.False(At(timeline, 1).IsPreview); Check.True(At(timeline, 2).IsPreview); Check.True(At(timeline, 3).IsPreview);
             for (int i = 0; i < 20; i++) timeline.Refresh(b);
-            Check.Equal(1, b.Lanes[0].NoteStates.Count); Check.Equal(1, b.Combo); Check.Equal(6m, b.TotalDamage);
+            Check.Equal(1, b.Lanes[0].NoteStates.Count); Check.Equal(0, b.Combo); Check.Equal(0m, b.TotalDamage);
             Tap(b, 1); timeline.Refresh(b);
             Check.False(At(timeline, 2).IsPreview); Check.True(At(timeline, 3).IsPreview); Check.True(At(timeline, 4).IsPreview);
             Check.Equal(3, timeline.Notes.Count); Check.Equal(0, timeline.Broken.Count);
             Tap(b, 2.2); timeline.Refresh(b); // Half-miss still succeeds and preserves the forecast.
             Check.Equal(1, b.HalfMissCount); Check.False(At(timeline, 3).IsPreview); Check.Equal(0, timeline.Broken.Count);
         }
-        [Test] public void DefaultDaggerShowsOnlyTheTwoBeatPulseAndItsNextRepeatWithinTheHorizon()
+        [Test] public void DefaultDaggerShowsFirstResponseAndTheTwoBeatRepeat()
         {
             var b = CatalogBattle("dagger"); var timeline = new FiveLaneNoteTimeline();
             timeline.Refresh(b); Check.Equal(0, timeline.Notes.Count);
             Tap(b, 0); timeline.Refresh(b);
-            Check.Equal(1, timeline.Notes.Count); Check.False(At(timeline, 2).IsPreview);
-            b.Advance(1); timeline.Refresh(b);
-            Check.Equal(2, timeline.Notes.Count); Check.False(At(timeline, 2).IsPreview); Check.True(At(timeline, 4).IsPreview);
-            Tap(b, 2); timeline.Refresh(b);
-            Check.Equal(1, timeline.Notes.Count); Check.False(At(timeline, 4).IsPreview);
+            Check.Equal(2, timeline.Notes.Count); Check.False(At(timeline, 1).IsPreview); Check.True(At(timeline, 3).IsPreview);
+            Check.Equal(0m, b.TotalDamage);
+            Tap(b, 1); timeline.Refresh(b);
+            Check.Equal(1, timeline.Notes.Count); Check.False(At(timeline, 3).IsPreview);
+            b.Advance(2); timeline.Refresh(b); Check.True(At(timeline, 5).IsPreview);
+            Tap(b, 3); timeline.Refresh(b);
+            Check.Equal(1, timeline.Notes.Count); Check.False(At(timeline, 5).IsPreview);
             Check.Equal(0, timeline.Broken.Count); Check.Equal(12m, b.TotalDamage);
             Check.Equal(2, b.PerfectCount); Check.Equal(0, b.MissCount);
         }
@@ -92,11 +94,11 @@ namespace BBSB.Tests
         }
         [Test] public void FailedDualSwordsBreakFutureRepeatsWithoutMakingGhostsPlayable()
         {
-            var b = CatalogBattle("dual-swords"); Tap(b, 0);
+            var b = CatalogBattle("dual-swords"); Tap(b, 0); Tap(b, 1);
             var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
-            Tap(b, .75); timeline.Refresh(b); // Too early for the actual note at 1.
+            Tap(b, 1.75); timeline.Refresh(b); // Too early for the repeat at 2.
             Check.Equal(0, timeline.Notes.Count);
-            Check.True(timeline.Broken.Any(note => note.Note.Beat == 2));
+            Check.True(timeline.Broken.Any(note => note.Note.Beat == 4));
             Check.True(timeline.Broken.Any(note => note.Note.Beat == 3));
             Check.False(b.Lanes[0].CanRepeat); Tap(b, 2);
             Check.Equal(6m, b.TotalDamage); Check.Equal(1, b.MissCount); Check.Equal(0, b.Combo);
@@ -111,7 +113,7 @@ namespace BBSB.Tests
             Check.True(At(timeline, 2).IsPreview); Check.True(At(timeline, 4).IsPreview); Check.False(At(timeline, 3).IsPreview);
             b.Advance(1.25); timeline.Refresh(b);
             Check.Equal(1, timeline.Notes.Count); Check.False(At(timeline, 3).IsPreview);
-            Check.True(timeline.Broken.Any(note => note.Note.Beat == 2));
+            Check.True(timeline.Broken.Any(note => note.Note.Beat == 4));
             Check.True(timeline.Broken.Any(note => note.Note.Beat == 4));
             Check.False(timeline.Broken.Any(note => note.Note.Beat == 3));
             Tap(b, 3); Check.Equal(5m, b.TotalDamage); Check.Equal(1, b.MissCount);

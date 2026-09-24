@@ -65,11 +65,11 @@ namespace BBSB.Tests
         {
             var run = Parts("frame-mend"); var weapon = new WeaponState("bow"); run.Equipment.Acquire(weapon);
             var source = WeaponPhraseSet.Uniform(weapon); int id = run.NoteParts[0].InstanceId;
-            Check.True(NoteWorkshopModel.TryAttach(run, id, 2, 0, source, out _));
+            Check.True(NoteWorkshopModel.TryAttach(run, id, 2, 3, source, out _));
             Check.True(NoteWorkshopModel.TryAttach(run, id, 2, 1, source, out _));
             Check.Equal(1, weapon.NoteBindings.Single().BaseNoteIndex); Check.Equal(0, NoteWorkshopModel.FreeParts(run).Count);
             run.Enter(run.Map.Nodes.First(x => run.CanEnter(x.Id)).Id); Check.True(run.StartFiveLaneBattle() != null);
-            Check.False(NoteWorkshopModel.TryAttach(run, id, 2, 0, source, out _));
+            Check.False(NoteWorkshopModel.TryAttach(run, id, 2, 3, source, out _));
             Check.False(NoteWorkshopModel.Remove(run, id, weapon));
             Check.Equal(1, weapon.NoteBindings.Single().BaseNoteIndex);
         }
@@ -81,11 +81,11 @@ namespace BBSB.Tests
                 var demo = new NoteWorkshopPlayback(WeaponPhraseSet.Uniform(new WeaponState(pair.Item1)).LightStarts[0], 1, 0);
                 Check.Equal(pair.Item2, demo.LoopBeats);
                 Check.Equal(NoteDemoInput.Idle, demo.InputAt(-.01, 0));
-                Check.Equal(NoteDemoInput.Press, demo.InputAt(0, 0));
+                Check.Equal(NoteDemoInput.Invoke, demo.InputAt(0, 0));
                 Check.Equal(NoteDemoInput.Idle, demo.InputAt(.4, 0));
-                Check.Equal(NoteDemoInput.Press, demo.InputAt(pair.Item2, 0));
-                Check.Equal(NoteDemoInput.Press, demo.InputAt(pair.Item2 * 10000, 0));
-                Check.Equal(0d, demo.PatternBeat(pair.Item2 * 10000));
+                Check.Equal(NoteDemoInput.Press, demo.InputAt(1 + pair.Item2, 0));
+                Check.Equal(NoteDemoInput.Press, demo.InputAt(1 + pair.Item2 * 10000, 0));
+                Check.Equal(0d, demo.PatternBeat(1 + pair.Item2 * 10000));
             }
         }
 

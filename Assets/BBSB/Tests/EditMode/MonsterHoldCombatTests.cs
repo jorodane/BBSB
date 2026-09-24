@@ -140,7 +140,8 @@ namespace BBSB.Tests
         {
             var b = new FiveLaneBattle(new[] { new WeaponState("hammer", WeaponAttribute.Dual) }, 120, 32,
                 new[] { new BeatAttack("enemy", 8, 16, 8) }, new StageHealth(10000), 100, 100);
-            foreach (double start in new[] { 0.0, 4, 8 }) foreach (double offset in new[] { 0.0, 1.5, 3 })
+            b.Press(0, 0); b.Release(0, 0); // Invoke before the first real note.
+            foreach (double start in new[] { 1.0, 5, 9 }) foreach (double offset in new[] { 0.0, 1.5, 3 })
             { b.Press(0, start + offset); b.Release(0, start + offset); }
             decimal health = b.PlayerHealth;
             Check.Equal(IncomingAttackState.Interrupted, b.Incoming[0].State);
