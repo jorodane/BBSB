@@ -67,6 +67,31 @@ namespace BBSB.Tests
         }
 
         [UnityTest]
+        public IEnumerator WorkshopGraphicsCreateTheirRenderersBeforeMaskClipping()
+        {
+            root = new GameObject("Workshop clipping regression", typeof(RectTransform), typeof(Canvas));
+            root.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var viewport = new GameObject("Masked viewport", typeof(RectTransform), typeof(RectMask2D)).GetComponent<RectTransform>();
+            viewport.SetParent(root.transform, false); RunUI.Stretch(viewport);
+            var timeline = new GameObject("Pattern timeline", typeof(RectTransform));
+            timeline.transform.SetParent(viewport, false);
+            var pattern = timeline.AddComponent<NoteWorkshopPatternGraphic>();
+            var artwork = new GameObject("Part artwork", typeof(RectTransform));
+            artwork.transform.SetParent(viewport, false);
+            var icon = artwork.AddComponent<NotePartIconGraphic>(); icon.Bind(NotePartCatalog.Find("inject-hold"));
+            foreach (var graphic in new MaskableGraphic[] { pattern, icon })
+            {
+                // No Image or explicit renderer is added by the caller in the real editor.
+                Assert.IsNotNull(graphic.GetComponent<CanvasRenderer>(), graphic.name);
+                graphic.SetClipRect(new Rect(0, 0, 100, 100), true);
+                graphic.SetClipRect(Rect.zero, false);
+            }
+            Canvas.ForceUpdateCanvases(); viewport.GetComponent<RectMask2D>().PerformClipping();
+            yield return null;
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator NoteWorkshopEquipsAndRemovesARewardWithoutDeletingTheBasePattern()
         {
             root = new GameObject("Note workshop UI smoke test");

@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class NoteWorkshopPatternGraphic : MaskableGraphic, IPointerClickHandler
     {
         internal const float Margin = 50;

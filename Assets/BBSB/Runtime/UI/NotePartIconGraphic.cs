@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 namespace BBSB.Runtime.UI
 {
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class NotePartIconGraphic : MaskableGraphic
     {
         private NotePartDefinition part;
