@@ -137,11 +137,16 @@ namespace BBSB.Tests
             Check.Equal(80m, fine.PlayerHealth); Check.Equal(fine.PlayerHealth, coarse.PlayerHealth);
             Check.Equal(fine.TotalReduced, coarse.TotalReduced); Check.Equal(4.0, fine.Lanes[1].ReadyAtBeat);
         }
-        [Test] public void BowShotIsNotGeneratedUntilDrawCompletes()
+        [Test] public void CompletedCallUnlocksAuthoredShotAndEarlyReleaseCancelsIt()
         {
+            var phrase = new WeaponPhrase("bow", "Separate shot", "", 4, new[] {
+                new WeaponPhraseNote(0, 0, 1, role: WeaponNoteRole.Call),
+                new WeaponPhraseNote(2, 24, prerequisite: 0, condition: PhraseNoteCondition.Hit)
+            }, firstNoteDelayBeats: 1);
             foreach (bool complete in new[] { false, true })
             {
-                var b = new FiveLaneBattle(new[] { new WeaponState("bow") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100);
+                var b = new FiveLaneBattle(new[] { new WeaponState("bow") }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100,
+                    phrases: new[] { phrase });
                 b.Press(0, 0); b.Release(0, 0); b.Press(0, 1); Check.Equal(PhraseNoteState.Locked, b.Lanes[0].NoteStates[1]);
                 Check.False(b.Lanes[0].IsNoteVisible(1)); b.Release(0, complete ? 2 : 1.5);
                 Check.Equal(complete, b.Lanes[0].IsNoteVisible(1));

@@ -13,21 +13,26 @@ namespace BBSB.Tests
         private static FiveLaneBattle Battle(string weapon, params BeatAttack[] attacks) =>
             new FiveLaneBattle(new[] { new WeaponState(weapon) }, 120, 32, attacks, new StageHealth(10000), 100, 100);
         private static void Tap(FiveLaneBattle battle, double beat) { battle.Press(0, beat); battle.Release(0, beat); }
+        private static FiveLaneBattle AuthoredSeparateShot() => new FiveLaneBattle(new[] { new WeaponState("bow") },
+            120, 32, Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100,
+            phrases: new[] { new WeaponPhrase("bow", "Separate shot", "", 3,
+                new[] { new WeaponPhraseNote(0, 0, 1, role: WeaponNoteRole.Call),
+                    new WeaponPhraseNote(2, 24, prerequisite: 0, condition: PhraseNoteCondition.Hit) }, firstNoteDelayBeats: 1) });
 
         [Test] public void BowDrawDoesNotPlayAnAttackUntilTheConfirmedShotDealsDamage()
         {
             var b = Battle("bow"); Tap(b, 0); b.Press(0, 1);
             Check.Equal("Base Layer.Bow", FiveLaneArtTimeline.Player(b).State);
             Check.True(double.IsNegativeInfinity(b.Lanes[0].LastDamageBeat));
-            b.Release(0, 2); Check.Equal("Base Layer.Bow", FiveLaneArtTimeline.Player(b).State);
+            b.Advance(2); Check.Equal("Base Layer.Bow", FiveLaneArtTimeline.Player(b).State);
             Check.True(double.IsNegativeInfinity(b.Lanes[0].LastDamageBeat));
-            Tap(b, 3); Check.Equal(3.0, b.Lanes[0].LastDamageBeat);
+            b.Release(0, 2); Check.Equal(2.0, b.Lanes[0].LastDamageBeat);
             Check.Equal("Base Layer.TapImpact", FiveLaneArtTimeline.Player(b).State);
-            b.Advance(3.5); Check.Equal("Base Layer.Idle", FiveLaneArtTimeline.Player(b).State);
+            b.Advance(2.5); Check.Equal("Base Layer.Idle", FiveLaneArtTimeline.Player(b).State);
         }
         [Test] public void FailedDrawAndMistimedDaggerCannotTriggerAnAttackEffect()
         {
-            var bow = Battle("bow"); Tap(bow, 0); bow.Press(0, 1); bow.Release(0, 1.5);
+            var bow = Battle("bow"); Tap(bow, 0); bow.Press(0, 1); bow.Release(0, 1);
             Check.True(double.IsNegativeInfinity(bow.Lanes[0].LastDamageBeat));
             Check.Equal("Base Layer.Idle", FiveLaneArtTimeline.Player(bow).State);
             var dagger = Battle("dagger"); Tap(dagger, 0); Tap(dagger, 1); Tap(dagger, 1.75);
@@ -78,14 +83,14 @@ namespace BBSB.Tests
         }
         [Test] public void ConfirmationEffectsAppearOnceOnlyForPromotedPreviewsAndFreezeOnPause()
         {
-            var b = Battle("bow"); Tap(b, 0); b.Press(0, 1); var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
+            var b = AuthoredSeparateShot(); Tap(b, 0); b.Press(0, 1); var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b);
             Check.Equal(0, timeline.Confirmed.Count); b.Release(0, 2); timeline.Refresh(b);
             Check.Equal(1, timeline.Confirmed.Count); Check.Equal(3.0, timeline.Confirmed[0].Note.Beat);
             Check.Equal(2.0, timeline.Confirmed[0].ConfirmedAt); Check.Equal(0, timeline.Broken.Count);
             timeline.Refresh(b); Check.Equal(1, timeline.Confirmed.Count);
             b.Pause(); b.Advance(10); timeline.Refresh(b); Check.Equal(1, timeline.Confirmed.Count);
             b.Resume(); b.Advance(2.5); timeline.Refresh(b); Check.Equal(0, timeline.Confirmed.Count);
-            var failed = Battle("bow"); Tap(failed, 0); failed.Press(0, 1); timeline.Refresh(failed);
+            var failed = AuthoredSeparateShot(); Tap(failed, 0); failed.Press(0, 1); timeline.Refresh(failed);
             failed.Release(0, 1.5); timeline.Refresh(failed);
             Check.Equal(0, timeline.Confirmed.Count); Check.True(timeline.Broken.Count > 0);
         }

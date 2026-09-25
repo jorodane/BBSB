@@ -221,7 +221,8 @@ namespace BBSB.Runtime.UI
             if (selectedPart >= 0) { Attach(selectedPart, index); return; }
             selection.Note = index; pattern.Select(index); DrawSlots();
             var note = original.Notes[index];
-            ShowNotice((index + 1) + "번 · " + (note.IsCall ? "준비 콜" : "리스폰스") + " · " + note.Beat.ToString("0.##") + "박" +
+            ShowNotice((index + 1) + "번 · " + (note.IsChargedRelease ? "앞 홀드의 유지 시간에 비례 · 떼어 발사" :
+                note.IsOptional ? "발사 기회 · 지나쳐도 미스 없음 · 한 번 발사하면 완료" : note.IsCall ? "준비 콜" : "리스폰스") + " · " + note.Beat.ToString("0.##") + "박" +
                 (note.Condition == PhraseNoteCondition.AllCalls ? " · 앞선 콜을 모두 성공하면 실행" : " · 부품을 끌어 놓으면 적용돼."));
         }
         private void SelectPart(int id)

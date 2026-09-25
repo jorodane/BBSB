@@ -8,13 +8,15 @@ namespace BBSB.Runtime.UI
     {
         public int Slot { get; }
         public int Index { get; }
+        public long Opportunity { get; }
         public double CycleStart { get; }
         public WeaponPhraseNote Definition { get; }
         public bool IsPreview { get; }
         public bool PressParry { get; }
         public bool ReleaseParry { get; }
         public bool IsConnected => Index > 0 && Connects(Phrase.Notes[Index - 1], Definition);
-        public bool ConnectsNext => Index + 1 < Phrase.Notes.Count && Connects(Definition, Phrase.Notes[Index + 1]);
+        public bool ConnectsNext => Index + 1 < Phrase.Notes.Count &&
+            (Phrase.Notes[Index + 1].IsChargedRelease || Connects(Definition, Phrase.Notes[Index + 1]));
         private static bool Connects(WeaponPhraseNote previous, WeaponPhraseNote next) => previous.IsHold &&
             previous.LaneOffset == next.LaneOffset && Math.Abs(previous.Beat + previous.HoldBeats - next.Beat) < .000001 &&
             (next.IsHold || next.ConnectFromPrevious);
@@ -26,12 +28,13 @@ namespace BBSB.Runtime.UI
         public double EndBeat => Math.Max(Beat + Definition.HoldBeats, extendedEnd);
         public bool IsHold => EndBeat > Beat;
         internal TrackNote(int slot, int index, double cycleStart, WeaponPhrase phrase, bool preview, ScheduledPhraseStart reservation = null,
-            double extendedEnd = double.NegativeInfinity, bool sustainedGuard = false, double timingShift = 0)
+            double extendedEnd = double.NegativeInfinity, bool sustainedGuard = false, double timingShift = 0, long opportunity = 0)
         {
             Slot = slot; Index = index; CycleStart = cycleStart; Definition = phrase.Notes[index];
             Phrase = phrase; Reservation = reservation;
             this.extendedEnd = extendedEnd;
             this.timingShift = timingShift;
+            Opportunity = opportunity;
             IsPreview = preview;
             PressParry = Definition.IsParry && phrase.ParriesOnKeyDown;
             ReleaseParry = Definition.IsParry && phrase.ParriesOnKeyUp && !sustainedGuard;
@@ -39,6 +42,7 @@ namespace BBSB.Runtime.UI
         internal bool SamePosition(TrackNote other) => Slot == other.Slot && Index == other.Index &&
             Math.Abs(Beat - other.Beat) < .000001 && ReferenceEquals(Phrase, other.Phrase);
         internal bool SameNote(TrackNote other) => Slot == other.Slot && Index == other.Index &&
+            Opportunity == other.Opportunity &&
             Math.Abs(CycleStart - other.CycleStart) < .000001 && ReferenceEquals(Phrase, other.Phrase) && ReferenceEquals(Reservation, other.Reservation);
     }
 
@@ -133,14 +137,40 @@ namespace BBSB.Runtime.UI
             for (int i = 0; i < lane.Phrase.Notes.Count && notes.Count - first < MaxNotesPerLane; i++)
             {
                 var state = lane.NoteStates[i];
+                if (lane.Phrase.Notes[i].IsOptional)
+                {
+                    if (state != PhraseNoteState.Pending && state != PhraseNoteState.Locked && state != PhraseNoteState.Holding) continue;
+                    var definition = lane.Phrase.Notes[i];
+                    for (int opportunity = 0; opportunity < MaxNotesPerLane && notes.Count - first < MaxNotesPerLane; opportunity++)
+                    {
+                        double shift = lane.NoteBeat(i) - lane.StartBeat - definition.Beat + opportunity * definition.OpportunityIntervalBeats;
+                        if (lane.StartBeat + definition.Beat + shift > battle.Beat + SteppedNoteTrack.LookAheadBeats) break;
+                        Add(battle, new TrackNote(lane.SlotForNote(i), i, lane.StartBeat, lane.Phrase,
+                            state == PhraseNoteState.Locked, lane.ScheduledOrigin, timingShift: shift,
+                            opportunity: lane.OpportunityStep(i) + opportunity));
+                        if (lane.Holding) break; // The selected entry is now a required Hold.
+                    }
+                    continue;
+                }
                 if (state == PhraseNoteState.Pending || state == PhraseNoteState.Holding || state == PhraseNoteState.Locked)
+                {
+                    double at = lane.NoteBeat(i);
+                    if (lane.Charging && i > lane.NextNote)
+                        at += Math.Max(0, Math.Ceiling(battle.Beat - lane.HoldEndBeat - .000001));
+                    if (lane.Charging && lane.Phrase.Notes[i].IsChargedRelease && lane.Phrase.Notes[i].Prerequisite == lane.NextNote)
+                        at = Math.Max(battle.Beat, lane.HoldEndBeat);
+                    if (lane.Charging && lane.Phrase.Notes[i].IsInjected &&
+                        lane.Phrase.Notes[i].Prerequisite == lane.Phrase.ChargedResponseFor(lane.NextNote))
+                        at = Math.Max(battle.Beat, lane.HoldEndBeat) + lane.Phrase.Notes[i].Beat -
+                            lane.Phrase.Notes[lane.Phrase.Notes[i].Prerequisite].Beat;
                     Add(battle, new TrackNote(lane.SlotForNote(i), i, lane.StartBeat,
                         lane.Phrase, state == PhraseNoteState.Locked, lane.ScheduledOrigin,
-                        lane.Holding && i == lane.NextNote ? lane.HoldEndBeat : double.NegativeInfinity,
+                        lane.Holding && i == lane.NextNote ? Math.Max(lane.HoldEndBeat, lane.Charging ? battle.Beat + .25 : lane.HoldEndBeat) : double.NegativeInfinity,
                         lane.Holding && i == lane.NextNote && lane.SustainingGuard,
-                        lane.NoteBeat(i) - lane.StartBeat - lane.Phrase.Notes[i].Beat));
+                        at - lane.StartBeat - lane.Phrase.Notes[i].Beat));
+                }
             }
-            if (!lane.CanRepeat) return;
+            if (!lane.CanRepeat || lane.Phrase.HasFlexibleResponse) return;
             var plan = lane.Cycle;
             for (int cycle = 0; cycle < MaxNotesPerLane && notes.Count - first < MaxNotesPerLane; cycle++)
             {
@@ -179,6 +209,7 @@ namespace BBSB.Runtime.UI
             if (note.CycleStart > lane.StartBeat + .000001) return !lane.CanRepeat;
             if (!ReferenceEquals(note.Phrase, lane.Phrase)) return true;
             var state = lane.NoteStates[note.Index];
+            if (note.Definition.IsOptional && state == PhraseNoteState.Skipped && lane.LastGrade != RhythmGrade.Miss) return false;
             // A voluntary guard release skips the live Hold without a failure.
             // Only its canceled forecasts should break, including unresolved locks
             // when ReleaseEndsPhrase closes the lane immediately.

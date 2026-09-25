@@ -14,11 +14,17 @@ namespace BBSB.Core
             double hold = 0, double duration = 2) =>
             new WeaponPhraseNote(at, amount, hold, effect, laneOffset: lane, effectDurationBeats: duration);
         private static WeaponPhraseNote Shot(double at, decimal damage, int draw) =>
-            new WeaponPhraseNote(at, damage, prerequisite: draw, condition: PhraseNoteCondition.Hit);
+            new WeaponPhraseNote(at, damage, prerequisite: draw, condition: PhraseNoteCondition.Hit,
+                trigger: WeaponNoteTrigger.ChargedRelease);
         private static WeaponPhrase P(string id, string name, string hint, double length, double cooldown,
-            params WeaponPhraseNote[] notes) => new WeaponPhrase(id, name,
-                hint + " · " + length + "박 연주 / 쿨타임 " + cooldown + "박", length, notes,
+            params WeaponPhraseNote[] notes)
+        {
+            bool flexible = false;
+            foreach (var note in notes) flexible |= note.Trigger != WeaponNoteTrigger.Completion;
+            return new WeaponPhrase(id, name,
+                hint + " · " + (flexible ? "기본 배치 " : "") + length + "박 / 쿨타임 " + cooldown + "박", length, notes,
                 missCooldownBeats: cooldown, completionCooldownBeats: cooldown);
+        }
 
         internal static WeaponPhrase Pattern(string id, int offset, WeaponBeatSide side, bool transition = false,
             WeaponAttribute? attribute = null)
@@ -44,8 +50,8 @@ namespace BBSB.Core
                 case "hammer": return new WeaponPhrase(id, "트레실로 해머", "트레실로 세 묶음 → 강타·그로기 · 12박 / 쿨타임 8박", 12,
                     new[] { T(0, 6), T(1.5, 8), T(3, 12), T(4, 6), T(5.5, 8), T(7, 12), T(8, 6), T(9.5, 8), T(11, 12) },
                     8, finisherEvery: 1, finisherDamage: 38, groggyBeats: 4, completionCooldownBeats: 8);
-                case "bow": return P(id, "활", "당기고 발사 두 번 → 길게 당겨 강사격", 10, 8,
-                    C(0, 1), Shot(2, 24, 0), C(3, 1), Shot(5, 28, 2), C(6, 2), Shot(9, 44, 4));
+                case "bow": return P(id, "활", "당기는 시간만큼 충전 · 떼면 발사 · 최대 충전 뒤에도 유지 가능", 10, 8,
+                    C(0, 1), Shot(1, 24, 0), C(3, 1), Shot(4, 28, 2), C(6, 2), Shot(8, 44, 4));
                 // These starter pulse weapons teach the main beat. Keep their single
                 // taps and unlimited cadence when expanding the other weapons.
                 case "dagger": return new WeaponPhrase(id, "단검", "2박마다 Tap 1회 · 성공하면 무한 반복 · 미스 대기 2박", 2,
@@ -65,8 +71,9 @@ namespace BBSB.Core
                     T(0, 8), H(1, 1, 16), T(3, 10), T(4.5, 8), H(5, 1, 20), T(7, 24));
                 case "blade": return P(id, "쌍날검", "반박 회전 두 묶음 → 마무리 베기", 8, 8,
                     T(0, 6), T(1, 6), T(1.5, 8), T(2, 10), T(4, 6), T(5, 8), T(5.5, 10), T(6, 12), T(7, 18));
-                case "crossbow": return P(id, "석궁", "짧게 장전 후 세 발 → 길게 장전 후 두 발", 8, 8,
-                    C(0, .5), Shot(1, 18, 0), Shot(2, 18, 0), Shot(3, 22, 0), C(4, 1), Shot(6, 26, 4), Shot(7, 32, 4));
+                case "crossbow": return P(id, "석궁", "장전 Hold 콜 두 번 → 매 박자 발사 기회 · 한 번 쏘면 완료", 6, 8,
+                    C(0, .5), C(2, 1), new WeaponPhraseNote(4, 32, condition: PhraseNoteCondition.AllCalls,
+                        trigger: WeaponNoteTrigger.OptionalPress));
                 case "wand": return P(id, "마도봉", "충전과 연사 두 묶음 → 마력 폭발", 12, 10,
                     H(0, 2, 10), T(3, 16), T(4, 18), T(5.5, 10), H(6, 2, 16), T(9, 28), T(10, 30), T(11, 38));
                 case "rapier": return P(id, "레이피어", "재빠른 이중 찌르기 두 번 → 깊게 찌르기", 8, 6,

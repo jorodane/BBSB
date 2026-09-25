@@ -24,9 +24,9 @@ namespace BBSB.Core
             new NotePartDefinition("frame-power", "강타 프레임", "선택한 공격 노트의 피해 +50%. 원래 입력과 발동 조건 유지.", NotePartKind.Frame, NotePartEffect.Power),
             new NotePartDefinition("frame-mend", "회복 프레임", "선택한 노트 성공 시 추가 체력 2 회복. 반미스는 절반.", NotePartKind.Frame, NotePartEffect.Mend),
             new NotePartDefinition("frame-pierce", "후열 관통 프레임", "선택한 공격 노트가 살아 있는 후열 중 체력이 가장 적은 적을 공격. 후열이 없으면 선봉.", NotePartKind.Frame, NotePartEffect.Pierce),
-            new NotePartDefinition("inject-tap", "반박 주입", "선택한 노트 뒤 반박에 추가 Tap. 원래 노트 성공이 필요하며 기본 피해의 60%.", NotePartKind.Injection, NotePartEffect.ExtraTap),
+            new NotePartDefinition("inject-tap", "반박 주입", "원래 노트 성공 후 반박에 피해 60%의 Tap 추가. 선택 발사에는 대체 발사 기회로 추가돼.", NotePartKind.Injection, NotePartEffect.ExtraTap),
             new NotePartDefinition("inject-hold", "홀드 주입", "선택한 Tap 위에 반박 Hold를 씌우고 피해 +40%. 같은 라인의 기존 노트도 유지 입력으로 연주하고, 맞닿은 Hold는 연결돼.", NotePartKind.Injection, NotePartEffect.Hold),
-            new NotePartDefinition("inject-cross", "교차 박자 주입", "선택한 노트 뒤 반박에 다음 점유 라인의 Tap 추가. 복수 라인 무기 전용, 기본 피해의 80%.", NotePartKind.Injection, NotePartEffect.CrossTap)
+            new NotePartDefinition("inject-cross", "교차 박자 주입", "반박 뒤 다음 점유 라인에 피해 80%의 Tap 추가. 복수 라인 전용이며 선택 발사에는 대체 기회로 추가돼.", NotePartKind.Injection, NotePartEffect.CrossTap)
         });
         public static NotePartDefinition Find(string id)
         {
@@ -108,6 +108,7 @@ namespace BBSB.Core
                         throw new ArgumentException("박자 주입에는 피해가 있는 공격 노트가 필요해.");
                     if (injection.Effect == NotePartEffect.Hold)
                     {
+                        if (note.IsChargedRelease) throw new ArgumentException("떼기 발사는 앞의 당기기 홀드를 사용해. 발사 끝에 홀드를 씌울 수 없어.");
                         if (note.IsHold) throw new ArgumentException("홀드 주입은 Tap에 장착해.");
                         hold = Math.Min(.5, source.LengthBeats - note.Beat);
                         damage *= 1.4m;
@@ -122,13 +123,16 @@ namespace BBSB.Core
                 int prerequisite = note.Prerequisite < 0 ? -1 : remap[note.Prerequisite];
                 remap[i] = result.Count;
                 result.Add(new WeaponPhraseNote(note.Beat, damage, hold, note.Effect, prerequisite, note.Condition,
-                    note.LaneOffset, note.EffectDurationBeats, target, healing, i, role: note.Role));
+                    note.LaneOffset, note.EffectDurationBeats, target, healing, i, role: note.Role,
+                    trigger: note.Trigger, opportunityIntervalBeats: note.OpportunityIntervalBeats));
                 if (injection != null && injection.Effect != NotePartEffect.Hold)
                     result.Add(new WeaponPhraseNote(note.Beat + hold + .5,
                         note.Damage * (injection.Effect == NotePartEffect.CrossTap ? .8m : .6m),
-                        prerequisite: remap[i], condition: PhraseNoteCondition.Hit,
+                        prerequisite: note.IsOptional ? -1 : remap[i], condition: note.IsOptional ? note.Condition : PhraseNoteCondition.Hit,
                         laneOffset: injection.Effect == NotePartEffect.CrossTap ? (note.LaneOffset + 1) % width : note.LaneOffset,
-                        target: target, baseNoteIndex: i, injected: true, role: note.Role));
+                        target: target, baseNoteIndex: i, injected: true, role: note.Role,
+                        trigger: note.IsOptional ? note.Trigger : WeaponNoteTrigger.Completion,
+                        opportunityIntervalBeats: note.OpportunityIntervalBeats));
             }
             // Split a continuous crown at original note boundaries. Every original effect
             // and prerequisite still resolves once; only the required input is connected.
@@ -137,13 +141,13 @@ namespace BBSB.Core
             for (int i = 0; i < result.Count; i++)
             {
                 var note = result[i];
-                bool connected = crownLane == note.LaneOffset && crownEnd >= note.Beat;
+                bool connected = !note.IsChargedRelease && crownLane == note.LaneOffset && crownEnd >= note.Beat;
                 double end = Math.Max(note.Beat + note.HoldBeats, connected ? crownEnd : note.Beat);
                 crownEnd = end; crownLane = note.LaneOffset;
                 double hold = Math.Max(0, Math.Min(end, i + 1 < result.Count ? result[i + 1].Beat : source.LengthBeats) - note.Beat);
                 result[i] = new WeaponPhraseNote(note.Beat, note.Damage, hold, note.Effect, note.Prerequisite, note.Condition,
                     note.LaneOffset, note.EffectDurationBeats, note.Target, note.BonusHealing, note.BaseNoteIndex,
-                    note.IsInjected, connected, note.Role);
+                    note.IsInjected, connected, note.Role, note.Trigger, note.OpportunityIntervalBeats);
             }
             return new WeaponPhrase(source.WeaponId, source.Name, source.Hint, source.LengthBeats, result,
                 source.MissCooldownBeats, source.Repeat, source.FinisherEvery, source.FinisherDamage, source.GroggyBeats,

@@ -91,7 +91,8 @@ namespace BBSB.Runtime.UI
                         if (!shown.ConnectsNext && SteppedNoteTrack.InHorizon(shown.EndBeat - battle.Beat))
                             DrawNoteHead(vh, slot, shown.EndBeat, at, shown.IsPreview, shown.ReleaseParry, shown.Definition.IsCall);
                     }
-                    if (!shown.IsConnected) DrawNoteHead(vh, slot, at, at, shown.IsPreview, shown.PressParry, shown.Definition.IsCall);
+                    if (!shown.IsConnected) DrawNoteHead(vh, slot, at, at, shown.IsPreview, shown.PressParry, shown.Definition.IsCall,
+                        shown.Definition.IsOptional, shown.Definition.IsChargedRelease);
                     else Line(vh, p - Vector2.right * NoteWidth(slot, at) * .25f,
                         p + Vector2.right * NoteWidth(slot, at) * .25f, 2 * unit, tint);
                 }
@@ -170,11 +171,27 @@ namespace BBSB.Runtime.UI
                 p + Vector2.right * width, p + Vector2.down * height, tint);
             Line(vh, p - Vector2.up * height * .6f, p + Vector2.up * height * .6f, 2, Color.white);
         }
-        private void DrawNoteHead(VertexHelper vh, int slot, double at, double colorBeat, bool preview, bool parry, bool call)
+        private void DrawNoteHead(VertexHelper vh, int slot, double at, double colorBeat, bool preview, bool parry, bool call,
+            bool optional = false, bool release = false)
         {
             var p = Position(slot, at); float width = NoteWidth(slot, at) * .4f;
             float height = rectTransform.rect.height * .007f;
             var tint = call ? RunUI.Teal : BattleVisualTheme.NoteColor(colorBeat); if (preview) tint.a = .32f;
+            if (optional)
+            {
+                var low = p + new Vector2(-width, -height * 1.5f); var high = p + new Vector2(width, height * 1.5f);
+                Line(vh, low, new Vector2(low.x, high.y), 2, tint); Line(vh, low, new Vector2(high.x, low.y), 2, tint);
+                Line(vh, high, new Vector2(low.x, high.y), 2, tint); Line(vh, high, new Vector2(high.x, low.y), 2, tint);
+                return;
+            }
+            if (release)
+            {
+                Line(vh, p + Vector2.left * width, p + Vector2.right * width, 2, tint);
+                Line(vh, p - Vector2.up * height, p + Vector2.up * height * 2, 3, tint);
+                Line(vh, p + Vector2.up * height * 2, p + new Vector2(-height, height), 3, tint);
+                Line(vh, p + Vector2.up * height * 2, p + new Vector2(height, height), 3, tint);
+                return;
+            }
             if (call)
             {
                 Quad(vh, p + Vector2.left * width, p + Vector2.up * height * 1.7f,

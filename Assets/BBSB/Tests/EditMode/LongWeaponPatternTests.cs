@@ -96,7 +96,7 @@ namespace BBSB.Tests
         [Test] public void OtherOffensiveAndSupportWeaponsHaveLongPhrasesCooldownsAndAMajorityOfTheirOwnPulse()
         {
             Check.Equal(32, WeaponPhraseCatalog.All.Count);
-            foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.Shield && w.Id != "dagger" && w.Id != "dual-swords"))
+            foreach (var weapon in WeaponCatalog.All.Where(w => w.Kind != WeaponKind.Shield && w.Id != "dagger" && w.Id != "dual-swords" && w.Id != "crossbow"))
             foreach (var side in new[] { WeaponBeatSide.Light, WeaponBeatSide.Dark })
             for (int offset = 0; offset < weapon.RequiredLanes; offset++)
             {
@@ -124,7 +124,7 @@ namespace BBSB.Tests
                     FinishSection(b);
                     Check.Equal(phrase.Notes.Count, b.PerfectCount); Check.Equal(0, b.MissCount); Check.Equal(0, b.HalfMissCount);
                     Check.Equal(PhraseLanePhase.Cooldown, lane.Phase);
-                    Check.Equal(start + phrase.LengthBeats + phrase.CompletionCooldownBeats, lane.ReadyAtBeat);
+                    Check.Equal((phrase.HasFlexibleResponse ? b.Beat : start + phrase.LengthBeats) + phrase.CompletionCooldownBeats, lane.ReadyAtBeat);
                     int hits = b.PerfectCount;
                     b.Press(offset, lane.ReadyAtBeat - .1); b.Release(offset, b.Beat);
                     Check.Equal(hits, b.PerfectCount); Check.Equal(PhraseLanePhase.Cooldown, lane.Phase);
@@ -152,6 +152,7 @@ namespace BBSB.Tests
                 double ready = lane.StartBeat + lane.Phrase.LengthBeats + lane.Phrase.CompletionCooldownBeats;
                 count += lane.Phrase.Notes.Count;
                 FinishSection(b);
+                if (lane.Phrase.HasFlexibleResponse) ready = b.Beat + lane.Phrase.CompletionCooldownBeats;
                 Check.Equal(count, b.PerfectCount); Check.Equal(0, b.MissCount); Check.Equal(0, b.HalfMissCount);
                 Check.Equal(PhraseLanePhase.Cooldown, lane.Phase); Check.Equal(ready, lane.ReadyAtBeat);
                 var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(b); Check.Equal(0, timeline.Notes.Count);
@@ -211,14 +212,15 @@ namespace BBSB.Tests
             Check.Equal(b.Beat + lane.Phrase.MissCooldownBeats, lane.ReadyAtBeat);
         }
 
-        [Test] public void BowDrawsRecoverIndependentlyAndThePoseClearsBetweenShots()
+        [Test] public void BowShortDrawsFireIndependentlyAndThePoseClearsBetweenShots()
         {
             var b = Battle("bow", WeaponAttribute.Light); var lane = b.Lanes[0];
-            b.Press(0, 0); b.Release(0, 0); b.Press(0, 1); b.Release(0, 1.5); Check.Equal(PhraseNoteState.Skipped, lane.NoteStates[1]);
+            b.Press(0, 0); b.Release(0, 0); b.Press(0, 1); b.Release(0, 1.5); Check.Equal(PhraseNoteState.Hit, lane.NoteStates[1]);
+            Check.Equal(12m, b.TotalDamage); b.Advance(2);
             Check.Equal(RangedWeaponPose.Idle, FiveLaneArtTimeline.Weapon(lane, b.Beat));
-            FinishSection(b); Check.Equal(72m, b.TotalDamage); Check.Equal(1, b.MissCount);
+            FinishSection(b); Check.Equal(84m, b.TotalDamage); Check.Equal(0, b.MissCount);
             var good = Battle("bow", WeaponAttribute.Light); Open(good);
-            good.Press(0, 3); good.Release(0, 3); good.Advance(3.5);
+            good.Advance(2.5);
             Check.Equal(RangedWeaponPose.Idle, FiveLaneArtTimeline.Weapon(good.Lanes[0], good.Beat));
             Check.Equal("Base Layer.Idle", FiveLaneArtTimeline.Player(good).State);
             FinishSection(good); Check.Equal(96m, good.TotalDamage); Check.Equal(0, good.MissCount);

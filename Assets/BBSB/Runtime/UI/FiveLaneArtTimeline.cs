@@ -33,6 +33,7 @@ namespace BBSB.Runtime.UI
         public static RangedWeaponPose Weapon(PhraseLane lane, double beat)
         {
             if (lane == null || !WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged) return RangedWeaponPose.Idle;
+            if (lane.Charging || lane.Loaded) return RangedWeaponPose.Prepare;
             var played = lane.LastPerformedNote;
             if (lane.Holding && played != null && !played.Canceled && played.Definition.IsHold &&
                 played.Definition.Effect == PhraseEffect.Strike && played.Definition.Damage > 0 && beat < played.EndBeat)

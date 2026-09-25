@@ -48,6 +48,10 @@ namespace BBSB.Runtime
         {
             [Tooltip("Call: judged preparation with no effect. Response: execute the authored effect. AllCalls requires every earlier Call to succeed.")]
             public WeaponNoteRole role;
+            [Tooltip("Completion: normal note. ChargedRelease: key-up response to the preceding Call Hold, damage scales with held time up to that Hold's length. OptionalPress: recurring shot opportunity; passing is free, one success closes the section.")]
+            public WeaponNoteTrigger trigger;
+            [Min(.125f), Tooltip("Spacing of optional shot opportunities, in beats. Built-in crossbow uses one beat.")]
+            public float opportunityIntervalBeats = 1;
             [Range(0, 6), Tooltip("Line offset relative to the input that started the pattern; wraps within this weapon's selected lines. The first note must use zero.")]
             public int laneOffset;
             [Min(0)] public float beat, holdBeats;
@@ -67,7 +71,8 @@ namespace BBSB.Runtime
                 if (note == null) throw new ArgumentException("Null phrase note.");
                 result.Add(new WeaponPhraseNote(note.beat, (decimal)note.damage, note.holdBeats, note.effect,
                     note.condition == PhraseNoteCondition.Hit || note.condition == PhraseNoteCondition.Parry ? note.prerequisite : -1,
-                    note.condition, note.laneOffset, note.effectDurationBeats, role: note.role));
+                    note.condition, note.laneOffset, note.effectDurationBeats, role: note.role,
+                    trigger: note.trigger, opportunityIntervalBeats: note.opportunityIntervalBeats));
             }
             return new WeaponPhrase(weaponId, displayName, hint, lengthBeats, result, missCooldownBeats,
                 repeat, finisherEvery, (decimal)finisherDamage, groggyBeats, parryInput,

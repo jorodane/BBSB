@@ -50,7 +50,7 @@ namespace BBSB.Runtime.UI
             session.RemoveNotePart(PartIndex(session, instanceId));
     }
 
-    public enum NoteDemoInput { Idle, Press, Hold, Release, Invoke, Call }
+    public enum NoteDemoInput { Idle, Press, Hold, Release, Invoke, Call, Ready }
 
     // An all-success illustration of the selected phrase. No RunSession or battle reference:
     // conditional notes are demonstrated, but never cause damage, rewards or real input.
@@ -73,6 +73,9 @@ namespace BBSB.Runtime.UI
         public double LoopBeats { get; }
         public double FirstNoteBeat { get; }
         private readonly bool continuous;
+        private readonly double sectionBeats, executionEnd;
+        private readonly WeaponPhraseNote chosenShot;
+        private readonly double chosenShotBeat;
 
         public NoteWorkshopPlayback(WeaponPhrase phrase, int width, int offset)
         {
@@ -82,12 +85,16 @@ namespace BBSB.Runtime.UI
             CyclesPerLoop = phrase.Repeat && phrase.MaximumCycles > 0 ? phrase.MaximumCycles : 1;
             FirstNoteBeat = Math.Ceiling(phrase.FirstNoteDelayBeats - .000001);
             continuous = phrase.Repeat && phrase.MaximumCycles == 0;
-            LoopBeats = phrase.LengthBeats * CyclesPerLoop +
-                (continuous ? 0 : Math.Max(1, phrase.CompletionCooldownBeats) + FirstNoteBeat);
             foreach (var note in phrase.Notes)
+                if (note.IsOptional) { chosenShot = note; chosenShotBeat = note.Beat + 2 * note.OpportunityIntervalBeats; break; }
+            sectionBeats = phrase.LengthBeats + (chosenShot == null ? 0 : Math.Ceiling(2 * chosenShot.OpportunityIntervalBeats));
+            for (int index = 0; index < phrase.Notes.Count; index++)
             {
+                var note = phrase.Notes[index];
+                if (note.IsChargedRelease || note.IsOptional && !ReferenceEquals(note, chosenShot)) continue;
+                double at = note.IsOptional ? chosenShotBeat : note.Beat;
                 var previous = inputs.Count == 0 ? null : inputs[inputs.Count - 1];
-                bool release = note.IsParry && phrase.ParriesOnKeyUp;
+                bool release = note.IsParry && phrase.ParriesOnKeyUp || phrase.ChargedResponseFor(index) >= 0;
                 if (previous != null && !previous.RequiresRelease && previous.End > previous.Start &&
                     previous.Lane == Lane(note) && Math.Abs(previous.End - note.Beat) < .000001 &&
                     (note.ConnectFromPrevious || note.IsHold))
@@ -95,9 +102,12 @@ namespace BBSB.Runtime.UI
                     previous.End = note.Beat + note.HoldBeats; previous.RequiresRelease = release;
                     connected.Add(note);
                 }
-                else inputs.Add(new Input { Start = note.Beat, End = note.Beat + note.HoldBeats, Lane = Lane(note), RequiresRelease = release, IsCall = note.IsCall });
+                else inputs.Add(new Input { Start = at, End = at + note.HoldBeats, Lane = Lane(note), RequiresRelease = release, IsCall = note.IsCall });
             }
             var first = inputs[0]; var last = inputs[inputs.Count - 1];
+            executionEnd = phrase.HasFlexibleResponse ? last.End : phrase.LengthBeats;
+            LoopBeats = continuous ? sectionBeats * CyclesPerLoop :
+                sectionBeats * (CyclesPerLoop - 1) + executionEnd + Math.Max(1, phrase.CompletionCooldownBeats) + FirstNoteBeat;
             connectsCycles = first.End > first.Start && last.End > last.Start && !last.RequiresRelease &&
                 first.Lane == last.Lane && Math.Abs(last.End - phrase.LengthBeats) < .000001;
         }
@@ -112,7 +122,7 @@ namespace BBSB.Runtime.UI
         {
             if (beat < FirstNoteBeat) return -1;
             double local = (beat - FirstNoteBeat) % LoopBeats;
-            return local < Phrase.LengthBeats * CyclesPerLoop ? local % Phrase.LengthBeats : -1;
+            return local < sectionBeats * (CyclesPerLoop - 1) + executionEnd ? local % sectionBeats : -1;
         }
 
         public double PreparationRemaining(double beat) => beat < 0 ? 0 :
@@ -131,7 +141,8 @@ namespace BBSB.Runtime.UI
                     foreach (var input in inputs)
                     {
                         if (input.Lane != lane) continue;
-                        double start = FirstNoteBeat + b * LoopBeats + cycle * Phrase.LengthBeats + input.Start;
+                        double origin = FirstNoteBeat + b * LoopBeats + cycle * sectionBeats;
+                        double start = origin + input.Start;
                         double end = start + input.End - input.Start;
                         bool joinsPrevious = connectsCycles && ReferenceEquals(input, inputs[0]) &&
                             (cycle > 0 || b > 0 && LoopBeats == Phrase.LengthBeats * CyclesPerLoop);
@@ -141,6 +152,8 @@ namespace BBSB.Runtime.UI
                             return input.IsCall ? NoteDemoInput.Call : NoteDemoInput.Press;
                         if (end > start && beat >= start && beat < end) return NoteDemoInput.Hold;
                         if (!joinsNext && end > start && beat >= end && beat < end + FlashBeats) result = NoteDemoInput.Release;
+                        if (chosenShot != null && lane == Lane(chosenShot) && beat >= origin + chosenShot.Beat && beat < origin + chosenShotBeat)
+                            result = NoteDemoInput.Ready;
                     }
             return result;
         }
@@ -148,13 +161,27 @@ namespace BBSB.Runtime.UI
         public void VisitNotes(double from, double to, Action<WeaponPhraseNote, double, double, int> visit)
         {
             if (to < 0 || to < from) return;
-            long first = Math.Max(0, (long)Math.Floor((from - FirstNoteBeat - Phrase.LengthBeats) / LoopBeats));
+            long first = Math.Max(0, (long)Math.Floor((from - FirstNoteBeat - sectionBeats * CyclesPerLoop) / LoopBeats));
             long last = Math.Max(0, (long)Math.Floor((to - FirstNoteBeat) / LoopBeats));
             for (long block = first; block <= last; block++)
                 for (int cycle = 0; cycle < CyclesPerLoop; cycle++)
                     foreach (var note in Phrase.Notes)
                     {
-                        double start = FirstNoteBeat + block * LoopBeats + cycle * Phrase.LengthBeats + note.Beat;
+                        double origin = FirstNoteBeat + block * LoopBeats + cycle * sectionBeats;
+                        if (note.IsOptional)
+                        {
+                            for (int opportunity = 0; opportunity < FiveLaneNoteTimeline.MaxNotesPerLane; opportunity++)
+                            {
+                                double at = note.Beat + opportunity * note.OpportunityIntervalBeats;
+                                if (at > chosenShotBeat) break;
+                                if (origin + chosenShotBeat < from) break;
+                                if (origin + at + note.HoldBeats >= from && origin + at <= to)
+                                    visit(note, origin + at, origin + at + note.HoldBeats, Lane(note));
+                            }
+                            continue;
+                        }
+                        double start = origin + (note.IsChargedRelease ?
+                            Phrase.Notes[note.Prerequisite].Beat + Phrase.Notes[note.Prerequisite].HoldBeats : note.Beat);
                         double end = start + note.HoldBeats;
                         if (end >= from && start <= to) visit(note, start, end, Lane(note));
                     }

@@ -127,7 +127,7 @@ namespace BBSB.Tests
             var bow = Battle(WeaponPhraseCatalog.Find("bow")); Tap(bow, 0); bow.Press(0, 1); bow.Advance(1.4);
             Near(FiveLaneWeaponMotion.ShieldPoint(Body, .3, 16d / 9).X, Frame(bow).Position.X);
             Check.False(Motion(bow).Active); Check.Equal(0m, bow.TotalDamage);
-            bow.Release(0, 2); Tap(bow, 3); bow.Advance(3.2);
+            bow.Release(0, 2); bow.Advance(2.2);
             Check.True(Frame(bow).Position.X > Body.X && Frame(bow).Position.X < .3); Check.True(Frame(bow).Scale > 1.1);
             var bell = Battle(WeaponPhraseCatalog.Find("spirit-bell")); Tap(bell, 0); Tap(bell, 1); bell.Advance(1.2);
             Check.True(Motion(bell).Active); Check.Equal(0m, bell.TotalDamage);

@@ -68,7 +68,19 @@ namespace BBSB.Runtime.UI
                     NoteWorkshopMesh.Quad(vh, x, y - 6, X(note.Beat + note.HoldBeats) - x, 12, new Color(tint.r, tint.g, tint.b, .4f));
                     NoteWorkshopMesh.Quad(vh, X(note.Beat + note.HoldBeats) - 1, y - 9, 2, 18, tint);
                 }
-                if (note.IsCall) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 10, tint);
+                if (note.IsOptional)
+                {
+                    NoteWorkshopMesh.Quad(vh, x - 10, y - 7, 20, 2, tint);
+                    NoteWorkshopMesh.Quad(vh, x - 10, y + 5, 20, 2, tint);
+                    NoteWorkshopMesh.Quad(vh, x - 10, y - 7, 2, 14, tint);
+                    NoteWorkshopMesh.Quad(vh, x + 8, y - 7, 2, 14, tint);
+                }
+                else if (note.IsChargedRelease)
+                {
+                    NoteWorkshopMesh.Diamond(vh, new Vector2(x, y + 4), 6, tint);
+                    NoteWorkshopMesh.Quad(vh, x - 1, y - 8, 2, 12, tint);
+                }
+                else if (note.IsCall) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 10, tint);
                 else if (note.IsInjected) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 6, RunUI.Teal);
                 else if (note.ConnectFromPrevious) NoteWorkshopMesh.Diamond(vh, new Vector2(x, y), 5, tint);
                 else NoteWorkshopMesh.Quad(vh, x - 10, y - 7, 20, 14, tint);

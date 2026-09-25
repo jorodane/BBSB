@@ -214,10 +214,11 @@ namespace BBSB.Runtime.UI
             {
                 var lane = battle.LaneAt(i);
                 if (lane == null) continue;
-                hud.laneResults[i].text = lane.Phase == PhraseLanePhase.Playing && lane.Cycle.Index == 0 && lane.NextNote == 0 &&
+                hud.laneResults[i].text = lane.Charging ? "충전 " + (lane.ChargeFraction(battle.Beat) * 100).ToString("0") + "% · 떼어 발사" :
+                    lane.Loaded ? "장전 완료 · 발사 선택" : lane.Phase == PhraseLanePhase.Playing && lane.Cycle.Index == 0 && lane.NextNote == 0 &&
                     lane.Phrase.FirstNoteDelayBeats > 0 && battle.Beat < lane.NextBeat ? "CALL · " + (lane.NextBeat - battle.Beat).ToString("0.0") :
                     battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
-                hud.laneResults[i].color = lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
+                hud.laneResults[i].color = lane.Charging || lane.Loaded ? RunUI.Teal : lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
                 icons[i].color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 icons[i].SetPose(RangedWeaponPose.Idle);
                 var contact = battle.ShieldAt(i);

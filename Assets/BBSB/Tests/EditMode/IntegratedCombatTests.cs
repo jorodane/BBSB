@@ -48,8 +48,8 @@ namespace BBSB.Tests
             var battle = new FiveLaneBattle(new[] { weapon }, 120, 32, Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100);
             weapon.SetNoteBindings(Array.Empty<WeaponNoteBinding>());
             Check.Equal(2, battle.Lanes[0].Weapon.NoteBindings.Count); Check.Equal(7, battle.Lanes[0].Phrase.Notes.Count);
-            battle.Press(0, 0); battle.Release(0, 0); battle.Press(0, 1); battle.Release(0, 2); battle.Press(0, 3); battle.Release(0, 3);
-            battle.Press(0, 3.5); battle.Release(0, 3.5); Check.Equal(50.4m, battle.TotalDamage);
+            battle.Press(0, 0); battle.Release(0, 0); battle.Press(0, 1); battle.Release(0, 2);
+            battle.Press(0, 2.5); battle.Release(0, 2.5); Check.Equal(50.4m, battle.TotalDamage);
             Check.Equal(0, battle.MissCount);
         }
         [Test] public void ExtraTapRejectsOccupiedBeatsWhileHoldTransformationKeepsEveryVariant()

@@ -9,7 +9,7 @@ namespace BBSB.Runtime.UI
 {
     public sealed class NoteWorkshopDemoView : MonoBehaviour
     {
-        private sealed class NoteArt { internal RectTransform Root, Tail, Head; internal Image Body, Face; }
+        private sealed class NoteArt { internal RectTransform Root, Tail, Head; internal Image Body, Face; internal Image[] Choice; }
         private readonly List<NoteArt> notes = new List<NoteArt>();
         private readonly List<Image> keys = new List<Image>();
         private readonly List<TMP_Text> keyTexts = new List<TMP_Text>();
@@ -93,7 +93,7 @@ namespace BBSB.Runtime.UI
                 keys[lane].color = input == NoteDemoInput.Press ? RunUI.Gold : input == NoteDemoInput.Hold || input == NoteDemoInput.Invoke || input == NoteDemoInput.Call ? RunUI.Teal :
                     input == NoteDemoInput.Release ? RunUI.Hex("49335B") : RunUI.Ink;
                 keyTexts[lane].color = input == NoteDemoInput.Press || input == NoteDemoInput.Hold ? RunUI.Ink : RunUI.TextColor;
-                keyTexts[lane].text = keyNames[lane] + "\n" + (input == NoteDemoInput.Invoke ? "호출" : input == NoteDemoInput.Call ? "콜" : input == NoteDemoInput.Press ? "누름" : input == NoteDemoInput.Hold ? "유지" : input == NoteDemoInput.Release ? "떼기" : "·");
+                keyTexts[lane].text = keyNames[lane] + "\n" + (input == NoteDemoInput.Invoke ? "호출" : input == NoteDemoInput.Call ? "콜" : input == NoteDemoInput.Press ? "누름" : input == NoteDemoInput.Hold ? "유지" : input == NoteDemoInput.Release ? "떼기" : input == NoteDemoInput.Ready ? "장전" : "·");
             }
             status.text = beat < 0 ? "자동 입력 준비 · " + Math.Ceiling(-beat) :
                 Playback.PreparationRemaining(beat) > 0 ? "호출 → 첫 노트까지 " + Playback.PreparationRemaining(beat).ToString("0.0") + "박" :
@@ -115,8 +115,10 @@ namespace BBSB.Runtime.UI
                 art.Body.color = new Color(tint.r, tint.g, tint.b, .4f);
                 RunUI.Pin(art.Head, Vector2.zero, new Vector2(.5f, .5f), new Vector2(x, head),
                     new Vector2(Mathf.Min(unit * (connected ? .5f : .78f), connected ? 80 : 112), connected ? 3 : 28));
-                art.Face.sprite = theme == null || connected || note.IsCall ? null : theme.NoteSprite(note.Beat + (side == WeaponBeatSide.Dark ? .5 : 0));
+                art.Face.sprite = theme == null || connected || note.IsCall || note.IsOptional ? null : theme.NoteSprite(note.Beat + (side == WeaponBeatSide.Dark ? .5 : 0));
                 art.Face.color = art.Face.sprite == null ? tint : Color.white;
+                art.Face.enabled = !note.IsOptional;
+                foreach (var edge in art.Choice) { edge.enabled = note.IsOptional; edge.color = tint; }
                 art.Head.gameObject.SetActive(!connected || start > beat);
             });
             for (int i = used; i < notes.Count; i++) notes[i].Root.gameObject.SetActive(false);
@@ -127,6 +129,16 @@ namespace BBSB.Runtime.UI
             result.Tail = ui.Rect("Hold", result.Root); result.Body = ui.Background(result.Tail, RunUI.Gold);
             result.Head = ui.Rect("Head", result.Root); result.Face = ui.Background(result.Head, Color.white);
             result.Face.preserveAspect = true;
+            result.Choice = new Image[4];
+            for (int i = 0; i < result.Choice.Length; i++)
+            {
+                bool horizontal = i < 2; float edge = i % 2;
+                var border = ui.Rect("Choice edge", result.Head);
+                RunUI.Overlay(border, horizontal ? new Vector2(0, edge) : new Vector2(edge, 0),
+                    horizontal ? new Vector2(1, edge) : new Vector2(edge, 1), Vector2.zero,
+                    horizontal ? new Vector2(0, 2) : new Vector2(2, 0));
+                result.Choice[i] = ui.Background(border, Color.white);
+            }
             return result;
         }
     }

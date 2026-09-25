@@ -9,6 +9,7 @@ namespace BBSB.Core
     public enum PhraseLanePhase { Ready, Playing, Cooldown }
     public enum PhraseNoteCondition { Always, Hit, Parry, AllCalls }
     public enum WeaponNoteRole { Response, Call }
+    public enum WeaponNoteTrigger { Completion, ChargedRelease, OptionalPress }
     public enum PhraseNoteState { Locked, Pending, Holding, Hit, Missed, Skipped }
 
     // Offsets/durations are musical beats, independent of the song's BPM and monster gestures.
@@ -30,6 +31,10 @@ namespace BBSB.Core
         // A crown can cover an existing note without deleting its damage/effect/socket.
         public bool ConnectFromPrevious { get; }
         public WeaponNoteRole Role { get; }
+        public WeaponNoteTrigger Trigger { get; }
+        public double OpportunityIntervalBeats { get; }
+        public bool IsChargedRelease => Trigger == WeaponNoteTrigger.ChargedRelease;
+        public bool IsOptional => Trigger == WeaponNoteTrigger.OptionalPress;
         public bool IsCall => Role == WeaponNoteRole.Call;
         public bool IsHold => HoldBeats > 0;
         public bool IsParry => Effect == PhraseEffect.Parry;
@@ -37,16 +42,20 @@ namespace BBSB.Core
             int prerequisite = -1, PhraseNoteCondition condition = PhraseNoteCondition.Always, int laneOffset = 0,
             double effectDurationBeats = 2, WeaponAttackTarget target = WeaponAttackTarget.Front,
             decimal bonusHealing = 0, int baseNoteIndex = -1, bool injected = false, bool connectFromPrevious = false,
-            WeaponNoteRole role = WeaponNoteRole.Response)
+            WeaponNoteRole role = WeaponNoteRole.Response, WeaponNoteTrigger trigger = WeaponNoteTrigger.Completion,
+            double opportunityIntervalBeats = 1)
         {
             if (!Finite(beat) || beat < 0 || !Finite(holdBeats) || holdBeats < 0 || damage < 0 ||
                 !Enum.IsDefined(typeof(PhraseEffect), effect) || !Enum.IsDefined(typeof(PhraseNoteCondition), condition) ||
                 (condition == PhraseNoteCondition.Hit || condition == PhraseNoteCondition.Parry ? prerequisite < 0 : prerequisite != -1) ||
                 laneOffset < 0 || laneOffset >= BattleInputLayout.LaneCount || !Finite(effectDurationBeats) || effectDurationBeats <= 0 ||
                 !Enum.IsDefined(typeof(WeaponAttackTarget), target) || bonusHealing < 0 || baseNoteIndex < -1 ||
-                !Enum.IsDefined(typeof(WeaponNoteRole), role) || role == WeaponNoteRole.Call && (effect != PhraseEffect.Strike || bonusHealing != 0))
+                !Enum.IsDefined(typeof(WeaponNoteRole), role) || role == WeaponNoteRole.Call && (effect != PhraseEffect.Strike || bonusHealing != 0) ||
+                !Enum.IsDefined(typeof(WeaponNoteTrigger), trigger) || !Finite(opportunityIntervalBeats) || opportunityIntervalBeats <= 0 ||
+                trigger != WeaponNoteTrigger.Completion && (role != WeaponNoteRole.Response || effect != PhraseEffect.Strike) ||
+                trigger == WeaponNoteTrigger.ChargedRelease && (holdBeats > 0 || condition != PhraseNoteCondition.Hit))
                 throw new ArgumentOutOfRangeException(nameof(beat));
-            Role = role;
+            Role = role; Trigger = trigger; OpportunityIntervalBeats = opportunityIntervalBeats;
             Beat = beat; HoldBeats = holdBeats; Damage = IsCall ? 0 : damage; Effect = effect; EffectDurationBeats = effectDurationBeats;
             Prerequisite = prerequisite; Condition = condition; LaneOffset = laneOffset;
             Target = target; BonusHealing = bonusHealing; BaseNoteIndex = baseNoteIndex; IsInjected = injected;
@@ -78,6 +87,12 @@ namespace BBSB.Core
         // Zero is the explicitly immediate mode used by reactive shields and legacy authored patterns.
         public double FirstNoteDelayBeats { get; }
         public IReadOnlyList<WeaponPhraseNote> Notes { get; }
+        public bool HasFlexibleResponse { get; }
+        public int ChargedResponseFor(int callIndex)
+        {
+            int response = callIndex + 1;
+            return response < Notes.Count && Notes[response].IsChargedRelease && Notes[response].Prerequisite == callIndex ? response : -1;
+        }
         public WeaponPhrase(string weaponId, string name, string hint, double lengthBeats,
             IEnumerable<WeaponPhraseNote> notes, double missCooldownBeats = 2, bool repeat = false,
             int finisherEvery = 0, decimal finisherDamage = 0, double groggyBeats = 0,
@@ -118,6 +133,14 @@ namespace BBSB.Core
                     for (int j = 0; j < i; j++) hasCall |= copy[j].IsCall;
                     if (note.IsCall || !hasCall) throw new ArgumentException("An AllCalls response needs earlier preparation notes.", nameof(notes));
                 }
+                if (note.IsChargedRelease && (note.Prerequisite != i - 1 || !copy[i - 1].IsCall ||
+                    !copy[i - 1].IsHold || copy[i - 1].LaneOffset != note.LaneOffset))
+                    throw new ArgumentException("떼기 발사는 바로 앞의 같은 라인 Call Hold와 연결해야 해.", nameof(notes));
+                if (i > 0 && copy[i - 1].IsOptional && !note.IsOptional)
+                    throw new ArgumentException("선택 발사 구간 뒤에는 다른 선택 발사 기회만 둘 수 있어.", nameof(notes));
+                if (note.IsOptional && note.Condition != PhraseNoteCondition.AllCalls && note.Condition != PhraseNoteCondition.Always)
+                    throw new ArgumentException("선택 발사는 Always 또는 AllCalls 조건을 사용해.", nameof(notes));
+                HasFlexibleResponse |= note.Trigger != WeaponNoteTrigger.Completion;
             }
             WeaponId = weaponId; Name = name; Hint = hint; LengthBeats = lengthBeats;
             MissCooldownBeats = missCooldownBeats; Repeat = repeat; FinisherEvery = finisherEvery;

@@ -145,7 +145,7 @@ namespace BBSB.Tests
                 for (int i = 0; i < source.LightStarts[0].Notes.Count; i++)
                 {
                     // A part must have an attack socket in every authored start variant.
-                    if (source.LightStarts.Concat(source.DarkStarts).Any(p => i >= p.Notes.Count || p.Notes[i].IsHold ||
+                    if (source.LightStarts.Concat(source.DarkStarts).Any(p => i >= p.Notes.Count || p.Notes[i].IsHold || p.Notes[i].IsChargedRelease ||
                         p.Notes[i].Effect != PhraseEffect.Strike || p.Notes[i].Damage <= 0)) continue;
                     weapon.SetNoteBindings(new[] { Part(1, "inject-hold", i) });
                     WeaponNoteAssembly.Apply(weapon, source);
