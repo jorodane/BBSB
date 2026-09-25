@@ -100,7 +100,7 @@ namespace BBSB.Runtime.UI
                 foreach (var broken in noteTimeline.Broken)
                     if (broken.Note.Slot == slot && !(SpriteNoteShatter && broken.Note.IsPreview)) DrawBroken(vh, broken, laneColor);
             }
-            // The battlefield projectile also moves linearly during its final beat.
+            // Sprite-free fallback follows the same combo and sustained attack rules.
             var source = enemySource != null ? LocalPoint(enemySource, new Vector2(enemySource.rect.center.x, enemySource.rect.yMin)) : Pixel(new Vector2(.625f, .50f));
             var target = playerTarget != null ? LocalPoint(playerTarget, playerTarget.rect.center + Vector2.up * playerTarget.rect.height * .03f) : Pixel(new Vector2(.15f, .699f));
             foreach (var attack in battle.Incoming)
@@ -110,10 +110,19 @@ namespace BBSB.Runtime.UI
                     source = LocalPoint(actor, actor.rect.center - Vector2.up * actor.rect.height * .04f);
                 double delta = attack.Beat - battle.Beat;
                 if (delta > 1 || attack.EndBeat - battle.Beat < -.25 || attack.State == IncomingAttackState.Interrupted) continue;
-                float t = (float)SteppedNoteTrack.ImpactProgress(attack.Beat, battle.Beat);
+                bool chained = FiveLaneAttackMotion.ContinuesEnemy(battle, attack);
+                if (chained && delta > 0) continue;
+                if (attack.State == IncomingAttackState.Blocked && battle.Beat - attack.ResolvedBeat > .25) continue;
+                float t = chained ? 1 : FiveLaneArtTimeline.ProjectileProgress(attack.Beat, battle.Beat);
                 var p = Vector2.Lerp(source, target, t);
                 Color tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
-                Line(vh, p, p + (source - target).normalized * 23, 5, tint);
+                float turn = attack.Definition.IsHold && delta <= 0 ?
+                    (float)(Math.Min(battle.Beat, attack.EndBeat) - attack.SustainStartBeat) * Mathf.PI * 4 :
+                    (attack.SequenceIndex % 2 == 0 ? 1 : -1) * t * Mathf.PI;
+                var stroke = new Vector2(Mathf.Cos(turn), Mathf.Sin(turn)) * 23;
+                Line(vh, p - stroke, p + stroke, 5, tint);
+                if (attack.Definition.IsHold && delta <= 0)
+                    Diamond(vh, p + stroke, 8, tint);
                 Diamond(vh, p, 9 + t * 9, tint);
             }
         }

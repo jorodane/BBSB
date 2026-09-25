@@ -14,9 +14,9 @@ namespace BBSB.Runtime.UI
         private readonly List<WeaponIconGraphic> weapons = new List<WeaponIconGraphic>();
 
         internal FiveLaneWeaponsView(FiveLaneBattle battle, RunUI ui, FiveLaneHudBindings hud,
-            List<RectTransform> enemies, List<string> instances)
+            RectTransform playerBody, List<RectTransform> enemies, List<string> instances)
         {
-            this.battle = battle; this.enemies = enemies; this.instances = instances; player = hud.playerSlot;
+            this.battle = battle; this.enemies = enemies; this.instances = instances; player = playerBody;
             root = ui.Rect("Orbiting weapons", hud.actors); RunUI.Stretch(root);
             foreach (var lane in battle.Lanes)
             {
@@ -39,12 +39,12 @@ namespace BBSB.Runtime.UI
         {
             if (root.rect.width <= 0 || root.rect.height <= 0) return;
             var body = Point(player, .5f, .53f);
-            double height = Mathf.Min(player.rect.height, player.rect.width) / root.rect.height;
+            double height = root.InverseTransformVector(player.TransformVector(Vector3.up * player.rect.height)).magnitude / root.rect.height;
             double aspect = root.rect.width / root.rect.height;
             for (int i = 0; i < weapons.Count; i++)
             {
                 var lane = battle.Lanes[i];
-                int victim = instances.IndexOf(lane.LastDamageMonsterId ?? battle.Formation?.Front?.InstanceId);
+                int victim = instances.IndexOf(FiveLaneWeaponMotion.Target(battle, lane));
                 var target = enemies.Count > 0 ? Point(enemies[victim >= 0 ? victim : 0], .5f, .48f) : body;
                 var frame = FiveLaneWeaponMotion.Sample(battle, lane, i, body, height, aspect, target);
                 var icon = weapons[i]; var rect = icon.rectTransform;

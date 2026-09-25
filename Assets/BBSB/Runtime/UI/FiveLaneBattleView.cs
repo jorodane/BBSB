@@ -37,6 +37,15 @@ namespace BBSB.Runtime.UI
                 float height = Mathf.Min(Slot.rect.height, Slot.rect.width / Mathf.Max(.1f, Aspect));
                 Visual.localScale = Vector3.one * (height * Scale / 512);
                 Visual.anchoredPosition = Offset * height;
+                Visual.localRotation = Quaternion.identity;
+            }
+            public void Attack(AttackMotionState state, double beat, int facing)
+            {
+                var frame = FiveLaneAttackMotion.Body(state, beat, facing);
+                float height = 512 * Visual.localScale.y;
+                Visual.anchoredPosition += new Vector2((float)frame.Position.X, (float)frame.Position.Y) * height;
+                Visual.localRotation = Quaternion.Euler(0, 0, (float)frame.Rotation);
+                Visual.localScale *= (float)frame.Scale;
             }
         }
 
@@ -111,7 +120,7 @@ namespace BBSB.Runtime.UI
                     appearance != null ? appearance.spriteReferenceHeight : 4, appearance != null ? appearance.displayScale : 1,
                     appearance != null ? appearance.displayOffset : Vector2.zero));
                 monsterIds.Add(plan.InstanceId);
-                species.Add(plan.Monster.Id); enemySlots.Add(stageActors[i + 1].Slot);
+                species.Add(plan.Monster.Id); enemySlots.Add(stageActors[i + 1].Visual);
                 var actorSlot = stageActors[i + 1].Slot;
                 var healthLabel = ui.Label(actorSlot, "", 14, RunUI.TextColor);
                 healthLabel.fontSize = 14; healthLabel.color = RunUI.TextColor;
@@ -128,9 +137,11 @@ namespace BBSB.Runtime.UI
                 FiveLaneHudBindings.Place(cue.rectTransform, x0, .85f, x1, .89f);
                 attackLabels.Add(cue);
             }
-            weapons = new FiveLaneWeaponsView(battle, ui, hud, enemySlots, monsterIds);
+            var playerBody = stageActors[0].Visual;
+            weapons = new FiveLaneWeaponsView(battle, ui, hud, playerBody, enemySlots, monsterIds);
+            tracks.Bind(battle, hud.judgmentPoints, playerBody, hud.monsterArea);
             tracks.BindEnemySlots(enemySlots, monsterIds);
-            effects = new FiveLaneEffectsView(presentation, battle, ui, hud, tracks, enemySlots, monsterIds, species, weapons);
+            effects = new FiveLaneEffectsView(presentation, battle, ui, hud, playerBody, tracks, enemySlots, monsterIds, species, weapons);
         }
         private ActorPrefabView Actor(string name, RectTransform stage, int index, int count, GameObject prefab,
             RuntimeAnimatorController controller, Sprite sprite, float reference, float scale, Vector2 offset)
@@ -236,6 +247,13 @@ namespace BBSB.Runtime.UI
             }
             var heroFrame = FiveLaneArtTimeline.Player(battle);
             player.Sample(heroFrame.State, heroFrame.Age, heroFrame.Duration, heroFrame.Loop);
+            AttackMotionState heroMotion = default;
+            foreach (var lane in battle.Lanes)
+            {
+                var motion = FiveLaneAttackMotion.Player(battle, lane);
+                if (motion.Active && (!heroMotion.Active || motion.StartBeat > heroMotion.StartBeat)) heroMotion = motion;
+            }
+            if (heroFrame.State != "Base Layer.Hit") stageActors[0].Attack(heroMotion, battle.Beat, 1);
             double nearestAttack = double.PositiveInfinity;
             for (int i = 0; i < monsters.Count; i++)
             {
@@ -257,8 +275,9 @@ namespace BBSB.Runtime.UI
                     float windup = remaining <= 1 ? 1 - (float)remaining : 0;
                     stageActors[i + 1].Visual.localScale *= 1 + .06f * windup;
                     stageActors[i + 1].Visual.anchoredPosition += Vector2.up * (12 * windup);
-                    monsters[i].RefreshSprites();
                 }
+                stageActors[i + 1].Attack(FiveLaneAttackMotion.Enemy(battle, monsterIds[i]), battle.Beat, -1);
+                monsters[i].RefreshSprites();
             }
             hud.attackCue.text = !string.IsNullOrEmpty(countInWord) ? "" : double.IsPositiveInfinity(nearestAttack) ? "" :
                 nearestAttack <= battle.PerfectWindow ? "PARRY NOW" : "PARRY IN " + nearestAttack.ToString("0.0") + " BEATS";

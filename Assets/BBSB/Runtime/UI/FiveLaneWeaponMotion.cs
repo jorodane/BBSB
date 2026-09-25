@@ -1,8 +1,9 @@
+using System;
 using BBSB.Core;
 
 namespace BBSB.Runtime.UI
 {
-    // Presentation only. Calls never set LastDamageBeat, so they cannot launch an attack.
+    // Presentation only. Preparation and actual response inputs have separate poses.
     public static class FiveLaneWeaponMotion
     {
         public static WeaponAttackStyle Style(PhraseLane lane)
@@ -27,17 +28,53 @@ namespace BBSB.Runtime.UI
         public static BattlePathPoint ShieldPoint(BattlePathPoint body, double height, double aspect) =>
             new BattlePathPoint(body.X + height * .30 / aspect, body.Y);
 
+        public static bool Local(PhraseLane lane)
+        {
+            var weapon = WeaponCatalog.Find(lane.Weapon.DefinitionId);
+            return weapon.IsRanged || weapon.Kind == WeaponKind.Bell || weapon.Kind == WeaponKind.SpiritBell ||
+                lane.LastPerformedNote != null && lane.LastPerformedNote.Definition.Effect != PhraseEffect.Strike;
+        }
+
+        public static string Target(FiveLaneBattle battle, PhraseLane lane)
+        {
+            var played = lane.LastPerformedNote;
+            if (played != null && double.IsPositiveInfinity(played.CompletedAtBeat))
+                return battle.Formation?.TargetFor(played.Definition.Target)?.InstanceId;
+            return lane.LastDamageMonsterId ?? battle.Formation?.Front?.InstanceId;
+        }
+
         public static WeaponMotionFrame Sample(FiveLaneBattle battle, PhraseLane lane, int index,
             BattlePathPoint body, double height, double aspect, BattlePathPoint target)
         {
             double seconds = battle.Beat * 60 / battle.Bpm;
             var home = WeaponFormation.Sample(index, seconds, body, height, aspect);
             if (Blocking(battle, lane)) return new WeaponMotionFrame(ShieldPoint(body, height, aspect), -8, 1.25);
-            double age = (battle.Beat - lane.LastDamageBeat) * 60 / battle.Bpm;
+            bool local = Local(lane);
+            var state = FiveLaneAttackMotion.Player(battle, lane);
+            if (!state.Active)
+            {
+                if (local && FiveLaneArtTimeline.Weapon(lane, battle.Beat) == RangedWeaponPose.Prepare)
+                    return new WeaponMotionFrame(ShieldPoint(body, height, aspect), -10, 1.22);
+                return home;
+            }
+            double age = (battle.Beat - state.StartBeat) * 60 / battle.Bpm;
             var style = Style(lane);
+            var launch = WeaponFormation.Sample(index, state.StartBeat * 60 / battle.Bpm, body, height, aspect);
+            if (local)
+            {
+                target = ShieldPoint(body, height, aspect);
+                if (WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged)
+                    launch = new WeaponMotionFrame(target, -10, 1.22);
+            }
+            if (local || state.Mode != AttackMotionMode.Single || state.Canceled)
+                return FiveLaneAttackMotion.Sample(state, battle.Beat, launch, home, target, height, aspect, local);
             if (age < 0 || age >= WeaponMotion.Duration(style)) return home;
-            var launch = WeaponFormation.Sample(index, lane.LastDamageBeat * 60 / battle.Bpm, body, height, aspect);
-            return WeaponFormation.Attack(style, launch, target, home, age / WeaponMotion.Duration(style));
+            var frame = WeaponFormation.Attack(style, launch, target, home, age / WeaponMotion.Duration(style));
+            // Repeated isolated taps still alternate the direction of the physical stroke.
+            double phase = Math.Min(1, age * battle.Bpm / 60 / state.ContactBeats);
+            var position = new BattlePathPoint(frame.Position.X,
+                frame.Position.Y + state.Direction * Math.Sin(phase * Math.PI) * height * .065);
+            return new WeaponMotionFrame(position, home.Rotation + state.Direction * (frame.Rotation - home.Rotation), frame.Scale);
         }
     }
 }

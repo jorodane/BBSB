@@ -33,6 +33,10 @@ namespace BBSB.Runtime.UI
         public static RangedWeaponPose Weapon(PhraseLane lane, double beat)
         {
             if (lane == null || !WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged) return RangedWeaponPose.Idle;
+            var played = lane.LastPerformedNote;
+            if (lane.Holding && played != null && !played.Canceled && played.Definition.IsHold &&
+                played.Definition.Effect == PhraseEffect.Strike && played.Definition.Damage > 0 && beat < played.EndBeat)
+                return (beat - played.SustainStartedAtBeat) % .5 < .15 ? RangedWeaponPose.Release : RangedWeaponPose.Prepare;
             if (Recent(beat, lane.LastDamageBeat, .18)) return RangedWeaponPose.Release;
             if (lane.Phase != PhraseLanePhase.Playing) return RangedWeaponPose.Idle;
             if (lane.Holding || BowDrawn(lane) ||
@@ -44,7 +48,15 @@ namespace BBSB.Runtime.UI
         {
             if (Recent(battle.Beat, battle.LastHitBeat, .4)) return new FiveLaneActorFrame("Hit", battle.Beat - battle.LastHitBeat, .4f);
             double strike = double.NegativeInfinity;
-            foreach (var lane in battle.Lanes) strike = Math.Max(strike, lane.LastDamageBeat);
+            foreach (var lane in battle.Lanes)
+            {
+                strike = Math.Max(strike, lane.LastDamageBeat);
+                var played = lane.LastPerformedNote;
+                if (played == null || played.Canceled) continue;
+                if (lane.Holding && played.Definition.IsHold && battle.Beat < played.EndBeat)
+                    return new FiveLaneActorFrame("TapImpact", battle.Beat - played.SustainStartedAtBeat, .5f, true);
+                strike = Math.Max(strike, played.StartedAtBeat);
+            }
             if (Recent(battle.Beat, strike, .4)) return new FiveLaneActorFrame("TapImpact", battle.Beat - strike, .4f);
             foreach (var lane in battle.Lanes)
                 if (Guarding(lane)) return new FiveLaneActorFrame("Guard", battle.Beat - lane.NextBeat, 2, true);
@@ -65,14 +77,21 @@ namespace BBSB.Runtime.UI
             if (monster != null && monster.Health.Defeated) return new FiveLaneActorFrame("Defeated", battle.Beat - monster.DefeatedBeat, 1);
             if (monster != null && Recent(battle.Beat, monster.LastHitBeat, .35)) return new FiveLaneActorFrame("Hit", battle.Beat - monster.LastHitBeat, .35f);
             if (monster != null ? battle.Beat < monster.GroggyUntilBeat : battle.IsGroggy) return new FiveLaneActorFrame("Hit", battle.Beat, 1, true);
+            var motion = FiveLaneAttackMotion.Enemy(battle, instanceId);
+            if (motion.Active && !motion.Canceled)
+            {
+                if (motion.Mode == AttackMotionMode.Sustain && battle.Beat >= motion.SustainStartBeat && battle.Beat < motion.EndBeat)
+                    return new FiveLaneActorFrame("Attack", battle.Beat - motion.SustainStartBeat, .5f, true);
+                // Hold the contact pose between combo inputs, then replay on the next actual beat.
+                double age = Math.Min(.45, battle.Beat - motion.StartBeat);
+                if (battle.Beat > motion.RecoverAtBeat) age += battle.Beat - motion.RecoverAtBeat;
+                return new FiveLaneActorFrame("Attack", age, .7f);
+            }
             IncomingBeatAttack nearest = null;
             foreach (var attack in battle.Incoming)
             {
                 if (attack.Definition.MonsterId != instanceId || attack.State == IncomingAttackState.Interrupted ||
-                    attack.EndBeat < battle.Beat - .35 || attack.Beat > battle.Beat + 1) continue;
-                if (attack.Definition.IsHold && attack.Beat <= battle.Beat && attack.EndBeat >= battle.Beat &&
-                    attack.State == IncomingAttackState.Pending)
-                    return new FiveLaneActorFrame("Attack", battle.Beat - attack.Beat, 1, true);
+                    attack.State != IncomingAttackState.Pending || attack.Beat <= battle.Beat || attack.Beat > battle.Beat + 1) continue;
                 if (nearest == null || attack.Beat < nearest.Beat) nearest = attack;
             }
             if (nearest == null) return new FiveLaneActorFrame("Idle", battle.Beat, 4, true);

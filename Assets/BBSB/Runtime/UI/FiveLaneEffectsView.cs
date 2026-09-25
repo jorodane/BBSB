@@ -22,10 +22,10 @@ namespace BBSB.Runtime.UI
         private int used;
 
         public FiveLaneEffectsView(ShoulderViewPresentation art, FiveLaneBattle battle, RunUI ui, FiveLaneHudBindings hud,
-            FiveLaneTrackGraphic tracks, List<RectTransform> enemies, List<string> instances, List<string> species, FiveLaneWeaponsView weapons)
+            RectTransform playerBody, FiveLaneTrackGraphic tracks, List<RectTransform> enemies, List<string> instances, List<string> species, FiveLaneWeaponsView weapons)
         {
             this.art = art; this.battle = battle; this.tracks = tracks; this.enemies = enemies; this.instances = instances; this.weapons = weapons;
-            player = hud.playerSlot;
+            player = playerBody;
             root = ui.Rect("Battle sprite effects", hud.transform); RunUI.Stretch(root);
             // Above bodies and note meshes, below health, labels and input surfaces.
             root.SetSiblingIndex(hud.tracks.GetSiblingIndex() + 1);
@@ -44,7 +44,7 @@ namespace BBSB.Runtime.UI
             if (art == null) return;
             used = 0;
             Vector2 target = At(player, .5f, .53f);
-            Vector2 guard = target + Vector2.right * (Mathf.Min(player.rect.height, player.rect.width) * .30f);
+            Vector2 guard = target + Vector2.right * (Vector2.Distance(At(player, .5f, 0), At(player, .5f, 1)) * .30f);
             foreach (var lane in battle.Lanes)
                 if (FiveLaneArtTimeline.Guarding(lane))
                 { Draw(art.guard, guard, .23f, .58f); break; }
@@ -58,15 +58,17 @@ namespace BBSB.Runtime.UI
                 if (attack.Definition.IsHold && attack.State == IncomingAttackState.Pending &&
                     battle.Beat >= attack.Beat && battle.Beat <= attack.EndBeat)
                 {
-                    float pulse = (float)((battle.Beat - attack.Beat) % .5 / .5);
-                    Draw(projectiles[index], target, .20f + .035f * (1 - pulse), .65f + .3f * (1 - pulse));
+                    Flurry(projectiles[index], target, battle.Beat - attack.SustainStartBeat, .20f);
                 }
                 else if (attack.State == IncomingAttackState.Pending && remaining <= 1 && remaining >= -battle.HalfMissWindow)
                 {
+                    bool chained = FiveLaneAttackMotion.ContinuesEnemy(battle, attack);
+                    if (chained && remaining > 0) continue;
                     Vector2 source = At(enemies[index], .5f, .46f);
-                    float t = FiveLaneArtTimeline.ProjectileProgress(attack.Beat, battle.Beat);
+                    float t = chained ? 1 : FiveLaneArtTimeline.ProjectileProgress(attack.Beat, battle.Beat);
+                    float swing = (attack.SequenceIndex % 2 == 0 ? 1 : -1) * Mathf.Clamp01((float)(-remaining / .22)) * 100;
                     Draw(projectiles[index], Vector2.Lerp(source, target, t), Mathf.Lerp(.075f, .18f, t), 1,
-                        Direction(target - source) - 225);
+                        Direction(target - source) - 225 + swing);
                 }
                 else if (attack.State == IncomingAttackState.Blocked && FiveLaneArtTimeline.Recent(battle.Beat, attack.ResolvedBeat, .45))
                     Burst(art.parry, guard, attack.ResolvedBeat, .27f, .45);
@@ -77,20 +79,39 @@ namespace BBSB.Runtime.UI
                 Burst(art.impact, target, battle.LastHitBeat, .2f, .4);
             for (int i = 0; i < battle.Lanes.Count && enemies.Count > 0; i++)
             {
-                var lane = battle.Lanes[i]; double age = battle.Beat - lane.LastDamageBeat;
-                var style = FiveLaneWeaponMotion.Style(lane);
-                double impact = WeaponMotion.ImpactSeconds(style) * battle.Bpm / 60;
-                if (age < 0 || age >= impact + .35) continue;
-                int victim = instances.IndexOf(lane.LastDamageMonsterId);
+                var lane = battle.Lanes[i]; var played = lane.LastPerformedNote;
+                if (played == null || played.Canceled) continue;
+                double age = battle.Beat - played.StartedAtBeat;
+                double impact = FiveLaneAttackMotion.PlayerContactBeats(battle, lane);
+                int victim = instances.IndexOf(FiveLaneWeaponMotion.Target(battle, lane));
                 Vector2 enemy = At(enemies[victim >= 0 ? victim : i % enemies.Count], .5f, .48f);
                 bool ranged = WeaponCatalog.Find(lane.Weapon.DefinitionId).IsRanged;
                 Vector2 origin = root.InverseTransformPoint(weapons.Origin(lane));
+                bool support = played.Definition.Effect != PhraseEffect.Strike ||
+                    played.Definition.Damage == 0 && lane.LastDamageBeat != played.CompletedAtBeat;
+                float direction = played.Ordinal % 2 == 0 ? 1 : -1;
+                if (played.Definition.IsHold)
+                {
+                    if (FiveLaneAttackMotion.SustainingPlayer(battle, lane))
+                        Flurry(support ? art.guard : ranged ? art.arrow : art.slash,
+                            support ? origin : enemy, battle.Beat - played.SustainStartedAtBeat, support ? .16f : .23f);
+                    if (!support && FiveLaneArtTimeline.Recent(battle.Beat, played.CompletedAtBeat, .35))
+                        Burst(art.impact, enemy, played.CompletedAtBeat, .16f, .35);
+                    continue;
+                }
+                if (age < 0 || age >= impact + .35) continue;
+                if (support)
+                {
+                    if (age >= impact) Burst(art.guard != null ? art.guard : art.impact, origin,
+                        played.StartedAtBeat + impact, .18f, .35);
+                    continue;
+                }
                 if (ranged && age < impact)
                     Draw(art.arrow, Vector2.Lerp(origin, enemy, (float)(age / impact)), .12f, 1, Direction(enemy - origin) - 45);
                 if (age >= impact)
                 {
-                    if (!ranged) Burst(art.slash, enemy, lane.LastDamageBeat + impact, .26f, .35);
-                    Burst(art.impact, enemy, lane.LastDamageBeat + impact, .14f, .35);
+                    if (!ranged) Burst(art.slash, enemy, played.StartedAtBeat + impact, .26f, .35, direction * 55);
+                    Burst(art.impact, enemy, played.StartedAtBeat + impact, .14f, .35);
                 }
             }
             foreach (var note in tracks.NoteTimeline.Confirmed)
@@ -109,10 +130,21 @@ namespace BBSB.Runtime.UI
         private Vector2 At(RectTransform rect, float x, float y) => root.InverseTransformPoint(rect.TransformPoint(
             new Vector2(Mathf.Lerp(rect.rect.xMin, rect.rect.xMax, x), Mathf.Lerp(rect.rect.yMin, rect.rect.yMax, y))));
         private static float Direction(Vector2 v) => Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg;
-        private void Burst(Sprite sprite, Vector2 point, double at, float height, double duration)
+        private void Flurry(Sprite sprite, Vector2 point, double age, float height)
+        {
+            // Reuse the authored transparent sprite for a continuous stroke and two fading trails.
+            for (int i = 2; i >= 0; i--)
+            {
+                float turn = (float)(age * 720 - i * 45);
+                float angle = turn * Mathf.Deg2Rad;
+                var offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (root.rect.height * .015f);
+                Draw(sprite, point + offset, height * (1 - i * .08f), 1 - i * .3f, turn);
+            }
+        }
+        private void Burst(Sprite sprite, Vector2 point, double at, float height, double duration, float rotation = 0)
         {
             float t = Mathf.Clamp01((float)((battle.Beat - at) / duration));
-            Draw(sprite, point, height * Mathf.Lerp(.7f, 1.25f, t), 1 - t);
+            Draw(sprite, point, height * Mathf.Lerp(.7f, 1.25f, t), 1 - t, rotation);
         }
         private void Draw(Sprite sprite, Vector2 point, float height, float alpha, float rotation = 0)
         {
