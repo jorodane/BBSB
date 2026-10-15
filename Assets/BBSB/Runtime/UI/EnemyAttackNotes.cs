@@ -9,6 +9,9 @@ namespace BBSB.Runtime.UI
         public static bool Visible(FiveLaneBattle battle, IncomingBeatAttack attack, int slot)
         {
             var lane = battle.LaneAt(slot);
+            if (battle.SeparateHands) return battle.IsDefenseInput(slot) && attack.ShieldSlot == slot &&
+                SteppedNoteTrack.InHorizon(attack.Beat - battle.Beat) && attack.EndBeat >= battle.Beat - battle.HalfMissWindow &&
+                attack.State != IncomingAttackState.Interrupted && attack.State != IncomingAttackState.Hit;
             return lane != null && WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield &&
                 battle.CoversAttack(lane, slot, attack) &&
                 SteppedNoteTrack.InHorizon(attack.Beat - battle.Beat) &&

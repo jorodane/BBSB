@@ -10,7 +10,7 @@ namespace BBSB.Core
         private SeededRandom mapRandom;
         private SeededRandom rewardRandom;
         private readonly List<WeaponState> weapons = new List<WeaponState>();
-        public WeaponEquipment Equipment { get; } = new WeaponEquipment();
+        public WeaponEquipment Equipment { get; }
         private readonly List<string> items = new List<string>();
         private readonly List<string> augments = new List<string>();
         private readonly List<string> visited = new List<string>();
@@ -50,11 +50,12 @@ namespace BBSB.Core
         public IReadOnlyList<Offer> Offers { get; }
 
         public RunSession(int seed, RunRules rules = null, string mapId = null, bool useFiveLaneCombat = false,
-            RunCharacterDefinition character = null, StartingLoadoutPreset startingLoadout = null)
+            RunCharacterDefinition character = null, StartingLoadoutPreset startingLoadout = null, bool separateHands = false)
         {
             UsesFiveLaneCombat = useFiveLaneCombat;
+            Equipment = new WeaponEquipment(useFiveLaneCombat && separateHands);
             Character = character ?? RunCharacterDefinition.Default;
-            this.startingLoadout = new StartingLoadout(Character, startingLoadout).Capture();
+            this.startingLoadout = new StartingLoadout(Character, startingLoadout, Equipment.SeparateHands).Capture();
             this.rules = rules ?? new RunRules();
             legacyWeapons = weapons.AsReadOnly(); Items = items.AsReadOnly(); Augments = augments.AsReadOnly();
             Visited = visited.AsReadOnly(); Offers = offers.AsReadOnly();
@@ -163,7 +164,7 @@ namespace BBSB.Core
             if (!UsesFiveLaneCombat || Phase != RunPhase.Stage || BattlePlan == null || Health <= 0 || ActiveRhythmRound != null || Weapons.Count == 0) return null;
             if (PhraseBattle == null)
             {
-                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases, Equipment.Placements, phraseSets, Equipment.Extensions, unchecked(Seed * 397 + ClearedStages), BattleBonuses);
+                PhraseBattle = FiveLaneBattle.FromPlan(BattlePlan, Weapons, EnemyHealth, Health, MaxHealth, phrases, Equipment.Placements, phraseSets, Equipment.Extensions, unchecked(Seed * 397 + ClearedStages), BattleBonuses, separateHands: Equipment.SeparateHands);
                 PhraseBattle.PlayerHealthChanged += ApplyPhraseHealth;
             }
             if (PhraseBattle.Finished) return null;

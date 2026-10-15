@@ -37,7 +37,6 @@ namespace BBSB.Runtime
         private bool pendingOfferIsShop;
         private readonly List<Button> shopOfferButtons = new List<Button>();
         private TMP_Text statsLabel, noticeLabel;
-        private static readonly string[] InputKeys = { "D", "F", "Space", "J", "K", "S", "L" };
         private string notice = "";
         private bool rendering;
         private readonly MusicPreview musicPreview = new MusicPreview();
@@ -87,7 +86,7 @@ namespace BBSB.Runtime
         {
             int seed = fixedSeed ?? Guid.NewGuid().GetHashCode();
             string mapId = selectedMap < 0 ? null : StageCatalog.Maps[selectedMap].Id;
-            Session = new RunSession(seed, rules, mapId, fiveLaneCombat, character, layout);
+            Session = new RunSession(seed, rules, mapId, fiveLaneCombat, character, layout, separateHands: fiveLaneCombat);
             notice = "";
             if (fiveLaneCombat)
             {
@@ -387,7 +386,9 @@ namespace BBSB.Runtime
             ui.Label(panel, Session.BattleMusic.Music.Name + " · " + Session.BattleMusic.Music.Bpm + " BPM", 24, RunUI.Teal, 40);
             ui.Label(panel, "HP " + Session.Health.ToString("0.#") + " / " + Session.MaxHealth, 22, null, 36);
             var list = ui.Scroll(panel);
-            ui.Label(list, "네 번째 카운트인 단어에 시작! 곡의 첫 3박·끝 3초는 적 공격 없이 연주해.\n방패 라인이 둘 이상이면 맨 오른쪽은 후열, 나머지는 전열 공격이 왼쪽부터 순서대로 와.", 22, null, 96);
+            ui.Label(list, Session.Equipment.SeparateHands ?
+                "왼손 Z/X/C/V: 언제든 무기 Call → 모션·소리에 맞춰 고유 리듬 연주\n오른손 ←/↓/↑/→: 같은 방향의 몬스터 노트 방어 · 공격과 동시에 입력 가능" :
+                "네 번째 카운트인 단어에 시작! 곡의 첫 3박·끝 3초는 적 공격 없이 연주해.\n방패 라인이 둘 이상이면 맨 오른쪽은 후열, 나머지는 전열 공격이 왼쪽부터 순서대로 와.", 22, null, 96);
             var names = new System.Collections.Generic.List<string>();
             foreach (var monster in Session.BattlePlan.Monsters) names.Add(monster.Monster.Name);
             ui.Label(list, "MONSTERS  ·  " + string.Join(" / ", names), 20, RunUI.Red, 40);
@@ -400,10 +401,12 @@ namespace BBSB.Runtime
                 {
                     var weapon = Session.Weapons[i];
                     var phrase = set.For(offset, weapon.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light);
-                    ui.Label(list, InputKeys[placement.Slots[offset]] + "   " + weapon.DisplayName + "  +" + Session.Weapons[i].Level + "\n" + phrase.Hint, 22, null, 72);
+                    string hint = EquipmentInventoryView.PatternHint(weapon, phrase, Session.Equipment.SeparateHands);
+                    ui.Label(list, Session.Equipment.Key(placement.Slots[offset]) + "   " + weapon.DisplayName + "  +" + Session.Weapons[i].Level + "\n" + hint, 22, null, 72);
                 }
             }
-            ui.Label(list, "장착 " + Session.Weapons.Count + " / " + Session.Equipment.Capacity + "개  ·  사용 라인 " + Session.Equipment.OccupiedLaneCount + " / " + Session.Equipment.AvailableLaneCount + "\n최대 3박 앞까지 표시해. 획득한 무기는 편성에서 원하는 위치에 배치해.", 20, RunUI.Muted, 80);
+            ui.Label(list, Session.Equipment.SeparateHands ? "공격 4슬롯 + 방어 1슬롯 · 장착 " + Session.Weapons.Count + "개\n몬스터 방어 노트는 최대 3박 앞까지 표시해. 공격 패턴은 무기 연출로 익혀줘." :
+                "장착 " + Session.Weapons.Count + " / " + Session.Equipment.Capacity + "개  ·  사용 라인 " + Session.Equipment.OccupiedLaneCount + " / " + Session.Equipment.AvailableLaneCount + "\n최대 3박 앞까지 표시해. 획득한 무기는 편성에서 원하는 위치에 배치해.", 20, RunUI.Muted, 80);
             var actions = ui.Row(panel, 64);
             ui.Button(actions, Session.PhraseBattle == null ? "연주 시작" : "연주 이어가기", () => StartFiveLaneBattle(), Session.Weapons.Count > 0, primary: true, height: 64);
             ui.Button(actions, "무기 편성", () => OpenMenu(MenuPage.Inventory), height: 64);
@@ -577,8 +580,9 @@ namespace BBSB.Runtime
             Heading(bossWeapon ? "BOSS CLEAR" : "STAGE CLEAR", bossWeapon ? "다음 합주에 더할 무기" : "다음 박자를 위한 보상",
                 bossWeapon ? "무기 3개 중 하나를 골라줘. 선택한 무기와 함께 다음 필드로 이어가." : "전투 골드를 획득했어. 아래 보상 중 하나를 선택해.");
             if (bossWeapon)
-                ui.Label(body, (Session.EquipmentCapacityIncreased ? "장착 한도 +1  ·  " : "장착 한도  ·  ") +
-                    Session.Equipment.Capacity + "개\n획득한 무기는 가방에 보관돼. 원하는 만큼만 편성해.", 24, RunUI.Teal, 84);
+                ui.Label(body, (Session.Equipment.SeparateHands ? "공격 4슬롯 · 방어 1슬롯" :
+                    (Session.EquipmentCapacityIncreased ? "장착 한도 +1  ·  " : "장착 한도  ·  ") + Session.Equipment.Capacity + "개") +
+                    "\n획득한 무기는 가방에 보관돼. 원하는 만큼만 편성해.", 24, RunUI.Teal, 84);
             DrawOffers(false);
             if (!bossWeapon) ui.Button(body, "보상 건너뛰기", () => { if (Session.SkipReward()) Render(); });
         }
@@ -804,7 +808,9 @@ namespace BBSB.Runtime
                 case MenuPage.Help:
                     ui.Label(body, "지도는 왼쪽에서 오른쪽으로 진행해.\n시작 지점 네 곳은 모두 몬스터, 여섯 번째 무대는 보스야.\n? 지역은 들어가면 정체가 밝혀져.", 24, RunUI.Muted, 125);
                     if (Session.UsesFiveLaneCombat)
-                        ui.Label(body, "D · F · Space · J · K 또는 화면의 다섯 영역으로 무기를 연주해.\n첫 입력으로 정박 또는 엇박에 시작해. 긴 박자 표시는 끝까지 유지해.\n반미스는 이어지고, 미스한 무기만 대기 시간에 들어가. Esc로 일시정지해.", 23, RunUI.Muted, 170);
+                        ui.Label(body, Session.Equipment.SeparateHands ?
+                            "왼손 Z/X/C/V로 준비된 무기를 언제든 Call해. 같은 키로 모션·소리에 맞춰 후속 리듬을 연주해.\n오른손 ←/↓/↑/→는 같은 방향의 몬스터 노트를 방어해. 공격과 방어를 동시에 입력할 수 있어.\n긴 방어 노트는 유지하고, Esc로 일시정지해." :
+                            "D · F · Space · J · K 또는 화면의 다섯 영역으로 무기를 연주해.\n첫 입력으로 정박 또는 엇박에 시작해. 긴 박자 표시는 끝까지 유지해.\n반미스는 이어지고, 미스한 무기만 대기 시간에 들어가. Esc로 일시정지해.", 23, RunUI.Muted, 170);
                     else ui.Controls(body);
                     break;
                 case MenuPage.Patterns: DrawPatterns(); break;
@@ -838,8 +844,8 @@ namespace BBSB.Runtime
             RunUI.Size(boardRoot, 178); boardRoot.SetSiblingIndex(scroll.transform.GetSiblingIndex());
             var board = boardRoot.gameObject.AddComponent<EquipmentPlacementView>();
             board.Bind(Session, ui, EquipmentChanged);
-            var capacity = ui.Label(body, "장착 " + Session.Weapons.Count + " / " + equipment.Capacity + "개  ·  " +
-                equipment.OccupiedLaneCount + " / " + equipment.AvailableLaneCount + "라인  ·  보유 " + Session.OwnedWeapons.Count + "개", 21, RunUI.Gold, 30);
+            var capacity = ui.Label(body, (equipment.SeparateHands ? "공격 4슬롯 · 방어 1슬롯  ·  " : "장착 한도 " + equipment.Capacity + "개  ·  ") +
+                "장착 " + Session.Weapons.Count + " / 보유 " + Session.OwnedWeapons.Count + "개", 21, RunUI.Gold, 30);
             capacity.fontSize = 21;
             if (!editable) ui.Label(body, "진행 중인 전투가 끝나면 편성을 변경할 수 있어.", 21, RunUI.Gold, 36);
             else if (Session.Weapons.Count == 0) ui.Label(body, "전투를 시작하려면 무기를 하나 이상 장착해줘.", 21, RunUI.Gold, 36);

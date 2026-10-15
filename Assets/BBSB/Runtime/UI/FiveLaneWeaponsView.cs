@@ -43,14 +43,22 @@ namespace BBSB.Runtime.UI
             double aspect = root.rect.width / root.rect.height;
             for (int i = 0; i < weapons.Count; i++)
             {
-                var lane = battle.Lanes[i];
+                var lane = battle.VisualLane(battle.Lanes[i]);
                 int victim = instances.IndexOf(FiveLaneWeaponMotion.Target(battle, lane));
                 var target = enemies.Count > 0 ? Point(enemies[victim >= 0 ? victim : 0], .5f, .48f) : body;
                 var frame = FiveLaneWeaponMotion.Sample(battle, lane, i, body, height, aspect, target);
                 var icon = weapons[i]; var rect = icon.rectTransform;
+                float size = (float)(height * root.rect.height * .34);
+                var position = new Vector2((float)frame.Position.X * root.rect.width, (float)frame.Position.Y * root.rect.height);
+                if (battle.SeparateHands)
+                {
+                    // Four simultaneous weapons must keep their cue motion on screen.
+                    float edge = size * (float)frame.Scale * .71f;
+                    position.x = Mathf.Clamp(position.x, edge, root.rect.width - edge);
+                    position.y = Mathf.Clamp(position.y, edge, root.rect.height - edge);
+                }
                 RunUI.Pin(rect, Vector2.zero, new Vector2(.5f, .5f),
-                    new Vector2((float)frame.Position.X * root.rect.width, (float)frame.Position.Y * root.rect.height),
-                    Vector2.one * (float)(height * root.rect.height * .34));
+                    position, Vector2.one * size);
                 rect.localRotation = Quaternion.Euler(0, 0, (float)frame.Rotation);
                 rect.localScale = Vector3.one * (float)frame.Scale;
                 icon.color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.65f, .65f, .72f, .8f) : Color.white;

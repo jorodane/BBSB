@@ -49,7 +49,7 @@ namespace BBSB.Runtime.UI
         {
             if (Recent(battle.Beat, battle.LastHitBeat, .4)) return new FiveLaneActorFrame("Hit", battle.Beat - battle.LastHitBeat, .4f);
             double strike = double.NegativeInfinity;
-            foreach (var lane in battle.Lanes)
+            foreach (var lane in battle.InputLanes)
             {
                 strike = Math.Max(strike, lane.LastDamageBeat);
                 var played = lane.LastPerformedNote;
@@ -59,7 +59,7 @@ namespace BBSB.Runtime.UI
                 strike = Math.Max(strike, played.StartedAtBeat);
             }
             if (Recent(battle.Beat, strike, .4)) return new FiveLaneActorFrame("TapImpact", battle.Beat - strike, .4f);
-            foreach (var lane in battle.Lanes)
+            foreach (var lane in battle.InputLanes)
                 if (Guarding(lane)) return new FiveLaneActorFrame("Guard", battle.Beat - lane.NextBeat, 2, true);
             foreach (var contact in battle.ShieldContacts)
                 if (contact.Phase == PhraseLanePhase.Playing) return new FiveLaneActorFrame("Guard", battle.Beat - contact.StartBeat, 2, true);

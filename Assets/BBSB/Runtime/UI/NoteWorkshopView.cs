@@ -40,6 +40,7 @@ namespace BBSB.Runtime.UI
         internal NoteWorkshopPatternGraphic Pattern => pattern;
         internal NoteWorkshopDemoView Demo => demo;
         internal RectTransform BagViewport => bagScroll.viewport;
+        private int InputWidth => session.Equipment.SeparateHands ? 1 : weapon.RequiredLanes;
 
         internal void Bind(RunUI runUI, RunSession run, NoteWorkshopSelection state)
         {
@@ -64,23 +65,26 @@ namespace BBSB.Runtime.UI
             selection.Weapon = Mathf.Clamp(selection.Weapon, 0, session.OwnedWeapons.Count - 1);
             weapon = session.OwnedWeapons[selection.Weapon];
             source = WeaponPhraseAuthoring.LoadSetsFor(new[] { weapon })[0];
-            selection.Offset = Mathf.Clamp(selection.Offset, 0, weapon.RequiredLanes - 1);
+            selection.Offset = session.Equipment.SeparateHands ? 0 : Mathf.Clamp(selection.Offset, 0, weapon.RequiredLanes - 1);
             original = source.For(selection.Offset, selection.Side);
             composed = WeaponNoteAssembly.Apply(weapon, source).For(selection.Offset, selection.Side);
             selection.Note = Mathf.Clamp(selection.Note, 0, original.Notes.Count - 1);
             DrawChooser();
             Caption(ui, left, original.FirstNoteDelayBeats > 0 ?
-                "호출 → " + original.FirstNoteDelayBeats.ToString("0.##") + "박 준비 후 연주  ·  ◆ 콜  ▬ 리스폰스" :
-                "호출 즉시 실행  ·  ◆ 콜  ▬ 리스폰스", 17, RunUI.Gold, 24);
+                "Call → " + original.FirstNoteDelayBeats.ToString("0.##") + "박 준비 후 연주  ·  Call / Response" :
+                "Call / Response · 무기 리듬 연주", 17, RunUI.Gold, 24);
             DrawPattern();
             slots = ui.Row(left, 48, 8); slots.name = "Selected note parts"; DrawSlots();
             detail = Caption(ui, left, "", 17, RunUI.Muted, 42);
             ShowNotice(string.IsNullOrEmpty(selection.Notice) ? "부품을 선택하고 노트를 클릭해도 장착할 수 있어." : selection.Notice);
             DrawBag();
-            string[] labels = new string[weapon.RequiredLanes];
+            string[] labels = new string[InputWidth];
             var placement = session.Equipment.PlacementOf(weapon);
-            for (int i = 0; i < labels.Length; i++) labels[i] = placement == null ? (i + 1) + "번" : BattleInputLayout.Key(placement.Slots[i]);
-            demo.Bind(composed, weapon.RequiredLanes, selection.Offset, selection.Side, labels);
+            for (int i = 0; i < labels.Length; i++) labels[i] = placement == null ? "무기 키" : session.Equipment.Key(placement.Slots[i]);
+            demo.Bind(composed, InputWidth, selection.Offset, selection.Side, labels,
+                session.Equipment.SeparateHands && !HandCombatLayout.IsShield(weapon) ? weapon : null);
+            if (session.Equipment.SeparateHands && HandCombatLayout.IsShield(weapon))
+                ShowNotice("방어에는 첫 방어 동작을 사용해. 기존 반격 노트의 전환 방식은 검토 중이야.");
             lastGridWidth = lastPatternWidth = -1;
             Canvas.ForceUpdateCanvases(); RefreshLayout(); Canvas.ForceUpdateCanvases();
             bagScroll.verticalNormalizedPosition = bagY; patternScroll.horizontalNormalizedPosition = patternX;
@@ -100,7 +104,7 @@ namespace BBSB.Runtime.UI
             var variants = ui.Row(left, 30, 6);
             Control(ui, variants, "빛 박자", () => ChangeVariant(WeaponBeatSide.Light, selection.Offset), 30, primary: selection.Side == WeaponBeatSide.Light);
             Control(ui, variants, "어둠 박자", () => ChangeVariant(WeaponBeatSide.Dark, selection.Offset), 30, primary: selection.Side == WeaponBeatSide.Dark);
-            if (weapon.RequiredLanes > 1)
+            if (!session.Equipment.SeparateHands && weapon.RequiredLanes > 1)
                 for (int i = 0; i < weapon.RequiredLanes; i++)
                 {
                     int offset = i;
@@ -114,7 +118,7 @@ namespace BBSB.Runtime.UI
 
         private void DrawPattern()
         {
-            var root = ui.Rect("Horizontal pattern", left); RunUI.Size(root, Mathf.Max(112, 50 + weapon.RequiredLanes * 30));
+            var root = ui.Rect("Horizontal pattern", left); RunUI.Size(root, Mathf.Max(112, 50 + InputWidth * 30));
             ui.Background(root, RunUI.Panel, true);
             patternScroll = root.gameObject.AddComponent<ScrollRect>();
             patternScroll.horizontal = true; patternScroll.vertical = false; patternScroll.inertia = false;
@@ -125,14 +129,14 @@ namespace BBSB.Runtime.UI
             patternContent.anchorMin = Vector2.zero; patternContent.anchorMax = Vector2.up; patternContent.pivot = new Vector2(0, .5f);
             patternContent.anchoredPosition = Vector2.zero; patternContent.sizeDelta = new Vector2(400, 0);
             pattern = patternContent.gameObject.AddComponent<NoteWorkshopPatternGraphic>();
-            pattern.Bind(this, original, composed, weapon.RequiredLanes, selection.Offset, selection.Note, weapon.NoteBindings);
+            pattern.Bind(this, original, composed, InputWidth, selection.Offset, selection.Note, weapon.NoteBindings);
             var placement = session.Equipment.PlacementOf(weapon);
-            for (int i = 0; i < weapon.RequiredLanes; i++)
+            for (int i = 0; i < InputWidth; i++)
             {
-                var key = Caption(ui, patternContent, placement == null ? (i + 1).ToString() : BattleInputLayout.Key(placement.Slots[i]),
+                var key = Caption(ui, patternContent, placement == null ? "키" : session.Equipment.Key(placement.Slots[i]),
                     13, RunUI.Muted, 18, TextAlignmentOptions.Center);
                 key.enableAutoSizing = true; key.fontSizeMin = 9; key.fontSizeMax = 13; key.textWrappingMode = TextWrappingModes.NoWrap;
-                float lane = (i + .5f) / weapon.RequiredLanes;
+                float lane = (i + .5f) / InputWidth;
                 RunUI.Pin(key.rectTransform, new Vector2(0, 1 - lane), new Vector2(.5f, .5f),
                     new Vector2(16, -30 + 50 * lane), new Vector2(30, 18));
             }
@@ -222,8 +226,8 @@ namespace BBSB.Runtime.UI
             selection.Note = index; pattern.Select(index); DrawSlots();
             var note = original.Notes[index];
             ShowNotice((index + 1) + "번 · " + (note.IsChargedRelease ? "앞 홀드의 유지 시간에 비례 · 떼어 발사" :
-                note.IsOptional ? "발사 기회 · 지나쳐도 미스 없음 · 한 번 발사하면 완료" : note.IsCall ? "준비 콜" : "리스폰스") + " · " + note.Beat.ToString("0.##") + "박" +
-                (note.Condition == PhraseNoteCondition.AllCalls ? " · 앞선 콜을 모두 성공하면 실행" : " · 부품을 끌어 놓으면 적용돼."));
+                note.IsOptional ? "발사 기회 · 지나쳐도 미스 없음 · 한 번 발사하면 완료" : note.IsCall ? "준비 Call" : "Response") + " · " + note.Beat.ToString("0.##") + "박" +
+                (note.Condition == PhraseNoteCondition.AllCalls ? " · 앞선 Call을 모두 성공하면 실행" : " · 부품을 끌어 놓으면 적용돼."));
         }
         private void SelectPart(int id)
         {

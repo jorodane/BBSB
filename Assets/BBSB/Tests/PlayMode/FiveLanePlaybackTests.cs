@@ -6,22 +6,33 @@ using BBSB.Runtime.UI;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using InputExtensions = BBSB.Core.InputExtensions;
 
 namespace BBSB.Tests
 {
     public sealed class FiveLanePlaybackTests
     {
         private GameObject root;
+        private GameObject listener;
+        private Keyboard keyboard;
         private RunStartPreferenceScope preferences;
-        [SetUp] public void IsolatePreferences() => preferences = new RunStartPreferenceScope();
+        [SetUp] public void IsolatePreferences()
+        {
+            preferences = new RunStartPreferenceScope();
+            listener = new GameObject("Test audio listener", typeof(AudioListener));
+        }
         private PresentationPrefabs catalog;
         private PresentationPrefabs.Screen[] savedScreens;
         [UnityTearDown] public IEnumerator Cleanup()
         {
             if (catalog != null && savedScreens != null) catalog.screens = savedScreens;
             if (root != null) Object.Destroy(root);
+            if (listener != null) Object.Destroy(listener);
+            if (keyboard != null) InputSystem.RemoveDevice(keyboard);
             preferences.Dispose();
             yield return null;
         }
@@ -56,7 +67,7 @@ namespace BBSB.Tests
             yield return null; LogAssert.NoUnexpectedReceived();
         }
 
-        [UnityTest] public IEnumerator DefaultBootstrapOpensTwoEquippedLanesAndWaitsForHeldContactOnResume()
+        [UnityTest] public IEnumerator DefaultBootstrapOpensAttackAndFourDefenseInputsAndWaitsForHeldContactOnResume()
         {
             root = new GameObject("Five lane bootstrap"); root.AddComponent<RunBootstrap>();
             yield return null;
@@ -71,21 +82,22 @@ namespace BBSB.Tests
             Assert.IsNotNull(playback);
             Assert.IsTrue(playback.IsInitialized);
             yield return null; // Include a real Update/LateUpdate; constructor-only checks missed the reported failure.
-            Assert.AreEqual(2, playback.GetComponentsInChildren<FiveLaneInputSurface>().Length);
+            Assert.IsTrue(playback.Battle.SeparateHands);
+            Assert.AreEqual(5, playback.GetComponentsInChildren<FiveLaneInputSurface>().Length);
             Assert.IsNotNull(playback.GetComponentInChildren<FiveLaneTrackGraphic>());
             var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
             Assert.IsNotNull(hud.attackCue);
-            for (int i = 2; i < 5; i++)
+            for (int i = 1; i < 4; i++)
             {
                 Assert.IsFalse(hud.inputAreas[i].gameObject.activeSelf);
                 Assert.IsFalse(hud.weaponRoots[i].gameObject.activeSelf);
                 Assert.DoesNotThrow(() => playback.SetPointer(i, true));
             }
             var battle = playback.Battle;
-            battle.Press(1, 0); battle.Advance(.5);
+            battle.Press(4, 0); battle.Advance(.5);
             playback.Pause(); Assert.IsTrue(battle.IsPaused);
             playback.Continue(); Assert.IsTrue(playback.WaitingForHold); Assert.IsTrue(battle.IsPaused);
-            playback.SetPointer(1, true);
+            playback.SetPointer(4, true);
             Assert.IsFalse(playback.WaitingForHold); Assert.IsFalse(battle.IsPaused);
             Assert.IsTrue(battle.Lanes[1].Holding); Assert.AreEqual(.5, battle.Beat);
             Assert.AreSame(battle, presenter.Session.PhraseBattle);
@@ -122,26 +134,24 @@ namespace BBSB.Tests
                 Assert.AreEqual(size.x * .5054f, front.center.x - screen.rect.xMin, 2, "The vanguard occupies the former player position.");
                 Assert.Greater(((RectTransform)hero.transform).rect.height * hero.transform.localScale.y, size.y * .22f);
                 Assert.AreEqual(new Vector2(.5f, 0), ((RectTransform)hero.transform).pivot, "Actor feet belong at the stage slot's bottom.");
-                for (int i = 0; i < playback.Battle.Lanes.Count; i++)
+                for (int i = 4; i < 8; i++)
                 {
                     var point = BoundsIn(screen, hud.judgmentPoints[i]);
-                    Assert.AreEqual(size.y * (float)BattleBoardLayout.FarY, point.center.y - screen.rect.yMin, 1);
+                    Assert.AreEqual(size.y * .42f, point.center.y - screen.rect.yMin, 1);
                     var track = playback.GetComponentInChildren<FiveLaneTrackGraphic>();
                     var arrival = screen.InverseTransformPoint(track.NoteWorldPosition(i, playback.Battle.Beat));
                     var spawn = screen.InverseTransformPoint(track.NoteWorldPosition(i, playback.Battle.Beat + 3));
                     Assert.AreEqual(point.center.y, arrival.y, 1);
                     Assert.Less(spawn.y, arrival.y, "All notes rise from the bottom toward combat.");
-                    Assert.Greater(track.NoteWidth(i, playback.Battle.Beat + 3), track.NoteWidth(i, playback.Battle.Beat));
-                    Assert.AreEqual(BattleInputLayout.Key(i).ToUpperInvariant(), hud.laneLabels[i].text);
+                    Assert.AreEqual(track.NoteWidth(i, playback.Battle.Beat + 3), track.NoteWidth(i, playback.Battle.Beat));
+                    Assert.AreEqual(playback.Battle.Key(i), hud.laneLabels[i].text);
                     Assert.IsTrue(hud.laneStatus[i] == null || !hud.laneStatus[i].gameObject.activeInHierarchy);
                     Assert.Less(point.yMax, heroRect.yMin);
                     Assert.Less(point.yMax, enemyRect.yMin);
-                    var icon = BoundsIn(screen, hud.weaponRoots[i]);
-                    Assert.Greater(icon.yMin, point.yMax);
-                    Assert.Less(icon.yMax, heroRect.yMin);
-                    Assert.Less(icon.height, size.y * .06f);
-                    if (i > 0) Assert.Greater(point.xMin, BoundsIn(screen, hud.judgmentPoints[i - 1]).xMax);
+                    if (i > 4) Assert.Greater(point.xMin, BoundsIn(screen, hud.judgmentPoints[i - 1]).xMax);
                 }
+                Assert.IsFalse(hud.judgmentPoints[0].gameObject.activeInHierarchy);
+                Assert.IsEmpty(playback.GetComponentInChildren<FiveLaneTrackGraphic>().NoteTimeline.Notes);
                 Assert.Less(BoundsIn(screen, hud.health.rectTransform).yMin, heroRect.yMin);
                 Assert.IsTrue(hud.enemyHealth == null || !hud.enemyHealth.gameObject.activeInHierarchy);
                 Assert.IsTrue(hud.enemyFill == null || !hud.enemyFill.gameObject.activeInHierarchy);
@@ -152,12 +162,70 @@ namespace BBSB.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest] public IEnumerator KeyboardRoutesAllEightKeysAndKeepsAttackAndDefenseIndependent()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
+            foreach (string id in new[] { "dual-swords", "sword", "hammer" })
+            {
+                run.Equipment.Acquire(new WeaponState(id));
+                Assert.IsTrue(run.EquipWeapon(run.OwnedWeapons.Count - 1, run.OwnedWeapons.Count - 2));
+            }
+            Assert.IsTrue(presenter.StartFiveLaneBattle());
+            var playback = root.GetComponentInChildren<FiveLanePlayback>(); var battle = playback.Battle;
+            var clock = typeof(FiveLanePlayback).GetField("origin", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            keyboard = InputSystem.AddDevice<Keyboard>();
+            clock.SetValue(playback, AudioSettings.dspTime - .51 * 60 / battle.Bpm);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Z, Key.X, Key.C, Key.V, Key.LeftArrow, Key.DownArrow, Key.UpArrow, Key.RightArrow));
+            InputSystem.Update(); playback.SendMessage("Update");
+            for (int slot = 0; slot < 8; slot++) Assert.IsTrue(battle.IsInputHeld(slot), battle.Key(slot));
+            for (int slot = 0; slot < 4; slot++) Assert.AreEqual("CALL", battle.LaneAt(slot).Feedback);
+            for (int slot = 4; slot < 8; slot++) Assert.IsTrue(battle.LaneAt(slot).Holding);
+            Assert.AreEqual(0, battle.TotalDamage, "Initial Call keys must not also strike.");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.UpArrow));
+            InputSystem.Update(); playback.SendMessage("Update");
+            double first = battle.LaneAt(0).NextBeat;
+            clock.SetValue(playback, AudioSettings.dspTime - first * 60 / battle.Bpm);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Z, Key.X, Key.C, Key.V, Key.UpArrow));
+            InputSystem.Update(); playback.SendMessage("Update"); playback.SendMessage("LateUpdate");
+            Assert.Greater(battle.TotalDamage, 0);
+            Assert.IsTrue(battle.LaneAt(6).Holding);
+            Assert.IsFalse(battle.LaneAt(4).Holding);
+            Assert.IsEmpty(playback.GetComponentInChildren<FiveLaneTrackGraphic>().NoteTimeline.Notes);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState()); InputSystem.Update();
+            yield return null;
+            string capture = System.Environment.GetEnvironmentVariable("BBSB_CAPTURE_PATH");
+            if (!string.IsNullOrEmpty(capture))
+            {
+                CaptureLayout(capture);
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest] public IEnumerator MultiLineAttackWorkshopUsesOneKeyAndMotionInsteadOfScrollingNotes()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
+            run.Equipment.Acquire(new WeaponState("staff")); Assert.IsTrue(run.EquipWeapon(2, 2));
+            presenter.SendMessage("Render"); Click("노트 조립"); yield return null;
+            Click("›"); Click("›"); yield return null;
+            var demo = root.GetComponentInChildren<NoteWorkshopDemoView>();
+            Assert.AreEqual(1, demo.Playback.Width);
+            Assert.AreEqual("staff", demo.Playback.Phrase.WeaponId);
+            typeof(NoteWorkshopDemoView).GetField("beat", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).SetValue(demo, 2d);
+            demo.SendMessage("Update");
+            Assert.IsNotNull(demo.transform.Find("Upward note example/Weapon rhythm example"));
+            Assert.IsFalse(demo.GetComponentsInChildren<RectTransform>().Any(t => t.name == "Demo note" || t.name == "Judgment line"));
+            Assert.IsTrue(demo.GetComponentsInChildren<TMP_Text>().Any(t => t.text.StartsWith("C\n")));
+            LogAssert.NoUnexpectedReceived();
+        }
+
         [UnityTest] public IEnumerator WideShieldRequiresBothHeldInputsOnResumeAndShowsIndividualMonsterHealth()
         {
             yield return OpenPreparation();
             var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
             run.Equipment.Acquire(new WeaponState("wide-shield", WeaponRarity.Common));
-            Assert.IsTrue(run.EquipWeapon(2, 1, 2));
+            Assert.IsTrue(run.EquipWeapon(2, 4));
             Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
             var playback = root.GetComponentInChildren<FiveLanePlayback>(); var battle = playback.Battle;
             var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
@@ -166,17 +234,17 @@ namespace BBSB.Tests
             var healthLabels = playback.GetComponentsInChildren<TMP_Text>().Where(t => t.name.StartsWith("Monster health ")).ToArray();
             Assert.AreEqual(battle.Formation.Monsters.Count, healthLabels.Length);
             Assert.IsTrue(healthLabels.All(t => t.text.Contains(" / ")));
-            battle.Press(1, 0); battle.Press(2, 0); battle.Advance(.5);
-            Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(1).Phase); Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(2).Phase);
+            battle.Press(4, 0); battle.Press(7, 0); battle.Advance(.5);
+            Assert.IsTrue(battle.LaneAt(4).Holding); Assert.IsTrue(battle.LaneAt(7).Holding);
             playback.Pause(); playback.Continue(); Assert.IsTrue(playback.WaitingForHold);
-            playback.SetPointer(1, true); Assert.IsTrue(playback.WaitingForHold);
-            playback.SetPointer(2, true); Assert.IsFalse(playback.WaitingForHold);
+            playback.SetPointer(4, true); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(7, true); Assert.IsFalse(playback.WaitingForHold);
             Assert.IsFalse(battle.IsPaused); Assert.AreEqual(.5, battle.Beat);
-            Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(1).Phase); Assert.AreEqual(PhraseLanePhase.Playing, battle.ShieldAt(2).Phase);
+            Assert.IsTrue(battle.LaneAt(4).Holding); Assert.IsTrue(battle.LaneAt(7).Holding);
             LogAssert.NoUnexpectedReceived();
         }
 
-        [UnityTest] public IEnumerator SparseKBindingUsesKForInputHoldResumeAndHudPosition()
+        [UnityTest] public IEnumerator SparseAttackBindingKeepsDefenseInputAndHoldResumeSeparate()
         {
             yield return OpenPreparation();
             var presenter = root.GetComponent<RunPresenter>();
@@ -188,7 +256,7 @@ namespace BBSB.Tests
             Assert.IsFalse(hud.inputAreas[0].gameObject.activeSelf);
             Assert.IsFalse(hud.inputAreas[1].gameObject.activeSelf);
             Assert.IsTrue(hud.inputAreas[2].gameObject.activeSelf); Assert.IsTrue(hud.inputAreas[4].gameObject.activeSelf);
-            Assert.IsTrue(hud.laneLabels[4].text.StartsWith("K"));
+            Assert.AreEqual("C", hud.laneLabels[2].text); Assert.AreEqual("←", hud.laneLabels[4].text);
             Assert.Greater(hud.judgmentPoints[4].anchorMin.x, hud.judgmentPoints[2].anchorMax.x);
             var battle = playback.Battle; battle.Press(4, 0); battle.Advance(.5);
             playback.Pause(); playback.Continue(); Assert.IsTrue(playback.WaitingForHold);
@@ -197,22 +265,24 @@ namespace BBSB.Tests
             Assert.IsTrue(battle.LaneAt(4).Holding); Assert.AreEqual(4, battle.LaneAt(4).HoldingSlot);
         }
 
-        [UnityTest] public IEnumerator UnlockedRightExtensionBindsLAndResumesItsOwnHoldContact()
+        [UnityTest] public IEnumerator MultiLineWeaponUsesOneAttackKeyAndResumesAlongsideRightArrow()
         {
             yield return OpenPreparation();
             var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
             run.Equipment.Acquire(new WeaponState("greatsword", WeaponRarity.Common, requiredLanes: 2));
             Assert.IsTrue(run.UnequipWeapon(0)); Assert.AreEqual(InputExtensions.All, run.Equipment.Extensions);
-            Assert.IsTrue(run.EquipWeaponAtCenter(2, 4.5)); Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
+            Assert.IsTrue(run.EquipWeaponAtCenter(2, 3)); Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
             var playback = root.GetComponentInChildren<FiveLanePlayback>();
             var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
-            Assert.AreEqual(7, hud.inputAreas.Length); Assert.IsTrue(hud.inputAreas[6].gameObject.activeSelf);
-            Assert.IsFalse(hud.inputAreas[5].gameObject.activeSelf); Assert.IsTrue(hud.laneLabels[6].text.StartsWith("L"));
-            var battle = playback.Battle; battle.Press(6, 0); battle.Advance(.5);
+            Assert.AreEqual(8, hud.inputAreas.Length); Assert.IsTrue(hud.inputAreas[7].gameObject.activeSelf);
+            Assert.IsTrue(hud.inputAreas[3].gameObject.activeSelf); Assert.AreEqual("V", hud.laneLabels[3].text);
+            var battle = playback.Battle; battle.Press(3, 0); battle.Release(3, 0);
+            battle.Press(3, battle.LaneAt(3).NextBeat); battle.Press(7, battle.Beat);
+            Assert.IsTrue(battle.LaneAt(3).Holding);
             playback.Pause(); playback.Continue(); Assert.IsTrue(playback.WaitingForHold);
-            playback.SetPointer(4, true); Assert.IsTrue(playback.WaitingForHold);
-            playback.SetPointer(6, true); Assert.IsFalse(playback.WaitingForHold); Assert.AreEqual(1, battle.LaneAt(6).StartOffset);
-            Assert.IsTrue(battle.LaneAt(6).Holding); LogAssert.NoUnexpectedReceived();
+            playback.SetPointer(3, true); Assert.IsTrue(playback.WaitingForHold);
+            playback.SetPointer(7, true); Assert.IsFalse(playback.WaitingForHold); Assert.AreEqual(0, battle.LaneAt(3).StartOffset);
+            Assert.IsTrue(battle.LaneAt(3).Holding); Assert.IsTrue(battle.LaneAt(7).Holding); LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest] public IEnumerator IncompleteHudRecoversWithTheBuiltInStageInsteadOfLosingActors()
@@ -246,7 +316,7 @@ namespace BBSB.Tests
             {
                 hero.visualPrefab = invalid;
                 var presenter = root.GetComponent<RunPresenter>();
-                LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("Five-lane playback failed while building the battle HUD and actors"));
+                LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("ArgumentException: 외형 프리팹"));
                 Assert.IsFalse(presenter.StartFiveLaneBattle());
                 var playback = root.GetComponentInChildren<FiveLanePlayback>();
                 var battle = playback.Battle;
@@ -299,6 +369,36 @@ namespace BBSB.Tests
         }
         private void Click(string label) => root.GetComponentsInChildren<Button>().First(b =>
             b.GetComponentInChildren<TMP_Text>() != null && b.GetComponentInChildren<TMP_Text>().text == label).onClick.Invoke();
+        private void CaptureLayout(string path)
+        {
+            // Optional local render for visual review. Normal test runs create no files.
+            var canvas = root.GetComponentInChildren<Canvas>();
+            var cameraObject = new GameObject("Layout capture camera", typeof(Camera));
+            cameraObject.transform.SetParent(root.transform, false);
+            var camera = cameraObject.GetComponent<Camera>(); camera.enabled = false;
+            camera.transform.position = new Vector3(0, 0, -10);
+            camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.black;
+            var texture = new RenderTexture(1280, 720, 24);
+            var pixels = new Texture2D(1280, 720, TextureFormat.RGB24, false);
+            var previousTarget = RenderTexture.active; var previousMode = canvas.renderMode; var previousCamera = canvas.worldCamera;
+            try
+            {
+                camera.targetTexture = texture;
+                canvas.renderMode = RenderMode.ScreenSpaceCamera; canvas.worldCamera = camera; canvas.planeDistance = 1;
+                Canvas.ForceUpdateCanvases();
+                if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null) camera.Render();
+                else UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(camera,
+                    new UnityEngine.Rendering.RenderPipeline.StandardRequest { destination = texture });
+                RenderTexture.active = texture;
+                pixels.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); pixels.Apply();
+                System.IO.File.WriteAllBytes(path, pixels.EncodeToPNG());
+            }
+            finally
+            {
+                canvas.renderMode = previousMode; canvas.worldCamera = previousCamera; RenderTexture.active = previousTarget;
+                texture.Release(); Object.Destroy(texture); Object.Destroy(pixels); Object.Destroy(cameraObject);
+            }
+        }
         private CanvasScreen UseBattleTemplate()
         {
             catalog = Resources.Load<PresentationPrefabs>(PresentationPrefabs.ResourcePath); savedScreens = catalog.screens;

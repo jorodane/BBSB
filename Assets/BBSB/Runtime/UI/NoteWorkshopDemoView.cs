@@ -22,6 +22,7 @@ namespace BBSB.Runtime.UI
         private WeaponBeatSide side;
         private int bpm = 120;
         private bool paused;
+        private WeaponIconGraphic weaponExample;
         private double beat = -3;
         internal NoteWorkshopPlayback Playback { get; private set; }
         internal double Beat => beat;
@@ -49,24 +50,36 @@ namespace BBSB.Runtime.UI
             status = NoteWorkshopView.Caption(ui, transform, "", 19, RunUI.Teal, 30, TextAlignmentOptions.Center);
         }
 
-        internal void Bind(WeaponPhrase phrase, int width, int offset, WeaponBeatSide beatSide, string[] labels)
+        internal void Bind(WeaponPhrase phrase, int width, int offset, WeaponBeatSide beatSide, string[] labels, WeaponState weapon = null)
         {
             Playback = new NoteWorkshopPlayback(phrase, width, offset); side = beatSide;
             NoteWorkshopView.Clear(keyRow); NoteWorkshopView.Clear(field);
             notes.Clear(); keys.Clear(); keyTexts.Clear(); keyNames.Clear();
+            weaponExample = null;
             for (int lane = 0; lane < width; lane++)
             {
                 var key = ui.Rect("Auto key " + lane, keyRow); RunUI.Size(key, 60, 1);
                 keys.Add(ui.Background(key, RunUI.Ink));
                 var text = NoteWorkshopView.Caption(ui, key, "", 18, RunUI.TextColor, 60, TextAlignmentOptions.Center);
                 RunUI.Stretch(text.rectTransform, 2); keyTexts.Add(text); keyNames.Add(labels[lane]);
+                if (weapon != null) continue;
                 var divider = ui.Rect("Lane", field);
                 RunUI.Overlay(divider, new Vector2((float)lane / width, 0), new Vector2((float)lane / width, 1), Vector2.zero, new Vector2(1, 0));
                 ui.Background(divider, RunUI.Hex("303849"));
             }
-            var line = ui.Rect("Judgment line", field);
-            RunUI.Overlay(line, new Vector2(0, .92f), new Vector2(1, .92f), Vector2.zero, new Vector2(0, 2));
-            ui.Background(line, RunUI.Gold);
+            if (weapon == null)
+            {
+                var line = ui.Rect("Judgment line", field);
+                RunUI.Overlay(line, new Vector2(0, .92f), new Vector2(1, .92f), Vector2.zero, new Vector2(0, 2));
+                ui.Background(line, RunUI.Gold);
+            }
+            else
+            {
+                var rect = ui.Rect("Weapon rhythm example", field);
+                RunUI.Overlay(rect, new Vector2(.18f, .18f), new Vector2(.82f, .82f), Vector2.zero, Vector2.zero);
+                weaponExample = rect.gameObject.AddComponent<WeaponIconGraphic>(); weaponExample.FitVisibleArtwork = true; weaponExample.Bind(weapon);
+                foreach (var sockets in weaponExample.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
+            }
             Restart();
         }
 
@@ -93,11 +106,21 @@ namespace BBSB.Runtime.UI
                 keys[lane].color = input == NoteDemoInput.Press ? RunUI.Gold : input == NoteDemoInput.Hold || input == NoteDemoInput.Invoke || input == NoteDemoInput.Call ? RunUI.Teal :
                     input == NoteDemoInput.Release ? RunUI.Hex("49335B") : RunUI.Ink;
                 keyTexts[lane].color = input == NoteDemoInput.Press || input == NoteDemoInput.Hold ? RunUI.Ink : RunUI.TextColor;
-                keyTexts[lane].text = keyNames[lane] + "\n" + (input == NoteDemoInput.Invoke ? "호출" : input == NoteDemoInput.Call ? "콜" : input == NoteDemoInput.Press ? "누름" : input == NoteDemoInput.Hold ? "유지" : input == NoteDemoInput.Release ? "떼기" : input == NoteDemoInput.Ready ? "장전" : "·");
+                keyTexts[lane].text = keyNames[lane] + "\n" + (input == NoteDemoInput.Invoke ? "호출" : input == NoteDemoInput.Call ? "Call" : input == NoteDemoInput.Press ? "누름" : input == NoteDemoInput.Hold ? "유지" : input == NoteDemoInput.Release ? "떼기" : input == NoteDemoInput.Ready ? "장전" : "·");
             }
             status.text = beat < 0 ? "자동 입력 준비 · " + Math.Ceiling(-beat) :
                 Playback.PreparationRemaining(beat) > 0 ? "호출 → 첫 노트까지 " + Playback.PreparationRemaining(beat).ToString("0.0") + "박" :
                 Playback.PatternBeat(beat) < 0 ? "쉬고 다시 시작" : (Playback.PatternBeat(beat) + 1).ToString("0.0") + "박";
+            if (weaponExample != null)
+            {
+                var input = Playback.InputAt(beat, 0);
+                bool hit = input == NoteDemoInput.Press || input == NoteDemoInput.Release;
+                bool prepare = input == NoteDemoInput.Call || input == NoteDemoInput.Hold || input == NoteDemoInput.Ready;
+                weaponExample.SetPose(hit ? RangedWeaponPose.Release : prepare ? RangedWeaponPose.Prepare : RangedWeaponPose.Idle);
+                weaponExample.rectTransform.localScale = Vector3.one * (hit ? 1.16f : prepare ? 1.06f : 1);
+                weaponExample.rectTransform.localRotation = Quaternion.Euler(0, 0, hit ? -28 : prepare ? Mathf.Sin((float)beat * Mathf.PI * 2) * 8 : 0);
+                return;
+            }
             int used = 0;
             Playback.VisitNotes(beat, beat + 3, (note, start, end, lane) =>
             {

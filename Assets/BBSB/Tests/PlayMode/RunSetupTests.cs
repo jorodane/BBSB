@@ -47,7 +47,7 @@ namespace BBSB.Tests
             var board = root.GetComponentInChildren<EquipmentPlacementView>();
             var r = board.LaneArea.rect;
             var screen = RectTransformUtility.WorldToScreenPoint(null, board.LaneArea.TransformPoint(
-                new Vector2(r.xMin + (center + 1.5f) * r.width / 7, r.center.y)));
+                new Vector2(r.xMin + (center + .5f) * r.width / 5, r.center.y)));
             var data = new PointerEventData(EventSystem.current) { pointerId = 2, position = screen, button = PointerEventData.InputButton.Left };
             board.BeginWeaponDrag(item, data); Assert.IsTrue(board.PreviewValid); board.EndWeaponDrag(data);
         }
@@ -55,7 +55,7 @@ namespace BBSB.Tests
         {
             var board = root.GetComponentInChildren<EquipmentPlacementView>(); var r = board.LaneArea.rect;
             var start = RectTransformUtility.WorldToScreenPoint(null, board.LaneArea.TransformPoint(
-                new Vector2(r.xMin + (center + 1.5f) * r.width / 7, r.center.y)));
+                new Vector2(r.xMin + (center + .5f) * r.width / 5, r.center.y)));
             var data = new PointerEventData(EventSystem.current) { pointerId = 2, position = start, pressPosition = start, button = PointerEventData.InputButton.Left };
             board.OnBeginDrag(data);
             data.position = RectTransformUtility.WorldToScreenPoint(null, board.UnequipArea.TransformPoint(board.UnequipArea.rect.center));
@@ -77,7 +77,7 @@ namespace BBSB.Tests
             Click("탐험 시작"); yield return null;
             view = root.GetComponentInChildren<RunSetupView>();
             Assert.AreEqual("dagger", view.Draft.Equipment.At(0).Weapon.DefinitionId);
-            Assert.AreEqual("heater-shield", view.Draft.Equipment.At(1).Weapon.DefinitionId);
+            Assert.AreEqual("heater-shield", view.Draft.Equipment.At(4).Weapon.DefinitionId);
             LogAssert.NoUnexpectedReceived();
         }
 

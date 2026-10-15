@@ -31,7 +31,7 @@ namespace BBSB.Tests
         private static Vector2 At(EquipmentPlacementView board, double center)
         {
             var r = board.LaneArea.rect;
-            var p = new Vector2(r.xMin + (float)(center + 1.5) * r.width / 7, r.center.y);
+            var p = new Vector2(r.xMin + (float)(center + .5) * r.width / 5, r.center.y);
             return RectTransformUtility.WorldToScreenPoint(null, board.LaneArea.TransformPoint(p));
         }
         private static Vector2 Middle(RectTransform rect) =>
@@ -48,24 +48,24 @@ namespace BBSB.Tests
             var board = root.GetComponentInChildren<EquipmentPlacementView>();
             Assert.IsNotNull(board); Assert.IsNull(board.GetComponentInParent<ScrollRect>(), "The board must remain visible while browsing inventory.");
             var first = run.OwnedWeapons[0]; var second = run.OwnedWeapons[1];
-            var data = new PointerEventData(EventSystem.current) { pointerId = 3, button = PointerEventData.InputButton.Left, position = At(board, .5) };
+            var data = new PointerEventData(EventSystem.current) { pointerId = 3, button = PointerEventData.InputButton.Left, position = At(board, 0) };
             board.BeginWeaponDrag(2, data);
-            Assert.IsTrue(board.PreviewValid); CollectionAssert.AreEqual(new[] { 0, 1 }, board.Preview.Slots);
+            Assert.IsTrue(board.PreviewValid); CollectionAssert.AreEqual(new[] { 0 }, board.Preview.Slots);
             var center = RectTransformUtility.WorldToScreenPoint(null, board.DragPreview.position);
             Assert.Less(Vector2.Distance(center, data.position), .1f, "Even-width footprints must be centred under the pointer.");
             Assert.AreEqual(2, run.Weapons.Count, "Previewing must not mutate equipment.");
             board.EndWeaponDrag(data); yield return null;
-            Assert.AreEqual(1, run.Weapons.Count); Assert.AreEqual(3, run.OwnedWeapons.Count);
+            Assert.AreEqual(2, run.Weapons.Count); Assert.AreEqual(3, run.OwnedWeapons.Count);
             Assert.AreSame(wide, run.Equipment.At(0).Weapon); Assert.AreSame(first, run.OwnedWeapons[0]); Assert.AreSame(second, run.OwnedWeapons[1]);
-            Assert.IsNull(run.Equipment.PlacementOf(first)); Assert.IsNull(run.Equipment.PlacementOf(second));
+            Assert.IsNull(run.Equipment.PlacementOf(first)); Assert.AreSame(second, run.Equipment.At(4).Weapon);
             LogAssert.NoUnexpectedReceived();
         }
-        [UnityTest] public IEnumerator OutOfBoundsDropIsCanceledAndKlIsAvailableFromTheStart()
+        [UnityTest] public IEnumerator OutOfBoundsAndWrongRoleDropsAreCanceledAndFourAttackSlotsAreAvailable()
         {
             yield return OpenInventory();
             var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
             var wide = new WeaponState("greatsword", WeaponRarity.Common, requiredLanes: 2); run.Equipment.Acquire(wide);
-            Assert.IsTrue(run.UnequipWeapon(0)); Assert.IsTrue(run.EquipWeaponAtCenter(2, 3.5));
+            Assert.IsTrue(run.UnequipWeapon(0)); Assert.IsTrue(run.EquipWeaponAtCenter(2, 2));
             presenter.SendMessage("Render"); yield return null; Canvas.ForceUpdateCanvases();
             var board = root.GetComponentInChildren<EquipmentPlacementView>(); var before = run.Equipment.PlacementOf(wide);
             var data = new PointerEventData(EventSystem.current) { pointerId = 8, button = PointerEventData.InputButton.Left, position = At(board, 5.5) };
@@ -73,11 +73,14 @@ namespace BBSB.Tests
             Assert.AreSame(before, run.Equipment.PlacementOf(wide));
             Assert.AreEqual(InputExtensions.All, run.Equipment.Extensions);
             presenter.SendMessage("Render"); yield return null; Canvas.ForceUpdateCanvases();
-            board = root.GetComponentInChildren<EquipmentPlacementView>(); data.position = At(board, 4.5);
-            board.BeginWeaponDrag(2, data); Assert.IsTrue(board.PreviewValid); CollectionAssert.AreEqual(new[] { 4, 6 }, board.Preview.Slots);
+            board = root.GetComponentInChildren<EquipmentPlacementView>(); data.position = At(board, 4);
+            board.BeginWeaponDrag(2, data); Assert.IsFalse(board.PreviewValid); board.EndWeaponDrag(data);
+            Assert.AreSame(before, run.Equipment.PlacementOf(wide));
+            data.position = At(board, 3);
+            board.BeginWeaponDrag(2, data); Assert.IsTrue(board.PreviewValid); CollectionAssert.AreEqual(new[] { 3 }, board.Preview.Slots);
             board.EndWeaponDrag(data); yield return null;
-            Assert.AreSame(wide, run.Equipment.At(4).Weapon); Assert.AreSame(wide, run.Equipment.At(BattleInputLayout.Right).Weapon);
-            Assert.IsNull(run.Equipment.At(3));
+            Assert.AreSame(wide, run.Equipment.At(3).Weapon); Assert.AreEqual("heater-shield", run.Equipment.At(4).Weapon.DefinitionId);
+            Assert.IsNull(run.Equipment.At(2));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -86,11 +89,11 @@ namespace BBSB.Tests
             yield return OpenInventory();
             var presenter = root.GetComponent<RunPresenter>(); var run = presenter.Session;
             var staff = new WeaponState("staff"); run.Equipment.Acquire(staff);
-            Assert.IsTrue(run.EquipWeaponAtCenter(2, .5));
+            Assert.IsTrue(run.EquipWeaponAtCenter(2, 0));
             presenter.SendMessage("Render"); yield return null; Canvas.ForceUpdateCanvases();
             var board = root.GetComponentInChildren<EquipmentPlacementView>();
             var binding = run.Equipment.PlacementOf(staff);
-            var data = Pointer(At(board, 1)); // Grab either occupied line, not just the left one.
+            var data = Pointer(At(board, 0));
             board.OnBeginDrag(data);
             data.position = Middle(board.UnequipArea); board.OnDrag(data);
             Assert.IsTrue(board.PreviewUnequip); Assert.IsFalse(board.PreviewValid);
@@ -115,7 +118,7 @@ namespace BBSB.Tests
             board.EndWeaponDrag(data); Assert.AreSame(binding, run.Equipment.PlacementOf(run.OwnedWeapons[0]));
 
             // A previous selection must not turn dragging an empty board cell into moving that weapon.
-            board.SelectWeapon(0); data = Pointer(At(board, 4)); board.OnBeginDrag(data);
+            board.SelectWeapon(0); data = Pointer(At(board, 2)); board.OnBeginDrag(data);
             data.position = Middle(board.UnequipArea); board.OnDrag(data); board.OnEndDrag(data);
             Assert.IsFalse(board.DragPreview.gameObject.activeSelf);
             Assert.AreSame(binding, run.Equipment.PlacementOf(run.OwnedWeapons[0]));
@@ -152,7 +155,7 @@ namespace BBSB.Tests
                 Assert.LessOrEqual(hint.rectTransform.rect.height, 56); Assert.AreEqual(2, hint.maxVisibleLines);
                 Assert.AreEqual(TextOverflowModes.Ellipsis, hint.overflowMode);
             }
-            StringAssert.Contains("8박 연주",
+            StringAssert.Contains("2박마다 Tap 1회",
                 cards[0].GetComponentsInChildren<TMP_Text>().Single(t => t.name == "Weapon short description").text);
             var scroll = inventory.GetComponentInParent<ScrollRect>();
             Assert.Greater(scroll.content.rect.height, scroll.viewport.rect.height);

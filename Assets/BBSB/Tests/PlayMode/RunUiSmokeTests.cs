@@ -177,7 +177,7 @@ namespace BBSB.Tests
             var presenter = root.AddComponent<RunPresenter>();
             presenter.Initialize(new RunRules(), PresentationFonts.Load(), 31, false, true);
             Click("탐험 시작"); yield return null;
-            Assert.AreEqual(7, root.GetComponentInChildren<RunSetupView>().Draft.Equipment.AvailableLaneCount);
+            Assert.AreEqual(5, root.GetComponentInChildren<RunSetupView>().Draft.Equipment.AvailableLaneCount);
             Click("편성하고 시작"); yield return null;
             var run = presenter.Session;
             for (int step = 0; step < 24 && !run.IsBossWeaponReward; step++)
@@ -200,7 +200,7 @@ namespace BBSB.Tests
             Assert.IsTrue(root.GetComponentsInChildren<Button>().Any(b => b.GetComponentInChildren<TMP_Text>()?.text == "무기 편성"));
             Click("다음 필드로"); yield return null;
             Assert.AreEqual(2, run.Map.Number); Assert.AreEqual(RunPhase.Map, run.Phase);
-            Assert.AreEqual(3, run.OwnedWeapons.Count); Assert.AreEqual(7, run.Equipment.AvailableLaneCount);
+            Assert.AreEqual(3, run.OwnedWeapons.Count); Assert.AreEqual(5, run.Equipment.AvailableLaneCount);
             LogAssert.NoUnexpectedReceived();
         }
 

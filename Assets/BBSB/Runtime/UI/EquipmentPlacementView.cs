@@ -29,6 +29,8 @@ namespace BBSB.Runtime.UI
         public bool PreviewValid { get; private set; }
         public bool PreviewUnequip { get; private set; }
         private const string Instructions = "이미지를 끌어 배치 · 배치된 무기를 아래로 끌면 장착 해제";
+        private int Columns => session.Equipment.SeparateHands ? HandCombatLayout.EquipmentCount : BattleInputLayout.LaneCount;
+        private int Footprint(WeaponState weapon) => session.Equipment.SeparateHands ? 1 : weapon.RequiredLanes;
 
         internal void Bind(IEquipmentEditor value, RunUI ui, Action onChanged)
         {
@@ -38,16 +40,16 @@ namespace BBSB.Runtime.UI
             area = ui.Rect("Placement lanes", root);
             RunUI.Overlay(area, new Vector2(0, .27f), Vector2.one, Vector2.zero, Vector2.zero);
             int column = 0;
-            foreach (int slot in BattleInputLayout.DisplayOrder)
+            foreach (int slot in session.Equipment.DisplayOrder)
             {
-                var rect = ui.Rect("Placement " + BattleInputLayout.Key(slot), area);
-                RunUI.Overlay(rect, new Vector2(column / 7f, 0), new Vector2((column + 1) / 7f, 1), new Vector2(3, 3), new Vector2(-3, -3));
+                var rect = ui.Rect("Placement " + session.Equipment.Key(slot), area);
+                RunUI.Overlay(rect, new Vector2((float)column / Columns, 0), new Vector2((float)(column + 1) / Columns, 1), new Vector2(3, 3), new Vector2(-3, -3));
                 var occupant = session.Equipment.At(slot);
                 bool unlocked = session.Equipment.IsAvailable(slot);
                 baseColors[slot] = !unlocked ? RunUI.Ink : occupant == null ? RunUI.Hex("263348") : RunUI.Hex("36545C");
                 cells[slot] = ui.Background(rect, baseColors[slot]);
-                string empty = slot == BattleInputLayout.Left || slot == BattleInputLayout.Right ? "복수 라인용" : "비어 있음";
-                string label = BattleInputLayout.Key(slot) + "\n" + (!unlocked ? "잠김" : occupant == null ? empty :
+                string empty = !session.Equipment.SeparateHands && (slot == BattleInputLayout.Left || slot == BattleInputLayout.Right) ? "복수 라인용" : "비어 있음";
+                string label = session.Equipment.Key(slot) + "\n" + (!unlocked ? "잠김" : occupant == null ? empty :
                     occupant.Weapon.DisplayName);
                 var text = ui.Label(rect, label, 21, unlocked ? RunUI.TextColor : RunUI.Muted);
                 text.fontSize = 21; text.alignment = TextAlignmentOptions.Center; text.raycastTarget = false;
@@ -74,7 +76,8 @@ namespace BBSB.Runtime.UI
             if (!CanSelect(inventoryIndex)) return;
             selected = inventoryIndex;
             var weapon = session.OwnedWeapons[selected];
-            status.text = weapon.DisplayName + " · " + weapon.RequiredLanes + "라인의 중심을 놓아줘. 겹치는 무기는 가방으로 돌아가.";
+            status.text = session.Equipment.SeparateHands ? weapon.DisplayName + (HandCombatLayout.IsShield(weapon) ? " · 방어 슬롯에 놓아줘." : " · Z/X/C/V 중 한 슬롯에 놓아줘.") :
+                weapon.DisplayName + " · " + weapon.RequiredLanes + "라인의 중심을 놓아줘. 겹치는 무기는 가방으로 돌아가.";
         }
         private bool CanSelect(int index) => session != null && session.CanEditEquipment && index >= 0 && index < session.OwnedWeapons.Count;
         public void BeginWeaponDrag(int index, PointerEventData data, bool fromBoard = false)
@@ -92,8 +95,8 @@ namespace BBSB.Runtime.UI
             ghost.gameObject.SetActive(true); ghost.SetAsLastSibling();
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)ghost.parent, data.position, data.pressEventCamera, out var local))
                 ghost.anchoredPosition = local;
-            ghost.sizeDelta = new Vector2(area.rect.width / 7 * weapon.RequiredLanes - 6, area.rect.height * .65f);
-            ghostLabel.text = weapon.DisplayName + " · " + weapon.RequiredLanes + "라인";
+            ghost.sizeDelta = new Vector2(area.rect.width / Columns * Footprint(weapon) - 6, area.rect.height * .65f);
+            ghostLabel.text = weapon.DisplayName;
             UpdatePreview(data.position, data.pressEventCamera, dragFromBoard);
         }
         private bool CenterAt(Vector2 screen, Camera camera, out double center)
@@ -101,7 +104,7 @@ namespace BBSB.Runtime.UI
             center = 0;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(area, screen, camera, out var local) ||
                 area.rect.width <= 0 || !area.rect.Contains(local)) return false;
-            center = (local.x - area.rect.xMin) / (area.rect.width / 7) - 1.5;
+            center = (local.x - area.rect.xMin) / (area.rect.width / Columns) - (session.Equipment.SeparateHands ? .5 : 1.5);
             return true;
         }
         private void ClearPreview()
@@ -135,8 +138,8 @@ namespace BBSB.Runtime.UI
             }
             if (!CenterAt(screen, camera, out var center))
             { ghostImage.color = new Color(.5f, .5f, .5f, .7f); status.text = Instructions; return; }
-            if (!WeaponPlacement.TryCentered(session.OwnedWeapons[selected], center, out var placement))
-            { ghostImage.color = RunUI.Red; status.text = "무기 전체가 들어갈 수 있는 위치에 놓아줘. S·L은 복수 라인 무기 전용이야."; return; }
+            if (!session.Equipment.TryPlacement(session.OwnedWeapons[selected], center, out var placement))
+            { ghostImage.color = RunUI.Red; status.text = session.Equipment.SeparateHands ? "공격 무기는 Z/X/C/V, 방어 장비는 방어 슬롯에 놓아줘." : "무기 전체가 들어갈 수 있는 위치에 놓아줘. S·L은 복수 라인 무기 전용이야."; return; }
             Preview = placement; PreviewValid = session.Equipment.CanPlace(placement);
             int replaced = session.Equipment.DisplacedBy(placement).Count;
             Color tint = !PreviewValid ? RunUI.Red : replaced > 0 ? RunUI.Gold : RunUI.Teal;

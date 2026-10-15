@@ -43,7 +43,7 @@ namespace BBSB.Runtime.UI
         }
         private static bool Complete<T>(T[] entries) where T : Object
         {
-            if (entries == null || entries.Length != 5 && entries.Length != BattleInputLayout.LaneCount) return false;
+            if (entries == null || entries.Length != 5 && entries.Length != BattleInputLayout.LaneCount && entries.Length != HandCombatLayout.InputCount) return false;
             foreach (var entry in entries) if (entry == null) return false;
             return true;
         }
@@ -155,6 +155,7 @@ namespace BBSB.Runtime.UI
         }
         public void ConfigureLanes(BBSB.Core.FiveLaneBattle battle)
         {
+            if (battle.SeparateHands) { ConfigureHands(battle); return; }
             EnsureExtensionSlots(battle.Extensions);
             for (int i = 0; i < BattleInputLayout.LaneCount; i++)
             {
@@ -183,6 +184,52 @@ namespace BBSB.Runtime.UI
                 Place(inputAreas[i], Mathf.Min(x - nearHalf, headerX - half), .025f,
                     Mathf.Max(x + nearHalf, headerX + half), .465f);
             }
+        }
+        private void ConfigureHands(FiveLaneBattle battle)
+        {
+            System.Array.Resize(ref weaponRoots, HandCombatLayout.InputCount);
+            System.Array.Resize(ref judgmentPoints, HandCombatLayout.InputCount);
+            System.Array.Resize(ref inputAreas, HandCombatLayout.InputCount);
+            System.Array.Resize(ref laneLabels, HandCombatLayout.InputCount);
+            System.Array.Resize(ref laneStatus, HandCombatLayout.InputCount);
+            System.Array.Resize(ref laneResults, HandCombatLayout.InputCount);
+            var ui = new RunUI(song.font);
+            for (int i = 0; i < HandCombatLayout.InputCount; i++)
+            {
+                bool defense = battle.IsDefenseInput(i);
+                float x = defense ? .58f + (i - 4) * .10f : .08f + i * .115f;
+                float half = defense ? .047f : .05f;
+                string key = battle.Key(i);
+                if (weaponRoots[i] == null) weaponRoots[i] = ui.Rect("Weapon " + key, actors);
+                if (judgmentPoints[i] == null) judgmentPoints[i] = ui.Rect("Defense receptor " + key, tracks);
+                if (inputAreas[i] == null)
+                { inputAreas[i] = ui.Rect("Hand input " + key, transform); ui.Background(inputAreas[i], Color.clear, true); }
+                if (laneLabels[i] == null) laneLabels[i] = Text(ui, transform, key, 22, 0, 0, 1, 1);
+                if (laneResults[i] == null) laneResults[i] = Text(ui, transform, "", 15, 0, 0, 1, 1);
+                bool equipped = battle.LaneAt(i) != null;
+                weaponRoots[i].gameObject.SetActive(equipped && (!defense || i == 4));
+                judgmentPoints[i].gameObject.SetActive(defense);
+                inputAreas[i].gameObject.SetActive(equipped);
+                laneLabels[i].gameObject.SetActive(true); laneResults[i].gameObject.SetActive(equipped);
+                if (laneStatus[i] != null) laneStatus[i].gameObject.SetActive(false);
+                Place(weaponRoots[i], x - .035f, .28f, x + .035f, .40f);
+                if (defense) Place(weaponRoots[i], .51f, .45f, .55f, .52f);
+                Place(judgmentPoints[i], x - half, .41f, x + half, .43f);
+                Place(inputAreas[i], x - half, .05f, x + half, .43f);
+                Place(laneLabels[i].rectTransform, x - half, defense ? .43f : .20f, x + half, defense ? .47f : .27f);
+                laneLabels[i].fontSize = 22; laneLabels[i].enableAutoSizing = true;
+                laneLabels[i].fontSizeMin = 14; laneLabels[i].fontSizeMax = 22;
+                Place(laneResults[i].rectTransform, x - half, .10f, x + half, .19f);
+                laneResults[i].fontSize = 15; laneResults[i].enableAutoSizing = true;
+                laneResults[i].fontSizeMin = 10; laneResults[i].fontSizeMax = 15;
+            }
+            Place(beat.rectTransform, .32f, .55f, .46f, .68f);
+            Place(feedback.rectTransform, .31f, .49f, .49f, .55f);
+            Place(rhythmBeat.rectTransform, .89f, .49f, .98f, .57f);
+            Place(attackCue.rectTransform, .55f, .48f, .88f, .54f);
+            attackCue.enableAutoSizing = true; attackCue.fontSizeMin = 14; attackCue.fontSizeMax = 20;
+            Place(help.rectTransform, .03f, .005f, .74f, .045f);
+            Text(ui, transform, "공격 · 무기 모션과 소리에 맞춰 연주", 17, .025f, .43f, .49f, .48f);
         }
         private void EnsureExtensionSlots(InputExtensions extensions)
         {

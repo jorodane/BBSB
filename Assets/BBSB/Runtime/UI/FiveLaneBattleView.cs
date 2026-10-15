@@ -13,7 +13,7 @@ namespace BBSB.Runtime.UI
         private readonly RectTransform parent;
         private readonly FiveLaneHudBindings hud;
         private readonly FiveLaneTrackGraphic tracks;
-        private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[BattleInputLayout.LaneCount];
+        private readonly WeaponIconGraphic[] icons = new WeaponIconGraphic[HandCombatLayout.InputCount];
         private readonly List<ActorPrefabView> monsters = new List<ActorPrefabView>();
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
@@ -64,8 +64,8 @@ namespace BBSB.Runtime.UI
             hud.EnsureStageLayout();
             hud.ConfigureLanes(battle);
             var inputNames = new List<string>();
-            foreach (int slot in BattleInputLayout.DisplayOrder) if (battle.IsInputAvailable(slot)) inputNames.Add(Keys[slot]);
-            hud.help.text = string.Join(" / ", inputNames) + "  ·  Tap / Hold  ·  Esc";
+            foreach (int slot in battle.InputOrder) if (battle.IsInputAvailable(slot)) inputNames.Add(battle.Key(slot));
+            hud.help.text = battle.SeparateHands ? "Z X C V · 자유 Call / 무기 리듬    ← ↓ ↑ → · 방어    Esc · 일시정지" : string.Join(" / ", inputNames) + "  ·  Tap / Hold  ·  Esc";
             var presentation = hud.presentation != null ? hud.presentation : Resources.Load<ShoulderViewPresentation>(ShoulderViewPresentation.ResourcePath);
             var theme = hud.visualTheme != null ? hud.visualTheme : Resources.Load<BattleVisualTheme>(BattleVisualTheme.ResourcePath);
             if (!BattleThemeView.AddArena(ui, hud.scenery, theme)) StageScenery.Add(ui, hud.scenery, session.BattleMusic.Music, "Stage art", presentation);
@@ -80,20 +80,20 @@ namespace BBSB.Runtime.UI
             hud.pause.onClick.AddListener(playback.Pause);
             hud.stageBadge.text = "FLOOR  " + session.Map.Number + "–" + (session.CurrentNode.Row + 1);
             hud.song.text = session.BattleMusic.Music.Name + "\n" + battle.Bpm + " BPM";
-            for (int i = 0; i < BattleInputLayout.LaneCount; i++)
+            for (int i = 0; i < battle.InputCount; i++)
             {
                 var lane = battle.LaneAt(i);
-                hud.laneLabels[i].text = Keys[i];
+                hud.laneLabels[i].text = battle.Key(i);
                 hud.laneLabels[i].color = lane == null ? RunUI.Muted : RunUI.TextColor;
                 if (lane == null) continue;
-                var weaponMesh = ui.Rect("Lane weapon icon " + Keys[i], hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
+                var weaponMesh = ui.Rect("Lane weapon icon " + battle.Key(i), hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
                 icons[i] = weaponMesh.gameObject.AddComponent<WeaponIconGraphic>();
                 icons[i].FitVisibleArtwork = true; icons[i].Bind(lane.Weapon);
                 // The old gesture sockets described automatic responses. This screen shows the weapon's phrase instead.
                 foreach (var sockets in icons[i].GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
                 var input = hud.inputAreas[i].GetComponent<FiveLaneInputSurface>();
                 if (input == null) input = hud.inputAreas[i].gameObject.AddComponent<FiveLaneInputSurface>();
-                input.Bind(playback, i, hud.arrangeEquippedLanes ? (RectTransform)hud.transform : null);
+                input.Bind(playback, i, !battle.SeparateHands && hud.arrangeEquippedLanes ? (RectTransform)hud.transform : null);
             }
             var hero = PlayerCharacterRegistry.Find(session.CharacterId);
             Sprite heroPortrait = hero != null ? hero.portrait : null;
@@ -209,8 +209,8 @@ namespace BBSB.Runtime.UI
             bool hasStorageShield = false;
             foreach (var lane in battle.Lanes) hasStorageShield |= lane.Weapon.DefinitionId == "resonance-shield";
             if (hasStorageShield)
-                hud.help.text = string.Join(" / ", Keys) + " · 축적 빛 " + battle.LightResonance.ToString("0.#") + " / 어둠 " + battle.DarkResonance.ToString("0.#") + " · 12마다 다음 공격 +50%";
-            for (int i = 0; i < BattleInputLayout.LaneCount; i++)
+                hud.help.text = (battle.SeparateHands ? "Z X C V 공격 · 방향키 방어" : string.Join(" / ", Keys)) + " · 축적 빛 " + battle.LightResonance.ToString("0.#") + " / 어둠 " + battle.DarkResonance.ToString("0.#") + " · 12마다 다음 공격 +50%";
+            for (int i = 0; i < battle.InputCount; i++)
             {
                 var lane = battle.LaneAt(i);
                 if (lane == null) continue;
@@ -218,6 +218,11 @@ namespace BBSB.Runtime.UI
                     lane.Loaded ? "장전 완료 · 발사 선택" : lane.Phase == PhraseLanePhase.Playing && lane.Cycle.Index == 0 && lane.NextNote == 0 &&
                     lane.Phrase.FirstNoteDelayBeats > 0 && battle.Beat < lane.NextBeat ? "CALL · " + (lane.NextBeat - battle.Beat).ToString("0.0") :
                     battle.Beat - lane.LastJudgedBeat < 1 ? lane.Feedback : "";
+                if (battle.SeparateHands && !battle.IsDefenseInput(i))
+                    hud.laneResults[i].text = lane.Phase == PhraseLanePhase.Ready ? "Call" :
+                        lane.Phase == PhraseLanePhase.Cooldown ? "대기 " + Math.Max(0, lane.ReadyAtBeat - battle.Beat).ToString("0.0") :
+                        lane.Holding ? lane.Charging ? "당기기 · 떼어 발사" : "유지" : lane.Loaded ? "장전 완료" :
+                        lane.Cycle.Index == 0 && lane.NextNote == 0 && battle.Beat < lane.NextBeat ? "Call" : "연주 중";
                 hud.laneResults[i].color = lane.Charging || lane.Loaded ? RunUI.Teal : lane.LastGrade == RhythmGrade.Miss ? RunUI.Red : lane.LastGrade == RhythmGrade.HalfMiss ? RunUI.Gold : RunUI.Teal;
                 icons[i].color = lane.Phase == PhraseLanePhase.Cooldown ? new Color(.45f, .45f, .5f, .65f) : Color.white;
                 icons[i].SetPose(RangedWeaponPose.Idle);
@@ -229,11 +234,20 @@ namespace BBSB.Runtime.UI
                 }
                 hud.weaponRoots[i].localScale = Vector3.one;
                 hud.weaponRoots[i].localRotation = Quaternion.identity;
+                if (battle.SeparateHands && !battle.IsDefenseInput(i))
+                {
+                    float prepare = (float)WeaponCueTimeline.Preparation(lane, battle.Beat);
+                    float strike = FiveLaneArtTimeline.Recent(battle.Beat, lane.LastDamageBeat, .25) ?
+                        1 - (float)(battle.Beat - lane.LastDamageBeat) / .25f : 0;
+                    icons[i].SetPose(FiveLaneArtTimeline.Weapon(lane, battle.Beat));
+                    hud.weaponRoots[i].localScale *= 1 + .18f * prepare + .12f * strike;
+                    hud.weaponRoots[i].localRotation = Quaternion.Euler(0, 0, -12 * prepare + 18 * strike);
+                }
             }
             if (string.IsNullOrEmpty(hud.feedback.text))
             {
                 double latest = battle.Beat - .8;
-                foreach (var lane in battle.Lanes)
+                foreach (var lane in battle.InputLanes)
                     if (lane.LastJudgedBeat > latest)
                     {
                         latest = lane.LastJudgedBeat; hud.feedback.text = lane.Feedback;

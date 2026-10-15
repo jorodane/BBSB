@@ -51,7 +51,7 @@ namespace BBSB.Runtime.UI
             foreach (var character in characters) if (character.Definition.Id == id) { selected = character; break; }
             if (!drafts.TryGetValue(selected.Definition.Id, out var draft))
             {
-                draft = new StartingLoadout(selected.Definition, preferences.Find(selected.Definition.Id));
+                draft = new StartingLoadout(selected.Definition, preferences.Find(selected.Definition.Id), separateHands: true);
                 drafts.Add(selected.Definition.Id, draft);
             }
             Draft = draft;
@@ -73,8 +73,7 @@ namespace BBSB.Runtime.UI
             board.Bind(Draft, ui, () => RefreshEquipment(true));
             var cards = ui.Rect("Starting weapon grid", bindings.weaponList);
             var inventory = cards.gameObject.AddComponent<EquipmentInventoryView>(); inventory.Bind(Draft, ui, board);
-            bindings.capacity.text = "시작 무기  ·  장착 " + Draft.Equipment.Equipped.Count + " / " + Draft.Equipment.Capacity + "개" +
-                "  ·  " + Draft.Equipment.OccupiedLaneCount + " / " + Draft.Equipment.AvailableLaneCount + "라인";
+            bindings.capacity.text = "공격 4슬롯 · 방어 1슬롯  |  시작 장비 " + Draft.Equipment.Equipped.Count + "개";
             bindings.start.interactable = Draft.CanStart;
             bindings.status.text = Draft.CanStart ? "선택한 캐릭터와 시작 편성은\n다음 탐험에도 이어져." : "시작하려면 무기를 하나 이상 배치해줘.";
             bindings.status.color = Draft.CanStart ? RunUI.Muted : RunUI.Gold;

@@ -14,9 +14,12 @@ namespace BBSB.Runtime
         public bool WaitingForHold { get; private set; }
         public bool CanReceiveInput => IsInitialized && isActiveAndEnabled && !Battle.Finished &&
             (WaitingForHold || (!Battle.IsPaused && AudioSettings.dspTime >= origin));
-        private readonly bool[] pointerHeld = new bool[BattleInputLayout.LaneCount], sentHeld = new bool[BattleInputLayout.LaneCount];
+        private readonly bool[] pointerHeld = new bool[HandCombatLayout.InputCount], sentHeld = new bool[HandCombatLayout.InputCount];
         private readonly AudioSource[] pulses = new AudioSource[8];
         private AudioClip tick, accent;
+        private readonly AudioSource[] weaponCues = new AudioSource[HandCombatLayout.AttackCount];
+        private readonly double[] cueTargets = { double.NaN, double.NaN, double.NaN, double.NaN };
+        private readonly double[] cueInvocations = { double.NaN, double.NaN, double.NaN, double.NaN };
         private int nextPulse, pulseSource;
         private FiveLaneBattleView view;
         private StageMusicPlayer music;
@@ -49,6 +52,13 @@ namespace BBSB.Runtime
                     pulses[i] = child.AddComponent<AudioSource>(); pulses[i].playOnAwake = false;
                     pulses[i].volume = music.HasRecording ? .12f : .28f;
                 }
+                if (Battle.SeparateHands)
+                    for (int i = 0; i < weaponCues.Length; i++)
+                    {
+                        var child = new GameObject("Weapon rhythm cue " + Battle.Key(i)); child.transform.SetParent(transform, false);
+                        var source = child.AddComponent<AudioSource>(); source.playOnAwake = false;
+                        source.clip = MakeTick(330 + i * 110); source.volume = .34f; weaponCues[i] = source;
+                    }
                 // Publish readiness only after the entire view and audio setup succeeds.
                 // A constructor exception must not leave LateUpdate running a partial battle.
                 bool holds = false; foreach (int slot in Battle.RequiredHeldSlots) holds = true;
@@ -69,6 +79,21 @@ namespace BBSB.Runtime
         {
             var keyboard = Keyboard.current;
             if (keyboard == null) return false;
+            if (Battle.SeparateHands)
+            {
+                switch (slot)
+                {
+                    case 0: return keyboard.zKey.isPressed;
+                    case 1: return keyboard.xKey.isPressed;
+                    case 2: return keyboard.cKey.isPressed;
+                    case 3: return keyboard.vKey.isPressed;
+                    case 4: return keyboard.leftArrowKey.isPressed;
+                    case 5: return keyboard.downArrowKey.isPressed;
+                    case 6: return keyboard.upArrowKey.isPressed;
+                    case 7: return keyboard.rightArrowKey.isPressed;
+                    default: return false;
+                }
+            }
             switch (slot)
             {
                 case 0: return keyboard.dKey.isPressed;
@@ -88,7 +113,7 @@ namespace BBSB.Runtime
             { if (Battle.IsPaused && !WaitingForHold) Continue(); else Pause(); return; }
             if (WaitingForHold) { TryResumeHeld(); return; }
             if (!CanReceiveInput) return;
-            for (int i = 0; i < BattleInputLayout.LaneCount; i++) if (Battle.LaneAt(i) != null) SyncInput(i);
+            for (int i = 0; i < Battle.InputCount; i++) if (Battle.LaneAt(i) != null) SyncInput(i);
         }
         private void LateUpdate()
         {
@@ -97,6 +122,7 @@ namespace BBSB.Runtime
             {
                 SchedulePulses();
                 if (AudioSettings.dspTime >= origin) Battle.Advance(Now);
+                ScheduleWeaponCues();
             }
             view.Refresh(CountInWord, WaitingForHold);
             if (!Battle.IsPaused && AudioSettings.dspTime >= origin + 60 / Battle.Bpm) showingCountIn = false;
@@ -139,7 +165,7 @@ namespace BBSB.Runtime
         }
         private void ReleaseStaleContacts()
         {
-            for (int i = 0; i < BattleInputLayout.LaneCount; i++)
+            for (int i = 0; i < Battle.InputCount; i++)
             {
                 var lane = Battle.LaneAt(i);
                 sentHeld[i] = lane != null && Battle.RequiresHeldInput(i);
@@ -183,11 +209,38 @@ namespace BBSB.Runtime
             for (int i = 0; i < data.Length; i++) data[i] = Mathf.Sin(2 * Mathf.PI * frequency * i / rate) * Mathf.Exp(-i / 200f);
             var clip = AudioClip.Create("Phrase beat", data.Length, 1, rate, false); clip.SetData(data, 0); return clip;
         }
-        private void StopAudio() { music?.Stop(); foreach (var source in pulses) if (source != null) source.Stop(); }
+        private void ScheduleWeaponCues()
+        {
+            if (!Battle.SeparateHands || Battle.Finished || Battle.IsPaused) return;
+            for (int slot = 0; slot < weaponCues.Length; slot++)
+            {
+                var lane = Battle.LaneAt(slot);
+                double target = WeaponCueTimeline.Target(lane);
+                if (double.IsInfinity(target)) { weaponCues[slot].Stop(); cueTargets[slot] = double.NaN; continue; }
+                if (cueTargets[slot] == target && cueInvocations[slot] == lane.InvokedAtBeat) continue;
+                double at = origin + (WeaponCueTimeline.At(lane) - offsetBeat) * 60 / Battle.Bpm;
+                double now = AudioSettings.dspTime;
+                if (at > now + .12) continue;
+                cueTargets[slot] = target; cueInvocations[slot] = lane.InvokedAtBeat;
+                weaponCues[slot].Stop();
+                // A late frame may still cue an upcoming input, but never replays a missed one.
+                if (target >= Battle.Beat) weaponCues[slot].PlayScheduled(Math.Max(now + .005, at));
+            }
+        }
+        private void StopAudio()
+        {
+            music?.Stop(); foreach (var source in pulses) if (source != null) source.Stop();
+            for (int i = 0; i < weaponCues.Length; i++)
+            { if (weaponCues[i] != null) weaponCues[i].Stop(); cueTargets[i] = double.NaN; }
+        }
         private static void ClearSelection() { if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null); }
         private void OnApplicationFocus(bool focus) { if (!focus) Pause(); }
         private void OnApplicationPause(bool paused) { if (paused) Pause(); }
         private void OnDisable() { if (Battle != null && !Battle.Finished) Battle.Pause(); StopAudio(); }
-        private void OnDestroy() { if (tick != null) Destroy(tick); if (accent != null) Destroy(accent); }
+        private void OnDestroy()
+        {
+            if (tick != null) Destroy(tick); if (accent != null) Destroy(accent);
+            foreach (var source in weaponCues) if (source != null && source.clip != null) Destroy(source.clip);
+        }
     }
 }

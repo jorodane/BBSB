@@ -24,7 +24,7 @@ namespace BBSB.Runtime.UI
         public static Vector2 InputPoint(int slot, float distance, InputExtensions extensions) =>
             new Vector2((float)BattleBoardLayout.X(slot, distance, extensions), (float)BattleBoardLayout.Y(distance));
         public float NoteWidth(int slot, double at) => CellWidth((float)SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(at, battle.Beat))) * .87f;
-        private float CellWidth(float distance) => (float)BattleBoardLayout.CellWidth(distance, battle.Extensions) * rectTransform.rect.width;
+        private float CellWidth(float distance) => (battle.SeparateHands ? .10f : (float)BattleBoardLayout.CellWidth(distance, battle.Extensions)) * rectTransform.rect.width;
         public void Bind(FiveLaneBattle value, RectTransform[] judgmentTargets = null,
             RectTransform player = null, RectTransform enemies = null)
         { battle = value; targets = judgmentTargets; playerTarget = player; enemySource = enemies; raycastTarget = false; Refresh(); }
@@ -39,9 +39,10 @@ namespace BBSB.Runtime.UI
             vh.Clear(); if (battle == null) return;
             float unit = rectTransform.rect.height / 720f;
             float pulse = battle.Beat % 1 < .18 ? 1 - (float)(battle.Beat % 1 / .18) : 0;
-            for (int slot = 0; slot < BattleInputLayout.LaneCount; slot++)
+            for (int slot = 0; slot < battle.InputCount; slot++)
             {
                 if (!battle.IsInputAvailable(slot)) continue;
+                if (battle.SeparateHands && !battle.IsDefenseInput(slot)) continue;
                 var lane = battle.LaneAt(slot);
                 var near = Point(slot, 0); var far = Point(slot, 1);
                 float nearHalf = CellWidth(0) * .5f, farHalf = CellWidth(1) * .5f;
@@ -71,7 +72,7 @@ namespace BBSB.Runtime.UI
                 Line(vh, far - Vector2.right * receptorHalf, far + Vector2.right * receptorHalf, 12 * unit, Alpha(receptor, .10f + pulse * .10f));
                 Line(vh, far - Vector2.right * receptorHalf, far + Vector2.right * receptorHalf, 3 * unit, receptor);
                 Diamond(vh, far, 4 * unit, receptor);
-                if (lane == null) continue;
+                if (lane == null && !battle.IsDefenseInput(slot)) continue;
                 foreach (var shown in noteTimeline.Notes)
                 {
                     if (shown.Slot != slot) continue;
@@ -131,6 +132,9 @@ namespace BBSB.Runtime.UI
             (float)SteppedNoteTrack.Depth(SteppedNoteTrack.Distance(at, battle.Beat)));
         private Vector2 Point(int slot, float distance)
         {
+            if (battle.SeparateHands)
+                return Pixel(new Vector2(battle.IsDefenseInput(slot) ? .58f + (slot - 4) * .10f : .08f + slot * .115f,
+                    battle.IsDefenseInput(slot) ? Mathf.Lerp(.05f, .42f, distance) : .34f));
             Vector2 judgment = targets != null && slot < targets.Length && targets[slot] != null ?
                 (Vector2)rectTransform.InverseTransformPoint(targets[slot].TransformPoint(targets[slot].rect.center)) : Pixel(InputPoint(slot, 1, battle.Extensions));
             var defaultJudgment = Pixel(InputPoint(slot, 1, battle.Extensions));

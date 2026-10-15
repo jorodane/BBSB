@@ -22,7 +22,7 @@ namespace BBSB.Runtime
         }
         public void Remember(RunCharacterDefinition character, StartingLoadoutPreset preset)
         {
-            var draft = new StartingLoadout(character, preset);
+            var draft = new StartingLoadout(character, preset, preset?.separateHands ?? false);
             if (!draft.CanStart) throw new ArgumentException("Equip at least one starting weapon before saving.");
             if (loadouts == null) loadouts = new List<StartingLoadoutPreset>();
             loadouts.RemoveAll(value => value == null || value.characterId == character.Id);

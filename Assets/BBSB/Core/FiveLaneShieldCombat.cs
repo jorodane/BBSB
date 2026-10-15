@@ -32,18 +32,30 @@ namespace BBSB.Core
         public decimal LightResonance { get; private set; }
         public decimal DarkResonance { get; private set; }
         public ShieldContact ShieldAt(int slot) => shieldContacts.Find(x => x.Slot == slot);
-        public static bool IsSplitShield(PhraseLane lane) => lane != null && lane.Weapon.DefinitionId == "wide-shield";
+        public static bool IsSplitShield(PhraseLane lane) => lane != null && !lane.SeparateHands && lane.Weapon.DefinitionId == "wide-shield";
         public AttackRank ShieldRankAt(int slot) => shieldSlots.Count > 1 && slot == shieldSlots[shieldSlots.Count - 1] ?
             AttackRank.Rear : AttackRank.Front;
         private void InitializeShieldRouting()
         {
-            foreach (int slot in BattleInputLayout.DisplayOrder)
+            foreach (int slot in InputOrder)
                 if (LaneAt(slot) != null && WeaponCatalog.Find(LaneAt(slot).Weapon.DefinitionId).Kind == WeaponKind.Shield)
                     shieldSlots.Add(slot);
             foreach (var contact in shieldContacts) contact.Rank = ShieldRankAt(contact.Slot);
         }
         private void RouteShieldAttack(IncomingBeatAttack attack)
         {
+            if (SeparateHands)
+            {
+                int direction = attack.Definition.DefenseDirection;
+                if (direction < 0 && attack.Definition.IsHold)
+                    for (int i = incoming.Count - 1; i >= 0; i--)
+                        if (incoming[i].Definition.MonsterId == attack.Definition.MonsterId && incoming[i].Definition.IsHold &&
+                            incoming[i].State != IncomingAttackState.Interrupted && Math.Abs(incoming[i].EndBeat - attack.Beat) < Epsilon)
+                        { direction = incoming[i].ShieldSlot - HandCombatLayout.ShieldSlot; break; }
+                if (direction < 0) { direction = nextFrontShield; nextFrontShield = (nextFrontShield + 1) % HandCombatLayout.DefenseCount; }
+                attack.ShieldSlot = HandCombatLayout.ShieldSlot + direction;
+                return;
+            }
             if (shieldSlots.Count == 0) return;
             if (attack.Definition.Rank == AttackRank.Rear)
             {
@@ -67,6 +79,7 @@ namespace BBSB.Core
         public bool CoversAttack(PhraseLane lane, int slot, IncomingBeatAttack attack)
         {
             if (lane == null || attack == null || !ReferenceEquals(LaneAt(slot), lane)) return false;
+            if (SeparateHands) return IsDefenseInput(slot) && HandCombatLayout.IsShield(lane.Weapon) && attack.ShieldSlot == slot;
             // The physical destination is committed once, together with the preview.
             // Non-shield parry weapons retain their authored front-rank behavior.
             return WeaponCatalog.Find(lane.Weapon.DefinitionId).Kind == WeaponKind.Shield ?

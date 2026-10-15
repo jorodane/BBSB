@@ -53,6 +53,10 @@ namespace BBSB.Runtime.UI
             var state = FiveLaneAttackMotion.Player(battle, lane);
             if (!state.Active)
             {
+                double preparation = battle.SeparateHands ? WeaponCueTimeline.Preparation(lane, battle.Beat) : 0;
+                if (preparation > 0)
+                    return new WeaponMotionFrame(new BattlePathPoint(home.Position.X,
+                        home.Position.Y + height * .12 * preparation), home.Rotation - 28 * preparation, 1 + .18 * preparation);
                 if (local && FiveLaneArtTimeline.Weapon(lane, battle.Beat) == RangedWeaponPose.Prepare)
                     return new WeaponMotionFrame(ShieldPoint(body, height, aspect), -10, 1.22);
                 return home;

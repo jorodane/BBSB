@@ -33,13 +33,16 @@ namespace BBSB.Core
         public decimal Damage { get; }
         public double HoldBeats { get; }
         public AttackRank Rank { get; }
+        // -1 preserves old content: its attacks are distributed over the four directions.
+        public int DefenseDirection { get; }
         public bool IsHold => HoldBeats > 0;
         // Damage is the complete attack budget, distributed over its half-beat ticks.
-        public BeatAttack(string monsterId, double beat, decimal damage, double holdBeats = 0, AttackRank rank = AttackRank.Front)
+        public BeatAttack(string monsterId, double beat, decimal damage, double holdBeats = 0, AttackRank rank = AttackRank.Front, int defenseDirection = -1)
         {
             if (!WeaponPhraseNote.Finite(beat) || beat < 0 || damage < 0 ||
-                !WeaponPhraseNote.Finite(holdBeats) || holdBeats < 0 || !Enum.IsDefined(typeof(AttackRank), rank)) throw new ArgumentOutOfRangeException(nameof(beat));
-            MonsterId = monsterId; Beat = beat; Damage = damage; HoldBeats = holdBeats; Rank = rank;
+                !WeaponPhraseNote.Finite(holdBeats) || holdBeats < 0 || !Enum.IsDefined(typeof(AttackRank), rank) ||
+                defenseDirection < -1 || defenseDirection >= HandCombatLayout.DefenseCount) throw new ArgumentOutOfRangeException(nameof(beat));
+            MonsterId = monsterId; Beat = beat; Damage = damage; HoldBeats = holdBeats; Rank = rank; DefenseDirection = defenseDirection;
         }
     }
     public sealed class IncomingBeatAttack
@@ -75,6 +78,7 @@ namespace BBSB.Core
         public WeaponPhrase Phrase { get; private set; }
         public WeaponPhraseSet Patterns { get; }
         public WeaponPlacement Placement { get; }
+        public bool SeparateHands => Placement.IsHandSlot;
         public ScheduledPhraseStart ScheduledOrigin { get; internal set; }
         public IReadOnlyList<int> InputSlots => Placement.Slots;
         public int StartOffset { get; private set; }
@@ -170,6 +174,8 @@ namespace BBSB.Core
             // A reservation already names the first judged beat, so do not delay it twice.
             if (!reserved && phrase.FirstNoteDelayBeats > 0)
                 at += Math.Max(0, Math.Ceiling(invokedAt + phrase.FirstNoteDelayBeats - at - .000001));
+            if (SeparateHands && !HandCombatLayout.IsShield(Weapon) && !reserved && at < invokedAt)
+                at += Math.Ceiling(invokedAt - at);
             SelectCycle(new WeaponRhythmCycle(phrase, side, at, at, 0));
         }
         internal void SelectCycle(WeaponRhythmCycle cycle)
@@ -195,12 +201,28 @@ namespace BBSB.Core
     {
         private const double Epsilon = .000001;
         private readonly List<PhraseLane> lanes = new List<PhraseLane>();
-        private readonly PhraseLane[] inputs = new PhraseLane[BattleInputLayout.LaneCount];
-        private readonly bool[] heldInputs = new bool[BattleInputLayout.LaneCount];
+        private readonly PhraseLane[] inputs = new PhraseLane[HandCombatLayout.InputCount];
+        private readonly bool[] heldInputs = new bool[HandCombatLayout.InputCount];
         public InputExtensions Extensions { get; }
-        public bool IsInputAvailable(int slot) => BattleInputLayout.Available(slot, Extensions);
+        public bool SeparateHands { get; }
+        public int InputCount => SeparateHands ? HandCombatLayout.InputCount : BattleInputLayout.LaneCount;
+        public IReadOnlyList<int> InputOrder => SeparateHands ? HandCombatLayout.InputOrder : BattleInputLayout.DisplayOrder;
+        public string Key(int slot) => SeparateHands ? HandCombatLayout.Key(slot) : BattleInputLayout.Key(slot);
+        public bool IsDefenseInput(int slot) => SeparateHands && HandCombatLayout.IsDefense(slot);
+        public bool IsInputAvailable(int slot) => SeparateHands ? slot >= 0 && slot < InputCount : BattleInputLayout.Available(slot, Extensions);
+        public IReadOnlyList<PhraseLane> InputLanes { get; }
         public PhraseLane LaneAt(int slot) => slot >= 0 && slot < inputs.Length ? inputs[slot] : null;
         public bool IsInputHeld(int slot) => slot >= 0 && slot < heldInputs.Length && heldInputs[slot];
+        public PhraseLane VisualLane(PhraseLane equipped)
+        {
+            if (!SeparateHands || !HandCombatLayout.IsShield(equipped.Weapon)) return equipped;
+            var selected = equipped;
+            foreach (var lane in lanes)
+                if (HandCombatLayout.IsShield(lane.Weapon) &&
+                    (lane.Holding && !selected.Holding || lane.Holding == selected.Holding && lane.LastJudgedBeat > selected.LastJudgedBeat))
+                    selected = lane;
+            return selected;
+        }
         private readonly List<BeatAttack> schedule;
         private readonly List<IncomingBeatAttack> incoming = new List<IncomingBeatAttack>();
         private readonly Dictionary<string, int> attackSequences = new Dictionary<string, int>();
@@ -241,14 +263,14 @@ namespace BBSB.Core
             IReadOnlyList<WeaponPhrase> phrases = null, RhythmRules rules = null,
             IReadOnlyList<WeaponPlacement> placements = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null,
             InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1, CombatBonuses bonuses = null,
-            EncounterFormation formation = null, MonsterAttackWindow attackWindow = null)
+            EncounterFormation formation = null, MonsterAttackWindow attackWindow = null, bool separateHands = false)
         {
             if (weapons == null || weapons.Count < 1 || weapons.Count > RunRules.WeaponSlots)
                 throw new ArgumentException("Equip between one and five weapons.");
             if (!WeaponPhraseNote.Finite(bpm) || bpm <= 0 || !WeaponPhraseNote.Finite(loopBeats) || loopBeats <= 0 ||
                 playerMaximum <= 0 || playerHealth <= 0 || playerHealth > playerMaximum) throw new ArgumentOutOfRangeException(nameof(bpm));
             if (phrases != null && phrases.Count != weapons.Count) throw new ArgumentException("One phrase per weapon is required.");
-            BattleInputLayout.Validate(extensions); Extensions = extensions;
+            BattleInputLayout.Validate(extensions); Extensions = extensions; SeparateHands = separateHands;
             if (placements != null && placements.Count != weapons.Count || phraseSets != null && phraseSets.Count != weapons.Count)
                 throw new ArgumentException("One placement and pattern set per weapon is required.");
             Bpm = bpm; this.loopBeats = loopBeats; EnemyHealth = enemyHealth ?? throw new ArgumentNullException(nameof(enemyHealth));
@@ -262,6 +284,7 @@ namespace BBSB.Core
             HalfMissWindow = Math.Min(.24, rules.HalfMissSeconds * bpm / 60);
             PerfectWindow = Math.Min(PerfectWindow, HalfMissWindow * .75);
             int nextSlot = 0;
+            var equippedLanes = new List<PhraseLane>();
             var uniqueWeapons = new HashSet<WeaponState>();
             for (int i = 0; i < weapons.Count; i++)
             {
@@ -271,7 +294,9 @@ namespace BBSB.Core
                 var phrase = phrases == null ? WeaponPhraseCatalog.Find(weapons[i].DefinitionId) : phrases[i];
                 if (phrase == null || phrase.WeaponId != weapons[i].DefinitionId) throw new ArgumentException("Phrase does not match its weapon.");
                 WeaponPlacement placement;
-                if (placements == null)
+                if (SeparateHands && placements == null)
+                    placement = WeaponPlacement.ForHand(weapons[i], HandCombatLayout.IsShield(weapons[i]) ? HandCombatLayout.ShieldSlot : nextSlot++);
+                else if (placements == null)
                 {
                     var slots = new int[weapons[i].RequiredLanes];
                     for (int j = 0; j < slots.Length; j++) slots[j] = nextSlot++;
@@ -279,12 +304,16 @@ namespace BBSB.Core
                 }
                 else placement = placements[i];
                 if (placement == null || !ReferenceEquals(placement.Weapon, weapons[i])) throw new ArgumentException("Placement does not match its item.");
+                if (SeparateHands && (!placement.IsHandSlot || !HandCombatLayout.Fits(weapons[i], placement.Slots[0])))
+                    throw new ArgumentException("Equip up to four attack weapons and one defense item.");
                 var patterns = phraseSets == null ? WeaponPhraseSet.Uniform(weapons[i], phrases == null ? null : phrase) : phraseSets[i];
                 // Revalidate externally supplied sets against the actual equipment footprint.
                 patterns = new WeaponPhraseSet(weapons[i], patterns?.LightStarts, patterns?.DarkStarts,
                     patterns?.LightTransitions, patterns?.DarkTransitions, patterns?.Chaos);
                 patterns = WeaponNoteAssembly.Apply(weapons[i], patterns);
+                if (SeparateHands && HandCombatLayout.IsShield(weapons[i])) patterns = HandDefensePatterns.From(weapons[i], patterns);
                 var lane = new PhraseLane(weapons[i], placement, patterns, unchecked(rhythmSeed + i * 486187739)); lanes.Add(lane);
+                equippedLanes.Add(lane);
                 if (IsSplitShield(lane)) foreach (int slot in placement.Slots) shieldContacts.Add(new ShieldContact(lane, slot));
                 foreach (int slot in placement.Slots)
                 {
@@ -292,20 +321,27 @@ namespace BBSB.Core
                     if (inputs[slot] != null) throw new ArgumentException("Two weapons cannot occupy the same input line.");
                     inputs[slot] = lane;
                 }
+                if (SeparateHands && HandCombatLayout.IsShield(weapons[i]))
+                    for (int direction = 1; direction < HandCombatLayout.DefenseCount; direction++)
+                    {
+                        int slot = HandCombatLayout.ShieldSlot + direction;
+                        var defense = new PhraseLane(weapons[i], WeaponPlacement.ForHand(weapons[i], slot), patterns, rhythmSeed);
+                        lanes.Add(defense); inputs[slot] = defense;
+                    }
             }
             InitializeShieldRouting();
             schedule = new List<BeatAttack>(attacks ?? throw new ArgumentNullException(nameof(attacks)));
             foreach (var attack in schedule) if (attack == null || attack.Beat >= loopBeats ||
                 attack.Beat + attack.HoldBeats > loopBeats + Epsilon) throw new ArgumentException("Attack outside music loop.");
             schedule.Sort((a, b) => a.Beat != b.Beat ? a.Beat.CompareTo(b.Beat) : string.CompareOrdinal(a.MonsterId, b.MonsterId));
-            Lanes = lanes.AsReadOnly(); Incoming = incoming.AsReadOnly();
+            Lanes = equippedLanes.AsReadOnly(); InputLanes = lanes.AsReadOnly(); Incoming = incoming.AsReadOnly();
             ScheduledStarts = scheduledStarts.AsReadOnly(); EnsureIncoming(8);
         }
 
         public static FiveLaneBattle FromPlan(BattlePlan plan, IReadOnlyList<WeaponState> weapons,
             StageHealth enemyHealth, decimal health, decimal maximum, IReadOnlyList<WeaponPhrase> phrases = null,
             IReadOnlyList<WeaponPlacement> placements = null, IReadOnlyList<WeaponPhraseSet> phraseSets = null,
-            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1, CombatBonuses bonuses = null, bool useFormation = true)
+            InputExtensions extensions = InputExtensions.None, int rhythmSeed = 1, CombatBonuses bonuses = null, bool useFormation = true, bool separateHands = false)
         {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
             var formation = useFormation && plan.Monsters.Count > 0 ?
@@ -322,7 +358,7 @@ namespace BBSB.Core
             }
             return new FiveLaneBattle(weapons, plan.Stage.Music.Bpm, length, attacks, enemyHealth, health, maximum, phrases,
                 placements: placements, phraseSets: phraseSets, extensions: extensions, rhythmSeed: rhythmSeed, bonuses: bonuses, formation: formation,
-                attackWindow: new MonsterAttackWindow(length, plan.Stage.Music.Bpm));
+                attackWindow: new MonsterAttackWindow(length, plan.Stage.Music.Bpm), separateHands: separateHands);
         }
 
         public void Pause() { if (!Finished) IsPaused = true; }
@@ -359,7 +395,7 @@ namespace BBSB.Core
                 // A fresh input chooses the phrase's phase; it is not a timing test.
                 // Repeats stay Playing and never receive this opening grace again.
                 BeginActivation(lane, slot, Beat);
-                if (lane.Phrase.FirstNoteDelayBeats > 0)
+                if (SeparateHands && !IsDefenseInput(slot) || lane.Phrase.FirstNoteDelayBeats > 0)
                 { lane.Feedback = "CALL"; return; }
             }
             // A different occupied line is a distinct input. It cannot hit this line's note
@@ -511,7 +547,7 @@ namespace BBSB.Core
 
         private void ValidateInput(int slot, double atBeat)
         {
-            if (slot < 0 || slot >= BattleInputLayout.LaneCount) throw new ArgumentOutOfRangeException(nameof(slot));
+            if (slot < 0 || slot >= InputCount) throw new ArgumentOutOfRangeException(nameof(slot));
             if (!WeaponPhraseNote.Finite(atBeat) || atBeat < Beat - Epsilon) throw new ArgumentOutOfRangeException(nameof(atBeat));
         }
         private bool TryParry(PhraseLane lane, out RhythmGrade grade, int inputSlot = -1)
@@ -747,6 +783,7 @@ namespace BBSB.Core
                 if (position < -1 || position > BattleInputLayout.MainLaneCount) continue;
                 var target = LaneAt(BattleInputLayout.SlotAtPosition(position));
                 if (target == null || ReferenceEquals(target, source) || !affected.Add(target)) continue;
+                if (SeparateHands && HandCombatLayout.IsShield(target.Weapon)) continue;
                 if (note.Effect == PhraseEffect.ReduceAdjacentCooldown)
                 {
                     // Never restart or retime an active pattern or invent player contact.
@@ -782,6 +819,7 @@ namespace BBSB.Core
                 int slot = BattleInputLayout.SlotAtPosition(position);
                 var target = LaneAt(slot);
                 if (target == null || ReferenceEquals(target, source)) continue;
+                if (SeparateHands && HandCombatLayout.IsShield(target.Weapon)) continue;
                 // Two bells may contact opposite ends of one item. One item still
                 // starts once; the first reservation owns its starting Offset.
                 var reservation = new ScheduledPhraseStart(target, slot, at);

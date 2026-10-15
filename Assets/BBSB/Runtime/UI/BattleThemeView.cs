@@ -52,7 +52,8 @@ namespace BBSB.Runtime.UI
             if (theme != null)
             {
                 Picture(ui, chrome, "Combo ornament", theme.comboCrest, .015f, .332f, .19f, .375f);
-                Picture(ui, chrome, "Beat ring", theme.beatRing, .85f, .305f, 1, .535f);
+                if (battle.SeparateHands) Picture(ui, chrome, "Beat ring", theme.beatRing, .89f, .47f, .98f, .59f);
+                else Picture(ui, chrome, "Beat ring", theme.beatRing, .85f, .305f, 1, .535f);
                 Frame(ui, (RectTransform)hud.playerFill.parent, theme.healthFrame);
             }
             notes = ui.Rect("Crystal note sprites", tracks.transform); RunUI.Stretch(notes);
@@ -86,9 +87,10 @@ namespace BBSB.Runtime.UI
                 if (note.IsHold && !note.ConnectsNext && SteppedNoteTrack.InHorizon(note.EndBeat - battle.Beat))
                     Head(sprite, note.Slot, note.EndBeat, note.IsPreview);
             }
-            foreach (int slot in BattleInputLayout.DisplayOrder)
+            foreach (int slot in battle.InputOrder)
             {
-                var lane = battle.LaneAt(slot); if (lane == null) continue;
+                if (battle.SeparateHands && !battle.IsDefenseInput(slot)) continue;
+                var lane = battle.LaneAt(slot);
                 foreach (var attack in battle.Incoming)
                 {
                     if (!EnemyAttackNotes.Visible(battle, attack, slot)) continue;
@@ -97,6 +99,7 @@ namespace BBSB.Runtime.UI
                     Head(sprite, slot, attack.Beat, blocked);
                     if (EnemyAttackNotes.TailVisible(battle, attack)) Head(sprite, slot, attack.EndBeat, blocked);
                 }
+                if (lane == null) continue;
                 var contact = battle.ShieldAt(slot);
                 double judged = contact != null ? contact.LastJudgedBeat : lane.LastJudgedBeat;
                 var grade = contact != null ? contact.Grade : lane.LastGrade;

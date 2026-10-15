@@ -48,15 +48,15 @@ namespace BBSB.Runtime.UI
 
                 var name = Caption(ui, card, weapon.DisplayName + " +" + weapon.Level, 21, RunUI.TextColor);
                 RunUI.Overlay(name.rectTransform, new Vector2(0, 1), Vector2.one, new Vector2(78, -34), new Vector2(-10, -8));
-                var rarity = Caption(ui, card, WeaponRarities.Name(weapon.Rarity) + " · " + weapon.RequiredLanes + "라인", 17,
+                var rarity = Caption(ui, card, WeaponRarities.Name(weapon.Rarity) + " · " + (session.Equipment.SeparateHands ? HandCombatLayout.IsShield(weapon) ? "방어 장비" : "공격 슬롯" : weapon.RequiredLanes + "라인"), 17,
                     WeaponIconGraphic.RarityColor(weapon.Rarity));
                 RunUI.Overlay(rarity.rectTransform, new Vector2(0, 1), Vector2.one, new Vector2(78, -55), new Vector2(-10, -35));
                 var keys = new List<string>();
-                if (placement != null) foreach (int slot in placement.Slots) keys.Add(BattleInputLayout.Key(slot));
+                if (placement != null) foreach (int slot in placement.Slots) keys.Add(session.Equipment.Key(slot));
                 var binding = Caption(ui, card, placement == null ? "미배치" : string.Join(" + ", keys), 17,
                     placement == null ? RunUI.Muted : RunUI.Teal);
                 RunUI.Overlay(binding.rectTransform, new Vector2(0, 1), Vector2.one, new Vector2(78, -76), new Vector2(-10, -56));
-                var hint = Caption(ui, card, AttributeHint(weapon, sets[i]), 17, RunUI.Muted);
+                var hint = Caption(ui, card, AttributeHint(weapon, sets[i], session.Equipment.SeparateHands), 17, RunUI.Muted);
                 hint.name = "Weapon short description"; hint.textWrappingMode = TextWrappingModes.Normal;
                 hint.maxVisibleLines = 2;
                 RunUI.Overlay(hint.rectTransform, Vector2.zero, new Vector2(1, 0), new Vector2(10, 6), new Vector2(-10, 58));
@@ -74,8 +74,23 @@ namespace BBSB.Runtime.UI
             return text;
         }
 
-        private static string AttributeHint(WeaponState weapon, WeaponPhraseSet set)
+        internal static string PatternHint(WeaponState weapon, WeaponPhrase phrase, bool separateHands)
         {
+            if (!separateHands) return phrase.Hint;
+            if (HandCombatLayout.IsShield(weapon))
+            {
+                var first = phrase.Notes[0];
+                return "4방향 방어 · " + (first.IsHold ? first.HoldBeats.ToString("0.##") + "박 Hold" : "Tap") +
+                    (first.IsParry ? " · 패링" : "") + (phrase.HoldDamageReduction > 0 ? " · 피해 " + (phrase.HoldDamageReduction * 100).ToString("0") + "% 감소" : "");
+            }
+            return weapon.RequiredLanes > 1 ? "한 키로 " + phrase.LengthBeats.ToString("0.##") + "박 리듬 · Tap / Hold" +
+                (phrase.Repeat ? " · 반복" : "") : phrase.Hint;
+        }
+        private static string AttributeHint(WeaponState weapon, WeaponPhraseSet set, bool separateHands)
+        {
+            if (separateHands && (HandCombatLayout.IsShield(weapon) || weapon.RequiredLanes > 1))
+                return WeaponAttributes.Hint(weapon.Attribute) + "\n" + PatternHint(weapon,
+                    set.For(0, weapon.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light), true);
             if (weapon.Attribute == WeaponAttribute.Chaos)
             {
                 var phrase = set.LightStarts[0];

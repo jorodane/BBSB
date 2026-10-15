@@ -45,7 +45,7 @@ namespace BBSB.Runtime.UI
             used = 0;
             Vector2 target = At(player, .5f, .53f);
             Vector2 guard = target + Vector2.right * (Vector2.Distance(At(player, .5f, 0), At(player, .5f, 1)) * .30f);
-            foreach (var lane in battle.Lanes)
+            foreach (var lane in battle.InputLanes)
                 if (FiveLaneArtTimeline.Guarding(lane))
                 { Draw(art.guard, guard, .23f, .58f); break; }
             foreach (var contact in battle.ShieldContacts)

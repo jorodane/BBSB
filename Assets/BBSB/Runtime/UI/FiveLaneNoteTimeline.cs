@@ -92,6 +92,10 @@ namespace BBSB.Runtime.UI
             if (!ReferenceEquals(source, battle))
             { source = battle; notes.Clear(); previous.Clear(); broken.Clear(); confirmed.Clear(); }
             if (battle == null) return;
+            // The right hand reads monster notes. Left-hand rhythms are communicated
+            // by weapon preparation motion and sound, including optional crossbow beats.
+            if (battle.SeparateHands)
+            { notes.Clear(); previous.Clear(); broken.Clear(); confirmed.Clear(); return; }
             previous.Clear(); previous.AddRange(notes); notes.Clear();
             broken.RemoveAll(note => note.Progress(battle.Beat) >= 1);
             confirmed.RemoveAll(note => battle.Beat - note.ConfirmedAt >= .4);

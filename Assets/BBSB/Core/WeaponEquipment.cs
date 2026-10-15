@@ -10,6 +10,7 @@ namespace BBSB.Core
     {
         public WeaponState Weapon { get; }
         public IReadOnlyList<int> Slots { get; }
+        public bool IsHandSlot { get; }
         public int Offset => BattleInputLayout.Position(Slots[0]);
         public double Center => Offset + (Slots.Count - 1) * .5;
         public WeaponPlacement(WeaponState weapon, params int[] slots)
@@ -28,6 +29,14 @@ namespace BBSB.Core
                 throw new ArgumentException("Single-line weapons cannot use extension lines.", nameof(slots));
             Slots = Array.AsReadOnly(copy);
         }
+        private WeaponPlacement(WeaponState weapon, int slot)
+        {
+            Weapon = weapon ?? throw new ArgumentNullException(nameof(weapon));
+            if (!HandCombatLayout.Fits(weapon, slot) && !(HandCombatLayout.IsShield(weapon) && HandCombatLayout.IsDefense(slot)))
+                throw new ArgumentException("Attack weapons use Z/X/C/V; shields use the defense slot.");
+            IsHandSlot = true; Slots = Array.AsReadOnly(new[] { slot });
+        }
+        public static WeaponPlacement ForHand(WeaponState weapon, int slot) => new WeaponPlacement(weapon, slot);
         public static bool TryCentered(WeaponState weapon, double center, out WeaponPlacement placement)
         {
             placement = null;
@@ -53,16 +62,19 @@ namespace BBSB.Core
         public IReadOnlyList<WeaponState> Equipped { get; }
         public IReadOnlyList<WeaponPlacement> Placements { get; }
         public int Capacity { get; private set; }
+        public bool SeparateHands { get; }
+        public IReadOnlyList<int> DisplayOrder => SeparateHands ? HandCombatLayout.EquipmentOrder : BattleInputLayout.DisplayOrder;
+        public string Key(int slot) => SeparateHands ? slot == HandCombatLayout.ShieldSlot ? "방어 · 방향키" : HandCombatLayout.Key(slot) : BattleInputLayout.Key(slot);
         public InputExtensions Extensions { get; private set; }
-        public bool IsAvailable(int slot) => BattleInputLayout.Available(slot, Extensions);
-        public int AvailableLaneCount => BattleInputLayout.MainLaneCount + ((Extensions & InputExtensions.Left) != 0 ? 1 : 0) +
+        public bool IsAvailable(int slot) => SeparateHands ? slot >= 0 && slot < HandCombatLayout.EquipmentCount : BattleInputLayout.Available(slot, Extensions);
+        public int AvailableLaneCount => SeparateHands ? HandCombatLayout.EquipmentCount : BattleInputLayout.MainLaneCount + ((Extensions & InputExtensions.Left) != 0 ? 1 : 0) +
             ((Extensions & InputExtensions.Right) != 0 ? 1 : 0);
         public int OccupiedLaneCount
         { get { int count = 0; foreach (var p in placements) count += p.Slots.Count; return count; } }
-        internal WeaponEquipment()
-        { Owned = owned.AsReadOnly(); Equipped = equipped.AsReadOnly(); Placements = placements.AsReadOnly(); Reset(); }
+        internal WeaponEquipment(bool separateHands = false)
+        { SeparateHands = separateHands; Owned = owned.AsReadOnly(); Equipped = equipped.AsReadOnly(); Placements = placements.AsReadOnly(); Reset(); }
         internal void Reset()
-        { owned.Clear(); equipped.Clear(); placements.Clear(); Capacity = 2; Extensions = InputExtensions.All; }
+        { owned.Clear(); equipped.Clear(); placements.Clear(); Capacity = SeparateHands ? HandCombatLayout.EquipmentCount : 2; Extensions = InputExtensions.All; }
         internal void Unlock(InputExtensions extensions)
         { BattleInputLayout.Validate(extensions); Extensions |= extensions; }
         internal void Acquire(WeaponState weapon)
@@ -81,7 +93,7 @@ namespace BBSB.Core
             if (weapon == null || !owned.Contains(weapon)) return false;
             var previous = PlacementOf(weapon);
             WeaponPlacement next;
-            try { next = new WeaponPlacement(weapon, slots); }
+            try { next = SeparateHands && slots?.Length == 1 ? WeaponPlacement.ForHand(weapon, slots[0]) : new WeaponPlacement(weapon, slots); }
             catch (ArgumentException) { return false; }
             if (!CanPlace(next)) return false;
             // Validate everything before changing a binding. A failed move preserves the old layout.
@@ -94,6 +106,7 @@ namespace BBSB.Core
         public bool CanPlace(WeaponPlacement placement)
         {
             if (placement == null || !owned.Contains(placement.Weapon)) return false;
+            if (SeparateHands && (!placement.IsHandSlot || !HandCombatLayout.Fits(placement.Weapon, placement.Slots[0]))) return false;
             var previous = PlacementOf(placement.Weapon);
             foreach (int slot in placement.Slots)
                 if (!IsAvailable(slot)) return false;
@@ -115,7 +128,16 @@ namespace BBSB.Core
         }
         internal bool EquipCentered(WeaponState weapon, double center)
         {
-            return WeaponPlacement.TryCentered(weapon, center, out var placement) && Equip(weapon, Copy(placement.Slots));
+            return TryPlacement(weapon, center, out var placement) && Equip(weapon, Copy(placement.Slots));
+        }
+        public bool TryPlacement(WeaponState weapon, double center, out WeaponPlacement placement)
+        {
+            if (!SeparateHands) return WeaponPlacement.TryCentered(weapon, center, out placement);
+            placement = null;
+            if (double.IsNaN(center) || double.IsInfinity(center) || center < -.5 || center >= 4.5) return false;
+            int slot = (int)Math.Floor(center + .5);
+            if (!HandCombatLayout.Fits(weapon, slot)) return false;
+            placement = WeaponPlacement.ForHand(weapon, slot); return true;
         }
         internal bool Unequip(WeaponState weapon)
         {
@@ -126,20 +148,22 @@ namespace BBSB.Core
         internal bool Swap(WeaponState first, WeaponState second)
         {
             if (ReferenceEquals(first, second) || first == null || second == null ||
-                !owned.Contains(first) || !owned.Contains(second) || first.RequiredLanes != second.RequiredLanes) return false;
+                !owned.Contains(first) || !owned.Contains(second) ||
+                (SeparateHands ? HandCombatLayout.IsShield(first) != HandCombatLayout.IsShield(second) : first.RequiredLanes != second.RequiredLanes)) return false;
             var a = PlacementOf(first); var b = PlacementOf(second);
             if (a == null && b == null) return false;
             if (a != null && b != null)
             {
-                placements[placements.IndexOf(a)] = new WeaponPlacement(first, Copy(b.Slots));
-                placements[placements.IndexOf(b)] = new WeaponPlacement(second, Copy(a.Slots));
+                placements[placements.IndexOf(a)] = SeparateHands ? WeaponPlacement.ForHand(first, b.Slots[0]) : new WeaponPlacement(first, Copy(b.Slots));
+                placements[placements.IndexOf(b)] = SeparateHands ? WeaponPlacement.ForHand(second, a.Slots[0]) : new WeaponPlacement(second, Copy(a.Slots));
             }
             else
             {
                 var outgoing = a ?? b; var incoming = a == null ? first : second;
-                if (!CanPlace(new WeaponPlacement(incoming, Copy(outgoing.Slots)))) return false;
+                var replacement = SeparateHands ? WeaponPlacement.ForHand(incoming, outgoing.Slots[0]) : new WeaponPlacement(incoming, Copy(outgoing.Slots));
+                if (!CanPlace(replacement)) return false;
                 int index = placements.IndexOf(outgoing);
-                placements[index] = new WeaponPlacement(incoming, Copy(outgoing.Slots)); equipped[index] = incoming;
+                placements[index] = replacement; equipped[index] = incoming;
             }
             return true;
         }

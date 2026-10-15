@@ -15,7 +15,7 @@ namespace BBSB.Runtime
         [SerializeField] private int seed = 20260908;
         [Tooltip("Temporary battle result controls; disable after connecting the rhythm battle.")]
         [SerializeField] private bool showBattleTestControls = true;
-        [Tooltip("Use the five-lane weapon phrase battle. Disable only to inspect the legacy prototype.")]
+        [Tooltip("Use Z/X/C/V weapon Calls and four-arrow defense. Disable only to inspect the legacy prototype.")]
         [SerializeField] private bool useFiveLaneCombat = true;
         [Tooltip("한 박에 한 단어씩 표시. 네 번째 단어와 동시에 곡과 전투가 시작해.")]
         [SerializeField] private string[] countInWords = { "Beat", "Block", "Shake", "Beat" };
