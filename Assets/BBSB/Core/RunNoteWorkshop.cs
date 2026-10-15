@@ -27,7 +27,8 @@ namespace BBSB.Core
             candidate.RemoveAll(x => x.PartInstanceId == part.InstanceId ||
                 (x.BaseNoteIndex == baseNoteIndex && x.Part.Kind == part.Definition.Kind));
             candidate.Add(new WeaponNoteBinding(part, baseNoteIndex));
-            try { WeaponNoteAssembly.Apply(weapon, source ?? WeaponPhraseSet.Uniform(weapon), candidate); }
+            try { WeaponNoteAssembly.Apply(weapon, source ?? WeaponPhraseSet.Uniform(weapon, separateHands: Equipment.SeparateHands), candidate,
+                separateHands: Equipment.SeparateHands); }
             catch (ArgumentException error) { reason = error.Message; return false; }
             if (!previewOnly)
             {

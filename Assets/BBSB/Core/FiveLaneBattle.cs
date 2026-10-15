@@ -170,6 +170,7 @@ namespace BBSB.Core
             StartOffset = offset; activationSequence++;
             var side = WeaponAttributes.SideAt(at);
             var phrase = Patterns.For(offset, side);
+            if (!reserved && phrase.AttackOnCall) at = invokedAt;
             // Keep the chosen Light/Dark grid, and guarantee the configured lead.
             // A reservation already names the first judged beat, so do not delay it twice.
             if (!reserved && phrase.FirstNoteDelayBeats > 0)
@@ -306,11 +307,11 @@ namespace BBSB.Core
                 if (placement == null || !ReferenceEquals(placement.Weapon, weapons[i])) throw new ArgumentException("Placement does not match its item.");
                 if (SeparateHands && (!placement.IsHandSlot || !HandCombatLayout.Fits(weapons[i], placement.Slots[0])))
                     throw new ArgumentException("Equip up to four attack weapons and one defense item.");
-                var patterns = phraseSets == null ? WeaponPhraseSet.Uniform(weapons[i], phrases == null ? null : phrase) : phraseSets[i];
+                var patterns = phraseSets == null ? WeaponPhraseSet.Uniform(weapons[i], phrases == null ? null : phrase, SeparateHands) : phraseSets[i];
                 // Revalidate externally supplied sets against the actual equipment footprint.
                 patterns = new WeaponPhraseSet(weapons[i], patterns?.LightStarts, patterns?.DarkStarts,
                     patterns?.LightTransitions, patterns?.DarkTransitions, patterns?.Chaos);
-                patterns = WeaponNoteAssembly.Apply(weapons[i], patterns);
+                patterns = WeaponNoteAssembly.Apply(weapons[i], patterns, separateHands: SeparateHands);
                 if (SeparateHands && HandCombatLayout.IsShield(weapons[i])) patterns = HandDefensePatterns.From(weapons[i], patterns);
                 var lane = new PhraseLane(weapons[i], placement, patterns, unchecked(rhythmSeed + i * 486187739)); lanes.Add(lane);
                 equippedLanes.Add(lane);
@@ -395,7 +396,7 @@ namespace BBSB.Core
                 // A fresh input chooses the phrase's phase; it is not a timing test.
                 // Repeats stay Playing and never receive this opening grace again.
                 BeginActivation(lane, slot, Beat);
-                if (SeparateHands && !IsDefenseInput(slot) || lane.Phrase.FirstNoteDelayBeats > 0)
+                if (SeparateHands && !IsDefenseInput(slot) && !lane.Phrase.AttackOnCall || lane.Phrase.FirstNoteDelayBeats > 0)
                 { lane.Feedback = "CALL"; return; }
             }
             // A different occupied line is a distinct input. It cannot hit this line's note
@@ -683,8 +684,13 @@ namespace BBSB.Core
                 (note.IsHold && !lane.Phrase.ParriesOnKeyUp ? "HOLD OK" :
                     lane.parried[lane.NextNote] ? "PARRY" : "OK") :
                 grade == RhythmGrade.Perfect ? "PERFECT" : "HALF";
-            if (grade == RhythmGrade.Perfect) PerfectCount++; else HalfMissCount++;
-            Combo++;
+            bool freeCall = lane.Phrase.AttackOnCall && lane.NextNote == 0 && Math.Abs(Beat - lane.InvokedAtBeat) < Epsilon;
+            if (freeCall) lane.Feedback = "CALL";
+            else
+            {
+                if (grade == RhythmGrade.Perfect) PerfectCount++; else HalfMissCount++;
+                Combo++;
+            }
             decimal effectScale = (1m + .25m * lane.Weapon.Level) * (grade == RhythmGrade.Perfect ? 1m : .5m) *
                 lane.EffectMultiplier;
             decimal damage = note.Effect == PhraseEffect.Strike || note.IsParry ? note.Damage : 0;
@@ -699,6 +705,14 @@ namespace BBSB.Core
             {
                 ScheduleAdjacent(lane, lane.StartBeat + lane.TimingShiftBeats + note.Beat + note.HoldBeats + 1);
                 lane.Feedback = "CHIME +1";
+            }
+            if (note.Effect == PhraseEffect.AdvanceRear)
+            {
+                // Keep the already-visible threats and announce a safe formation
+                // boundary, using the existing rear-target selection rule.
+                var rear = Formation?.TargetFor(WeaponAttackTarget.Rear);
+                bool called = rear != null && Formation.RequestSwitch(rear.InstanceId, Beat, FormationChangeReason.WeaponCall);
+                lane.Feedback = called ? "FRONT CALL" : "NO CHANGE";
             }
             if (note.Effect == PhraseEffect.ReduceAdjacentCooldown || note.Effect == PhraseEffect.EmpowerAdjacent)
             {
@@ -727,7 +741,7 @@ namespace BBSB.Core
                 { lane.SelectCycle(lane.NextCycle(lane.Cycle)); BeginCycle(lane); }
                 else
                 {
-                    double end = note.IsChargedRelease || note.IsOptional ? Beat :
+                    double end = lane.Phrase.CooldownFromLastInput || note.IsChargedRelease || note.IsOptional ? Beat :
                         Math.Max(Beat, lane.StartBeat + lane.TimingShiftBeats + lane.Phrase.LengthBeats);
                     Cooldown(lane, end + lane.Phrase.CompletionCooldownBeats, end);
                 }

@@ -64,13 +64,13 @@ namespace BBSB.Runtime.UI
             { Caption(ui, left, "먼저 무기를 획득해 줘.", 22, RunUI.Muted, 60); return; }
             selection.Weapon = Mathf.Clamp(selection.Weapon, 0, session.OwnedWeapons.Count - 1);
             weapon = session.OwnedWeapons[selection.Weapon];
-            source = WeaponPhraseAuthoring.LoadSetsFor(new[] { weapon })[0];
+            source = WeaponPhraseAuthoring.LoadSetsFor(new[] { weapon }, session.Equipment.SeparateHands)[0];
             selection.Offset = session.Equipment.SeparateHands ? 0 : Mathf.Clamp(selection.Offset, 0, weapon.RequiredLanes - 1);
             original = source.For(selection.Offset, selection.Side);
-            composed = WeaponNoteAssembly.Apply(weapon, source).For(selection.Offset, selection.Side);
+            composed = WeaponNoteAssembly.Apply(weapon, source, separateHands: session.Equipment.SeparateHands).For(selection.Offset, selection.Side);
             selection.Note = Mathf.Clamp(selection.Note, 0, original.Notes.Count - 1);
             DrawChooser();
-            Caption(ui, left, original.FirstNoteDelayBeats > 0 ?
+            Caption(ui, left, original.AttackOnCall ? "Call 1회 → 효과 · 쿨타임 후 다시 사용" : original.FirstNoteDelayBeats > 0 ?
                 "Call → " + original.FirstNoteDelayBeats.ToString("0.##") + "박 준비 후 연주  ·  Call / Response" :
                 "Call / Response · 무기 리듬 연주", 17, RunUI.Gold, 24);
             DrawPattern();
@@ -97,6 +97,7 @@ namespace BBSB.Runtime.UI
             FixedWidth((RectTransform)previous.transform, 36);
             var icon = ui.Rect("Selected weapon", chooser); FixedWidth(icon, 44); RunUI.Size(icon, 44);
             var artwork = icon.gameObject.AddComponent<WeaponIconGraphic>(); artwork.FitVisibleArtwork = true; artwork.Bind(weapon);
+            artwork.UseDefenseArtifact = session.Equipment.SeparateHands && HandCombatLayout.IsShield(weapon);
             foreach (var socketsGraphic in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) socketsGraphic.gameObject.SetActive(false);
             Caption(ui, chooser, weapon.DisplayName + " +" + weapon.Level, 23, RunUI.TextColor, 44);
             var next = Control(ui, chooser, "›", () => ChangeWeapon(1), 44, selection.Weapon + 1 < session.OwnedWeapons.Count);
@@ -236,7 +237,7 @@ namespace BBSB.Runtime.UI
             selectedPart = selectedPart == id ? -1 : id;
             foreach (var card in cards) card.Value.color = card.Key == selectedPart ? RunUI.Hex("34534F") : RunUI.Panel;
             var part = session.NoteParts[index];
-            ShowNotice(selectedPart < 0 ? "부품 선택을 취소했어." : part.Definition.Name + " · " + part.Definition.Description);
+            ShowNotice(selectedPart < 0 ? "부품 선택을 취소했어." : part.Definition.Name + " · " + part.Definition.DescriptionFor(session.Equipment.SeparateHands));
         }
         private void Attach(int id, int noteIndex)
         {

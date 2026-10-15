@@ -36,6 +36,23 @@ namespace BBSB.Tests
         private static FiveLaneBattle ShieldBattle(string[] weapons, params BeatAttack[] attacks) => new FiveLaneBattle(
             weapons.Select(id => new WeaponState(id)).ToArray(), 120, 32, attacks, new StageHealth(10000), 1000, 1000);
 
+        [Test] public void DrumCallAnnouncesRearPromotionAndKeepsTheDefenseClockRunning()
+        {
+            var health = new StageHealth(200);
+            var formation = new EncounterFormation(Plan(), health, new FormationRules(rotationBeats: 100));
+            var b = new FiveLaneBattle(new[] { new WeaponState("war-drum"), new WeaponState("heater-shield") },
+                120, 128, Array.Empty<BeatAttack>(), health, 1000, 1000, formation: formation, separateHands: true);
+            b.Press(0, .37); b.Release(0, .37);
+            Check.Equal("front", formation.Front.InstanceId); Check.Equal("rear", formation.PendingFront.InstanceId);
+            Check.Equal(FormationChangeReason.WeaponCall, formation.ChangeReason);
+            Check.Equal(4d, formation.SwitchAtBeat); Check.Equal(8.37, b.LaneAt(0).ReadyAtBeat);
+            Check.Equal(0m, b.TotalDamage); Check.Equal(0, b.PerfectCount);
+            Check.True(b.Incoming.Any(a => a.State == IncomingAttackState.Pending && a.Beat < 4));
+            b.Press(4, .37); Check.True(b.LaneAt(4).Holding);
+            b.Advance(4); Check.Equal("rear", formation.Front.InstanceId);
+            Check.Equal(200m, health.Current);
+        }
+
         [Test] public void FramesAndInjectedNotesPreserveTheBaseAndRemapEveryPrerequisite()
         {
             var weapon = new WeaponState("bow"); var source = WeaponPhraseSet.Uniform(weapon);

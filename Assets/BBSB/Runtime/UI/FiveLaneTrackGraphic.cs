@@ -117,6 +117,17 @@ namespace BBSB.Runtime.UI
                 if (attack.State == IncomingAttackState.Blocked && battle.Beat - attack.ResolvedBeat > .25) continue;
                 float t = chained ? 1 : FiveLaneArtTimeline.ProjectileProgress(attack.Beat, battle.Beat);
                 var p = Vector2.Lerp(source, target, t);
+                if (battle.SeparateHands && playerTarget != null)
+                {
+                    float height = Vector2.Distance(LocalPoint(playerTarget, new Vector2(0, playerTarget.rect.yMin)),
+                        LocalPoint(playerTarget, new Vector2(0, playerTarget.rect.yMax)));
+                    var grip = LocalPoint(playerTarget, new Vector2(
+                        Mathf.Lerp(playerTarget.rect.xMin, playerTarget.rect.xMax, DefenseArtifactMotion.GripX),
+                        Mathf.Lerp(playerTarget.rect.yMin, playerTarget.rect.yMax, DefenseArtifactMotion.GripY)));
+                    var point = DefenseArtifactMotion.Projectile(new BattlePathPoint(source.x, source.y),
+                        new BattlePathPoint(grip.x, grip.y), height, attack.ShieldSlot - 4, t);
+                    p = new Vector2((float)point.X, (float)point.Y);
+                }
                 Color tint = attack.State == IncomingAttackState.Blocked ? RunUI.Teal : RunUI.Red;
                 float turn = attack.Definition.IsHold && delta <= 0 ?
                     (float)(Math.Min(battle.Beat, attack.EndBeat) - attack.SustainStartBeat) * Mathf.PI * 4 :

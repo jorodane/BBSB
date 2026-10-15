@@ -31,6 +31,10 @@ namespace BBSB.Runtime
         public bool useDefaultCallTiming = true;
         [Min(0), Tooltip("Minimum lead after invocation, aligned to the chosen beat side. Zero judges the invocation immediately. Applied once, never between repeated cycles.")]
         public float firstNoteDelayBeats = 1;
+        [Tooltip("Execute the first action on a free Call, without a rhythm grade. Requires a non-hold Response, zero delay and no repeat.")]
+        public bool attackOnCall;
+        [Tooltip("Start completion cooldown at the last performed input, independently of the pattern's display length.")]
+        public bool cooldownFromLastInput;
         public bool repeat;
         [Min(0), Tooltip("Base cycles per activation; zero repeats indefinitely. Chaos bridges do not count.")]
         public int maximumCycles;
@@ -77,7 +81,8 @@ namespace BBSB.Runtime
             return new WeaponPhrase(weaponId, displayName, hint, lengthBeats, result, missCooldownBeats,
                 repeat, finisherEvery, (decimal)finisherDamage, groggyBeats, parryInput,
                 (decimal)holdDamageReduction, releaseEndsPhrase, parryRequired, completionCooldownBeats, maximumCycles,
-                useDefaultCallTiming ? WeaponCatalog.Find(weaponId).Kind == WeaponKind.Shield ? 0 : 1 : firstNoteDelayBeats);
+                attackOnCall ? 0 : useDefaultCallTiming ? WeaponCatalog.Find(weaponId).Kind == WeaponKind.Shield ? 0 : 1 : firstNoteDelayBeats,
+                attackOnCall, cooldownFromLastInput);
         }
         private ChaosRules BuildChaosRules() => new ChaosRules(chaosMinimumBeats, (decimal)chaosTransitionChance, (decimal)chaosEffectMultiplier);
         public static IReadOnlyList<WeaponPhrase> LoadFor(IReadOnlyList<WeaponState> weapons)
@@ -88,11 +93,12 @@ namespace BBSB.Runtime
                 weapons[i].Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light));
             return result.AsReadOnly();
         }
-        public static IReadOnlyList<WeaponPhraseSet> LoadSetsFor(IReadOnlyList<WeaponState> weapons)
+        public static IReadOnlyList<WeaponPhraseSet> LoadSetsFor(IReadOnlyList<WeaponState> weapons, bool separateHands = false)
         {
-            return BuildSetsFor(weapons, Resources.LoadAll<WeaponPhraseAuthoring>(ResourceFolder));
+            return BuildSetsFor(weapons, Resources.LoadAll<WeaponPhraseAuthoring>(ResourceFolder), separateHands);
         }
-        public static IReadOnlyList<WeaponPhraseSet> BuildSetsFor(IReadOnlyList<WeaponState> weapons, IEnumerable<WeaponPhraseAuthoring> assets)
+        public static IReadOnlyList<WeaponPhraseSet> BuildSetsFor(IReadOnlyList<WeaponState> weapons, IEnumerable<WeaponPhraseAuthoring> assets,
+            bool separateHands = false)
         {
             var overrides = new Dictionary<string, WeaponPhraseAuthoring>();
             var phrases = new Dictionary<string, WeaponPhrase>();
@@ -136,7 +142,7 @@ namespace BBSB.Runtime
                 catch (ArgumentException error)
                 {
                     Debug.LogError(weapon.DisplayName + ": " + error.Message + " Using built-in patterns.");
-                    result.Add(WeaponPhraseSet.Uniform(weapon));
+                    result.Add(WeaponPhraseSet.Uniform(weapon, separateHands: separateHands));
                 }
 
                 WeaponPhrase Resolve(WeaponState item, int offset, WeaponBeatSide side, bool transition)
@@ -156,7 +162,7 @@ namespace BBSB.Runtime
                         }
                         return phrase;
                     }
-                    return WeaponPhraseCatalog.Default(item.DefinitionId, offset, side, transition, item.Attribute);
+                    return WeaponPhraseSet.DefaultFor(item, offset, side, transition, separateHands);
                 }
             }
             return result.AsReadOnly();

@@ -156,8 +156,9 @@ namespace BBSB.Tests
                 Assert.IsTrue(hud.enemyHealth == null || !hud.enemyHealth.gameObject.activeInHierarchy);
                 Assert.IsTrue(hud.enemyFill == null || !hud.enemyFill.gameObject.activeInHierarchy);
             }
-            Assert.AreEqual(2, hud.actors.Find("Orbiting weapons").GetComponentsInChildren<WeaponIconGraphic>().Length);
-            Assert.AreEqual(4, playback.GetComponentsInChildren<WeaponIconGraphic>().Length);
+            Assert.AreEqual(1, hud.actors.Find("Orbiting weapons").GetComponentsInChildren<WeaponIconGraphic>().Length);
+            Assert.AreEqual(3, playback.GetComponentsInChildren<WeaponIconGraphic>().Length);
+            Assert.AreEqual(1, hud.actors.GetComponentsInChildren<DefenseArtifactGraphic>().Length);
             Assert.AreEqual(1, playback.GetComponentsInChildren<FiveLaneTrackGraphic>().Length);
             LogAssert.NoUnexpectedReceived();
         }
@@ -181,14 +182,24 @@ namespace BBSB.Tests
             for (int slot = 0; slot < 8; slot++) Assert.IsTrue(battle.IsInputHeld(slot), battle.Key(slot));
             for (int slot = 0; slot < 4; slot++) Assert.AreEqual("CALL", battle.LaneAt(slot).Feedback);
             for (int slot = 4; slot < 8; slot++) Assert.IsTrue(battle.LaneAt(slot).Holding);
-            Assert.AreEqual(0, battle.TotalDamage, "Initial Call keys must not also strike.");
+            Assert.AreEqual(12, battle.TotalDamage, "Only the dagger and dual-swords action Calls strike immediately.");
+            Assert.IsTrue(battle.LaneAt(0).Phase == PhraseLanePhase.Cooldown);
+            Assert.AreEqual(0, battle.LaneAt(2).Activations, "The sword still needs its rhythm response.");
+            var artifact = playback.GetComponentInChildren<DefenseArtifactGraphic>();
+            Assert.AreEqual(15, artifact.ActiveDirections);
+            var orbit = playback.GetComponentInChildren<FiveLaneHudBindings>().actors.Find("Orbiting weapons");
+            Assert.AreEqual(4, orbit.GetComponentsInChildren<WeaponIconGraphic>().Length);
+            Assert.IsTrue(orbit.GetComponentsInChildren<WeaponIconGraphic>().All(w => w.Kind != WeaponKind.Shield));
+            Canvas.ForceUpdateCanvases();
+            var staffMesh = artifact.canvasRenderer.GetMesh();
+            Assert.Greater(staffMesh.vertexCount, 0, "The held staff must render without an imported sprite.");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.UpArrow));
             InputSystem.Update(); playback.SendMessage("Update");
-            double first = battle.LaneAt(0).NextBeat;
+            double first = battle.LaneAt(2).NextBeat;
             clock.SetValue(playback, AudioSettings.dspTime - first * 60 / battle.Bpm);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Z, Key.X, Key.C, Key.V, Key.UpArrow));
             InputSystem.Update(); playback.SendMessage("Update"); playback.SendMessage("LateUpdate");
-            Assert.Greater(battle.TotalDamage, 0);
+            Assert.Greater(battle.TotalDamage, 12);
             Assert.IsTrue(battle.LaneAt(6).Holding);
             Assert.IsFalse(battle.LaneAt(4).Holding);
             Assert.IsEmpty(playback.GetComponentInChildren<FiveLaneTrackGraphic>().NoteTimeline.Notes);
@@ -197,6 +208,12 @@ namespace BBSB.Tests
             string capture = System.Environment.GetEnvironmentVariable("BBSB_CAPTURE_PATH");
             if (!string.IsNullOrEmpty(capture))
             {
+                double available = System.Math.Max(battle.Beat, Enumerable.Range(4, 4).Max(s => battle.LaneAt(s).ReadyAtBeat)) + .4;
+                clock.SetValue(playback, AudioSettings.dspTime - available * 60 / battle.Bpm);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.LeftArrow, Key.DownArrow, Key.RightArrow));
+                InputSystem.Update(); playback.SendMessage("Update"); playback.SendMessage("LateUpdate");
+                Assert.AreEqual(11, artifact.ActiveDirections);
+                battle.Pause();
                 CaptureLayout(capture);
             }
             LogAssert.NoUnexpectedReceived();
@@ -229,8 +246,9 @@ namespace BBSB.Tests
             Assert.IsTrue(presenter.StartFiveLaneBattle()); yield return null;
             var playback = root.GetComponentInChildren<FiveLanePlayback>(); var battle = playback.Battle;
             var hud = playback.GetComponentInChildren<FiveLaneHudBindings>();
-            Assert.AreEqual(battle.Lanes.Count, hud.actors.Find("Orbiting weapons").GetComponentsInChildren<WeaponIconGraphic>().Length,
-                "A two-line shield must still have only one physical shield.");
+            Assert.AreEqual(battle.Lanes.Count - 1, hud.actors.Find("Orbiting weapons").GetComponentsInChildren<WeaponIconGraphic>().Length,
+                "The one defense artifact stays out of the offensive orbit.");
+            Assert.AreEqual(1, hud.actors.GetComponentsInChildren<DefenseArtifactGraphic>().Length);
             var healthLabels = playback.GetComponentsInChildren<TMP_Text>().Where(t => t.name.StartsWith("Monster health ")).ToArray();
             Assert.AreEqual(battle.Formation.Monsters.Count, healthLabels.Length);
             Assert.IsTrue(healthLabels.All(t => t.text.Contains(" / ")));
@@ -385,6 +403,10 @@ namespace BBSB.Tests
             {
                 camera.targetTexture = texture;
                 canvas.renderMode = RenderMode.ScreenSpaceCamera; canvas.worldCamera = camera; canvas.planeDistance = 1;
+                Canvas.ForceUpdateCanvases();
+                // Recompute pixel-positioned actors and weapons at the capture size.
+                // Otherwise a resized Canvas keeps the previous Game view's offsets.
+                root.GetComponentInChildren<FiveLanePlayback>().SendMessage("LateUpdate");
                 Canvas.ForceUpdateCanvases();
                 if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null) camera.Render();
                 else UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(camera,

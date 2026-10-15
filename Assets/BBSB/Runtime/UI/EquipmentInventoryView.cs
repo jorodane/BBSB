@@ -25,7 +25,7 @@ namespace BBSB.Runtime.UI
             // The viewport controls the width, including when a wider window shrinks.
             // GridLayoutGroup's previous cell widths must not become the new minimum.
             size.minWidth = size.preferredWidth = 0;
-            var sets = WeaponPhraseAuthoring.LoadSetsFor(session.OwnedWeapons);
+            var sets = WeaponPhraseAuthoring.LoadSetsFor(session.OwnedWeapons, session.Equipment.SeparateHands);
             for (int i = 0; i < session.OwnedWeapons.Count; i++)
             {
                 int index = i; var weapon = session.OwnedWeapons[i];
@@ -43,12 +43,13 @@ namespace BBSB.Runtime.UI
                 thumbnail.gameObject.AddComponent<EquipmentDragHandle>().Bind(board, index);
                 var visual = ui.Rect("Weapon artwork " + weapon.DefinitionId, thumbnail); RunUI.Stretch(visual, 3);
                 var artwork = visual.gameObject.AddComponent<WeaponIconGraphic>();
+                artwork.UseDefenseArtifact = session.Equipment.SeparateHands && HandCombatLayout.IsShield(weapon);
                 artwork.FitVisibleArtwork = true; artwork.Bind(weapon);
                 foreach (var sockets in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
 
                 var name = Caption(ui, card, weapon.DisplayName + " +" + weapon.Level, 21, RunUI.TextColor);
                 RunUI.Overlay(name.rectTransform, new Vector2(0, 1), Vector2.one, new Vector2(78, -34), new Vector2(-10, -8));
-                var rarity = Caption(ui, card, WeaponRarities.Name(weapon.Rarity) + " · " + (session.Equipment.SeparateHands ? HandCombatLayout.IsShield(weapon) ? "방어 장비" : "공격 슬롯" : weapon.RequiredLanes + "라인"), 17,
+                var rarity = Caption(ui, card, WeaponRarities.Name(weapon.Rarity) + " · " + (session.Equipment.SeparateHands ? HandCombatLayout.IsShield(weapon) ? "방어 아티팩트" : "공격 슬롯" : weapon.RequiredLanes + "라인"), 17,
                     WeaponIconGraphic.RarityColor(weapon.Rarity));
                 RunUI.Overlay(rarity.rectTransform, new Vector2(0, 1), Vector2.one, new Vector2(78, -55), new Vector2(-10, -35));
                 var keys = new List<string>();
@@ -83,12 +84,13 @@ namespace BBSB.Runtime.UI
                 return "4방향 방어 · " + (first.IsHold ? first.HoldBeats.ToString("0.##") + "박 Hold" : "Tap") +
                     (first.IsParry ? " · 패링" : "") + (phrase.HoldDamageReduction > 0 ? " · 피해 " + (phrase.HoldDamageReduction * 100).ToString("0") + "% 감소" : "");
             }
+            if (phrase.AttackOnCall) return phrase.Hint;
             return weapon.RequiredLanes > 1 ? "한 키로 " + phrase.LengthBeats.ToString("0.##") + "박 리듬 · Tap / Hold" +
                 (phrase.Repeat ? " · 반복" : "") : phrase.Hint;
         }
         private static string AttributeHint(WeaponState weapon, WeaponPhraseSet set, bool separateHands)
         {
-            if (separateHands && (HandCombatLayout.IsShield(weapon) || weapon.RequiredLanes > 1))
+            if (separateHands)
                 return WeaponAttributes.Hint(weapon.Attribute) + "\n" + PatternHint(weapon,
                     set.For(0, weapon.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light), true);
             if (weapon.Attribute == WeaponAttribute.Chaos)

@@ -5,7 +5,7 @@ namespace BBSB.Core
 {
     public enum AttackRank { Front, Rear }
     public enum MonsterFormationRole { Standard, Trickster }
-    public enum FormationChangeReason { Rotation, Intrusion, Return, Defeat }
+    public enum FormationChangeReason { Rotation, Intrusion, Return, Defeat, WeaponCall }
 
     public sealed class FormationRules
     {

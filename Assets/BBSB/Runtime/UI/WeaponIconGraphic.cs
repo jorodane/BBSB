@@ -11,6 +11,12 @@ namespace BBSB.Runtime.UI
         private Sprite artwork;
         private WeaponSocketGraphic sockets;
         private bool fitVisibleArtwork;
+        private bool useDefenseArtifact;
+        public bool UseDefenseArtifact
+        {
+            get => useDefenseArtifact;
+            set { if (useDefenseArtifact == value) return; useDefenseArtifact = value; SetAllDirty(); }
+        }
         public bool FitVisibleArtwork
         {
             get => fitVisibleArtwork;
@@ -22,7 +28,7 @@ namespace BBSB.Runtime.UI
         public bool HasAttributeArtwork { get; private set; }
         public RangedWeaponPose Pose { get; private set; }
         public bool HasArtwork => artwork != null;
-        public override Texture mainTexture => artwork != null ? artwork.texture : base.mainTexture;
+        public override Texture mainTexture => !UseDefenseArtifact && artwork != null ? artwork.texture : base.mainTexture;
 
         public void Bind(WeaponKind kind)
         {
@@ -77,6 +83,12 @@ namespace BBSB.Runtime.UI
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear(); var rect = ArtworkRect;
+            if (UseDefenseArtifact)
+            {
+                rect = GetPixelAdjustedRect();
+                DefenseArtifactGraphic.DrawStaff(vh, rect.center, Mathf.Min(rect.width, rect.height) * .9f, 55, color);
+                return;
+            }
             if (artwork != null)
             {
                 var uv = UnityEngine.Sprites.DataUtility.GetOuterUV(artwork);

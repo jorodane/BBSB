@@ -9,6 +9,27 @@ namespace BBSB.Tests
 {
     public sealed class WeaponAttributeAuthoringTests
     {
+        [Test] public void HandDefaultsUseActionsWhileExplicitRhythmOverridesRemainAuthoritative()
+        {
+            var asset = ScriptableObject.CreateInstance<WeaponPhraseAuthoring>();
+            try
+            {
+                var weapons = new[] { new WeaponState("dagger") };
+                var defaults = WeaponPhraseAuthoring.BuildSetsFor(weapons, Array.Empty<WeaponPhraseAuthoring>(), true)[0];
+                Assert.IsTrue(defaults.LightStarts[0].AttackOnCall);
+                asset.weaponId = "dagger";
+                var custom = WeaponPhraseAuthoring.BuildSetsFor(weapons, new[] { asset }, true)[0];
+                Assert.IsFalse(custom.LightStarts[0].AttackOnCall); Assert.AreEqual(3, custom.LightStarts[0].Notes.Count);
+                asset.attackOnCall = true; asset.cooldownFromLastInput = true;
+                asset.completionCooldownBeats = 2;
+                var action = asset.Build();
+                Assert.IsTrue(action.AttackOnCall); Assert.AreEqual(0, action.FirstNoteDelayBeats);
+                Assert.IsTrue(action.CooldownFromLastInput);
+                asset.notes[0].holdBeats = .5f;
+                Assert.Throws<ArgumentException>(() => asset.Build());
+            }
+            finally { Object.DestroyImmediate(asset); }
+        }
         [Test] public void AuthoringSeparatesInvocationTimingCallsAndConditionalResponses()
         {
             var asset = ScriptableObject.CreateInstance<WeaponPhraseAuthoring>();

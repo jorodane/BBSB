@@ -155,7 +155,7 @@ namespace BBSB.Tests
                 Assert.LessOrEqual(hint.rectTransform.rect.height, 56); Assert.AreEqual(2, hint.maxVisibleLines);
                 Assert.AreEqual(TextOverflowModes.Ellipsis, hint.overflowMode);
             }
-            StringAssert.Contains("2박마다 Tap 1회",
+            StringAssert.Contains("쿨타임 2박",
                 cards[0].GetComponentsInChildren<TMP_Text>().Single(t => t.name == "Weapon short description").text);
             var scroll = inventory.GetComponentInParent<ScrollRect>();
             Assert.Greater(scroll.content.rect.height, scroll.viewport.rect.height);

@@ -226,10 +226,11 @@ namespace BBSB.Runtime.UI
             Place(beat.rectTransform, .32f, .55f, .46f, .68f);
             Place(feedback.rectTransform, .31f, .49f, .49f, .55f);
             Place(rhythmBeat.rectTransform, .89f, .49f, .98f, .57f);
-            Place(attackCue.rectTransform, .55f, .48f, .88f, .54f);
+            Place(attackCue.rectTransform, .55f, .50f, .88f, .54f);
             attackCue.enableAutoSizing = true; attackCue.fontSizeMin = 14; attackCue.fontSizeMax = 20;
             Place(help.rectTransform, .03f, .005f, .74f, .045f);
             Text(ui, transform, "공격 · 무기 모션과 소리에 맞춰 연주", 17, .025f, .43f, .49f, .48f);
+            Text(ui, transform, "방어 아티팩트 · 몬스터의 협공을 쳐내기", 17, .55f, .47f, .98f, .50f);
         }
         private void EnsureExtensionSlots(InputExtensions extensions)
         {

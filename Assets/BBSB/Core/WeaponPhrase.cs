@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BBSB.Core
 {
-    public enum PhraseEffect { Strike, Parry, StartAdjacent, Heal, ReduceAdjacentCooldown, EmpowerAdjacent }
+    public enum PhraseEffect { Strike, Parry, StartAdjacent, Heal, ReduceAdjacentCooldown, EmpowerAdjacent, AdvanceRear }
     // Keep existing serialized values; Both adds a parry at each end of a Hold.
     public enum ParryInputEdge { KeyDown = 0, KeyUp = 1, Both = 2 }
     public enum PhraseLanePhase { Ready, Playing, Cooldown }
@@ -86,6 +86,10 @@ namespace BBSB.Core
         public double CompletionCooldownBeats { get; }
         // Zero is the explicitly immediate mode used by reactive shields and legacy authored patterns.
         public double FirstNoteDelayBeats { get; }
+        // A free Call can itself execute a single action. Subsequent notes, if any,
+        // still require their own inputs. This is separate from phrase duration.
+        public bool AttackOnCall { get; }
+        public bool CooldownFromLastInput { get; }
         public IReadOnlyList<WeaponPhraseNote> Notes { get; }
         public bool HasFlexibleResponse { get; }
         public int ChargedResponseFor(int callIndex)
@@ -98,7 +102,8 @@ namespace BBSB.Core
             int finisherEvery = 0, decimal finisherDamage = 0, double groggyBeats = 0,
             ParryInputEdge parryInput = ParryInputEdge.KeyDown,
             decimal holdDamageReduction = 0, bool releaseEndsPhrase = false, bool parryRequired = true,
-            double completionCooldownBeats = 0, int maximumCycles = 0, double firstNoteDelayBeats = 0)
+            double completionCooldownBeats = 0, int maximumCycles = 0, double firstNoteDelayBeats = 0,
+            bool attackOnCall = false, bool cooldownFromLastInput = false)
         {
             WeaponCatalog.Find(weaponId);
             if (!WeaponPhraseNote.Finite(lengthBeats) || lengthBeats <= 0 || !WeaponPhraseNote.Finite(missCooldownBeats) ||
@@ -111,6 +116,10 @@ namespace BBSB.Core
             var copy = new List<WeaponPhraseNote>(notes ?? throw new ArgumentNullException(nameof(notes)));
             if (copy.Count == 0 || copy[0] == null || copy[0].Beat != 0 || copy[0].LaneOffset != 0)
                 throw new ArgumentException("A phrase starts at beat zero on the input line that activates it.");
+            if (attackOnCall && (WeaponCatalog.Find(weaponId).Kind == WeaponKind.Shield || repeat || firstNoteDelayBeats != 0 ||
+                copy[0].IsHold || copy[0].IsCall || copy[0].IsParry || copy[0].Trigger != WeaponNoteTrigger.Completion ||
+                copy[0].Condition != PhraseNoteCondition.Always))
+                throw new ArgumentException("An action Call needs an immediate, unconditional attack and no automatic repeat.");
             if (!Enum.IsDefined(typeof(ParryInputEdge), parryInput))
                 throw new ArgumentOutOfRangeException(nameof(parryInput));
             for (int i = 0; i < copy.Count; i++)
@@ -151,10 +160,11 @@ namespace BBSB.Core
             ReleaseEndsPhrase = releaseEndsPhrase; ParryRequired = parryRequired;
             CompletionCooldownBeats = completionCooldownBeats; MaximumCycles = maximumCycles;
             FirstNoteDelayBeats = firstNoteDelayBeats;
+            AttackOnCall = attackOnCall; CooldownFromLastInput = cooldownFromLastInput;
         }
         public WeaponPhrase WithFirstNoteDelay(double beats) => new WeaponPhrase(WeaponId, Name, Hint, LengthBeats, Notes,
             MissCooldownBeats, Repeat, FinisherEvery, FinisherDamage, GroggyBeats, ParryInput, HoldDamageReduction,
-            ReleaseEndsPhrase, ParryRequired, CompletionCooldownBeats, MaximumCycles, beats);
+            ReleaseEndsPhrase, ParryRequired, CompletionCooldownBeats, MaximumCycles, beats, AttackOnCall, CooldownFromLastInput);
     }
 
     public static class WeaponPhraseCatalog
@@ -190,8 +200,14 @@ namespace BBSB.Core
             return result.ToArray();
         }
         public static IReadOnlyList<WeaponPhrase> All { get; } = Array.AsReadOnly(phrases);
-        public static WeaponPhrase Default(string weaponId, int offset, WeaponBeatSide side, bool transition = false, WeaponAttribute? attribute = null)
+        public static WeaponPhrase Default(string weaponId, int offset, WeaponBeatSide side, bool transition = false, WeaponAttribute? attribute = null,
+            bool separateHands = false)
         {
+            if (separateHands && !transition && attribute != WeaponAttribute.Chaos)
+            {
+                var action = HandAttackPatterns.Default(weaponId);
+                if (action != null) return action;
+            }
             var expanded = LongWeaponPatterns.Pattern(weaponId, offset, side, transition, attribute);
             return expanded ?? (transition ? null : Find(weaponId));
         }

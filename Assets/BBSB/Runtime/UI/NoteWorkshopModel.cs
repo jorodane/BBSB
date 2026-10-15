@@ -105,9 +105,10 @@ namespace BBSB.Runtime.UI
                 else inputs.Add(new Input { Start = at, End = at + note.HoldBeats, Lane = Lane(note), RequiresRelease = release, IsCall = note.IsCall });
             }
             var first = inputs[0]; var last = inputs[inputs.Count - 1];
-            executionEnd = phrase.HasFlexibleResponse ? last.End : phrase.LengthBeats;
+            executionEnd = phrase.CooldownFromLastInput ? Math.Max(FlashBeats, last.End) : phrase.HasFlexibleResponse ? last.End : phrase.LengthBeats;
             LoopBeats = continuous ? sectionBeats * CyclesPerLoop :
-                sectionBeats * (CyclesPerLoop - 1) + executionEnd + Math.Max(1, phrase.CompletionCooldownBeats) + FirstNoteBeat;
+                sectionBeats * (CyclesPerLoop - 1) + (phrase.CooldownFromLastInput ? last.End : executionEnd) +
+                    Math.Max(1, phrase.CompletionCooldownBeats) + FirstNoteBeat;
             connectsCycles = first.End > first.Start && last.End > last.Start && !last.RequiresRelease &&
                 first.Lane == last.Lane && Math.Abs(last.End - phrase.LengthBeats) < .000001;
         }

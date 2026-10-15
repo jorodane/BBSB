@@ -392,11 +392,11 @@ namespace BBSB.Runtime
             var names = new System.Collections.Generic.List<string>();
             foreach (var monster in Session.BattlePlan.Monsters) names.Add(monster.Monster.Name);
             ui.Label(list, "MONSTERS  ·  " + string.Join(" / ", names), 20, RunUI.Red, 40);
-            var sets = WeaponPhraseAuthoring.LoadSetsFor(Session.Weapons);
+            var sets = WeaponPhraseAuthoring.LoadSetsFor(Session.Weapons, Session.Equipment.SeparateHands);
             for (int i = 0; i < Session.Weapons.Count; i++)
             {
                 var placement = Session.Equipment.Placements[i];
-                var set = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Patterns : WeaponNoteAssembly.Apply(Session.Weapons[i], sets[i]);
+                var set = Session.PhraseBattle != null ? Session.PhraseBattle.Lanes[i].Patterns : WeaponNoteAssembly.Apply(Session.Weapons[i], sets[i], separateHands: Session.Equipment.SeparateHands);
                 for (int offset = 0; offset < placement.Slots.Count; offset++)
                 {
                     var weapon = Session.Weapons[i];
@@ -417,7 +417,7 @@ namespace BBSB.Runtime
         public bool StartFiveLaneBattle()
         {
             if (choosingRun || title || Session == null || !Session.UsesFiveLaneCombat || ActiveRound != null || ActiveFiveLaneBattle != null) return false;
-            ActiveFiveLaneBattle = Session.StartFiveLaneBattle(phraseSets: WeaponPhraseAuthoring.LoadSetsFor(Session.Weapons));
+            ActiveFiveLaneBattle = Session.StartFiveLaneBattle(phraseSets: WeaponPhraseAuthoring.LoadSetsFor(Session.Weapons, Session.Equipment.SeparateHands));
             if (ActiveFiveLaneBattle == null) return false;
             completedRound = null; menuPage = MenuPage.None; pendingOffer = -1; notice = ""; Render();
             var playback = screen != null ? screen.GetComponent<FiveLanePlayback>() : null;
@@ -876,20 +876,21 @@ namespace BBSB.Runtime
             var icon = ui.Rect("Weapon artwork " + state.DefinitionId, row);
             var layout = RunUI.Size(icon, 100); layout.minWidth = layout.preferredWidth = 100;
             var artwork = icon.gameObject.AddComponent<WeaponIconGraphic>();
+            artwork.UseDefenseArtifact = Session.Equipment.SeparateHands && HandCombatLayout.IsShield(state);
             artwork.FitVisibleArtwork = true; artwork.Bind(state);
             if (Session.UsesFiveLaneCombat)
             {
                 foreach (var sockets in artwork.GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
-                var patterns = WeaponNoteAssembly.Apply(state, WeaponPhraseAuthoring.LoadSetsFor(new[] { state })[0]);
+                var patterns = WeaponNoteAssembly.Apply(state, WeaponPhraseAuthoring.LoadSetsFor(new[] { state }, Session.Equipment.SeparateHands)[0], separateHands: Session.Equipment.SeparateHands);
                 var phrase = patterns.For(0, state.Attribute == WeaponAttribute.Dark ? WeaponBeatSide.Dark : WeaponBeatSide.Light);
-                string sequence = phrase.LengthBeats + (patterns.RandomizeChaosSections ? "박 × 2" : phrase.Repeat ? "박 반복" : "박");
+                string sequence = phrase.AttackOnCall ? "Call 1회" : phrase.LengthBeats + (patterns.RandomizeChaosSections ? "박 × 2" : phrase.Repeat ? "박 반복" : "박");
                 ui.Label(row, state.DisplayName + "\n" + sequence + " · Tap / Hold", 23, RunUI.Teal, 100);
                 ui.Label(parent, WeaponAttributes.Hint(state.Attribute) + "\n" + phrase.Hint, 21, RunUI.Muted, 66);
                 if ((state.Attribute == WeaponAttribute.Dual || state.Attribute == WeaponAttribute.Chaos) && patterns.LightStarts[0].Hint != patterns.DarkStarts[0].Hint)
                     ui.Label(parent, "어둠 · " + patterns.DarkStarts[0].Hint, 21, RunUI.Muted, 66);
-                for (int offset = 1; offset < patterns.Starts.Count; offset++)
+                for (int offset = 1; !Session.Equipment.SeparateHands && offset < patterns.Starts.Count; offset++)
                     ui.Label(parent, "시작 위치 " + (offset + 1) + " · " + patterns.Starts[offset].Name + "\n" + patterns.Starts[offset].Hint, 21, RunUI.Muted, 66);
-                ui.Label(parent, "필요한 라인 " + state.RequiredLanes + "개 · 장착 수 1개", 20, RunUI.Muted, 38);
+                ui.Label(parent, Session.Equipment.SeparateHands ? HandCombatLayout.IsShield(state) ? "방어 아티팩트 1개 · 방향키 4방향" : "공격 슬롯 1개 · 같은 무기 키로 연주" : "필요한 라인 " + state.RequiredLanes + "개 · 장착 수 1개", 20, RunUI.Muted, 38);
                 ui.Label(parent, "강화 능력치 " + (100 + 25 * state.Level) + "% · 미스 시 " + phrase.MissCooldownBeats + "박 대기", 20, RunUI.Muted, 48);
                 return;
             }

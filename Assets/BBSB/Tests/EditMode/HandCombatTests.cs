@@ -67,7 +67,7 @@ namespace BBSB.Tests
 
         [Test] public void OffGridCallDoesNotJudgeOrDealDamageAndHoldingCallCannotPlayTheResponse()
         {
-            var battle = Battle(); battle.Press(0, .37);
+            var battle = Battle(new[] { "sword", "heater-shield" }); battle.Press(0, .37);
             double first = battle.LaneAt(0).NextBeat;
             Check.Equal(0m, battle.TotalDamage); Check.Equal(0, battle.PerfectCount); Check.Equal(0, battle.MissCount);
             Check.True(first >= 1.37); Check.Equal("CALL", battle.LaneAt(0).Feedback);
@@ -95,7 +95,8 @@ namespace BBSB.Tests
         {
             foreach (bool defenseFirst in new[] { true, false })
             {
-                var battle = Battle(attacks: new[] { new BeatAttack("enemy", 1, 10, defenseDirection: 2) });
+                var battle = Battle(attacks: new[] { new BeatAttack("enemy", 1, 10, defenseDirection: 2) },
+                    phrases: new[] { WeaponPhraseCatalog.Find("dagger"), WeaponPhraseCatalog.Find("heater-shield") });
                 Tap(battle, 0, 0);
                 if (defenseFirst) battle.Press(6, 1);
                 Tap(battle, 0, 1);
@@ -119,7 +120,7 @@ namespace BBSB.Tests
 
         [Test] public void DefenseNotesAreVisibleOnAllFourDirectionsWithoutAWeaponNoteHighway()
         {
-            var battle = Battle(attacks: Enumerable.Range(0, 4).Select(d => new BeatAttack("e" + d, 1 + d * .5, 4)).ToArray());
+            var battle = Battle(new[] { "sword", "heater-shield" }, attacks: Enumerable.Range(0, 4).Select(d => new BeatAttack("e" + d, 1 + d * .5, 4)).ToArray());
             Tap(battle, 0, .13); var timeline = new FiveLaneNoteTimeline(); timeline.Refresh(battle);
             Check.Equal(0, timeline.Notes.Count); Check.Equal(0, timeline.Broken.Count);
             for (int d = 0; d < 4; d++)

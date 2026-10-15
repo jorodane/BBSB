@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace BBSB.Runtime.UI
 {
-    // One physical weapon per equipped item, independent of how many input lines it owns.
+    // Offensive weapons orbit; the defense artifact stays at the player's grip.
     internal sealed class FiveLaneWeaponsView
     {
         private readonly FiveLaneBattle battle;
@@ -12,6 +12,8 @@ namespace BBSB.Runtime.UI
         private readonly List<RectTransform> enemies;
         private readonly List<string> instances;
         private readonly List<WeaponIconGraphic> weapons = new List<WeaponIconGraphic>();
+        private readonly List<PhraseLane> weaponLanes = new List<PhraseLane>();
+        private readonly DefenseArtifactGraphic artifact;
 
         internal FiveLaneWeaponsView(FiveLaneBattle battle, RunUI ui, FiveLaneHudBindings hud,
             RectTransform playerBody, List<RectTransform> enemies, List<string> instances)
@@ -20,30 +22,37 @@ namespace BBSB.Runtime.UI
             root = ui.Rect("Orbiting weapons", hud.actors); RunUI.Stretch(root);
             foreach (var lane in battle.Lanes)
             {
+                if (battle.SeparateHands && HandCombatLayout.IsShield(lane.Weapon)) continue;
                 var rect = ui.Rect("Physical weapon " + lane.Weapon.DefinitionId, root);
                 var icon = rect.gameObject.AddComponent<WeaponIconGraphic>();
                 icon.FitVisibleArtwork = true; icon.Bind(lane.Weapon); icon.raycastTarget = false;
                 foreach (var socket in icon.GetComponentsInChildren<WeaponSocketGraphic>()) socket.gameObject.SetActive(false);
-                weapons.Add(icon);
+                weapons.Add(icon); weaponLanes.Add(lane);
+            }
+            if (battle.SeparateHands)
+            {
+                var grip = ui.Rect("Held defense artifact", hud.actors); RunUI.Stretch(grip);
+                artifact = grip.gameObject.AddComponent<DefenseArtifactGraphic>(); artifact.Bind(battle, playerBody);
             }
         }
 
         internal Vector3 Origin(PhraseLane lane)
         {
-            for (int i = 0; i < battle.Lanes.Count; i++)
-                if (ReferenceEquals(battle.Lanes[i], lane)) return weapons[i].rectTransform.position;
+            for (int i = 0; i < weaponLanes.Count; i++)
+                if (ReferenceEquals(weaponLanes[i], lane)) return weapons[i].rectTransform.position;
             return player.TransformPoint(player.rect.center);
         }
 
         internal void Refresh()
         {
             if (root.rect.width <= 0 || root.rect.height <= 0) return;
+            if (artifact != null) artifact.Refresh();
             var body = Point(player, .5f, .53f);
             double height = root.InverseTransformVector(player.TransformVector(Vector3.up * player.rect.height)).magnitude / root.rect.height;
             double aspect = root.rect.width / root.rect.height;
             for (int i = 0; i < weapons.Count; i++)
             {
-                var lane = battle.VisualLane(battle.Lanes[i]);
+                var lane = battle.VisualLane(weaponLanes[i]);
                 int victim = instances.IndexOf(FiveLaneWeaponMotion.Target(battle, lane));
                 var target = enemies.Count > 0 ? Point(enemies[victim >= 0 ? victim : 0], .5f, .48f) : body;
                 var frame = FiveLaneWeaponMotion.Sample(battle, lane, i, body, height, aspect, target);
@@ -55,7 +64,8 @@ namespace BBSB.Runtime.UI
                     // Four simultaneous weapons must keep their cue motion on screen.
                     float edge = size * (float)frame.Scale * .71f;
                     position.x = Mathf.Clamp(position.x, edge, root.rect.width - edge);
-                    position.y = Mathf.Clamp(position.y, edge, root.rect.height - edge);
+                    // Keep orbit cues in the actor stage, clear of title and cards.
+                    position.y = Mathf.Clamp(position.y, root.rect.height * .56f + edge, root.rect.height * .90f - edge);
                 }
                 RunUI.Pin(rect, Vector2.zero, new Vector2(.5f, .5f),
                     position, Vector2.one * size);

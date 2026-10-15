@@ -90,15 +90,27 @@ namespace BBSB.Core
             }
             return result;
         }
-        public static WeaponPhraseSet Uniform(WeaponState weapon, WeaponPhrase phrase = null)
+        public static WeaponPhrase DefaultFor(WeaponState weapon, int offset, WeaponBeatSide side,
+            bool transition = false, bool separateHands = false)
+        {
+            // A legacy drum may already own parts on later notes. Keep that phrase
+            // until those bindings are removed instead of dropping owned parts.
+            if (weapon.DefinitionId == "war-drum")
+                foreach (var binding in weapon.NoteBindings)
+                    if (binding.BaseNoteIndex > 0 || binding.Part.Kind == NotePartKind.Injection ||
+                        binding.Part.Effect == NotePartEffect.Power || binding.Part.Effect == NotePartEffect.Pierce)
+                    { separateHands = false; break; }
+            return WeaponPhraseCatalog.Default(weapon.DefinitionId, offset, side, transition, weapon.Attribute, separateHands);
+        }
+        public static WeaponPhraseSet Uniform(WeaponState weapon, WeaponPhrase phrase = null, bool separateHands = false)
         {
             var starts = new WeaponPhrase[weapon.RequiredLanes];
             var dark = new WeaponPhrase[starts.Length];
             var lightBridges = new WeaponPhrase[starts.Length]; var darkBridges = new WeaponPhrase[starts.Length];
             for (int i = 0; i < starts.Length; i++)
             {
-                starts[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light, attribute: weapon.Attribute);
-                dark[i] = phrase ?? WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark, attribute: weapon.Attribute);
+                starts[i] = phrase ?? DefaultFor(weapon, i, WeaponBeatSide.Light, separateHands: separateHands);
+                dark[i] = phrase ?? DefaultFor(weapon, i, WeaponBeatSide.Dark, separateHands: separateHands);
                 lightBridges[i] = phrase != null ? null : WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Light, true);
                 darkBridges[i] = phrase != null ? null : WeaponPhraseCatalog.Default(weapon.DefinitionId, i, WeaponBeatSide.Dark, true);
             }

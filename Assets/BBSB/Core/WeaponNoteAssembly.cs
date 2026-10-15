@@ -12,6 +12,8 @@ namespace BBSB.Core
         public string Id { get; }
         public string Name { get; }
         public string Description { get; }
+        public string DescriptionFor(bool separateHands) => separateHands && Effect == NotePartEffect.CrossTap ?
+            "반박 뒤 같은 무기 키로 피해 80%의 Tap 추가. 선택 발사에는 대체 기회로 추가돼." : Description;
         public NotePartKind Kind { get; }
         public NotePartEffect Effect { get; }
         internal NotePartDefinition(string id, string name, string description, NotePartKind kind, NotePartEffect effect)
@@ -59,7 +61,7 @@ namespace BBSB.Core
         // Every starting side/offset is checked before ownership or bindings change.
         // Chaos bridges keep their authored transition rhythm and are not base sockets.
         public static WeaponPhraseSet Apply(WeaponState weapon, WeaponPhraseSet source,
-            IReadOnlyList<WeaponNoteBinding> bindings = null)
+            IReadOnlyList<WeaponNoteBinding> bindings = null, bool separateHands = false)
         {
             if (weapon == null || source == null) throw new ArgumentNullException(nameof(weapon));
             bindings ??= weapon.NoteBindings;
@@ -67,13 +69,13 @@ namespace BBSB.Core
             var light = new WeaponPhrase[weapon.RequiredLanes]; var dark = new WeaponPhrase[light.Length];
             for (int i = 0; i < light.Length; i++)
             {
-                light[i] = Apply(source.LightStarts[i], weapon.RequiredLanes, bindings);
-                dark[i] = Apply(source.DarkStarts[i], weapon.RequiredLanes, bindings);
+                light[i] = Apply(source.LightStarts[i], weapon.RequiredLanes, bindings, separateHands);
+                dark[i] = Apply(source.DarkStarts[i], weapon.RequiredLanes, bindings, separateHands);
             }
             return new WeaponPhraseSet(weapon, light, dark, source.LightTransitions, source.DarkTransitions, source.Chaos);
         }
 
-        private static WeaponPhrase Apply(WeaponPhrase source, int width, IReadOnlyList<WeaponNoteBinding> bindings)
+        private static WeaponPhrase Apply(WeaponPhrase source, int width, IReadOnlyList<WeaponNoteBinding> bindings, bool separateHands)
         {
             var frames = new Dictionary<int, NotePartDefinition>(); var injections = new Dictionary<int, NotePartDefinition>();
             var instances = new HashSet<int>();
@@ -116,7 +118,7 @@ namespace BBSB.Core
                     else
                     {
                         if (note.Beat + hold + .5 >= next) throw new ArgumentException("추가 Tap을 넣을 반박 공간이 없어.");
-                        if (injection.Effect == NotePartEffect.CrossTap && width < 2)
+                        if (!separateHands && injection.Effect == NotePartEffect.CrossTap && width < 2)
                             throw new ArgumentException("교차 주입에는 복수 라인 무기가 필요해.");
                     }
                 }
@@ -149,10 +151,14 @@ namespace BBSB.Core
                     note.LaneOffset, note.EffectDurationBeats, note.Target, note.BonusHealing, note.BaseNoteIndex,
                     note.IsInjected, connected, note.Role, note.Trigger, note.OpportunityIntervalBeats);
             }
+            // Adding a Hold to a one-press action makes it a learned response again.
+            // Frames and extra taps keep the immediate first action intact.
+            bool attackOnCall = source.AttackOnCall && !result[0].IsHold;
+            double delay = source.AttackOnCall && !attackOnCall ? 1 : source.FirstNoteDelayBeats;
             return new WeaponPhrase(source.WeaponId, source.Name, source.Hint, source.LengthBeats, result,
                 source.MissCooldownBeats, source.Repeat, source.FinisherEvery, source.FinisherDamage, source.GroggyBeats,
                 source.ParryInput, source.HoldDamageReduction, source.ReleaseEndsPhrase, source.ParryRequired,
-                source.CompletionCooldownBeats, source.MaximumCycles, source.FirstNoteDelayBeats);
+                source.CompletionCooldownBeats, source.MaximumCycles, delay, attackOnCall, source.CooldownFromLastInput);
         }
     }
 

@@ -44,21 +44,33 @@ namespace BBSB.Runtime.UI
             if (art == null) return;
             used = 0;
             Vector2 target = At(player, .5f, .53f);
-            Vector2 guard = target + Vector2.right * (Vector2.Distance(At(player, .5f, 0), At(player, .5f, 1)) * .30f);
-            foreach (var lane in battle.InputLanes)
-                if (FiveLaneArtTimeline.Guarding(lane))
-                { Draw(art.guard, guard, .23f, .58f); break; }
-            foreach (var contact in battle.ShieldContacts)
-                if (contact.Phase == PhraseLanePhase.Playing) { Draw(art.guard, guard, .25f, .58f); break; }
+            Vector2 defenseCenter = At(player, DefenseArtifactMotion.GripX, DefenseArtifactMotion.GripY);
+            float playerHeight = Vector2.Distance(At(player, .5f, 0), At(player, .5f, 1));
+            Vector2 guard = target + Vector2.right * (playerHeight * .30f);
+            if (!battle.SeparateHands)
+            {
+                foreach (var lane in battle.InputLanes)
+                    if (FiveLaneArtTimeline.Guarding(lane))
+                    { Draw(art.guard, guard, .23f, .58f); break; }
+                foreach (var contact in battle.ShieldContacts)
+                    if (contact.Phase == PhraseLanePhase.Playing) { Draw(art.guard, guard, .25f, .58f); break; }
+            }
             foreach (var attack in battle.Incoming)
             {
                 int index = instances.IndexOf(attack.Definition.MonsterId);
                 if (index < 0) continue;
+                Vector2 contactPoint = target;
+                if (battle.SeparateHands)
+                {
+                    var offset = DefenseArtifactMotion.Contact(attack.ShieldSlot - 4);
+                    contactPoint = defenseCenter + new Vector2((float)offset.X, (float)offset.Y) * playerHeight;
+                }
+                Vector2 parryPoint = battle.SeparateHands ? contactPoint : guard;
                 double remaining = attack.Beat - battle.Beat;
                 if (attack.Definition.IsHold && attack.State == IncomingAttackState.Pending &&
                     battle.Beat >= attack.Beat && battle.Beat <= attack.EndBeat)
                 {
-                    Flurry(projectiles[index], target, battle.Beat - attack.SustainStartBeat, .20f);
+                    Flurry(projectiles[index], contactPoint, battle.Beat - attack.SustainStartBeat, battle.SeparateHands ? .12f : .20f);
                 }
                 else if (attack.State == IncomingAttackState.Pending && remaining <= 1 && remaining >= -battle.HalfMissWindow)
                 {
@@ -67,13 +79,21 @@ namespace BBSB.Runtime.UI
                     Vector2 source = At(enemies[index], .5f, .46f);
                     float t = chained ? 1 : FiveLaneArtTimeline.ProjectileProgress(attack.Beat, battle.Beat);
                     float swing = (attack.SequenceIndex % 2 == 0 ? 1 : -1) * Mathf.Clamp01((float)(-remaining / .22)) * 100;
-                    Draw(projectiles[index], Vector2.Lerp(source, target, t), Mathf.Lerp(.075f, .18f, t), 1,
-                        Direction(target - source) - 225 + swing);
+                    Vector2 position = Vector2.Lerp(source, target, t), heading = target - source;
+                    if (battle.SeparateHands)
+                    {
+                        var from = new BattlePathPoint(source.x, source.y); var body = new BattlePathPoint(defenseCenter.x, defenseCenter.y);
+                        var p = DefenseArtifactMotion.Projectile(from, body, playerHeight, attack.ShieldSlot - 4, t);
+                        var previous = DefenseArtifactMotion.Projectile(from, body, playerHeight, attack.ShieldSlot - 4, t - .02);
+                        position = new Vector2((float)p.X, (float)p.Y); heading = position - new Vector2((float)previous.X, (float)previous.Y);
+                    }
+                    Draw(projectiles[index], position, Mathf.Lerp(.075f, battle.SeparateHands ? .12f : .18f, t), 1,
+                        Direction(heading) - 225 + swing);
                 }
                 else if (attack.State == IncomingAttackState.Blocked && FiveLaneArtTimeline.Recent(battle.Beat, attack.ResolvedBeat, .45))
-                    Burst(art.parry, guard, attack.ResolvedBeat, .27f, .45);
+                    Burst(art.parry, parryPoint, attack.ResolvedBeat, battle.SeparateHands ? .15f : .27f, .45);
                 if (attack.Definition.IsHold && FiveLaneArtTimeline.Recent(battle.Beat, attack.LastParryBeat, .45))
-                    Burst(art.parry, guard, attack.LastParryBeat, .27f, .45);
+                    Burst(art.parry, parryPoint, attack.LastParryBeat, battle.SeparateHands ? .15f : .27f, .45);
             }
             if (FiveLaneArtTimeline.Recent(battle.Beat, battle.LastHitBeat, .4))
                 Burst(art.impact, target, battle.LastHitBeat, .2f, .4);

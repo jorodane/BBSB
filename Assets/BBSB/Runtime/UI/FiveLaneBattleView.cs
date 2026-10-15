@@ -88,6 +88,7 @@ namespace BBSB.Runtime.UI
                 if (lane == null) continue;
                 var weaponMesh = ui.Rect("Lane weapon icon " + battle.Key(i), hud.weaponRoots[i]); RunUI.Stretch(weaponMesh);
                 icons[i] = weaponMesh.gameObject.AddComponent<WeaponIconGraphic>();
+                icons[i].UseDefenseArtifact = battle.SeparateHands && battle.IsDefenseInput(i);
                 icons[i].FitVisibleArtwork = true; icons[i].Bind(lane.Weapon);
                 // The old gesture sockets described automatic responses. This screen shows the weapon's phrase instead.
                 foreach (var sockets in icons[i].GetComponentsInChildren<WeaponSocketGraphic>()) sockets.gameObject.SetActive(false);
@@ -206,6 +207,8 @@ namespace BBSB.Runtime.UI
             if (!waitingForHold && battle.Formation?.PendingFront != null)
                 hud.feedback.text = (battle.Formation.ChangeReason == FormationChangeReason.Intrusion ? "난입" : battle.Formation.ChangeReason == FormationChangeReason.Return ? "복귀" : "교대") +
                     " " + Math.Max(0, battle.Formation.SwitchAtBeat - battle.Beat).ToString("0.0") + "박 · " + battle.Formation.PendingFront.Definition.Name;
+            if (battle.Formation?.PendingFront != null && battle.Formation.ChangeReason == FormationChangeReason.WeaponCall)
+                hud.feedback.text = "후열 호출 · " + Math.Max(0, battle.Formation.SwitchAtBeat - battle.Beat).ToString("0.0") + "박";
             bool hasStorageShield = false;
             foreach (var lane in battle.Lanes) hasStorageShield |= lane.Weapon.DefinitionId == "resonance-shield";
             if (hasStorageShield)
