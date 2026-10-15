@@ -15,6 +15,21 @@ namespace BBSB.Core
         }
         private readonly List<HoldDefense> holdDefenses = new List<HoldDefense>();
 
+        // Presentation reads an accepted contact, never just a held key or a future
+        // note. This query must not bind attacks, upgrade grades or extend a guard.
+        public bool HasActiveHoldDefense(int inputSlot)
+        {
+            if (inputSlot < 0 || inputSlot >= heldInputs.Length || !heldInputs[inputSlot]) return false;
+            foreach (var defense in holdDefenses)
+            {
+                var attack = defense.Attack;
+                if (defense.Slot == inputSlot && defense.Reduction > 0 && attack.Definition.IsHold &&
+                    attack.State == IncomingAttackState.Pending && Beat >= attack.Beat && Beat < attack.EndBeat)
+                    return true;
+            }
+            return false;
+        }
+
         private WeaponPhrase GuardPhrase(PhraseLane lane, int slot) => IsSplitShield(lane) ? ShieldAt(slot).Phrase : lane.Phrase;
         private decimal GuardReduction(PhraseLane lane, int slot)
         {

@@ -6,7 +6,8 @@ namespace BBSB.Editor
 {
     public sealed class PlayerDefenseArtImporter : AssetPostprocessor
     {
-        private bool IsDefense => assetPath == "Assets/BBSB/Resources/" + PlayerDefenseView.ResourcePath + ".png";
+        private bool IsDefense => assetPath.StartsWith("Assets/BBSB/Resources/BBSB/DefenseMotion/", System.StringComparison.Ordinal) &&
+            assetPath.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase);
         private void OnPreprocessTexture()
         {
             if (!IsDefense) return;
@@ -25,7 +26,8 @@ namespace BBSB.Editor
             bool transparent = false;
             foreach (var pixel in texture.GetPixels32()) if (pixel.a == 0) { transparent = true; break; }
             if (!transparent) Debug.LogError("Defense motion artwork requires real PNG alpha: " + assetPath);
-            if (texture.width != 1254 || texture.height != 1254)
+            if (assetPath == "Assets/BBSB/Resources/" + PlayerDefenseView.ResourcePath + ".png" &&
+                (texture.width != 1254 || texture.height != 1254))
                 Debug.LogWarning("Defense motion uses authored bounds for the supplied 1254 x 1254 atlas. Check the pose rectangles after replacing it.", texture);
         }
     }

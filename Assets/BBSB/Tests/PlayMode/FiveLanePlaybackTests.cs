@@ -213,7 +213,7 @@ namespace BBSB.Tests
                 if (body.HasArtwork)
                 {
                     Assert.IsNotNull(pose); Assert.IsTrue(pose.enabled);
-                    Assert.AreEqual("Defense pose " + body.Frame.Pose, pose.sprite.name);
+                    Assert.AreSame(body.CurrentPose, pose.sprite);
                     Assert.IsTrue(body.GetComponentsInChildren<SpriteCanvasGraphic>().All(g => !g.enabled));
                     Assert.AreEqual(0, pose.rectTransform.anchoredPosition.y, .01, "The planted foot pivot must stay on the ground.");
                 }
@@ -227,6 +227,65 @@ namespace BBSB.Tests
             playback.SendMessage("LateUpdate"); Assert.AreEqual(DefenseMotionPhase.Recover, body.Frame.Phase);
             battle.Resume(); battle.Advance(1.4); battle.Pause(); playback.SendMessage("LateUpdate");
             Assert.AreEqual(DefenseMotionPhase.Ready, body.Frame.Phase);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest] public IEnumerator EveryDirectionLoadsItsOwnSixAnimationPartsWhenTheArtPackIsInstalled()
+        {
+            using (var library = new PlayerDefenseClipLibrary())
+            {
+                library.Load();
+                if (System.Environment.GetEnvironmentVariable("BBSB_REQUIRE_DEFENSE_ART") == "1") Assert.AreEqual(15, library.Count);
+                if (library.Count > 0)
+                {
+                    Assert.AreEqual(15, library.Count, "Install the complete matching art pack.");
+                    var frames = new System.Collections.Generic.HashSet<Sprite>();
+                    for (int mask = 1; mask < 16; mask++)
+                    foreach (double age in new[] { .02, .08, .18, .24, .32, .6 })
+                    {
+                        var sprite = library.Sample(PlayerDefenseMotion.Pose(mask, age, true));
+                        Assert.IsNotNull(sprite); Assert.IsTrue(frames.Add(sprite), "Each direction/part has its own authored drawing.");
+                        Assert.Greater(sprite.rect.width, 0); Assert.Greater(sprite.rect.height, 0);
+                        Assert.GreaterOrEqual(sprite.pivot.x, 0); Assert.LessOrEqual(sprite.pivot.x, sprite.rect.width);
+                        Assert.GreaterOrEqual(sprite.pivot.y, 0); Assert.LessOrEqual(sprite.pivot.y, sprite.rect.height);
+                    }
+                    Assert.AreEqual(90, frames.Count);
+                }
+            }
+            yield return null;
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest] public IEnumerator HeldOrnamentRendersWhileTheCharacterSwitchesToAnotherDirection()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>(); Assert.IsTrue(presenter.StartFiveLaneBattle());
+            var playback = root.GetComponentInChildren<FiveLanePlayback>(); playback.Battle.Pause();
+            var body = playback.GetComponentInChildren<PlayerDefenseView>();
+            var artifact = playback.GetComponentInChildren<DefenseArtifactGraphic>();
+            var battle = new FiveLaneBattle(new[] { new WeaponState("dagger"), new WeaponState("heater-shield") }, 120, 16,
+                new[] { new BeatAttack("held", 1, 8, 4, defenseDirection: 0), new BeatAttack("up", 2, 5, defenseDirection: 2) },
+                new StageHealth(1000), 100, 100, separateHands: true);
+            body.Bind(body.GetComponent<ActorPrefabView>(), battle, RunCharacterDefinition.DefaultId);
+            artifact.Bind(battle, (RectTransform)body.transform);
+            battle.Press(4, 1); battle.Press(6, 2); battle.Advance(2.08); battle.Pause();
+            playback.SendMessage("LateUpdate"); Canvas.ForceUpdateCanvases();
+            Assert.AreEqual(4, body.Frame.Directions); Assert.AreEqual(DefenseMotionPhase.Smear, body.Frame.Phase);
+            Assert.AreEqual(1, artifact.HeldDirections);
+            var holdGraphic = artifact.GetComponentInChildren<DefenseHoldGraphic>();
+            int spinningVertices = holdGraphic.canvasRenderer.GetMesh().vertexCount;
+            Assert.Greater(spinningVertices, 0);
+            var before = holdGraphic.canvasRenderer.GetMesh().vertices;
+            string capture = System.Environment.GetEnvironmentVariable("BBSB_MOTION_CAPTURE_DIR");
+            if (!string.IsNullOrEmpty(capture)) CaptureLayout(System.IO.Path.Combine(capture, "hold-left-block-up.png"));
+            battle.Resume(); battle.Advance(2.12); battle.Pause();
+            playback.SendMessage("LateUpdate"); Canvas.ForceUpdateCanvases();
+            Assert.AreEqual(1, artifact.HeldDirections);
+            Assert.IsFalse(before.SequenceEqual(holdGraphic.canvasRenderer.GetMesh().vertices), "The ornament rotates while the body samples another action.");
+            battle.Resume(); battle.Release(4, 2.12); battle.Pause();
+            playback.SendMessage("LateUpdate"); Canvas.ForceUpdateCanvases();
+            Assert.AreEqual(0, artifact.HeldDirections); Assert.AreEqual(4, body.Frame.Directions);
+            Assert.AreEqual(0, holdGraphic.canvasRenderer.GetMesh().vertexCount, "Release removes the spinning ornament and its trails.");
             LogAssert.NoUnexpectedReceived();
         }
 

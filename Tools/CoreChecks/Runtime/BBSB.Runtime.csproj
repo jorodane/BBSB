@@ -29,6 +29,8 @@
     <Compile Include="../../../Assets/BBSB/Runtime/UI/FiveLaneWeaponMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/DefenseArtifactMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/PlayerDefenseMotion.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/DefenseMotionCatalog.cs" />
+    <Compile Include="../../../Assets/BBSB/Runtime/UI/DefenseHoldMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponCueTimeline.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/FiveLaneAttackMotion.cs" />
     <Compile Include="../../../Assets/BBSB/Runtime/UI/WeaponTrailHistory.cs" />

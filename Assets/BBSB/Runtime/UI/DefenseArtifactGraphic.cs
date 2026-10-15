@@ -11,11 +11,23 @@ namespace BBSB.Runtime.UI
     {
         private FiveLaneBattle battle;
         private RectTransform player;
+        private DefenseHoldGraphic holds;
         public bool StaffInCharacterPose { get; internal set; }
         public int ActiveDirections => battle == null ? 0 : DefenseArtifactMotion.Mask(battle);
+        public int HeldDirections => battle == null ? 0 : DefenseHoldMotion.Mask(battle);
         internal void Bind(FiveLaneBattle value, RectTransform body)
-        { battle = value; player = body; raycastTarget = false; SetAllDirty(); }
-        internal void Refresh() => SetVerticesDirty();
+        {
+            battle = value; player = body; raycastTarget = false;
+            if (holds == null)
+            {
+                var child = new GameObject("Hold ornament contacts", typeof(RectTransform), typeof(CanvasRenderer));
+                var rect = (RectTransform)child.transform; rect.SetParent(transform, false);
+                rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
+                holds = child.AddComponent<DefenseHoldGraphic>();
+            }
+            holds.Bind(battle, player); SetAllDirty();
+        }
+        internal void Refresh() { SetVerticesDirty(); if (holds != null) holds.Refresh(); }
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
@@ -30,7 +42,8 @@ namespace BBSB.Runtime.UI
                 foreach (var attack in battle.Incoming)
                     if (attack.ShieldSlot == 4 + d && attack.State == IncomingAttackState.Pending &&
                         attack.Beat - battle.Beat <= 3 && attack.EndBeat >= battle.Beat) { threat = true; break; }
-                if (!active && !threat) continue;
+                var hold = DefenseHoldMotion.Sample(battle, d);
+                if (!active && !threat && !hold.Active) continue;
                 var offset = DefenseArtifactMotion.Contact(d);
                 var point = center + new Vector2((float)offset.X, (float)offset.Y) * height;
                 var tint = active ? new Color(.35f, 1, .9f, .85f) : new Color(1, .25f, .45f, .6f);
@@ -85,15 +98,24 @@ namespace BBSB.Runtime.UI
             foreach (int sign in new[] { -1, 1 })
             {
                 var end = center + axis * length * .5f * sign;
-                Diamond(vh, end, axis * length * .11f, side * length * .085f, gold);
-                Diamond(vh, end, axis * length * .085f, side * length * .060f, ink);
-                Ring(vh, end, length * .049f, length * .014f, glow);
-                Diamond(vh, end, axis * length * .025f, side * length * .025f, glow);
-                for (int edge = -1; edge <= 1; edge += 2)
-                {
-                    var blade = end + side * length * .07f * edge;
-                    Diamond(vh, blade, axis * length * .07f, side * length * .02f, gold);
-                }
+                DrawOrnament(vh, end, length, angle, tint);
+            }
+        }
+        internal static void DrawOrnament(VertexHelper vh, Vector2 center, float length, float angle, Color tint)
+        {
+            var axis = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+            var side = new Vector2(-axis.y, axis.x);
+            var ink = new Color(.09f, .06f, .13f, 1) * tint;
+            var gold = new Color(.91f, .64f, .36f, 1) * tint;
+            var glow = new Color(1, .16f, .62f, 1) * tint;
+            Diamond(vh, center, axis * length * .11f, side * length * .085f, gold);
+            Diamond(vh, center, axis * length * .085f, side * length * .060f, ink);
+            Ring(vh, center, length * .049f, length * .014f, glow);
+            Diamond(vh, center, axis * length * .025f, side * length * .025f, glow);
+            for (int edge = -1; edge <= 1; edge += 2)
+            {
+                var blade = center + side * length * .07f * edge;
+                Diamond(vh, blade, axis * length * .07f, side * length * .02f, gold);
             }
         }
         private static void Ring(VertexHelper vh, Vector2 p, float radius, float width, Color tint)

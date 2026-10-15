@@ -12,10 +12,11 @@ namespace BBSB.Runtime.UI
         public int Pose { get; }
         public bool Flip { get; }
         public double Age { get; }
+        public bool Releasing { get; }
         public double Smear => Phase == DefenseMotionPhase.Smear ? 1 : 0;
         public bool Active => Phase != DefenseMotionPhase.Ready;
-        public PlayerDefenseFrame(DefenseMotionPhase phase, int directions, int pose, double age, bool flip = false)
-        { Phase = phase; Directions = directions; Pose = pose; Age = age; Flip = flip; }
+        public PlayerDefenseFrame(DefenseMotionPhase phase, int directions, int pose, double age, bool flip = false, bool releasing = false)
+        { Phase = phase; Directions = directions; Pose = pose; Age = age; Flip = flip; Releasing = releasing; }
     }
 
     // Presentation only. Accepted defense inputs own the body; offensive Calls never
@@ -30,31 +31,67 @@ namespace BBSB.Runtime.UI
             if (!battle.SeparateHands || battle.LaneAt(4) == null) return Pose(0, 0, false);
             if (FiveLaneArtTimeline.Recent(battle.Beat, battle.LastHitBeat, .4))
                 return new PlayerDefenseFrame(DefenseMotionPhase.Hit, 0, 15, battle.Beat - battle.LastHitBeat);
-            double latest = double.NegativeInfinity, released = double.NegativeInfinity;
+            double latest = double.NegativeInfinity, latestHeld = double.NegativeInfinity, lastRelease = double.NegativeInfinity;
             int held = 0;
             for (int d = 0; d < 4; d++)
             {
                 var lane = battle.LaneAt(4 + d);
                 if (lane == null) continue;
                 latest = Math.Max(latest, Trigger(lane));
-                if (FiveLaneArtTimeline.Guarding(lane)) held |= 1 << d;
-                if (!lane.Holding && lane.Phrase.ReleaseEndsPhrase && (!lane.Phrase.ParriesOnKeyUp || lane.LastGrade == RhythmGrade.Miss))
-                    released = Math.Max(released, lane.LastJudgedBeat);
+                if (FiveLaneArtTimeline.Guarding(lane))
+                { held |= 1 << d; latestHeld = Math.Max(latestHeld, Trigger(lane)); }
+                if (Released(lane)) lastRelease = Math.Max(lastRelease, lane.LastJudgedBeat);
             }
-            if (held == 0 && released > latest)
-                return new PlayerDefenseFrame(battle.Beat - released < .22 ? DefenseMotionPhase.Recover : DefenseMotionPhase.Ready,
-                    0, battle.Beat - released < .22 ? 15 : 0, battle.Beat - released);
-            int mask = held;
+            int mask = ChordAt(battle, latest, 15);
+            double age = battle.Beat - latest, released = double.NegativeInfinity;
             for (int d = 0; d < 4; d++)
             {
                 var lane = battle.LaneAt(4 + d);
-                if (lane != null && !double.IsNegativeInfinity(latest) && latest - Trigger(lane) <= ChordBeats)
+                if ((mask & 1 << d) != 0 && lane != null && Released(lane))
+                    released = Math.Max(released, lane.LastJudgedBeat);
+            }
+            // A held left contact must not turn a new UP input into LEFT+UP. Chords
+            // group newly accepted inputs only. Recovery can be interrupted at once.
+            if ((held & mask) == 0 && released >= latest && !double.IsNegativeInfinity(released))
+            {
+                double releaseAge = battle.Beat - released;
+                if (releaseAge < .22) return ReleasePose(mask, releaseAge);
+            }
+            else if (age < RecoverEnd) return Pose(mask, age, (held & mask) != 0);
+            if (held == 0 && battle.Beat - lastRelease < .22)
+            {
+                int releasedMask = 0;
+                for (int d = 0; d < 4; d++)
+                {
+                    var lane = battle.LaneAt(4 + d);
+                    if (lane != null && Released(lane) && lastRelease - lane.LastJudgedBeat <= ChordBeats) releasedMask |= 1 << d;
+                }
+                return ReleasePose(releasedMask, battle.Beat - lastRelease);
+            }
+            // Once a stroke finishes, settle into the most recently held direction
+            // group. Other held contacts continue independently in DefenseHoldMotion.
+            return Pose(ChordAt(battle, latestHeld, held), Math.Max(RecoverEnd, battle.Beat - latestHeld), held != 0);
+        }
+
+        private static bool Released(PhraseLane lane) => !lane.Holding && lane.Phrase.ReleaseEndsPhrase &&
+            (!lane.Phrase.ParriesOnKeyUp || lane.LastGrade == RhythmGrade.Miss) && lane.LastJudgedBeat >= lane.InvokedAtBeat;
+        private static PlayerDefenseFrame ReleasePose(int mask, double age)
+        {
+            var recovery = Pose(mask, .32, false);
+            return new PlayerDefenseFrame(DefenseMotionPhase.Recover, mask, recovery.Pose, age, recovery.Flip, true);
+        }
+
+        private static int ChordAt(FiveLaneBattle battle, double latest, int allowed)
+        {
+            if (double.IsNegativeInfinity(latest)) return 0;
+            int mask = 0;
+            for (int d = 0; d < 4; d++)
+            {
+                var lane = battle.LaneAt(4 + d);
+                if ((allowed & 1 << d) != 0 && lane != null && latest - Trigger(lane) <= ChordBeats)
                     mask |= 1 << d;
             }
-            double age = battle.Beat - latest;
-            // Released directions participate in the stroke, but not in a sustained guard.
-            if (age >= RecoverEnd) mask = held;
-            return Pose(mask, age, held != 0);
+            return mask;
         }
 
         private static double Trigger(PhraseLane lane)
@@ -90,13 +127,10 @@ namespace BBSB.Runtime.UI
         {
             int mask = pose.Directions;
             if (mask == 0) return new WeaponMotionFrame(new BattlePathPoint(.06, -.08), 52, 1);
-            bool single = mask == 1 || mask == 2 || mask == 4 || mask == 8;
-            bool sweep = !single && mask != 9 && mask != 6;
-            double target = mask == 1 || mask == 8 || mask == 6 ? 90 : sweep ? -35 : 0;
-            double t = Math.Max(0, Math.Min(1, pose.Age / SmearEnd));
-            double angle = target + (1 - t) * (sweep ? -160 : mask == 1 ? 60 : -60);
-            var point = single ? DefenseArtifactMotion.Contact(mask == 1 ? 0 : mask == 2 ? 1 : mask == 4 ? 2 : 3) : new BattlePathPoint(0, 0);
-            return new WeaponMotionFrame(point, angle, single ? 1 : 1.12);
+            var clip = DefenseMotionCatalog.For(mask);
+            double t = pose.Releasing ? 1 : Math.Max(0, Math.Min(1, pose.Age / SmearEnd));
+            double angle = clip.StaffAngle - (1 - t) * clip.SweepDegrees;
+            return new WeaponMotionFrame(clip.Contact, angle, (mask & (mask - 1)) == 0 ? 1 : 1.12);
         }
     }
 }

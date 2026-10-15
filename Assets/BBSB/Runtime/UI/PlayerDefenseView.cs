@@ -12,18 +12,24 @@ namespace BBSB.Runtime.UI
         private FiveLaneBattle battle;
         private bool nativeHit;
         private readonly Sprite[] poses = new Sprite[16];
-        public bool HasArtwork => poses[0] != null;
+        private readonly PlayerDefenseClipLibrary clips = new PlayerDefenseClipLibrary();
+        private Sprite currentPose;
+        public bool HasArtwork => poses[0] != null || clips.Count > 0;
+        public bool HasDirectionalArtwork => clips.Count == 15;
+        public Sprite CurrentPose => currentPose;
         public PlayerDefenseFrame Frame { get; private set; }
-        public bool StaffInPose => HasArtwork && battle != null && battle.LaneAt(4) != null &&
+        public bool StaffInPose => currentPose != null && battle != null && battle.LaneAt(4) != null &&
             (Frame.Phase != DefenseMotionPhase.Hit || !nativeHit);
 
         internal void Bind(ActorPrefabView view, FiveLaneBattle value, string characterId)
         {
+            ClearArtwork();
             actor = view; battle = value;
             nativeHit = actor.Animator != null && actor.Animator.runtimeAnimatorController != null &&
                 actor.Animator.HasState(0, Animator.StringToHash("Base Layer.Hit"));
             // Do not silently replace another playable character with Weapon Master.
             if (characterId != RunCharacterDefinition.DefaultId) return;
+            clips.Load();
             var atlas = Resources.Load<Texture2D>(ResourcePath);
             if (atlas == null || atlas.width != atlas.height) return;
             float scale = atlas.width / 1254f;
@@ -40,11 +46,20 @@ namespace BBSB.Runtime.UI
         internal void Refresh()
         {
             Frame = PlayerDefenseMotion.Sample(battle);
+            var directional = clips.Sample(Frame);
+            currentPose = directional != null ? directional : poses[Frame.Pose];
             float recoil = Frame.Phase == DefenseMotionPhase.Hit ? Mathf.Sin(Mathf.PI * Mathf.Clamp01((float)Frame.Age / .4f)) : 0;
-            actor.SetPoseOverride(StaffInPose ? poses[Frame.Pose] : null, 1, Frame.Flip, new Vector2(-.035f * recoil, 0), 6 * recoil);
+            // A shared body scale leaves headroom for the largest overhead smear;
+            // do not resize individual poses to fit, which would make the feet bob.
+            actor.SetPoseOverride(StaffInPose ? currentPose : null, 1.35f, directional == null && Frame.Flip,
+                new Vector2(-.035f * recoil, 0), 6 * recoil);
         }
-        private void OnDestroy()
-        { foreach (var sprite in poses) if (sprite != null) Destroy(sprite); }
+        private void OnDestroy() => ClearArtwork();
+        private void ClearArtwork()
+        {
+            currentPose = null; clips.Dispose();
+            for (int i = 0; i < poses.Length; i++) { if (poses[i] != null) Destroy(poses[i]); poses[i] = null; }
+        }
 
         // Authored source rectangles in the delivered 1254px atlas, top-left origin.
         // Deliberately not a grid slice: the horizontal smear extends beyond a cell.
