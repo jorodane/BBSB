@@ -127,6 +127,9 @@ namespace BBSB.Core
         public int CompletedPhrases { get; internal set; }
         public double ReadyAtBeat { get; internal set; }
         public double LastJudgedBeat { get; internal set; } = double.NegativeInfinity;
+        // Real press / parry-release attempts, including misses and cooldown inputs.
+        // Presentation reads this independently of successful combat judgments.
+        public double LastInputBeat { get; internal set; } = double.NegativeInfinity;
         public RhythmGrade LastGrade { get; internal set; }
         public string Feedback { get; internal set; } = "READY";
         public decimal DamageDealt { get; internal set; }
@@ -375,6 +378,7 @@ namespace BBSB.Core
             var lane = inputs[slot];
             if (lane == null || heldInputs[slot]) return;
             heldInputs[slot] = true; lane.InputHeld = true;
+            lane.LastInputBeat = Beat;
             if (IsSplitShield(lane))
             {
                 foreach (var start in scheduledStarts)
@@ -438,9 +442,12 @@ namespace BBSB.Core
         {
             ValidateInput(slot, atBeat);
             if (IsPaused || Finished) return;
+            // Parry releases still animate after the note has expired or during cooldown.
+            bool parryRelease = heldInputs[slot] && inputs[slot]?.Phrase.ParriesOnKeyUp == true;
             Advance(atBeat);
             var lane = inputs[slot];
             if (lane == null) return;
+            if (parryRelease && !Finished) lane.LastInputBeat = Beat;
             heldInputs[slot] = false; lane.InputHeld = false;
             holdDefenses.RemoveAll(x => ReferenceEquals(x.Lane, lane) && x.Slot == slot);
             foreach (int input in lane.InputSlots) lane.InputHeld |= heldInputs[input];

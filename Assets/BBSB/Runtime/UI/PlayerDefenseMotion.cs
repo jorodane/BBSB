@@ -19,7 +19,7 @@ namespace BBSB.Runtime.UI
         { Phase = phase; Directions = directions; Pose = pose; Age = age; Flip = flip; Releasing = releasing; }
     }
 
-    // Presentation only. Accepted defense inputs own the body; offensive Calls never
+    // Presentation only. Every defense input owns the body, even on a whiff; offensive Calls never
     // restart this motion. Sample the music clock, including during pause and seek.
     public static class PlayerDefenseMotion
     {
@@ -28,22 +28,27 @@ namespace BBSB.Runtime.UI
 
         public static PlayerDefenseFrame Sample(FiveLaneBattle battle)
         {
-            if (!battle.SeparateHands || battle.LaneAt(4) == null) return Pose(0, 0, false);
-            if (FiveLaneArtTimeline.Recent(battle.Beat, battle.LastHitBeat, .4))
-                return new PlayerDefenseFrame(DefenseMotionPhase.Hit, 0, 15, battle.Beat - battle.LastHitBeat);
+            if (!battle.SeparateHands) return Pose(0, 0, false);
             double latest = double.NegativeInfinity, latestHeld = double.NegativeInfinity, lastRelease = double.NegativeInfinity;
             int held = 0;
             for (int d = 0; d < 4; d++)
             {
                 var lane = battle.LaneAt(4 + d);
                 if (lane == null) continue;
-                latest = Math.Max(latest, Trigger(lane));
+                latest = Math.Max(latest, lane.LastInputBeat);
                 if (FiveLaneArtTimeline.Guarding(lane))
-                { held |= 1 << d; latestHeld = Math.Max(latestHeld, Trigger(lane)); }
+                { held |= 1 << d; latestHeld = Math.Max(latestHeld, lane.LastInputBeat); }
                 if (Released(lane)) lastRelease = Math.Max(lastRelease, lane.LastJudgedBeat);
             }
+            // New input can interrupt an older hit reaction. A later impact still
+            // interrupts the swing, without changing any damage or parry result.
+            if (battle.LastHitBeat > latest && FiveLaneArtTimeline.Recent(battle.Beat, battle.LastHitBeat, .4))
+                return new PlayerDefenseFrame(DefenseMotionPhase.Hit, 0, 15, battle.Beat - battle.LastHitBeat);
             int mask = ChordAt(battle, latest, 15);
             double age = battle.Beat - latest, released = double.NegativeInfinity;
+            // Finish a quick tap's swing even when key-up occurs before rendering.
+            // Only an accepted guard settles into a sustained pose afterwards.
+            if (age < RecoverEnd) return Pose(mask, age, (held & mask) != 0);
             for (int d = 0; d < 4; d++)
             {
                 var lane = battle.LaneAt(4 + d);
@@ -51,13 +56,12 @@ namespace BBSB.Runtime.UI
                     released = Math.Max(released, lane.LastJudgedBeat);
             }
             // A held left contact must not turn a new UP input into LEFT+UP. Chords
-            // group newly accepted inputs only. Recovery can be interrupted at once.
+            // group new input edges only. Recovery can be interrupted at once.
             if ((held & mask) == 0 && released >= latest && !double.IsNegativeInfinity(released))
             {
                 double releaseAge = battle.Beat - released;
                 if (releaseAge < .22) return ReleasePose(mask, releaseAge);
             }
-            else if (age < RecoverEnd) return Pose(mask, age, (held & mask) != 0);
             if (held == 0 && battle.Beat - lastRelease < .22)
             {
                 int releasedMask = 0;
@@ -74,7 +78,9 @@ namespace BBSB.Runtime.UI
         }
 
         private static bool Released(PhraseLane lane) => !lane.Holding && lane.Phrase.ReleaseEndsPhrase &&
-            (!lane.Phrase.ParriesOnKeyUp || lane.LastGrade == RhythmGrade.Miss) && lane.LastJudgedBeat >= lane.InvokedAtBeat;
+            (!lane.Phrase.ParriesOnKeyUp || lane.LastGrade == RhythmGrade.Miss) &&
+            // Short taps already finish their original recovery; do not rewind it.
+            lane.LastJudgedBeat - lane.LastInputBeat >= RecoverEnd;
         private static PlayerDefenseFrame ReleasePose(int mask, double age)
         {
             var recovery = Pose(mask, .32, false);
@@ -88,21 +94,10 @@ namespace BBSB.Runtime.UI
             for (int d = 0; d < 4; d++)
             {
                 var lane = battle.LaneAt(4 + d);
-                if ((allowed & 1 << d) != 0 && lane != null && latest - Trigger(lane) <= ChordBeats)
+                if ((allowed & 1 << d) != 0 && lane != null && latest - lane.LastInputBeat <= ChordBeats)
                     mask |= 1 << d;
             }
             return mask;
-        }
-
-        private static double Trigger(PhraseLane lane)
-        {
-            double at = lane.InvokedAtBeat;
-            // Defensive notes intentionally have no offensive PerformedWeaponNote.
-            // Successful Tap / key-up parries still provide their own judgment time.
-            // A simple guard's release ends the pose without starting another stroke.
-            if (lane.LastGrade != RhythmGrade.Miss && (!lane.Phrase.ReleaseEndsPhrase || lane.Phrase.ParriesOnKeyUp))
-                at = Math.Max(at, lane.LastJudgedBeat);
-            return at;
         }
 
         public static PlayerDefenseFrame Pose(int mask, double age, bool held)

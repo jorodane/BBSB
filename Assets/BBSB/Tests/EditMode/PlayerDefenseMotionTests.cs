@@ -10,8 +10,8 @@ namespace BBSB.Tests
 {
     public sealed class PlayerDefenseMotionTests
     {
-        private static FiveLaneBattle Battle(string attack = "dagger", BeatAttack[] incoming = null) =>
-            new FiveLaneBattle(new[] { new WeaponState(attack), new WeaponState("heater-shield") }, 120, 64,
+        private static FiveLaneBattle Battle(string attack = "dagger", BeatAttack[] incoming = null, string defense = "heater-shield") =>
+            new FiveLaneBattle(new[] { new WeaponState(attack), new WeaponState(defense) }, 120, 64,
                 incoming ?? Array.Empty<BeatAttack>(), new StageHealth(10000), 100, 100, separateHands: true);
 
         [Test] public void EveryChordHasOneShortSmearThenSettlesWithoutSpinning()
@@ -118,12 +118,127 @@ namespace BBSB.Tests
 
         [Test] public void ANewInputInterruptsRecoveryWithoutAnIdleFrameOrAnOldDirection()
         {
-            var b = Battle(); b.Press(4, .2); b.Release(4, .3);
+            var b = Battle(); b.Press(4, .2); b.Release(4, .7);
             Check.True(PlayerDefenseMotion.Sample(b).Releasing);
-            b.Press(6, .32);
+            b.Press(6, .72);
             Check.Equal(DefenseMotionPhase.Windup, PlayerDefenseMotion.Sample(b).Phase);
             Check.Equal(4, PlayerDefenseMotion.Sample(b).Directions);
             Check.False(PlayerDefenseMotion.Sample(b).Releasing);
+        }
+
+        [Test] public void EveryEmptyQuickTapFinishesItsSwingIncludingDuringCooldown()
+        {
+            for (int mask = 1; mask <= 15; mask++)
+            {
+                var b = Battle();
+                foreach (double start in new[] { .2, .8 })
+                {
+                    for (int d = 0; d < 4; d++) if ((mask & 1 << d) != 0) b.Press(4 + d, start);
+                    for (int d = 0; d < 4; d++) if ((mask & 1 << d) != 0) b.Release(4 + d, start + .01);
+                    Check.Equal(DefenseMotionPhase.Windup, PlayerDefenseMotion.Sample(b).Phase);
+                    var ages = new[] { .08, .18, .33, .6 };
+                    var phases = new[] { DefenseMotionPhase.Smear, DefenseMotionPhase.Contact, DefenseMotionPhase.Recover, DefenseMotionPhase.Ready };
+                    for (int i = 0; i < ages.Length; i++)
+                    {
+                        b.Advance(start + ages[i]); var frame = PlayerDefenseMotion.Sample(b);
+                        Check.Equal(phases[i], frame.Phase);
+                        Check.Equal(i == 3 ? 0 : mask, frame.Directions);
+                        Check.Equal(0, DefenseHoldMotion.Mask(b)); Check.Equal(0, DefenseArtifactMotion.Mask(b));
+                    }
+                }
+                for (int d = 0; d < 4; d++) if ((mask & 1 << d) != 0)
+                {
+                    Check.Equal(PhraseLanePhase.Cooldown, b.LaneAt(4 + d).Phase);
+                    Check.True(Math.Abs(b.LaneAt(4 + d).ReadyAtBeat - 2.21) < .000001, "Whiffs must not reset cooldown.");
+                }
+                Check.Equal(0m, b.TotalBlocked); Check.Equal(0m, b.TotalReduced);
+                Check.Equal(0, b.PerfectCount); Check.Equal(0, b.MissCount); Check.Equal(100m, b.PlayerHealth);
+            }
+            // A release near the end of the swing must not replay its recovery.
+            var ending = Battle(); ending.Press(4, .2); ending.Release(4, .67);
+            Check.Equal(DefenseMotionPhase.Recover, PlayerDefenseMotion.Sample(ending).Phase);
+            Check.False(PlayerDefenseMotion.Sample(ending).Releasing);
+            ending.Advance(.69); Check.Equal(DefenseMotionPhase.Ready, PlayerDefenseMotion.Sample(ending).Phase);
+        }
+
+        [Test] public void MissedParryReleasesSwingWithoutCreatingSuccessfulResults()
+        {
+            // Early, on time without a target, and expired in this or an earlier frame.
+            foreach (bool advanceFirst in new[] { false, true })
+            foreach (double release in new[] { .7, 1.5, 1.9 })
+            {
+                var b = Battle(defense: "tower-shield"); b.Press(6, 0);
+                if (advanceFirst) b.Advance(release);
+                b.Release(6, release);
+                Check.Equal(1, b.MissCount); Check.Equal(RhythmGrade.Miss, b.LaneAt(6).LastGrade);
+                Check.Equal(DefenseMotionPhase.Windup, PlayerDefenseMotion.Sample(b).Phase);
+                double cooldown = b.LaneAt(6).ReadyAtBeat;
+                b.Advance(release + .08); var frame = PlayerDefenseMotion.Sample(b);
+                Check.Equal(4, frame.Directions); Check.Equal(DefenseMotionPhase.Smear, frame.Phase);
+                Check.Equal(0m, b.TotalBlocked); Check.Equal(0, b.PerfectCount); Check.Equal(0, DefenseHoldMotion.Mask(b));
+                Check.Equal(cooldown, b.LaneAt(6).ReadyAtBeat);
+                b.Advance(release + .6); Check.Equal(DefenseMotionPhase.Ready, PlayerDefenseMotion.Sample(b).Phase);
+            }
+        }
+
+        [Test] public void WhiffInAnotherDirectionDoesNotStealAnExistingHoldContact()
+        {
+            var b = Battle(incoming: new[] { new BeatAttack("held", 1, 8, 4, defenseDirection: 0) });
+            b.Press(6, .2); b.Release(6, .21); b.Press(4, 1);
+            double cooldown = b.LaneAt(6).ReadyAtBeat;
+            b.Press(6, 1.8); b.Release(6, 1.81); b.Advance(1.88);
+            Check.Equal(4, PlayerDefenseMotion.Sample(b).Directions);
+            Check.Equal(DefenseMotionPhase.Smear, PlayerDefenseMotion.Sample(b).Phase);
+            Check.Equal(1, DefenseHoldMotion.Mask(b)); Check.Equal(1, DefenseArtifactMotion.Mask(b));
+            Check.Equal(cooldown, b.LaneAt(6).ReadyAtBeat);
+            b.Advance(2.4); Check.Equal(1, PlayerDefenseMotion.Sample(b).Directions);
+            Check.Equal(DefenseMotionPhase.Hold, PlayerDefenseMotion.Sample(b).Phase);
+            Check.Equal(1, DefenseHoldMotion.Mask(b)); Check.Equal(100m, b.PlayerHealth);
+        }
+
+        [Test] public void OnlyNewLiveDefenseEdgesRestartAWhiff()
+        {
+            var b = Battle(); b.Press(4, .2); b.Release(4, .21); b.Press(4, .8);
+            b.Press(4, .88); b.Press(0, .88);
+            Check.Equal(.8, b.LaneAt(4).LastInputBeat);
+            Check.Equal(DefenseMotionPhase.Smear, PlayerDefenseMotion.Sample(b).Phase);
+            b.Pause(); b.Press(6, 20); b.Release(4, 20);
+            Check.Equal(double.NegativeInfinity, b.LaneAt(6).LastInputBeat);
+            Check.Equal(DefenseMotionPhase.Smear, PlayerDefenseMotion.Sample(b).Phase);
+            b.Resume(); b.Release(4, .9); b.Release(4, .91); b.Advance(1.4);
+            Check.Equal(DefenseMotionPhase.Ready, PlayerDefenseMotion.Sample(b).Phase);
+            b.Stop(); b.Press(6, 2);
+            Check.Equal(double.NegativeInfinity, b.LaneAt(6).LastInputBeat);
+            Check.Equal(DefenseMotionPhase.Ready, PlayerDefenseMotion.Sample(b).Phase);
+        }
+
+        [Test] public void LateWhiffInterruptsAnOlderHitReactionButLaterDamageStillShowsHit()
+        {
+            var b = Battle(incoming: new[] { new BeatAttack("first", 1, 5, defenseDirection: 0),
+                new BeatAttack("second", 1.5, 5, defenseDirection: 0) });
+            b.Advance(1.3); Check.Equal("Base Layer.Hit", FiveLaneArtTimeline.Player(b).State);
+            b.Press(6, 1.3); b.Release(6, 1.31); b.Advance(1.38);
+            Check.Equal(DefenseMotionPhase.Smear, PlayerDefenseMotion.Sample(b).Phase);
+            Check.Equal("Base Layer.Guard", FiveLaneArtTimeline.Player(b).State);
+            Check.Equal(95m, b.PlayerHealth); Check.Equal(0m, b.TotalBlocked);
+            b.Advance(1.75);
+            Check.Equal(DefenseMotionPhase.Hit, PlayerDefenseMotion.Sample(b).Phase);
+            Check.Equal("Base Layer.Hit", FiveLaneArtTimeline.Player(b).State);
+            Check.Equal(90m, b.PlayerHealth);
+        }
+
+        [Test] public void UnansweredAttacksNeverStartADefenseSwingEvenWithoutAnArtifact()
+        {
+            var attack = new[] { new BeatAttack("enemy", 1, 5, defenseDirection: 0) };
+            var bare = new FiveLaneBattle(new[] { new WeaponState("dagger") }, 120, 64,
+                attack, new StageHealth(10000), 100, 100, separateHands: true);
+            foreach (var b in new[] { Battle(incoming: attack), bare })
+            {
+                b.Advance(1.3); Check.Equal(DefenseMotionPhase.Hit, PlayerDefenseMotion.Sample(b).Phase);
+                Check.Equal("Base Layer.Hit", FiveLaneArtTimeline.Player(b).State);
+                b.Advance(1.8); Check.Equal(DefenseMotionPhase.Ready, PlayerDefenseMotion.Sample(b).Phase);
+                Check.Equal("Base Layer.Idle", FiveLaneArtTimeline.Player(b).State);
+            }
         }
 
         [Test] public void AllFifteenActionsHaveTheirOwnClipAndAllSixParts()

@@ -289,6 +289,52 @@ namespace BBSB.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest] public IEnumerator EmptyCooldownTapRendersTheWholeSwingWithoutAContactEffect()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>(); Assert.IsTrue(presenter.StartFiveLaneBattle());
+            var playback = root.GetComponentInChildren<FiveLanePlayback>(); playback.Battle.Pause();
+            var body = playback.GetComponentInChildren<PlayerDefenseView>();
+            var artifact = playback.GetComponentInChildren<DefenseArtifactGraphic>();
+            var battle = new FiveLaneBattle(new[] { new WeaponState("dagger"), new WeaponState("heater-shield") }, 120, 16,
+                System.Array.Empty<BeatAttack>(), new StageHealth(1000), 100, 100, separateHands: true);
+            body.Bind(body.GetComponent<ActorPrefabView>(), battle, RunCharacterDefinition.DefaultId);
+            artifact.Bind(battle, (RectTransform)body.transform);
+            battle.Press(6, .2); battle.Release(6, .21);
+            double cooldown = battle.LaneAt(6).ReadyAtBeat;
+            battle.Press(6, .8); battle.Release(6, .81);
+            Assert.AreEqual(PhraseLanePhase.Cooldown, battle.LaneAt(6).Phase);
+            Assert.IsFalse(battle.IsInputHeld(6));
+            var ages = new[] { .01, .08, .18, .33, .6 };
+            var phases = new[] { DefenseMotionPhase.Windup, DefenseMotionPhase.Smear, DefenseMotionPhase.Contact,
+                DefenseMotionPhase.Recover, DefenseMotionPhase.Ready };
+            Sprite previous = null;
+            for (int i = 0; i < ages.Length; i++)
+            {
+                battle.Resume(); battle.Advance(.8 + ages[i]); battle.Pause();
+                playback.SendMessage("LateUpdate"); Canvas.ForceUpdateCanvases();
+                Assert.AreEqual(phases[i], body.Frame.Phase);
+                Assert.AreEqual(i == 4 ? 0 : 4, body.Frame.Directions);
+                Assert.AreEqual(0, artifact.ActiveDirections); Assert.AreEqual(0, artifact.HeldDirections);
+                Assert.AreEqual(0, artifact.GetComponentInChildren<DefenseHoldGraphic>().canvasRenderer.GetMesh().vertexCount);
+                if (body.HasDirectionalArtwork)
+                {
+                    Assert.IsNotNull(body.CurrentPose); Assert.AreNotSame(previous, body.CurrentPose);
+                    var image = body.GetComponentsInChildren<Image>().Single(x => x.name == "Defense character pose");
+                    Assert.AreSame(body.CurrentPose, image.sprite); Assert.IsTrue(image.enabled);
+                    previous = body.CurrentPose;
+                }
+                AssertActorVisible(body.GetComponent<ActorPrefabView>());
+                string capture = System.Environment.GetEnvironmentVariable("BBSB_MOTION_CAPTURE_DIR");
+                if (i == 1 && !string.IsNullOrEmpty(capture)) CaptureLayout(System.IO.Path.Combine(capture, "empty-up-swing.png"));
+            }
+            Assert.AreEqual(cooldown, battle.LaneAt(6).ReadyAtBeat);
+            Assert.AreEqual(0, battle.PerfectCount); Assert.AreEqual(0, battle.MissCount);
+            Assert.AreEqual(0, battle.TotalBlocked); Assert.AreEqual(0, battle.TotalReduced);
+            Assert.AreEqual(100, battle.PlayerHealth);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         [UnityTest] public IEnumerator KeyboardRoutesAllEightKeysAndKeepsAttackAndDefenseIndependent()
         {
             yield return OpenPreparation();
