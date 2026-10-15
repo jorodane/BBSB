@@ -13,6 +13,35 @@ namespace BBSB.Runtime.UI
         public GameObject Instance { get; private set; }
         private readonly List<SpriteCanvasGraphic> sprites = new List<SpriteCanvasGraphic>();
         private Image fallback;
+        private Image poseOverride;
+        private bool fallbackBeforeOverride;
+        public void SetPoseOverride(Sprite sprite, float referenceHeight, bool flip, Vector2 offset = default, float rotation = 0)
+        {
+            bool wasOverridden = poseOverride != null && poseOverride.enabled;
+            if (sprite != null && !wasOverridden && fallback != null) fallbackBeforeOverride = fallback.enabled;
+            if (sprite != null && poseOverride == null)
+            {
+                var rect = new GameObject("Defense character pose", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image)).GetComponent<RectTransform>();
+                rect.SetParent(transform, false); rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0);
+                rect.anchoredPosition = Vector2.zero;
+                poseOverride = rect.GetComponent<Image>(); poseOverride.raycastTarget = false;
+            }
+            if (poseOverride != null)
+            {
+                poseOverride.enabled = sprite != null; poseOverride.sprite = sprite;
+                if (sprite != null)
+                {
+                    poseOverride.rectTransform.pivot = sprite.pivot / sprite.rect.size;
+                    poseOverride.rectTransform.sizeDelta = sprite.rect.size / sprite.pixelsPerUnit * (512 / Mathf.Max(.001f, referenceHeight));
+                    poseOverride.rectTransform.localScale = new Vector3(flip ? -1 : 1, 1, 1);
+                    poseOverride.rectTransform.anchoredPosition = offset * 512;
+                    poseOverride.rectTransform.localRotation = Quaternion.Euler(0, 0, rotation);
+                    poseOverride.rectTransform.SetAsLastSibling();
+                }
+            }
+            if (sprite == null && wasOverridden && fallback != null) fallback.enabled = fallbackBeforeOverride;
+            RefreshSprites();
+        }
         public void Initialize(GameObject prefab, RuntimeAnimatorController controller, Sprite portrait, float referenceHeight = 4)
         {
             if (Instance != null) throw new InvalidOperationException("Actor visual already initialized.");
@@ -83,12 +112,14 @@ namespace BBSB.Runtime.UI
         }
         public void RefreshSprites()
         {
+            bool overridden = poseOverride != null && poseOverride.enabled;
+            if (fallback != null && overridden) fallback.enabled = false;
             sprites.Sort((a, b) => {
                 int layer = SortingLayer.GetLayerValueFromID(a.Source.sortingLayerID).CompareTo(SortingLayer.GetLayerValueFromID(b.Source.sortingLayerID));
                 return layer != 0 ? layer : a.Source.sortingOrder.CompareTo(b.Source.sortingOrder);
             });
             for (int i = 0; i < sprites.Count; i++)
-            { sprites[i].transform.SetSiblingIndex(i + 1); sprites[i].Refresh(); }
+            { sprites[i].transform.SetSiblingIndex(i + 1); sprites[i].Refresh(); if (overridden) sprites[i].enabled = false; }
         }
     }
 }

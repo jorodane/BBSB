@@ -113,3 +113,8 @@ InitTestScene*.unity*
 
 # Gesture artwork is delivered separately for the user to upload.
 /Assets/BBSB/Resources/BBSB/GestureIcons/**/*.png
+
+# Character defense animation artwork is delivered as an alpha PNG ZIP, outside Git.
+/Assets/BBSB/Resources/BBSB/DefenseMotion/
+/Assets/BBSB/Resources/BBSB/DefenseMotion.meta
+/BBSB_Defense_Motion*.zip

@@ -26,7 +26,7 @@ namespace BBSB.Runtime.UI
             for (int d = 0; d < 4; d++)
             {
                 var lane = battle.LaneAt(4 + d);
-                if (lane != null && (FiveLaneArtTimeline.Guarding(lane) ||
+                if (lane != null && (FiveLaneArtTimeline.Guarding(lane) || (!lane.Phrase.ReleaseEndsPhrase || lane.Phrase.ParriesOnKeyUp) &&
                     lane.LastGrade != RhythmGrade.Miss && FiveLaneArtTimeline.Recent(battle.Beat, lane.LastJudgedBeat, .3)))
                     mask |= 1 << d;
             }
@@ -34,27 +34,7 @@ namespace BBSB.Runtime.UI
         }
         public static WeaponMotionFrame Sample(FiveLaneBattle battle)
         {
-            int mask = Mask(battle), count = 0;
-            double latest = double.NegativeInfinity;
-            for (int d = 0; d < 4; d++) if ((mask & 1 << d) != 0)
-            {
-                count++;
-                var lane = battle.LaneAt(4 + d);
-                latest = Math.Max(latest, Math.Max(lane.InvokedAtBeat, lane.LastJudgedBeat));
-            }
-            if (count == 0) return new WeaponMotionFrame(new BattlePathPoint(.06, -.08), 52, 1);
-            double age = Math.Max(0, battle.Beat - latest);
-            double stroke = Math.Sin(Math.Min(1, age / .3) * Math.PI) * 13;
-            if (mask == 9) return new WeaponMotionFrame(new BattlePathPoint(0, 0), stroke, 1.12);
-            if (mask == 6) return new WeaponMotionFrame(new BattlePathPoint(0, 0), 90 + stroke, 1.12);
-            if (count == 1)
-            {
-                int d = mask == 1 ? 0 : mask == 2 ? 1 : mask == 4 ? 2 : 3;
-                return new WeaponMotionFrame(Contact(d), (d == 0 || d == 3 ? 90 : 0) + stroke, 1);
-            }
-            // Adjacent pairs and three/four-way chords sweep one double-ended staff.
-            // Both ends leave a trail; independent contacts remain visible throughout.
-            return new WeaponMotionFrame(new BattlePathPoint(0, 0), -55 + age * 540, 1.12);
+            return PlayerDefenseMotion.Staff(PlayerDefenseMotion.Sample(battle));
         }
         public static BattlePathPoint Projectile(BattlePathPoint source, BattlePathPoint body,
             double height, int direction, double progress)

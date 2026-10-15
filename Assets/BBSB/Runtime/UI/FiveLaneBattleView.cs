@@ -17,6 +17,7 @@ namespace BBSB.Runtime.UI
         private readonly List<ActorPrefabView> monsters = new List<ActorPrefabView>();
         private readonly List<string> monsterIds = new List<string>();
         private readonly ActorPrefabView player;
+        private readonly PlayerDefenseView defensePlayer;
         private readonly FiveLaneEffectsView effects;
         private readonly FiveLaneWeaponsView weapons;
         private readonly BattleThemeView themeView;
@@ -139,6 +140,11 @@ namespace BBSB.Runtime.UI
                 attackLabels.Add(cue);
             }
             var playerBody = stageActors[0].Visual;
+            if (battle.SeparateHands && battle.LaneAt(4) != null)
+            {
+                defensePlayer = player.gameObject.AddComponent<PlayerDefenseView>();
+                defensePlayer.Bind(player, battle, session.CharacterId);
+            }
             weapons = new FiveLaneWeaponsView(battle, ui, hud, playerBody, enemySlots, monsterIds);
             tracks.Bind(battle, hud.judgmentPoints, playerBody, hud.monsterArea);
             tracks.BindEnemySlots(enemySlots, monsterIds);
@@ -265,13 +271,15 @@ namespace BBSB.Runtime.UI
             }
             var heroFrame = FiveLaneArtTimeline.Player(battle);
             player.Sample(heroFrame.State, heroFrame.Age, heroFrame.Duration, heroFrame.Loop);
+            if (defensePlayer != null) defensePlayer.Refresh();
+            weapons.StaffInCharacterPose = defensePlayer != null && defensePlayer.StaffInPose;
             AttackMotionState heroMotion = default;
             foreach (var lane in battle.Lanes)
             {
                 var motion = FiveLaneAttackMotion.Player(battle, lane);
                 if (motion.Active && (!heroMotion.Active || motion.StartBeat > heroMotion.StartBeat)) heroMotion = motion;
             }
-            if (heroFrame.State != "Base Layer.Hit") stageActors[0].Attack(heroMotion, battle.Beat, 1);
+            if (!battle.SeparateHands && heroFrame.State != "Base Layer.Hit") stageActors[0].Attack(heroMotion, battle.Beat, 1);
             double nearestAttack = double.PositiveInfinity;
             for (int i = 0; i < monsters.Count; i++)
             {

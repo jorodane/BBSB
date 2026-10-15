@@ -14,6 +14,7 @@ namespace BBSB.Runtime.UI
         private readonly List<WeaponIconGraphic> weapons = new List<WeaponIconGraphic>();
         private readonly List<PhraseLane> weaponLanes = new List<PhraseLane>();
         private readonly DefenseArtifactGraphic artifact;
+        internal bool StaffInCharacterPose { set { if (artifact != null) artifact.StaffInCharacterPose = value; } }
 
         internal FiveLaneWeaponsView(FiveLaneBattle battle, RunUI ui, FiveLaneHudBindings hud,
             RectTransform playerBody, List<RectTransform> enemies, List<string> instances)

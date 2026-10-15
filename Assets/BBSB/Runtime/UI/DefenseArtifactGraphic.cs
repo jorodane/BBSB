@@ -11,6 +11,7 @@ namespace BBSB.Runtime.UI
     {
         private FiveLaneBattle battle;
         private RectTransform player;
+        public bool StaffInCharacterPose { get; internal set; }
         public int ActiveDirections => battle == null ? 0 : DefenseArtifactMotion.Mask(battle);
         internal void Bind(FiveLaneBattle value, RectTransform body)
         { battle = value; player = body; raycastTarget = false; SetAllDirty(); }
@@ -42,12 +43,27 @@ namespace BBSB.Runtime.UI
                 Line(vh, tail - side, point, height * .006f, tint);
             }
             var grip = center + new Vector2((float)frame.Position.X, (float)frame.Position.Y) * height;
-            bool sweep = mask != 0 && mask != 1 && mask != 2 && mask != 4 && mask != 8 && mask != 9 && mask != 6;
-            if (sweep)
-                for (int i = 1; i <= 3; i++)
-                    DrawStaff(vh, grip, height * .88f * (float)frame.Scale, (float)frame.Rotation - i * 18,
-                        new Color(.45f, 1, .9f, .18f / i));
+            if (StaffInCharacterPose) return;
+            var motion = PlayerDefenseMotion.Sample(battle);
+            if (motion.Smear > 0) Smear(vh, grip, height * .53f, (float)frame.Rotation);
             DrawStaff(vh, grip, height * .88f * (float)frame.Scale, (float)frame.Rotation, Color.white);
+        }
+        private static void Smear(VertexHelper vh, Vector2 center, float radius, float angle)
+        {
+            // A tapered filled silhouette, not copies of the weapon. It exists only
+            // in the fast stroke, never for the duration of a held chord.
+            for (int end = 0; end < 2; end++)
+            for (int i = 0; i < 16; i++)
+            {
+                float t = i / 16f, next = (i + 1) / 16f;
+                float a = (angle + end * 180 - 115 + t * 115) * Mathf.Deg2Rad;
+                float b = (angle + end * 180 - 115 + next * 115) * Mathf.Deg2Rad;
+                var u = new Vector2(Mathf.Cos(a), Mathf.Sin(a)); var v = new Vector2(Mathf.Cos(b), Mathf.Sin(b));
+                Quad(vh, center + u * radius, center + v * radius,
+                    center + v * radius * (1 - .34f * next), center + u * radius * (1 - .34f * t), new Color(.12f, .06f, .16f, .9f));
+                Line(vh, center + u * radius * .99f, center + v * radius * .99f, radius * .015f, new Color(1, .72f, .36f, .95f));
+                Line(vh, center + u * radius * (1 - .2f * t), center + v * radius * (1 - .2f * next), radius * .018f, new Color(1, .15f, .62f, .9f));
+            }
         }
         private Vector2 At(float x, float y) => rectTransform.InverseTransformPoint(player.TransformPoint(
             new Vector2(Mathf.Lerp(player.rect.xMin, player.rect.xMax, x), Mathf.Lerp(player.rect.yMin, player.rect.yMax, y))));

@@ -163,6 +163,73 @@ namespace BBSB.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [Test] public void PoseOverrideRestoresImageVisibilityAndDoesNotReplaceAnotherCharacter()
+        {
+            root = new GameObject("Pose override test", typeof(RectTransform), typeof(Canvas));
+            var texture = new Texture2D(4, 4);
+            var sprite = Sprite.Create(texture, new Rect(0, 0, 4, 4), new Vector2(.5f, 0));
+            try
+            {
+                var actor = root.AddComponent<ActorPrefabView>(); actor.Initialize(null, null, sprite);
+                var original = actor.Instance.GetComponentInChildren<Image>();
+                original.enabled = false; actor.RefreshSprites(); Assert.IsFalse(original.enabled);
+                actor.SetPoseOverride(sprite, 1, false); Assert.IsFalse(original.enabled);
+                actor.SetPoseOverride(null, 1, false); Assert.IsFalse(original.enabled, "Restore the artist's hidden state.");
+                original.enabled = true;
+                actor.SetPoseOverride(sprite, 1, true); Assert.IsFalse(original.enabled);
+                actor.SetPoseOverride(null, 1, false); Assert.IsTrue(original.enabled);
+                var battle = new FiveLaneBattle(new[] { new WeaponState("heater-shield") }, 120, 16,
+                    System.Array.Empty<BeatAttack>(), new StageHealth(100), 100, 100, separateHands: true);
+                var defense = root.AddComponent<PlayerDefenseView>(); defense.Bind(actor, battle, "another-character");
+                defense.Refresh(); Assert.IsFalse(defense.HasArtwork); Assert.IsFalse(defense.StaffInPose);
+                Assert.AreSame(sprite, original.sprite); Assert.IsTrue(original.enabled);
+            }
+            finally { Object.DestroyImmediate(sprite); Object.DestroyImmediate(texture); }
+        }
+
+        [UnityTest] public IEnumerator DefenseBodySamplesSmearContactAndRecoveryWithoutDuplicatingTheStaff()
+        {
+            yield return OpenPreparation();
+            var presenter = root.GetComponent<RunPresenter>();
+            Assert.IsTrue(presenter.StartFiveLaneBattle());
+            var playback = root.GetComponentInChildren<FiveLanePlayback>(); var battle = playback.Battle;
+            var body = playback.GetComponentInChildren<PlayerDefenseView>();
+            var artifact = playback.GetComponentInChildren<DefenseArtifactGraphic>();
+            Assert.IsNotNull(body);
+            battle.Press(4, .4); battle.Press(5, .4); battle.Press(7, .4); battle.Pause();
+            var clock = typeof(FiveLanePlayback).GetField("origin", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            clock.SetValue(playback, AudioSettings.dspTime - 10);
+            string captures = System.Environment.GetEnvironmentVariable("BBSB_MOTION_CAPTURE_DIR");
+            if (!string.IsNullOrEmpty(captures)) System.IO.Directory.CreateDirectory(captures);
+            var ages = new[] { 0, .03, .08, .18, .33, .41, .6 };
+            var phases = new[] { DefenseMotionPhase.Windup, DefenseMotionPhase.Windup, DefenseMotionPhase.Smear,
+                DefenseMotionPhase.Contact, DefenseMotionPhase.Recover, DefenseMotionPhase.Recover, DefenseMotionPhase.Hold };
+            for (int i = 0; i < ages.Length; i++)
+            {
+                battle.Resume(); battle.Advance(.4 + ages[i]); battle.Pause(); playback.SendMessage("LateUpdate");
+                Assert.AreEqual(phases[i], body.Frame.Phase);
+                Assert.AreEqual(body.HasArtwork, artifact.StaffInCharacterPose);
+                var pose = body.GetComponentsInChildren<Image>().FirstOrDefault(x => x.name == "Defense character pose");
+                if (body.HasArtwork)
+                {
+                    Assert.IsNotNull(pose); Assert.IsTrue(pose.enabled);
+                    Assert.AreEqual("Defense pose " + body.Frame.Pose, pose.sprite.name);
+                    Assert.IsTrue(body.GetComponentsInChildren<SpriteCanvasGraphic>().All(g => !g.enabled));
+                    Assert.AreEqual(0, pose.rectTransform.anchoredPosition.y, .01, "The planted foot pivot must stay on the ground.");
+                }
+                AssertActorVisible(body.GetComponent<ActorPrefabView>());
+                if (!string.IsNullOrEmpty(captures)) CaptureLayout(System.IO.Path.Combine(captures, i.ToString("00") + "-" + phases[i] + ".png"));
+            }
+            battle.Resume(); battle.Press(0, 1); battle.Pause(); playback.SendMessage("LateUpdate");
+            Assert.AreEqual(DefenseMotionPhase.Hold, body.Frame.Phase);
+            Assert.Greater(battle.TotalDamage, 0);
+            battle.Resume(); battle.Release(4, 1.1); battle.Release(5, 1.1); battle.Release(7, 1.1); battle.Pause();
+            playback.SendMessage("LateUpdate"); Assert.AreEqual(DefenseMotionPhase.Recover, body.Frame.Phase);
+            battle.Resume(); battle.Advance(1.4); battle.Pause(); playback.SendMessage("LateUpdate");
+            Assert.AreEqual(DefenseMotionPhase.Ready, body.Frame.Phase);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         [UnityTest] public IEnumerator KeyboardRoutesAllEightKeysAndKeepsAttackAndDefenseIndependent()
         {
             yield return OpenPreparation();
@@ -449,7 +516,7 @@ namespace BBSB.Tests
             bool sprite = actor.GetComponentsInChildren<SpriteCanvasGraphic>().Any(g => g.enabled && g.Source != null && g.Source.sprite != null);
             bool image = actor.GetComponentsInChildren<Image>().Any(g => g.enabled && g.sprite != null);
             Assert.IsTrue(sprite || image, actor.name + " has no visible artwork.");
-            foreach (var graphic in actor.GetComponentsInChildren<SpriteCanvasGraphic>())
+            foreach (var graphic in actor.GetComponentsInChildren<SpriteCanvasGraphic>().Where(g => g.enabled))
             {
                 Assert.IsNotNull(graphic.canvasRenderer, "Canvas meshes need a live CanvasRenderer.");
                 graphic.Rebuild(CanvasUpdate.PreRender);

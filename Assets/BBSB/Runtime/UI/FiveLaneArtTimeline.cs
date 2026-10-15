@@ -48,6 +48,11 @@ namespace BBSB.Runtime.UI
         public static FiveLaneActorFrame Player(FiveLaneBattle battle)
         {
             if (Recent(battle.Beat, battle.LastHitBeat, .4)) return new FiveLaneActorFrame("Hit", battle.Beat - battle.LastHitBeat, .4f);
+            if (battle.SeparateHands)
+            {
+                var defense = PlayerDefenseMotion.Sample(battle);
+                return new FiveLaneActorFrame(defense.Active ? "Guard" : "Idle", defense.Active ? defense.Age : battle.Beat, 2, true);
+            }
             double strike = double.NegativeInfinity;
             foreach (var lane in battle.InputLanes)
             {
